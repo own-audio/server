@@ -59,7 +59,8 @@ server what it offers instead of assuming.
 5. **Docker Hub for the image, GitHub for the public repository and the
    image builds** (Kornel, 2026-10-06). Names, decided the same day:
    GitHub organisation `own-audio`, repository `own-audio/server`; Docker
-   Hub `ownaudio/server`; binary `own-audio-server`; port 8080; data dir
+   Hub `kornelko2/own-audio-server` (decided later the same day: the
+   existing account, not a new one); binary `own-audio-server`; port 8080; data dir
    `/data`; library mounts `/library/<name>`; `PUID`/`PGID`. The
    organisation and the repository exist since 2026-10-06:
    `https://github.com/own-audio/server.git` is remote `origin` (private
@@ -167,8 +168,8 @@ probing api.own.audio**
 **Names that become permanent at 1.0** (a self-hoster's compose file carries
 them forever; the crate name does not matter, these do)
 
-- [x] Docker Hub `ownaudio/server` (account still to create); GitHub
-      `own-audio/server` exists, private. Kornel, 2026-10-06.
+- [x] Docker Hub `kornelko2/own-audio-server` (existing account); GitHub
+      `own-audio/server`, public. Kornel, 2026-10-06.
 - [x] Binary `own-audio-server`; env var names as already in use; port
       8080; `/data` for `STORAGE__KIND=local`; `/library/<name>` for
       library folders; `PUID`/`PGID`. Kornel, 2026-10-06.
@@ -531,10 +532,10 @@ default is just a prefilled host and stays.
 
 1. **GitHub is the public home; Docker Hub is where the image lives.** The
    repository is `own-audio/server` on GitHub, private until publication. GitHub Actions builds the multi-arch image (amd64 +
-   arm64) on every tag and pushes `ownaudio/server:v<semver>` and `latest`
-   to Docker Hub, with GHCR as a mirror. Forgejo stays a mirror.
+   arm64) on every tag and pushes `kornelko2/own-audio-server:<semver>` and `latest`
+   to Docker Hub, and the same to GHCR. Forgejo stays a mirror.
    `docker-compose.yml` uses
-   `image: ${SERVER_IMAGE:-ownaudio/server:latest}` with
+   `image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:…}` with
    Postgres and, optionally, an S3 store — **RustFS** (v1.0.1, Rust,
    S3-compatible) is on trial as that default since 2026-10-06 (Kornel's
    call: use it for development and testing, report bugs upstream); Garage

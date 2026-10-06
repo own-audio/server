@@ -305,7 +305,8 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 - **GitHub is the home, Docker Hub is where the image lives** (decided
   2026-10-06). Remote `origin` is `github.com/own-audio/server`
   (public since 2026-10-06); a Forgejo mirror remote (`forgejo`) exists on
-  Kornel's machine. The image is `ownaudio/server`, the binary `own-audio-server`,
+  Kornel's machine. The images are `ghcr.io/own-audio/server` and `kornelko2/own-audio-server`
+  (Docker Hub, Kornel's existing account), the binary `own-audio-server`,
   port 8080, data at `/data`, library folders at `/library/<name>`,
   `PUID`/`PGID` for the container user. These names are permanent from 1.0:
   every self-hoster's compose file carries them. GitHub Actions builds

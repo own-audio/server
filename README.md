@@ -70,8 +70,8 @@ docker compose up -d            # PostgreSQL 16, RustFS and the server
 ```
 
 Then open `http://localhost:8080` and create the first admin. The image is
-`ghcr.io/own-audio/server` (amd64 for now; arm64 comes with a native build
-runner). [INSTALL.md](INSTALL.md) has the details.
+`ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker Hub);
+amd64 and arm64. [INSTALL.md](INSTALL.md) has the details.
 
 ## Clients
 
