@@ -18,11 +18,15 @@ lives in the private `audio2` repository as a small binary crate that
 translation pipelines, the operator console and the production deployment.
 There is one copy of the core, and it is this one.
 
-State right now: **Phase 0.** The licence, policy and plan exist; the code has
-not been imported yet. `docs/IMPLEMENTATION_PLAN.md` says what happens next
-and in what order; `docs/SCOPE.md` says what is in and out; `docs/API_COMPATIBILITY.md`
-is the versioning policy every client relies on. Update their status tables
-as work lands.
+State right now: **the core is imported** (2026-10-06, a snapshot of the
+private codebase at its 0.1.56 with the hosted parts already split out — no
+history, by design). It builds, its 202 unit tests pass, `clippy -D warnings`
+is clean, `cargo deny` accepts every dependency licence, and the conformance
+suite passes against the compose stack. Not yet tagged.
+`docs/IMPLEMENTATION_PLAN.md` says what happens next and in what order;
+`docs/SCOPE.md` says what is in and out; `docs/API_COMPATIBILITY.md` is the
+versioning policy every client relies on. Update their status tables as work
+lands.
 
 ---
 
@@ -127,7 +131,7 @@ MusicBrainz API is on by default. Config-gated, reported in `features`.
 
 ---
 
-## 5. Layout (target, after Phase 1)
+## 5. Layout
 
 ```
 backend/src/
@@ -138,14 +142,23 @@ backend/src/
   audiobooks/ podcasts/ music/ youtube/           playback/   progress, queue, bookmarks
   metadata/   music-metadata client, Google Books, cover-art cascade, Wikimedia
   subsonic/   OpenSubsonic at /rest               filesync/   the own.audio folder protocol
-  library/scan/  read-only library folders         media/      server-served streams + local uploads
+  library/scan/  (Phase 4) read-only library folders   media/  (Phase 4) server-served streams
   trash/ uploads/ stats/ devices/ mail/           hooks.rs    the Hooks trait + NoopHooks
-backend/migrations/   numbered, forward-only, all 85 imported verbatim
-frontend/             React console (served from ui/dist by the binary)
+backend/migrations/   numbered, forward-only, all 85 imported verbatim (three
+                      billing tables and the generation tables stay dormant here)
+backend/assets/fonts/ PT Serif for the cover watermark + its OFL.txt
+frontend/             React console (served from ui/dist by the binary); hosted-only
+                      pages hide themselves when GET /api/v1/server says so
 i18n/                 the one catalog of UI strings (en + cs)
-conformance/          black-box API suite, takes --base-url
-docs/                 contract, policy, plan, scope, install/upgrade/backup
-docker-compose.yml  install.sh  Dockerfile (in backend/)
+conformance/          black-box API suite, takes --base-url; tools/seed_test_family.py
+docs/                 contract (android-client-guide, mobile-backend-api-spec),
+                      policy, plan, scope, LICENSING; the shipped-feature plans
+Cargo.toml            a one-member workspace so backend/Dockerfile's shape matches
+                      the hosted repo's; deny.toml; .gitleaks.toml
+docker-compose.yml    PostgreSQL + RustFS + server, for self-hosters (.env.example)
+install.sh            inherited, to be reworked in Phase 6
+.github/workflows/    ci.yml (check, clippy -D warnings, test, deny, console, gitleaks,
+                      conformance against the compose stack), release.yml (image on tag)
 ```
 
 **All SQL lives in `db/`.** Domain modules call into it; they don't embed
@@ -239,19 +252,24 @@ queries.
   the same rule as the rest of the family, for the same reason (a branch
   drifted and cost a hand-merge). Revisit when a second person contributes.
 - **Comments explain WHY, not WHAT.** Default to none.
-- `cargo check`, `cargo clippy -D warnings`, `cargo test`, the console
-  build, and `conformance/` against the compose stack before calling a
-  change done. `gitleaks detect` before every push.
+- `cargo check`, `cargo clippy -- -D warnings` (clean since the import —
+  keep it so), `cargo test`, the console build, and `conformance/` against
+  the compose stack before calling a change done. `gitleaks detect --no-git
+  --source .` before every push (`.gitleaks.toml` allowlists the one test
+  key and build output).
 - **Don't commit or push on the user's behalf** unless asked; prepare the
   change and show it. (Global rule; nothing here overrides it.)
 
 ```bash
-# after Phase 1
-docker compose up -d                 # postgres + garage + server
-docker compose build server && docker compose up -d   # after code/migration change
-cargo check && cargo clippy -- -D warnings && cargo test
+cp .env.example .env                 # set the three secrets; on this machine use PORT=8083,
+                                     # S3_PORT=9002, S3_CONSOLE_PORT=9003 (8080/9000 belong to audio2's dev stack)
+docker compose up -d                 # postgres + rustfs + server (built from source)
+docker compose build server && docker compose up -d   # after a code or migration change
+cd backend && cargo check && cargo clippy -- -D warnings && cargo test
 cd frontend && npm run i18n && npm run build
-python3 conformance/run.py --base-url http://localhost:8080
+curl -X POST localhost:8083/api/v1/setup/complete -H 'Content-Type: application/json' \
+  -d '{"email":"admin@example.com","password":"…","display_name":"Admin"}'   # first admin, once
+python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@example.com --admin-password '…'
 ```
 
 ---
@@ -283,20 +301,17 @@ python3 conformance/run.py --base-url http://localhost:8080
 
 ---
 
-## 9. Where we left off (2026-10-06)
+## 9. Where we left off (2026-10-06, late)
 
-Phase 0 done. Decided 2026-10-06 and recorded in the plan's §1 and §1a:
-AGPL-3.0-or-later; narration/translation hosted-only; SSO in; public
-MusicBrainz and podcast directories instead of the private mirror; SMTP
-mail; read-only library folders before 1.0; names (`own-audio/server`,
-`ownaudio/server`); rate limiting + security pass + `security@` +
-`cargo audit`; conformance suite before the seam; no Dependabot; nothing on
-the marketing site until publication. Open without deadline: rotate the
-Google Cloud key that leaked into `audio2`'s history (`AIzaSyD3S28JJ…`,
-commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer review; EUIPO mark.
-Nothing is committed yet: Kornel commits. Licence rationale
-is in `docs/LICENSING.md`; read-only library folders are Phase 4 of the plan. Scope decided (`docs/SCOPE.md` decisions
-table). Next: Phase 2 step 1 — build the seam **inside `audio2`** while it
-is still one repo (Hooks trait, route split, job registry, config split),
-then Phase 1's import of the tree that already has the seam. Read
-`docs/IMPLEMENTATION_PLAN.md` §4 before starting.
+Phase 0 done; Phase 1 (import) done in the working tree — commit pending the
+compose-stack conformance run; the hosted repo's S1–S6 are committed and on
+canary. Next, in order: tag `v1.0.0-alpha.1`; in `audio2`, switch
+`hosted/Cargo.toml` to the git tag, delete `backend/`, `frontend/`, `i18n/`
+there, rewrite its CLAUDE.md (draft exists), fix its frontend CI to build the
+console from this repo at the pinned tag; promote the two-crate build to
+production with `SERVER__CORS_ORIGINS`/`TRUST_PROXY_HEADERS` set. Open without
+deadline: rotate the Google Cloud key that leaked into `audio2`'s history
+(`AIzaSyD3S28JJ…`, commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer;
+EUIPO. RustFS passed its first full conformance run (321/321); keep watching
+it. Mail is still JMAP code (Phase 6 replaces it with SMTP); `install.sh` and
+`README`'s run instructions still describe the old Garage stack.

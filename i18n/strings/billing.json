@@ -1,0 +1,47 @@
+{
+  "billing.page.title": { "en": "Storage & credit", "cs": "Úložiště a kredit" },
+  "billing.depleted.title": { "en": "Your credit has run out.", "cs": "Kredit vám došel." },
+  "billing.depleted.body": { "en": "Add credit to keep the library where it is.", "cs": "Přidejte kredit, aby knihovna zůstala, kde je." },
+
+  "billing.credit": { "en": "Credit", "cs": "Kredit" },
+  "billing.daysLeft": { "en": "Days left", "cs": "Zbývá dní" },
+  "billing.runsOut": { "en": "Runs out {date}", "cs": "Dojde {date}" },
+  "billing.costing": { "en": "Costing you", "cs": "Stojí vás" },
+  "billing.perMonthAt": { "en": "a month at {size}", "cs": "měsíčně při {size}" },
+
+  "billing.usage.title": { "en": "What's using the space", "cs": "Co zabírá místo" },
+  "billing.usage.price": { "en": "{price} per GB per month", "cs": "{price} za GB měsíčně" },
+  "billing.usage.other": { "en": "Everything else", "cs": "Vše ostatní" },
+  "billing.usage.share": { "en": "{share, number, percent}", "cs": "{share, number, percent}" },
+  "billing.usage.unsized": {
+    "en": "{count, plural, one {# file has no recorded size yet, so the total above is a slight undercount.} other {# files have no recorded size yet, so the total above is a slight undercount.}}",
+    "cs": "{count, plural, one {# soubor zatím nemá zaznamenanou velikost, takže součet výše je mírně podhodnocený.} few {# soubory zatím nemají zaznamenanou velikost, takže součet výše je mírně podhodnocený.} other {# souborů zatím nemá zaznamenanou velikost, takže součet výše je mírně podhodnocený.}}"
+  },
+  "billing.usage.trash": {
+    "en": "<link>Trash</link>: {size} in {count, plural, one {# item} other {# items}} — not counted above and not charged unless restored.",
+    "cs": "<link>Koš</link>: {size} v {count, plural, one {# položce} few {# položkách} other {# položkách}} — nezapočítává se výše a neúčtuje se, dokud ho neobnovíte."
+  },
+
+  "billing.topup.title": { "en": "Add credit", "cs": "Přidat kredit" },
+  "billing.topup.unavailable": { "en": "Buying credit isn't available on this server yet.", "cs": "Nákup kreditu na tomto serveru zatím není k dispozici." },
+  "billing.topup.error": { "en": "Couldn't start that payment", "cs": "Platbu se nepodařilo zahájit" },
+  "billing.topup.errorDetail": { "en": "Try again in a moment.", "cs": "Zkuste to za chvíli znovu." },
+  "billing.topup.range": { "en": "Pick an amount between {min} and {max}", "cs": "Zvolte částku od {min} do {max}" },
+  "billing.topup.custom": { "en": "Custom amount", "cs": "Vlastní částka" },
+  "billing.topup.other": { "en": "Other", "cs": "Jiná", "note": "Placeholder of the custom amount field (a částka)." },
+
+  "billing.alerts.title": { "en": "Warn me before it runs out", "cs": "Upozornit mě, než dojde" },
+  "billing.alerts.description": { "en": "Alerts appear in your notifications — own.audio has no push notifications yet. Leave a field empty to turn that rule off.", "cs": "Upozornění se zobrazí ve vašich oznámeních — own.audio zatím nemá push notifikace. Prázdné pole dané pravidlo vypne." },
+  "billing.alerts.balance": { "en": "Credit drops below ({currency})", "cs": "Kredit klesne pod ({currency})" },
+  "billing.alerts.days": { "en": "Less than this many days left", "cs": "Zbývá méně dní než" },
+  "billing.alerts.saved": { "en": "Alerts saved", "cs": "Upozornění uložena" },
+  "billing.alerts.saveError": { "en": "Couldn't save that", "cs": "Nepodařilo se to uložit" },
+  "billing.tryAgain": { "en": "Try again.", "cs": "Zkuste to znovu." },
+
+  "billing.entries.title": { "en": "Recent charges", "cs": "Nedávné pohyby", "note": "Heading over storage charges and credit top-ups." },
+  "billing.entries.topup": { "en": "Credit added", "cs": "Kredit přidán" },
+  "billing.entries.storage": { "en": "Storage", "cs": "Úložiště" },
+
+  "billing.readOnly": { "en": "Read only", "cs": "Jen pro čtení" },
+  "billing.readOnlyNote": { "en": "Only a family admin can add credit or change alerts.", "cs": "Kredit a upozornění může měnit jen správce rodiny." }
+}

@@ -1,0 +1,14 @@
+{
+  "notFound.title": {
+    "en": "There's nothing here",
+    "cs": "Nic tu není"
+  },
+  "notFound.body": {
+    "en": "The page may have moved, or the link was wrong.",
+    "cs": "Stránka se možná přesunula, nebo byl odkaz chybný."
+  },
+  "notFound.back": {
+    "en": "Back to the library",
+    "cs": "Zpět do knihovny"
+  }
+}

@@ -1,0 +1,103 @@
+[package]
+name = "audio2"
+version = "0.1.56"
+edition = "2021"
+rust-version = "1.88"
+license = "AGPL-3.0-or-later"
+description = "The own.audio server: audiobooks, podcasts and music for a family, self-hosted."
+repository = "https://github.com/own-audio/server"
+# Not a crates.io crate: consumed by path (here) or by git tag (the hosted edition after the split).
+publish = false
+
+[[bin]]
+name = "audio2"
+path = "src/main.rs"
+
+[lib]
+name = "audio2"
+path = "src/lib.rs"
+
+[dependencies]
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Web framework
+axum = { version = "0.8", features = ["macros", "http2", "multipart"] }
+axum-extra = { version = "0.10", features = ["cookie", "query", "typed-header"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["cors", "trace", "fs", "compression-gzip"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Database (PostgreSQL, async)
+sqlx = { version = "0.8", features = [
+    "runtime-tokio",
+    "tls-rustls",
+    "postgres",
+    "chrono",
+    "uuid",
+    "json",
+    "macros",
+    "migrate",
+] }
+
+# Auth
+argon2 = "0.5"
+jsonwebtoken = "9"
+
+# HTTP client
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "stream"] }
+
+# Object storage (S3-compatible: Garage, MinIO, AWS)
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-s3 = { version = "1" }
+aws-credential-types = "1"
+
+# Tracing / observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+config = { version = "0.14", features = ["toml"] }
+dotenvy = "0.15"
+
+# Utilities
+uuid = { version = "1", features = ["v4", "v5", "serde"] }
+chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
+thiserror = "2"
+anyhow = "1"
+async-trait = "0.1"
+rand = "0.9"
+base64 = "0.22"
+url = "2"
+# Subsonic auth params are hand-parsed from the query string (see
+# subsonic/auth.rs) — a repeated key must not fail the whole request.
+form_urlencoded = "1"
+bytes = "1"
+sha2 = "0.10"
+md-5 = "0.10"
+rss = "2"
+mime_guess = "2"
+tempfile = "3"
+urlencoding = "2"
+# Paths in the own.audio folder are stored NFC (filesync::paths): macOS hands
+# out decomposed names, and the same name must compare equal everywhere.
+unicode-normalization = "0.1"
+quick-xml = { version = "0.36", features = ["serialize"] }
+# Cover-art title/author text overlay (audiobook_gen::cover).
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+imageproc = "0.25"
+ab_glyph = "0.2"
+regex = "1"
+encoding_rs = "0.8"
+# Embedded audio tag reading (music::lyrics) — reads the lyrics/USLT frame
+# generically across MP3/FLAC/M4A/OGG via ItemKey::Lyrics rather than one
+# format-specific parser per codec.
+lofty = "0.25"
+rustfft = "6.4.1"
+governor = "0.10"
+
+[dev-dependencies]
+tokio-test = "0.4"

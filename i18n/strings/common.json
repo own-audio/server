@@ -1,0 +1,287 @@
+{
+  "common.action.cancel": {
+    "en": "Cancel",
+    "cs": "Zrušit"
+  },
+  "common.action.save": {
+    "en": "Save",
+    "cs": "Uložit"
+  },
+  "common.action.delete": {
+    "en": "Delete",
+    "cs": "Smazat",
+    "note": "Delete for good; removing from a list is common.action.remove."
+  },
+  "common.action.remove": {
+    "en": "Remove",
+    "cs": "Odebrat"
+  },
+  "common.action.close": {
+    "en": "Close",
+    "cs": "Zavřít"
+  },
+  "common.action.done": {
+    "en": "Done",
+    "cs": "Hotovo"
+  },
+  "common.action.edit": {
+    "en": "Edit",
+    "cs": "Upravit"
+  },
+  "common.action.rename": {
+    "en": "Rename",
+    "cs": "Přejmenovat"
+  },
+  "common.action.add": {
+    "en": "Add",
+    "cs": "Přidat"
+  },
+  "common.action.upload": {
+    "en": "Upload",
+    "cs": "Nahrát"
+  },
+  "common.action.share": {
+    "en": "Share",
+    "cs": "Sdílet"
+  },
+  "common.action.play": {
+    "en": "Play",
+    "cs": "Přehrát",
+    "note": "Verb."
+  },
+  "common.action.pause": {
+    "en": "Pause",
+    "cs": "Pozastavit"
+  },
+  "common.action.resume": {
+    "en": "Resume",
+    "cs": "Pokračovat"
+  },
+  "common.action.retry": {
+    "en": "Try again",
+    "cs": "Zkusit znovu"
+  },
+  "common.action.back": {
+    "en": "Back",
+    "cs": "Zpět"
+  },
+  "common.action.next": {
+    "en": "Next",
+    "cs": "Další"
+  },
+  "common.action.previous": {
+    "en": "Previous",
+    "cs": "Předchozí"
+  },
+  "common.action.seeAll": {
+    "en": "See all",
+    "cs": "Zobrazit vše",
+    "note": "Link from a Home carousel to the full list."
+  },
+  "common.action.seeMore": {
+    "en": "See more",
+    "cs": "Zobrazit více",
+    "note": "Link from a Home summary to its page."
+  },
+  "common.action.showMore": {
+    "en": "Show more",
+    "cs": "Zobrazit další",
+    "note": "Loads more rows of the same list."
+  },
+  "common.action.search": {
+    "en": "Search",
+    "cs": "Hledat"
+  },
+  "common.action.signIn": {
+    "en": "Sign in",
+    "cs": "Přihlásit se"
+  },
+  "common.action.signOut": {
+    "en": "Sign out",
+    "cs": "Odhlásit se"
+  },
+  "common.action.createAccount": {
+    "en": "Create account",
+    "cs": "Vytvořit účet"
+  },
+  "common.action.invite": {
+    "en": "Invite",
+    "cs": "Pozvat"
+  },
+  "common.loading": {
+    "en": "Loading…",
+    "cs": "Načítání…"
+  },
+  "common.error.generic": {
+    "en": "Something went wrong. Try again.",
+    "cs": "Něco se pokazilo. Zkuste to znovu."
+  },
+  "common.kind.audiobooks": {
+    "en": "Audiobooks",
+    "cs": "Audioknihy"
+  },
+  "common.kind.podcasts": {
+    "en": "Podcasts",
+    "cs": "Podcasty"
+  },
+  "common.kind.music": {
+    "en": "Music",
+    "cs": "Hudba"
+  },
+  "common.theme.system": {
+    "en": "Auto",
+    "cs": "Podle systému",
+    "note": "Theme choice that follows the device."
+  },
+  "common.theme.light": {
+    "en": "Light",
+    "cs": "Světlý"
+  },
+  "common.theme.dark": {
+    "en": "Dark",
+    "cs": "Tmavý"
+  },
+  "common.language.title": {
+    "en": "Language",
+    "cs": "Jazyk"
+  },
+  "common.language.system": {
+    "en": "Browser's language",
+    "cs": "Podle prohlížeče"
+  },
+  "common.language.en": {
+    "en": "English",
+    "cs": "English",
+    "note": "Always the language's own name."
+  },
+  "common.language.cs": {
+    "en": "Čeština",
+    "cs": "Čeština",
+    "note": "Always the language's own name."
+  },
+  "common.duration.hoursMinutes": {
+    "en": "{h} h {m} min",
+    "cs": "{h} h {m} min"
+  },
+  "common.duration.hours": {
+    "en": "{h} h",
+    "cs": "{h} h"
+  },
+  "common.duration.minutesSeconds": {
+    "en": "{m} min {s} s",
+    "cs": "{m} min {s} s"
+  },
+  "common.duration.minutes": {
+    "en": "{m} min",
+    "cs": "{m} min"
+  },
+  "common.duration.seconds": {
+    "en": "{s} s",
+    "cs": "{s} s"
+  },
+  "common.duration.underMinute": {
+    "en": "under a minute",
+    "cs": "méně než minuta"
+  },
+  "common.action.clear": {
+    "en": "Clear",
+    "cs": "Vymazat"
+  },
+  "common.action.dismiss": {
+    "en": "Dismiss",
+    "cs": "Zavřít",
+    "note": "Closes a notice or removes it from a list."
+  },
+  "common.action.restore": {
+    "en": "Restore",
+    "cs": "Obnovit",
+    "note": "Bring back from the trash."
+  },
+  "common.action.undo": {
+    "en": "Undo",
+    "cs": "Zpět"
+  },
+  "common.action.moveToTrash": {
+    "en": "Move to Trash",
+    "cs": "Přesunout do koše"
+  },
+  "common.action.more": {
+    "en": "More",
+    "cs": "Více",
+    "note": "Accessible name of a ⋯ menu button."
+  },
+  "common.action.expand": {
+    "en": "Expand",
+    "cs": "Rozbalit"
+  },
+  "common.action.stop": {
+    "en": "Stop",
+    "cs": "Zastavit"
+  },
+  "common.action.continueWithApple": {
+    "en": "Continue with Apple",
+    "cs": "Pokračovat přes Apple"
+  },
+  "common.error.appleSignIn": {
+    "en": "Could not sign in with Apple.",
+    "cs": "Přihlášení přes Apple se nezdařilo."
+  },
+  "common.badge.family": {
+    "en": "Shared with the family",
+    "cs": "Sdíleno s rodinou"
+  },
+  "common.badge.favorite": {
+    "en": "Favorite",
+    "cs": "Oblíbené"
+  },
+  "common.badge.translatable": {
+    "en": "Can be translated",
+    "cs": "Lze přeložit",
+    "note": "Badge on a show or episode that publishes a transcript, so it can be translated and narrated."
+  },
+  "common.qrCode.invite": {
+    "en": "QR code for this invite",
+    "cs": "QR kód této pozvánky"
+  },
+  "common.trash.moved": {
+    "en": "Moved to Trash",
+    "cs": "Přesunuto do koše",
+    "note": "Toast title; the item's name is shown under it."
+  },
+  "common.trash.restored": {
+    "en": "Restored",
+    "cs": "Obnoveno",
+    "note": "Toast after bringing something back from the trash."
+  },
+  "common.trash.restoreFailed": {
+    "en": "Couldn't restore that",
+    "cs": "Obnovení se nezdařilo"
+  },
+  "common.trash.stillInTrash": {
+    "en": "It's still in the trash.",
+    "cs": "Položka zůstává v koši."
+  },
+  "common.downloads.outOfSpace": {
+    "en": "This device is out of space",
+    "cs": "V tomto zařízení došlo místo"
+  },
+  "common.downloads.outOfSpaceHint": {
+    "en": "Remove some downloads, then the rest will continue.",
+    "cs": "Odeberte některé stažené položky, pak se zbytek stáhne."
+  },
+  "common.downloads.songFailed": {
+    "en": "Couldn't download a song",
+    "cs": "Skladbu se nepodařilo stáhnout",
+    "note": "The song's title is shown under it."
+  },
+  "common.time.expired": {
+    "en": "expired",
+    "cs": "platnost vypršela",
+    "note": "An invite or link past its expiry time."
+  },
+  "common.duration.underMinuteShort": {
+    "en": "< 1 min",
+    "cs": "< 1 min",
+    "note": "Where there is no room for 'under a minute' — small tiles."
+  }
+}

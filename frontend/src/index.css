@@ -1,0 +1,21 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/mark.css";
+
+@layer components {
+  /* Legacy pages (pre-W0) still use this; new code uses <Input>. */
+  .input-field {
+    @apply w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-fg placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent;
+  }
+}
+
+/* iOS Safari zooms the page in when a field under 16px takes focus, and stays
+   zoomed — the right side of the screen is then cut off. Unlayered so it wins
+   over `text-sm` on every field, touch screens only so desktop keeps 14px. */
+@media (pointer: coarse) {
+  input:not([type="checkbox"], [type="radio"], [type="range"]),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}

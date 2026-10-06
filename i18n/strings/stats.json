@@ -1,0 +1,387 @@
+{
+  "stats.page.title": {
+    "en": "Stats",
+    "cs": "Statistiky"
+  },
+  "stats.range.week": {
+    "en": "Week",
+    "cs": "Týden"
+  },
+  "stats.range.month": {
+    "en": "Month",
+    "cs": "Měsíc"
+  },
+  "stats.range.quarter": {
+    "en": "Quarter",
+    "cs": "Čtvrtletí"
+  },
+  "stats.range.year": {
+    "en": "Year",
+    "cs": "Rok"
+  },
+  "stats.range.all": {
+    "en": "All time",
+    "cs": "Celou dobu",
+    "note": "Range picker segment; also shown as the hint under Listened."
+  },
+  "stats.stat.listened": {
+    "en": "Listened",
+    "cs": "Poslech"
+  },
+  "stats.stat.streak": {
+    "en": "Streak",
+    "cs": "Série"
+  },
+  "stats.stat.streakValue": {
+    "en": "{count, plural, one {# day} other {# days}}",
+    "cs": "{count, plural, one {# den} few {# dny} other {# dní}}"
+  },
+  "stats.stat.streakHint": {
+    "en": "Days in a row with any listening",
+    "cs": "Dny v řadě s jakýmkoli poslechem"
+  },
+  "stats.stat.booksFinished": {
+    "en": "Books finished",
+    "cs": "Dokončené knihy"
+  },
+  "stats.stat.booksFinishedHint": {
+    "en": "All time, whatever range is picked",
+    "cs": "Za celou dobu, bez ohledu na zvolené období"
+  },
+  "stats.wrappedCard.title": {
+    "en": "Your year, wrapped",
+    "cs": "Váš rok v kostce"
+  },
+  "stats.wrappedCard.description": {
+    "en": "The last 12 months as a story: favourites, records, your rhythm and your family.",
+    "cs": "Posledních 12 měsíců jako příběh: oblíbené, rekordy, váš rytmus a vaše rodina."
+  },
+  "stats.empty.title": {
+    "en": "Nothing here yet",
+    "cs": "Zatím je tu prázdno"
+  },
+  "stats.empty.description": {
+    "en": "Play something and it shows up here — the numbers come from what you actually listened to, not what you opened.",
+    "cs": "Pusťte si něco a objeví se to tady — čísla vycházejí z toho, co jste opravdu poslouchali, ne z toho, co jste otevřeli."
+  },
+  "stats.kinds.title": {
+    "en": "What you listened to",
+    "cs": "Co jste poslouchali"
+  },
+  "stats.top.title": {
+    "en": "Most listened",
+    "cs": "Nejposlouchanější"
+  },
+  "stats.deletedItem": {
+    "en": "Deleted item",
+    "cs": "Smazaná položka"
+  },
+  "stats.lastYear.title": {
+    "en": "Last 12 months",
+    "cs": "Posledních 12 měsíců"
+  },
+  "stats.history.title": {
+    "en": "History",
+    "cs": "Historie"
+  },
+  "stats.history.empty": {
+    "en": "Nothing recorded yet.",
+    "cs": "Zatím nic nezaznamenáno."
+  },
+  "stats.history.line": {
+    "en": "{when} · {device}",
+    "cs": "{when} · {device}"
+  },
+  "stats.history.lineEstimated": {
+    "en": "{when} · {device} · estimated",
+    "cs": "{when} · {device} · odhad",
+    "note": "The server inferred this session from a saved position."
+  },
+  "stats.family.title": {
+    "en": "Your family",
+    "cs": "Vaše rodina"
+  },
+  "stats.family.keepsPrivate": {
+    "en": "Keeps their listening private",
+    "cs": "Poslech má soukromý"
+  },
+  "stats.family.nothingYet": {
+    "en": "Nothing yet",
+    "cs": "Zatím nic"
+  },
+  "stats.family.kindTime": {
+    "en": "{kind} {time}",
+    "cs": "{kind} {time}",
+    "note": "One kind in a member's row, e.g. Music 3 h 20 min."
+  },
+  "stats.family.private": {
+    "en": "Private",
+    "cs": "Soukromé"
+  },
+  "stats.visibility.title": {
+    "en": "Who can see your listening",
+    "cs": "Kdo vidí váš poslech"
+  },
+  "stats.visibility.description": {
+    "en": "Family admins can see totals, never what you played. Turn this off and they see a row with no numbers.",
+    "cs": "Správci rodiny vidí jen součty, nikdy ne to, co jste přehráli. Když to vypnete, uvidí řádek bez čísel."
+  },
+  "stats.visibility.share": {
+    "en": "Share totals",
+    "cs": "Sdílet součty"
+  },
+  "stats.visibility.keepPrivate": {
+    "en": "Keep private",
+    "cs": "Nechat soukromé"
+  },
+  "stats.visibility.nowPrivate": {
+    "en": "Your listening is private",
+    "cs": "Váš poslech je soukromý"
+  },
+  "stats.visibility.nowShared": {
+    "en": "Family admins can see your totals",
+    "cs": "Správci rodiny vidí vaše součty"
+  },
+  "stats.visibility.error": {
+    "en": "Couldn't change that",
+    "cs": "Nepodařilo se to změnit"
+  },
+  "stats.device.web": {
+    "en": "the web",
+    "cs": "Web",
+    "note": "Device a session was played on, shown in a list."
+  },
+  "stats.device.ios": {
+    "en": "iPhone",
+    "cs": "iPhone"
+  },
+  "stats.device.android": {
+    "en": "Android",
+    "cs": "Android"
+  },
+  "stats.device.macos": {
+    "en": "Mac",
+    "cs": "Mac"
+  },
+  "stats.device.windows": {
+    "en": "Windows",
+    "cs": "Windows"
+  },
+  "stats.device.tvos": {
+    "en": "Apple TV",
+    "cs": "Apple TV"
+  },
+  "stats.device.subsonic": {
+    "en": "a Subsonic app",
+    "cs": "Aplikace Subsonic"
+  },
+  "stats.device.other": {
+    "en": "unrecognised apps",
+    "cs": "Nerozpoznané aplikace"
+  },
+  "stats.chart.unavailable": {
+    "en": "Listening figures aren't available right now.",
+    "cs": "Údaje o poslechu teď nejsou k dispozici."
+  },
+  "stats.chart.perDay": {
+    "en": "{time} a day on average",
+    "cs": "{time} denně v průměru"
+  },
+  "stats.chart.legend": {
+    "en": "Legend",
+    "cs": "Legenda"
+  },
+  "stats.chart.listening": {
+    "en": "Listening",
+    "cs": "Poslech",
+    "note": "The one series when the server sends no split by kind."
+  },
+  "stats.chart.weekOf": {
+    "en": "Week of {date}",
+    "cs": "Týden od {date}"
+  },
+  "stats.chart.total": {
+    "en": "Total",
+    "cs": "Celkem"
+  },
+  "stats.chart.none": {
+    "en": "none",
+    "cs": "nic"
+  },
+  "stats.chart.barPart": {
+    "en": "{kind} {time}",
+    "cs": "{kind} {time}"
+  },
+  "stats.chart.barLabel": {
+    "en": "{title}: {parts}; total {total}",
+    "cs": "{title}: {parts}; celkem {total}",
+    "note": "Screen-reader label of one bar; parts is a list like Music 20 min, Podcasts none."
+  },
+  "stats.chart.axisMinutes": {
+    "en": "{n}m",
+    "cs": "{n}m",
+    "note": "Y-axis tick, minutes; the axis is very narrow."
+  },
+  "stats.chart.axisHours": {
+    "en": "{n}h",
+    "cs": "{n}h",
+    "note": "Y-axis tick, hours; the axis is very narrow."
+  },
+  "stats.wrapped.title": {
+    "en": "Your listening, wrapped",
+    "cs": "Váš poslech v kostce",
+    "note": "Hidden dialog title for screen readers."
+  },
+  "stats.wrapped.brand": {
+    "en": "own.audio wrapped",
+    "cs": "own.audio v kostce"
+  },
+  "stats.wrapped.loading": {
+    "en": "Putting your year together…",
+    "cs": "Skládáme váš rok…"
+  },
+  "stats.wrapped.counter": {
+    "en": "{index, number} / {total, number}",
+    "cs": "{index, number} / {total, number}"
+  },
+  "stats.wrapped.lastYear": {
+    "en": "Your last 12 months",
+    "cs": "Vašich posledních 12 měsíců"
+  },
+  "stats.wrapped.empty": {
+    "en": "Nothing to wrap yet. Play something, and come back when there's a story to tell.",
+    "cs": "Zatím není co shrnout. Pusťte si něco a vraťte se, až bude o čem vyprávět."
+  },
+  "stats.wrapped.totalKinds": {
+    "en": "of audiobooks, podcasts and music.",
+    "cs": "audioknih, podcastů a hudby.",
+    "note": "Follows a big figure like 120 h."
+  },
+  "stats.wrapped.totalKindsDays": {
+    "en": "of audiobooks, podcasts and music — {days, plural, one {# whole day} other {# whole days}} without a break.",
+    "cs": "audioknih, podcastů a hudby — {days, plural, one {# celý den} few {# celé dny} other {# celých dní}} v kuse.",
+    "note": "Follows a big figure like 120 h."
+  },
+  "stats.wrapped.mix.eyebrow": {
+    "en": "What you listened to",
+    "cs": "Co jste poslouchali"
+  },
+  "stats.wrapped.mix.mostly": {
+    "en": "Mostly {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}.",
+    "cs": "Hlavně {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}."
+  },
+  "stats.wrapped.share": {
+    "en": "{share, number, percent}",
+    "cs": "{share, number, percent}"
+  },
+  "stats.wrapped.timeShare": {
+    "en": "{time} · {share, number, percent}",
+    "cs": "{time} · {share, number, percent}"
+  },
+  "stats.wrapped.favourites.eyebrow": {
+    "en": "Your favourites",
+    "cs": "Vaše oblíbené"
+  },
+  "stats.wrapped.favourites.book": {
+    "en": "Your book",
+    "cs": "Vaše kniha"
+  },
+  "stats.wrapped.favourites.show": {
+    "en": "Your show",
+    "cs": "Váš pořad"
+  },
+  "stats.wrapped.favourites.song": {
+    "en": "Your song",
+    "cs": "Vaše skladba"
+  },
+  "stats.wrapped.favourites.deleted": {
+    "en": "Something since deleted",
+    "cs": "Něco, co už je smazané"
+  },
+  "stats.wrapped.favourites.sessions": {
+    "en": "{time} over {count, plural, one {# session} other {# sessions}}",
+    "cs": "{time} během {count, plural, one {# poslechu} few {# poslechů} other {# poslechů}}"
+  },
+  "stats.wrapped.records.eyebrow": {
+    "en": "Your records",
+    "cs": "Vaše rekordy"
+  },
+  "stats.wrapped.records.busiestDay": {
+    "en": "Busiest day",
+    "cs": "Rekordní den"
+  },
+  "stats.wrapped.records.inOneDay": {
+    "en": "{time} in one day",
+    "cs": "{time} za jediný den"
+  },
+  "stats.wrapped.records.bestMonth": {
+    "en": "Best month",
+    "cs": "Nejlepší měsíc"
+  },
+  "stats.wrapped.records.longestStreak": {
+    "en": "Longest streak",
+    "cs": "Nejdelší série"
+  },
+  "stats.wrapped.records.inARow": {
+    "en": "{count, plural, one {# day in a row} other {# days in a row}}",
+    "cs": "{count, plural, one {# den v řadě} few {# dny v řadě} other {# dní v řadě}}"
+  },
+  "stats.wrapped.records.currentStreak": {
+    "en": "Current streak: {count, plural, one {# day} other {# days}}",
+    "cs": "Aktuální série: {count, plural, one {# den} few {# dny} other {# dní}}"
+  },
+  "stats.wrapped.records.booksFinished": {
+    "en": "Books finished",
+    "cs": "Dokončené knihy"
+  },
+  "stats.wrapped.rhythm.eyebrow": {
+    "en": "Your rhythm",
+    "cs": "Váš rytmus"
+  },
+  "stats.wrapped.rhythm.weekday": {
+    "en": "{day, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}} are for listening.",
+    "cs": "{day, select, mon {Pondělky} tue {Úterky} wed {Středy} thu {Čtvrtky} fri {Pátky} sat {Soboty} other {Neděle}} patří poslechu."
+  },
+  "stats.wrapped.rhythm.dayPart": {
+    "en": "Most of it <b>{part, select, Morning {in the morning} Afternoon {in the afternoon} Evening {in the evening} other {at night}}</b>.",
+    "cs": "Nejvíc <b>{part, select, Morning {ráno} Afternoon {odpoledne} Evening {večer} other {v noci}}</b>."
+  },
+  "stats.wrapped.rhythm.device": {
+    "en": "{lead, select, mostly {Mostly} other {Most often}} on <b>{device, select, web {the web} ios {iPhone} android {Android} macos {Mac} windows {Windows} tvos {Apple TV} subsonic {a Subsonic app} other {{name}}}</b>.",
+    "cs": "{lead, select, mostly {Většinou} other {Nejčastěji}} <b>{device, select, web {na webu} ios {na iPhonu} android {na Androidu} macos {na Macu} windows {ve Windows} tvos {na Apple TV} subsonic {v aplikaci Subsonic} other {na {name}}}</b>.",
+    "note": "lead is mostly when this device is also the largest share; name is a raw device kind the app doesn't know."
+  },
+  "stats.wrapped.rhythm.footnote": {
+    "en": "{count, plural, one {Time of day and devices from your last session.} other {Time of day and devices from your last # sessions.}}",
+    "cs": "{count, plural, one {Denní doba a zařízení podle vašeho posledního poslechu.} few {Denní doba a zařízení podle vašich posledních # poslechů.} other {Denní doba a zařízení podle vašich posledních # poslechů.}}"
+  },
+  "stats.wrapped.family.eyebrow": {
+    "en": "Your family",
+    "cs": "Vaše rodina"
+  },
+  "stats.wrapped.family.together": {
+    "en": "{count, plural, one {together, from # person sharing their totals.} other {together, across # people sharing their totals.}}",
+    "cs": "{count, plural, one {dohromady — # člen sdílí svůj poslech.} few {dohromady — # členové sdílejí svůj poslech.} other {dohromady — # členů sdílí svůj poslech.}}",
+    "note": "Follows a big figure like 300 h."
+  },
+  "stats.wrapped.family.leader": {
+    "en": "Most {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}: <b>{name}</b>",
+    "cs": "Nejvíc {kind, select, audiobook {audioknih} podcast {podcastů} other {hudby}}: <b>{name}</b>"
+  },
+  "stats.wrapped.family.private": {
+    "en": "{count, plural, one {# person keeps their listening private and isn't counted.} other {# people keep their listening private and aren't counted.}}",
+    "cs": "{count, plural, one {Poslech # člena je soukromý a nezapočítává se.} few {Poslech # členů je soukromý a nezapočítává se.} other {Poslech # členů je soukromý a nezapočítává se.}}"
+  },
+  "stats.wrapped.end.eyebrow": {
+    "en": "That was your year",
+    "cs": "To byl váš rok"
+  },
+  "stats.wrapped.end.hours": {
+    "en": "Thanks for listening. Here's to the next {hours, plural, one {hour} other {# hours}}.",
+    "cs": "Díky za poslech. Na {hours, plural, one {další hodinu} few {další # hodiny} other {dalších # hodin}}!"
+  },
+  "stats.wrapped.end.one": {
+    "en": "Thanks for listening. Here's to the next one.",
+    "cs": "Díky za poslech. A na další!"
+  }
+}

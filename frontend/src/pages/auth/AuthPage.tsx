@@ -1,0 +1,170 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+import { useState, useEffect, type FormEvent } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { login, register, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
+import GoogleSignInButton from "../../components/GoogleSignInButton";
+import AppleSignInButton from "../../components/AppleSignInButton";
+import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
+import { apiErrorMessage } from "../../lib/apiError";
+import { Button, Input, PasswordInput } from "../../components/ui";
+import { useAuthStore } from "../../store/authStore";
+import { safeReturnTo } from "../../lib/returnTo";
+import { useT } from "../../i18n";
+
+type Mode = "login" | "register";
+
+export default function AuthPage() {
+  const [mode, setMode] = useState<Mode>("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [showInvite, setShowInvite] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const { setAuth, token } = useAuthStore();
+  const next = safeReturnTo(params.get("next"));
+  const { t, rich } = useT();
+
+  const { data: regStatus } = useQuery({ queryKey: ["registration-status"], queryFn: checkRegistrationStatus, staleTime: 60_000 });
+  const registrationOpen = regStatus?.registration_open ?? false;
+
+  // Best-effort: a failure here hides Google rather than blocking the form.
+  const { data: providers } = useQuery({ queryKey: ["auth-providers"], queryFn: getAuthProviders, staleTime: 60_000, retry: false });
+  const hasSocial = !!(
+    (providers?.google.enabled && providers.google.web_client_id) ||
+    (providers?.apple.enabled && providers.apple.web_client_id)
+  );
+
+  useEffect(() => {
+    if (token) navigate(next, { replace: true });
+  }, [token, navigate, next]);
+
+  function switchMode(m: Mode) {
+    setMode(m);
+    setError(null);
+  }
+
+  async function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    if (mode === "register") {
+      if (!displayName.trim()) return setError(t("auth.error.nameMissing"));
+      if (password.length < 8) return setError(t("auth.error.passwordShort"));
+    }
+    setLoading(true);
+    try {
+      const result =
+        mode === "login"
+          ? await login(email, password)
+          : await register(email, password, displayName.trim(), inviteCode.trim() || undefined);
+      setAuth(result.token, result.user, result.refresh_token);
+    } catch (err) {
+      setError(apiErrorMessage(err, mode === "login" ? t("auth.error.badLogin") : t("auth.error.registerFailed")));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <AuthLayout>
+      <AuthHeading title={mode === "login" ? t("auth.signIn.title") : t("auth.register.title")} />
+
+      {/* One tap, nothing to type or remember — so it comes first. */}
+      {hasSocial && (
+        <>
+          <div className="space-y-3">
+            <GoogleSignInButton providers={providers} onSignedIn={(r) => setAuth(r.token, r.user, r.refresh_token)} onError={setError} />
+            <AppleSignInButton providers={providers} onSignedIn={(r) => setAuth(r.token, r.user, r.refresh_token)} onError={setError} />
+          </div>
+          <div className="my-5 flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted">{t("auth.orWithEmail")}</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {mode === "register" && (
+          <Input
+            label={t("auth.field.name")}
+            autoComplete="name"
+            autoCapitalize="words"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder={t("auth.field.namePlaceholder")}
+          />
+        )}
+        <Input
+          label={t("auth.field.email")}
+          type="email"
+          inputMode="email"
+          autoComplete={mode === "login" ? "username" : "email"}
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+        />
+        <PasswordInput
+          label={t("auth.field.password")}
+          autoComplete={mode === "login" ? "current-password" : "new-password"}
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          hint={mode === "register" ? t("auth.field.passwordHint") : undefined}
+        />
+        {mode === "register" &&
+          (showInvite ? (
+            <Input
+              label={t("auth.field.inviteCode")}
+              autoComplete="off"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              autoFocus
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              hint={t("auth.field.inviteCodeHint")}
+            />
+          ) : (
+            <button type="button" onClick={() => setShowInvite(true)} className="text-sm font-medium text-accent hover:underline">
+              {t("auth.haveInviteCode")}
+            </button>
+          ))}
+
+        <FormError>{error}</FormError>
+
+        <Button type="submit" size="lg" className="w-full" loading={loading}>
+          {mode === "login" ? t("common.action.signIn") : t("common.action.createAccount")}
+        </Button>
+      </form>
+
+      {registrationOpen && (
+        <p className="mt-6 text-center text-sm text-muted">
+          {mode === "login"
+            ? rich("auth.newHere", {
+                link: (c) => (
+                  <button type="button" onClick={() => switchMode("register")} className="font-medium text-accent hover:underline">
+                    {c}
+                  </button>
+                ),
+              })
+            : rich("auth.haveAccount", {
+                link: (c) => (
+                  <button type="button" onClick={() => switchMode("login")} className="font-medium text-accent hover:underline">
+                    {c}
+                  </button>
+                ),
+              })}
+        </p>
+      )}
+    </AuthLayout>
+  );
+}

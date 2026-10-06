@@ -1,0 +1,16 @@
+# gitleaks configuration. The scan runs in CI on every push (see
+# .github/workflows/ci.yml) and should run locally before any push:
+#   gitleaks detect --no-git --source .
+[extend]
+useDefault = true
+
+[allowlist]
+description = "build output, dependencies, and one test fixture"
+paths = [
+  '''target/''',
+  '''node_modules/''',
+  '''frontend/dist/''',
+  # A throwaway EC key pair generated for the OIDC token-verification unit
+  # tests; it signs nothing real and is checked in on purpose.
+  '''backend/src/auth/oidc\.rs''',
+]

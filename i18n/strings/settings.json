@@ -1,0 +1,318 @@
+{
+  "settings.language.description": {
+    "en": "The app's own words. Titles and descriptions of books, shows and songs stay as they are.",
+    "cs": "Týká se textů aplikace. Názvy a popisy knih, pořadů a skladeb zůstávají, jak jsou."
+  },
+  "settings.page.title": {
+    "en": "Settings",
+    "cs": "Nastavení"
+  },
+  "settings.section.profile": {
+    "en": "Profile",
+    "cs": "Profil"
+  },
+  "settings.section.recommendations": {
+    "en": "Recommendations",
+    "cs": "Doporučení"
+  },
+  "settings.section.password": {
+    "en": "Password",
+    "cs": "Heslo"
+  },
+  "settings.section.devices": {
+    "en": "Devices",
+    "cs": "Zařízení"
+  },
+  "settings.section.devicesDescription": {
+    "en": "Everywhere you're signed in. Signing a device out takes effect immediately.",
+    "cs": "Všude, kde jste přihlášeni. Odhlášení zařízení platí okamžitě."
+  },
+  "settings.section.muted": {
+    "en": "Muted music",
+    "cs": "Ztlumená hudba"
+  },
+  "settings.section.mutedDescription": {
+    "en": "Tracks you asked not to hear. They stay in the library and nobody else is affected.",
+    "cs": "Skladby, které nechcete slyšet. Zůstávají v knihovně a nikoho jiného se to netýká."
+  },
+  "settings.section.subsonic": {
+    "en": "Other music apps",
+    "cs": "Jiné hudební aplikace"
+  },
+  "settings.section.danger": {
+    "en": "Danger zone",
+    "cs": "Nebezpečná zóna"
+  },
+  "settings.error.change": {
+    "en": "Couldn't change that",
+    "cs": "Nepodařilo se to změnit"
+  },
+  "settings.error.tryAgain": {
+    "en": "Try again.",
+    "cs": "Zkuste to znovu.",
+    "note": "Fallback detail under an error toast when the server gives no message."
+  },
+  "settings.recommendations.label": {
+    "en": "Suggest things based on what I listen to",
+    "cs": "Navrhovat obsah podle toho, co poslouchám"
+  },
+  "settings.recommendations.description": {
+    "en": "Off unless you switch it on. When it's on, the matching happens in this browser: your listening history is compared against a catalogue of podcasts we host, and is never sent anywhere to produce a suggestion. Nothing is stored when you turn it on, so there's nothing to delete when you turn it off.",
+    "cs": "Vypnuto, dokud to nezapnete. Když je to zapnuté, porovnávání probíhá v tomto prohlížeči: vaše historie poslechu se porovná s katalogem podcastů, který provozujeme, a kvůli návrhům se nikam neodesílá. Zapnutím se nic neukládá, takže po vypnutí není co mazat."
+  },
+  "settings.profile.name": {
+    "en": "Your name",
+    "cs": "Vaše jméno"
+  },
+  "settings.profile.photo": {
+    "en": "Photo",
+    "cs": "Fotka"
+  },
+  "settings.profile.chooseImage": {
+    "en": "Choose an image…",
+    "cs": "Vybrat obrázek…"
+  },
+  "settings.profile.signedInAs": {
+    "en": "Signed in as {email}. Your email is what you sign in with and can't be changed here.",
+    "cs": "Přihlášeni jako {email}. E-mailem se přihlašujete a tady ho změnit nelze."
+  },
+  "settings.profile.saved": {
+    "en": "Profile saved",
+    "cs": "Profil uložen"
+  },
+  "settings.profile.saveError": {
+    "en": "Couldn't save that",
+    "cs": "Nepodařilo se to uložit"
+  },
+  "settings.password.current": {
+    "en": "Current password",
+    "cs": "Současné heslo"
+  },
+  "settings.password.new": {
+    "en": "New password",
+    "cs": "Nové heslo"
+  },
+  "settings.password.confirm": {
+    "en": "Confirm",
+    "cs": "Potvrdit",
+    "note": "Label of the field repeating the new password."
+  },
+  "settings.password.hint": {
+    "en": "At least 8 characters. Changing your password signs out your other devices.",
+    "cs": "Nejméně 8 znaků. Změna hesla odhlásí vaše ostatní zařízení."
+  },
+  "settings.password.change": {
+    "en": "Change password",
+    "cs": "Změnit heslo"
+  },
+  "settings.password.changed": {
+    "en": "Password changed",
+    "cs": "Heslo změněno"
+  },
+  "settings.password.changedDetail": {
+    "en": "Your other devices have been signed out.",
+    "cs": "Vaše ostatní zařízení byla odhlášena."
+  },
+  "settings.password.error": {
+    "en": "Couldn't change the password.",
+    "cs": "Heslo se nepodařilo změnit."
+  },
+  "settings.password.tooShort": {
+    "en": "Use at least 8 characters.",
+    "cs": "Použijte alespoň 8 znaků."
+  },
+  "settings.password.mismatch": {
+    "en": "Those passwords don't match.",
+    "cs": "Hesla se neshodují."
+  },
+  "settings.devices.thisDevice": {
+    "en": "This device",
+    "cs": "Toto zařízení"
+  },
+  "settings.devices.signedIn": {
+    "en": "Signed in {when}",
+    "cs": "Přihlášeno {when}",
+    "note": "when is relative, e.g. 5 min ago / před 5 min."
+  },
+  "settings.devices.signedInLastUsed": {
+    "en": "Signed in {when} · last used {lastUsed}",
+    "cs": "Přihlášeno {when} · naposledy použito {lastUsed}"
+  },
+  "settings.devices.signOut": {
+    "en": "Sign out {device}",
+    "cs": "Odhlásit {device}"
+  },
+  "settings.devices.signedOut": {
+    "en": "Signed that device out",
+    "cs": "Zařízení bylo odhlášeno"
+  },
+  "settings.devices.signOutError": {
+    "en": "Couldn't sign that device out",
+    "cs": "Zařízení se nepodařilo odhlásit"
+  },
+  "settings.devices.none": {
+    "en": "No other devices signed in.",
+    "cs": "Nejste přihlášeni na žádném jiném zařízení."
+  },
+  "settings.subsonic.intro": {
+    "en": "Any OpenSubsonic music player can connect to your library with this key — it's music only, not audiobooks or podcasts.",
+    "cs": "S tímto klíčem se k vaší knihovně připojí jakýkoli hudební přehrávač s podporou OpenSubsonic — jen hudba, ne audioknihy ani podcasty."
+  },
+  "settings.subsonic.username": {
+    "en": "Username: <code>{username}</code>",
+    "cs": "Uživatelské jméno: <code>{username}</code>"
+  },
+  "settings.subsonic.hide": {
+    "en": "Hide",
+    "cs": "Skrýt"
+  },
+  "settings.subsonic.show": {
+    "en": "Show",
+    "cs": "Zobrazit"
+  },
+  "settings.subsonic.copy": {
+    "en": "Copy",
+    "cs": "Kopírovat"
+  },
+  "settings.subsonic.copied": {
+    "en": "Key copied",
+    "cs": "Klíč zkopírován"
+  },
+  "settings.subsonic.copyError": {
+    "en": "Couldn't copy that",
+    "cs": "Nepodařilo se zkopírovat"
+  },
+  "settings.subsonic.regenerate": {
+    "en": "Generate a new one",
+    "cs": "Vytvořit nový"
+  },
+  "settings.subsonic.regenerated": {
+    "en": "New key generated",
+    "cs": "Nový klíč vytvořen"
+  },
+  "settings.subsonic.regeneratedDetail": {
+    "en": "Apps using the old one will need updating.",
+    "cs": "Aplikace se starým klíčem bude potřeba aktualizovat."
+  },
+  "settings.subsonic.regenerateError": {
+    "en": "Couldn't generate a new key",
+    "cs": "Nový klíč se nepodařilo vytvořit"
+  },
+  "settings.muted.empty": {
+    "en": "Nothing muted. Tracks you mark “not feeling it” or “never play again” show up here so you can undo them.",
+    "cs": "Nic ztlumeného. Skladby označené „Zrovna nesedí“ nebo „Už nikdy nepřehrávat“ se objeví tady, abyste je mohli vrátit."
+  },
+  "settings.muted.unknownTrack": {
+    "en": "Unknown track",
+    "cs": "Neznámá skladba"
+  },
+  "settings.muted.artistTitle": {
+    "en": "{artist} — {title}",
+    "cs": "{artist} — {title}"
+  },
+  "settings.muted.banned": {
+    "en": "Never play again",
+    "cs": "Už nikdy nepřehrávat"
+  },
+  "settings.muted.disliked": {
+    "en": "Not feeling it",
+    "cs": "Zrovna nesedí"
+  },
+  "settings.muted.undo": {
+    "en": "Undo",
+    "cs": "Zpět"
+  },
+  "settings.muted.undoError": {
+    "en": "Couldn't undo that",
+    "cs": "Nepodařilo se to vrátit"
+  },
+  "settings.delete.title": {
+    "en": "Delete your account",
+    "cs": "Smazat účet"
+  },
+  "settings.delete.description": {
+    "en": "This permanently deletes your account and everything you uploaded. It cannot be undone.",
+    "cs": "Trvale smaže váš účet a vše, co jste nahráli. Nelze to vzít zpět."
+  },
+  "settings.delete.button": {
+    "en": "Delete account",
+    "cs": "Smazat účet"
+  },
+  "settings.delete.confirmTitle": {
+    "en": "Delete your account?",
+    "cs": "Smazat váš účet?"
+  },
+  "settings.delete.confirmDescription": {
+    "en": "Your library, your progress and anything you shared with the family go with it. This cannot be reversed.",
+    "cs": "Zmizí s ním vaše knihovna, váš postup i vše, co jste sdíleli s rodinou. Nelze to vrátit."
+  },
+  "settings.delete.keep": {
+    "en": "Keep my account",
+    "cs": "Ponechat účet"
+  },
+  "settings.delete.confirm": {
+    "en": "Delete permanently",
+    "cs": "Smazat natrvalo"
+  },
+  "settings.delete.typeToConfirm": {
+    "en": "Type {phrase} to confirm",
+    "cs": "Pro potvrzení napište {phrase}"
+  },
+  "settings.delete.phrase": {
+    "en": "DELETE",
+    "cs": "SMAZAT",
+    "note": "The word the person must type, in capitals."
+  },
+  "settings.delete.error": {
+    "en": "Couldn't delete the account",
+    "cs": "Účet se nepodařilo smazat"
+  },
+  "settings.playback.title": {
+    "en": "Playback",
+    "cs": "Přehrávání"
+  },
+  "settings.playback.skipForward": {
+    "en": "Skip forward",
+    "cs": "Přeskočit vpřed"
+  },
+  "settings.playback.skipForwardHint": {
+    "en": "Also the right-arrow key while something is playing.",
+    "cs": "Také klávesa šipka vpravo, když něco hraje."
+  },
+  "settings.playback.skipBack": {
+    "en": "Skip back",
+    "cs": "Přeskočit zpět"
+  },
+  "settings.playback.speed": {
+    "en": "Default speed for audiobooks",
+    "cs": "Výchozí rychlost audioknih"
+  },
+  "settings.playback.speedHint": {
+    "en": "Between {min, number}× and {max, number}×. Changing speed on the player is temporary; this is the starting point.",
+    "cs": "Od {min, number}× do {max, number}×. Změna rychlosti v přehrávači je dočasná; tohle je výchozí bod."
+  },
+  "settings.playback.seconds": {
+    "en": "{n, number} s",
+    "cs": "{n, number} s"
+  },
+  "settings.playback.speedValue": {
+    "en": "{n, number}×",
+    "cs": "{n, number}×"
+  },
+  "settings.playback.everyDevice": {
+    "en": "These apply on every device signed in to your account.",
+    "cs": "Platí na všech zařízeních přihlášených k vašemu účtu."
+  },
+  "settings.playback.unsaved": {
+    "en": "Unsaved changes",
+    "cs": "Neuložené změny"
+  },
+  "settings.playback.saved": {
+    "en": "Playback defaults saved",
+    "cs": "Výchozí nastavení přehrávání uloženo"
+  },
+  "settings.playback.saveError": {
+    "en": "Couldn't save",
+    "cs": "Nepodařilo se uložit"
+  }
+}

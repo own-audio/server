@@ -1,0 +1,169 @@
+{
+  "trash.page.title": {
+    "en": "Trash",
+    "cs": "Koš"
+  },
+  "trash.intro": {
+    "en": "Deleted items wait here for 30 days, then they're gone for good. The trash costs nothing; restoring an item charges the storage for the days it spent here, and restoring on the day it was deleted is free.",
+    "cs": "Smazané položky tu čekají 30 dní, pak zmizí natrvalo. Koš nic nestojí; obnovení položky se účtuje za úložiště po dny, které tu strávila, a obnovení v den smazání je zdarma."
+  },
+  "trash.empty": {
+    "en": "Empty Trash",
+    "cs": "Vysypat koš"
+  },
+  "trash.scope.mine": {
+    "en": "Mine",
+    "cs": "Moje"
+  },
+  "trash.scope.family": {
+    "en": "Whole family",
+    "cs": "Celá rodina"
+  },
+  "trash.emptyState.title": {
+    "en": "The trash is empty",
+    "cs": "Koš je prázdný"
+  },
+  "trash.emptyState.description": {
+    "en": "Deleted books, songs, playlists and episodes wait here for 30 days.",
+    "cs": "Smazané knihy, skladby, playlisty a epizody tu čekají 30 dní."
+  },
+  "trash.itemCount": {
+    "en": "{count, plural, one {# item} other {# items}}",
+    "cs": "{count, plural, one {# položka} few {# položky} other {# položek}}"
+  },
+  "trash.summary": {
+    "en": "{items} · {size}",
+    "cs": "{items} · {size}",
+    "note": "items is trash.itemCount, size like 1.2 GB."
+  },
+  "trash.group.deleted": {
+    "en": "Deleted {when}",
+    "cs": "Smazáno {when}",
+    "note": "when is relative, e.g. 5 min ago / před 5 min."
+  },
+  "trash.group.deletedBy": {
+    "en": "Deleted {when} by {name}",
+    "cs": "{name} smazal(a) {when}"
+  },
+  "trash.group.deletedByYou": {
+    "en": "Deleted {when} by you",
+    "cs": "Smazali jste {when}"
+  },
+  "trash.restoreAll": {
+    "en": "Restore all",
+    "cs": "Obnovit vše"
+  },
+  "trash.restore": {
+    "en": "Restore",
+    "cs": "Obnovit"
+  },
+  "trash.deleteForever": {
+    "en": "Delete forever",
+    "cs": "Smazat natrvalo"
+  },
+  "trash.kind.audiobook": {
+    "en": "Audiobook",
+    "cs": "Audiokniha"
+  },
+  "trash.kind.song": {
+    "en": "Song",
+    "cs": "Skladba"
+  },
+  "trash.kind.playlist": {
+    "en": "Playlist",
+    "cs": "Playlist"
+  },
+  "trash.kind.episode": {
+    "en": "Episode",
+    "cs": "Epizoda"
+  },
+  "trash.kind.file": {
+    "en": "File",
+    "cs": "Soubor"
+  },
+  "trash.item.owner": {
+    "en": "{name}’s",
+    "cs": "patří: {name}",
+    "note": "Whose item this is, when it isn't yours."
+  },
+  "trash.item.someone": {
+    "en": "Someone",
+    "cs": "Někdo"
+  },
+  "trash.item.goneTomorrow": {
+    "en": "gone tomorrow",
+    "cs": "zmizí zítra"
+  },
+  "trash.item.goneIn": {
+    "en": "gone in {days, plural, one {# day} other {# days}}",
+    "cs": "zmizí za {days, plural, one {# den} few {# dny} other {# dní}}"
+  },
+  "trash.item.restoreCost": {
+    "en": "restoring costs {cost}",
+    "cs": "obnovení stojí {cost}"
+  },
+  "trash.lessThan": {
+    "en": "less than {amount}",
+    "cs": "méně než {amount}"
+  },
+  "trash.restored": {
+    "en": "{count, plural, one {Restored} other {# restored}}",
+    "cs": "{count, plural, one {Obnoveno} few {Obnoveny # položky} other {Obnoveno # položek}}"
+  },
+  "trash.charged": {
+    "en": "{cost} charged for the days in the trash",
+    "cs": "Za dny v koši účtováno {cost}"
+  },
+  "trash.restoreError": {
+    "en": "Couldn't restore that",
+    "cs": "Obnovení se nezdařilo"
+  },
+  "trash.deletedForever": {
+    "en": "Deleted forever",
+    "cs": "Smazáno natrvalo"
+  },
+  "trash.deleteError": {
+    "en": "Couldn't delete that",
+    "cs": "Nepodařilo se to smazat"
+  },
+  "trash.purged": {
+    "en": "{count, plural, one {# deleted forever} other {# deleted forever}}",
+    "cs": "{count, plural, one {# položka smazána natrvalo} few {# položky smazány natrvalo} other {# položek smazáno natrvalo}}"
+  },
+  "trash.emptyError": {
+    "en": "Couldn't empty the trash",
+    "cs": "Koš se nepodařilo vysypat"
+  },
+  "trash.restoreDialog.titleOne": {
+    "en": "Restore “{title}”?",
+    "cs": "Obnovit „{title}“?"
+  },
+  "trash.restoreDialog.titleMany": {
+    "en": "Restore {count, plural, one {# item} other {# items}}?",
+    "cs": "Obnovit {count, plural, one {# položku} few {# položky} other {# položek}}?"
+  },
+  "trash.restoreDialog.description": {
+    "en": "Restoring charges {amount} — the storage for {days, plural, one {# day} other {# days}} in the trash, as if it had never been deleted.",
+    "cs": "Obnovení stojí {amount} — úložiště za {days, plural, one {# den} few {# dny} other {# dní}} v koši, jako by nikdy nebylo smazáno."
+  },
+  "trash.restoreDialog.confirm": {
+    "en": "Restore for {amount}",
+    "cs": "Obnovit za {amount}"
+  },
+  "trash.purgeDialog.title": {
+    "en": "Delete “{title}” forever?",
+    "cs": "Smazat „{title}“ natrvalo?"
+  },
+  "trash.purgeDialog.description": {
+    "en": "It's removed now instead of in 30 days. This can't be undone.",
+    "cs": "Odstraní se hned, ne až za 30 dní. Nelze to vrátit."
+  },
+  "trash.emptyDialog.title": {
+    "en": "Empty the trash?",
+    "cs": "Vysypat koš?"
+  },
+  "trash.emptyDialog.description": {
+    "en": "{count, plural, one {# item is deleted forever.} other {# items are deleted forever.}} This can't be undone.",
+    "cs": "{count, plural, one {# položka bude smazána natrvalo.} few {# položky budou smazány natrvalo.} other {# položek bude smazáno natrvalo.}} Nelze to vrátit."
+  }
+}

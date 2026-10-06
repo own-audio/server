@@ -9,11 +9,12 @@ library, one server, native apps for Mac, iPhone, iPad, Apple TV, Android and
 Windows, plus a web console. Rust and PostgreSQL. Free software under the
 GNU Affero General Public License, version 3 or later.
 
-> **Status: pre-release.** This repository is being set up. The server code
-> is being extracted from the private codebase behind the hosted service at
-> [own.audio](https://www.own.audio) and lands here in phases; nothing is
-> runnable from this repository yet. The plan, the scope and the API policy
-> are already here and are the place to start:
+> **Status: pre-release.** The server code is here (a snapshot of the
+> codebase behind the hosted service at [own.audio](https://www.own.audio),
+> with the hosted-only parts left out) and builds from source with the compose
+> stack below; there is no tagged release or published image yet, and the
+> install guide is still being reworked. The plan, the scope and the API
+> policy are the place to start:
 >
 > - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — what happens, in what order
 > - [docs/SCOPE.md](docs/SCOPE.md) — what is in, what is optional, what stays hosted-only
@@ -60,11 +61,17 @@ it offers.
 
 ## Running it
 
-Not yet. When the first release lands, it will be a Docker image
-(`ownaudio/server`, amd64 and arm64), a `docker-compose.yml` with PostgreSQL,
-and an installer script. Requirements will be PostgreSQL 16 or newer and
-somewhere to keep files — a local directory or an S3-compatible store.
-Until then, watch the releases.
+From source, today:
+
+```bash
+git clone https://github.com/own-audio/server.git && cd server
+cp .env.example .env     # set POSTGRES_PASSWORD, S3_SECRET_KEY, SESSION_SECRET
+docker compose up -d     # PostgreSQL 16, RustFS, and the server built from source
+```
+
+Then open `http://localhost:8080` and create the first admin. The first
+tagged release will add a published image (`ownaudio/server`, amd64 and
+arm64) so the build step goes away. [INSTALL.md](INSTALL.md) has the details.
 
 ## Clients
 

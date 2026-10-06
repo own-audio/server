@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "audio.own.book",
+      "sha256_cert_fingerprints": [
+        "D4:B2:A5:53:DF:9E:B7:35:69:34:2E:0E:3C:C7:25:F8:B2:57:79:AA:0D:D2:74:84:9D:1F:CA:C8:3D:9B:7A:59",
+        "29:56:CA:52:E4:E9:C1:EB:CD:97:29:27:2C:7D:95:FC:B9:10:97:C3:CA:E9:BB:31:25:5B:C4:AD:4D:81:52:4C"
+      ]
+    }
+  }
+]

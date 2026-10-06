@@ -1,0 +1,363 @@
+{
+  "shell.nav.home": {
+    "en": "Home",
+    "cs": "Domů"
+  },
+  "shell.nav.library": {
+    "en": "Library",
+    "cs": "Knihovna",
+    "note": "Sidebar section heading."
+  },
+  "shell.nav.organize": {
+    "en": "Organize",
+    "cs": "Uspořádat"
+  },
+  "shell.nav.justMe": {
+    "en": "Just me",
+    "cs": "Jen já",
+    "note": "Items not shared with the family. Not 'private' — nothing is locked, only unshared."
+  },
+  "shell.nav.stats": {
+    "en": "Stats",
+    "cs": "Statistiky"
+  },
+  "shell.nav.create": {
+    "en": "Create",
+    "cs": "Tvorba",
+    "note": "Sidebar section heading."
+  },
+  "shell.nav.narrate": {
+    "en": "Narrate a book",
+    "cs": "Namluvit knihu"
+  },
+  "shell.nav.translate": {
+    "en": "Translate an episode",
+    "cs": "Přeložit epizodu"
+  },
+  "shell.nav.new": {
+    "en": "New",
+    "cs": "Nové",
+    "note": "Small badge on a sidebar item until it has been opened once."
+  },
+  "shell.nav.household": {
+    "en": "Household",
+    "cs": "Domácnost",
+    "note": "Sidebar section heading."
+  },
+  "shell.nav.family": {
+    "en": "Family",
+    "cs": "Rodina"
+  },
+  "shell.nav.billing": {
+    "en": "Storage & credit",
+    "cs": "Úložiště a kredit"
+  },
+  "shell.nav.trash": {
+    "en": "Trash",
+    "cs": "Koš"
+  },
+  "shell.nav.homeLink": {
+    "en": "own.audio — home",
+    "cs": "own.audio — domů",
+    "note": "Accessible name of the logo link."
+  },
+  "shell.nav.account": {
+    "en": "Account",
+    "cs": "Účet"
+  },
+  "shell.sidebar.expand": {
+    "en": "Expand sidebar",
+    "cs": "Rozbalit postranní panel"
+  },
+  "shell.sidebar.collapse": {
+    "en": "Collapse sidebar",
+    "cs": "Sbalit postranní panel"
+  },
+  "shell.sidebar.expandShortcut": {
+    "en": "Expand sidebar (⌘B)",
+    "cs": "Rozbalit postranní panel (⌘B)"
+  },
+  "shell.sidebar.collapseShortcut": {
+    "en": "Collapse sidebar (⌘B)",
+    "cs": "Sbalit postranní panel (⌘B)"
+  },
+  "shell.topBar.menu": {
+    "en": "Menu",
+    "cs": "Nabídka"
+  },
+  "shell.topBar.closeMenu": {
+    "en": "Close menu",
+    "cs": "Zavřít nabídku"
+  },
+  "shell.topBar.searchShortcut": {
+    "en": "Search (⌘K)",
+    "cs": "Hledat (⌘K)"
+  },
+  "shell.skipToContent": {
+    "en": "Skip to content",
+    "cs": "Přejít na obsah"
+  },
+  "shell.theme.current": {
+    "en": "Theme: {current}. Switch to {next}.",
+    "cs": "Motiv: {current}. Přepnout na {next}."
+  },
+  "shell.theme.switchTo": {
+    "en": "Switch to {mode} mode",
+    "cs": "Přepnout na {mode} režim",
+    "note": "{mode} is common.theme.light/dark in lower case: světlý / tmavý."
+  },
+  "shell.nav.playing": {
+    "en": "— playing",
+    "cs": "— přehrává se",
+    "note": "Screen-reader suffix after a section name while its audio plays."
+  },
+  "shell.nav.paused": {
+    "en": "— paused",
+    "cs": "— pozastaveno"
+  },
+  "shell.search.title": {
+    "en": "Search the library",
+    "cs": "Hledat v knihovně"
+  },
+  "shell.search.description": {
+    "en": "Audiobooks, podcasts, episodes and songs",
+    "cs": "Audioknihy, podcasty, epizody a skladby"
+  },
+  "shell.search.placeholder": {
+    "en": "Search audiobooks, podcasts, songs…",
+    "cs": "Hledat audioknihy, podcasty, skladby…"
+  },
+  "shell.search.minChars": {
+    "en": "Type at least two characters.",
+    "cs": "Napište aspoň dva znaky."
+  },
+  "shell.search.noResults": {
+    "en": "Nothing matches that.",
+    "cs": "Nic tomu neodpovídá."
+  },
+  "shell.search.episodes": {
+    "en": "Episodes",
+    "cs": "Epizody",
+    "note": "Group heading in search results."
+  },
+  "shell.search.songs": {
+    "en": "Songs",
+    "cs": "Skladby",
+    "note": "Group heading in search results."
+  },
+  "shell.continue.playingOnLabel": {
+    "en": "Playing on {device}",
+    "cs": "Přehrává se na zařízení {device}",
+    "note": "{device} is the name the user gave the other device."
+  },
+  "shell.continue.playingOnIos": {
+    "en": "Playing on your iPhone",
+    "cs": "Přehrává se na vašem iPhonu"
+  },
+  "shell.continue.playingOnAndroid": {
+    "en": "Playing on your Android phone",
+    "cs": "Přehrává se na vašem telefonu s Androidem"
+  },
+  "shell.continue.playingOnMac": {
+    "en": "Playing on your Mac",
+    "cs": "Přehrává se na vašem Macu"
+  },
+  "shell.continue.playingOnWindows": {
+    "en": "Playing on your Windows PC",
+    "cs": "Přehrává se na vašem počítači s Windows"
+  },
+  "shell.continue.playingOnWeb": {
+    "en": "Playing in another browser",
+    "cs": "Přehrává se v jiném prohlížeči"
+  },
+  "shell.continue.playingOnOther": {
+    "en": "Playing on another device",
+    "cs": "Přehrává se na jiném zařízení"
+  },
+  "shell.continue.items": {
+    "en": "{count, plural, one {# item} other {# items}}",
+    "cs": "{count, plural, one {# položka} few {# položky} other {# položek}}",
+    "note": "Size of the other device's queue."
+  },
+  "shell.continue.itemsPaused": {
+    "en": "{count, plural, one {# item} other {# items}} · paused at {time}",
+    "cs": "{count, plural, one {# položka} few {# položky} other {# položek}} · pozastaveno v {time}",
+    "note": "{time} is a position like 12:34."
+  },
+  "shell.continue.here": {
+    "en": "Continue here",
+    "cs": "Pokračovat zde"
+  },
+  "shell.continue.failed": {
+    "en": "Couldn't pick that up",
+    "cs": "Přehrávání se nepodařilo převzít"
+  },
+  "shell.continue.failedHint": {
+    "en": "The item may no longer be in your library.",
+    "cs": "Položka už možná ve vaší knihovně není."
+  },
+  "shell.notifications.title": {
+    "en": "Notifications",
+    "cs": "Oznámení"
+  },
+  "shell.notifications.unread": {
+    "en": "{count, plural, one {Notifications: # unread} other {Notifications: # unread}}",
+    "cs": "{count, plural, one {Oznámení: # nepřečtené} few {Oznámení: # nepřečtená} other {Oznámení: # nepřečtených}}"
+  },
+  "shell.notifications.markAllRead": {
+    "en": "Mark all read",
+    "cs": "Označit vše jako přečtené"
+  },
+  "shell.notifications.empty": {
+    "en": "Nothing new.",
+    "cs": "Nic nového."
+  },
+  "shell.notifications.grant": {
+    "en": "Grant",
+    "cs": "Povolit",
+    "note": "Verb: lets a family member hear an item they asked for."
+  },
+  "shell.notifications.grantFailed": {
+    "en": "Could not grant access.",
+    "cs": "Přístup se nepodařilo povolit."
+  },
+  "shell.notifications.notInTrash": {
+    "en": "It's no longer in the trash",
+    "cs": "V koši už není"
+  },
+  "shell.notifications.playlistShared.live": {
+    "en": "{from} shared a playlist with you",
+    "cs": "{from} s vámi sdílí playlist"
+  },
+  "shell.notifications.playlistShared.copy": {
+    "en": "A playlist from {from}",
+    "cs": "Playlist od {from}",
+    "note": "A copy of someone's playlist, now yours."
+  },
+  "shell.notifications.open": {
+    "en": "Open",
+    "cs": "Otevřít"
+  },
+  "shell.offline.message": {
+    "en": "You're offline. Downloaded songs still play.",
+    "cs": "Jste offline. Stažené skladby se dál přehrají."
+  },
+  "shell.offline.downloads": {
+    "en": "Downloads",
+    "cs": "Stažené"
+  },
+  "shell.shortcuts.title": {
+    "en": "Keyboard shortcuts",
+    "cs": "Klávesové zkratky"
+  },
+  "shell.shortcuts.description": {
+    "en": "Press ? any time to see this.",
+    "cs": "Tento přehled kdykoli zobrazíte klávesou ?."
+  },
+  "shell.shortcuts.group.anywhere": {
+    "en": "Anywhere",
+    "cs": "Kdekoli"
+  },
+  "shell.shortcuts.group.resizing": {
+    "en": "Resizing the list",
+    "cs": "Šířka seznamu"
+  },
+  "shell.shortcuts.group.playing": {
+    "en": "While something is playing",
+    "cs": "Během přehrávání"
+  },
+  "shell.shortcuts.toggleSidebar": {
+    "en": "Collapse or expand the sidebar",
+    "cs": "Sbalit nebo rozbalit postranní panel"
+  },
+  "shell.shortcuts.thisList": {
+    "en": "This list",
+    "cs": "Tento přehled"
+  },
+  "shell.shortcuts.key.drag": {
+    "en": "Drag the divider",
+    "cs": "Tažení oddělovače",
+    "note": "Shown in the key column."
+  },
+  "shell.shortcuts.setWidth": {
+    "en": "Set how wide the list column is",
+    "cs": "Nastaví šířku sloupce se seznamem"
+  },
+  "shell.shortcuts.nudge": {
+    "en": "Nudge it, once the divider has focus",
+    "cs": "Posune oddělovač, když je na něm fokus"
+  },
+  "shell.shortcuts.key.doubleClick": {
+    "en": "Double-click",
+    "cs": "Dvojklik",
+    "note": "Shown in the key column."
+  },
+  "shell.shortcuts.defaultWidth": {
+    "en": "Back to the default width",
+    "cs": "Vrátí výchozí šířku"
+  },
+  "shell.shortcuts.key.space": {
+    "en": "Space",
+    "cs": "Mezerník",
+    "note": "The space bar key."
+  },
+  "shell.shortcuts.playPause": {
+    "en": "Play or pause",
+    "cs": "Přehrát nebo pozastavit"
+  },
+  "shell.shortcuts.skip": {
+    "en": "Skip forward or back",
+    "cs": "Přeskočit vpřed nebo zpět"
+  },
+  "shell.shortcuts.nextPrevious": {
+    "en": "Next or previous track",
+    "cs": "Další nebo předchozí skladba"
+  },
+  "shell.split.resize": {
+    "en": "Resize the list",
+    "cs": "Změnit šířku seznamu",
+    "note": "Accessible name of the column divider."
+  },
+  "shell.uploads.title": {
+    "en": "Uploads",
+    "cs": "Nahrávání"
+  },
+  "shell.uploads.uploading": {
+    "en": "Uploading {count, number}",
+    "cs": "Nahrává se: {count, number}"
+  },
+  "shell.uploads.failedLong": {
+    "en": "{count, plural, one {# upload failed} other {# uploads failed}}",
+    "cs": "{count, plural, one {# nahrání selhalo} few {# nahrání selhala} other {# nahrání selhalo}}"
+  },
+  "shell.uploads.failedShort": {
+    "en": "{count, number} failed",
+    "cs": "Selhalo: {count, number}"
+  },
+  "shell.uploads.clearFinished": {
+    "en": "Clear finished",
+    "cs": "Vymazat dokončené"
+  },
+  "shell.uploads.progress": {
+    "en": "{progress, number, percent}",
+    "cs": "{progress, number, percent}",
+    "note": "0–1 shown as a percentage."
+  },
+  "shell.uploads.failed": {
+    "en": "Failed",
+    "cs": "Selhalo"
+  },
+  "shell.uploads.failedRetry": {
+    "en": "{error} — starts over if you retry",
+    "cs": "{error} — při dalším pokusu začne znovu",
+    "note": "{error} is the reason, or 'Failed'."
+  },
+  "shell.uploads.waiting": {
+    "en": "Waiting",
+    "cs": "Čeká"
+  },
+  "shell.uploads.dismissItem": {
+    "en": "Dismiss {name}",
+    "cs": "Odebrat ze seznamu: {name}"
+  }
+}

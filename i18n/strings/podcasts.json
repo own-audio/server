@@ -1,0 +1,538 @@
+{
+  "podcasts.episodeCount": {
+    "en": "{count, plural, one {# episode} other {# episodes}}",
+    "cs": "{count, plural, one {# epizoda} few {# epizody} other {# epizod}}"
+  },
+  "podcasts.action.follow": {
+    "en": "Follow",
+    "cs": "Odebírat",
+    "note": "Button: start following a show."
+  },
+  "podcasts.action.following": {
+    "en": "Following",
+    "cs": "Odebíráte",
+    "note": "Disabled button on a show already followed; also a toast title after following."
+  },
+  "podcasts.action.unfollow": {
+    "en": "Unfollow",
+    "cs": "Zrušit odběr"
+  },
+  "podcasts.action.refresh": {
+    "en": "Refresh",
+    "cs": "Obnovit",
+    "note": "Re-read a show's feed."
+  },
+  "podcasts.action.similarShows": {
+    "en": "Similar shows",
+    "cs": "Podobné pořady"
+  },
+  "podcasts.action.select": {
+    "en": "Select",
+    "cs": "Vybrat"
+  },
+  "podcasts.toast.refreshed": {
+    "en": "Feed refreshed",
+    "cs": "Kanál je aktualizovaný"
+  },
+  "podcasts.error.refresh": {
+    "en": "Couldn't refresh that feed",
+    "cs": "Kanál se nepodařilo aktualizovat"
+  },
+  "podcasts.error.followShow": {
+    "en": "Couldn't follow that show",
+    "cs": "Tento pořad se nepodařilo přidat."
+  },
+  "podcasts.shareWithFamily": {
+    "en": "Share with the family",
+    "cs": "Sdílet s rodinou",
+    "note": "Checkbox label when following a show."
+  },
+  "podcasts.list.sort.recent": {
+    "en": "Recently updated",
+    "cs": "Naposledy aktualizované"
+  },
+  "podcasts.list.sort.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "podcasts.list.sort.author": {
+    "en": "Author",
+    "cs": "Autor"
+  },
+  "podcasts.list.filter": {
+    "en": "Filter shows",
+    "cs": "Filtrovat pořady"
+  },
+  "podcasts.list.owner.all": {
+    "en": "Everything",
+    "cs": "Vše"
+  },
+  "podcasts.list.owner.mine": {
+    "en": "Mine",
+    "cs": "Moje",
+    "note": "Only shows not shared with the family."
+  },
+  "podcasts.list.selectAll": {
+    "en": "Select all",
+    "cs": "Vybrat vše"
+  },
+  "podcasts.list.clearSelection": {
+    "en": "Clear selection",
+    "cs": "Zrušit výběr"
+  },
+  "podcasts.list.error.unfollow": {
+    "en": "Couldn't unfollow that show",
+    "cs": "Odběr pořadu se nepodařilo zrušit"
+  },
+  "podcasts.list.empty.noMatchTitle": {
+    "en": "Nothing matches that",
+    "cs": "Nic tomu neodpovídá"
+  },
+  "podcasts.list.empty.noMatchBody": {
+    "en": "Try a different word.",
+    "cs": "Zkuste jiné slovo."
+  },
+  "podcasts.list.empty.noPrivateTitle": {
+    "en": "No private shows",
+    "cs": "Žádné soukromé pořady"
+  },
+  "podcasts.list.empty.noPrivateBody": {
+    "en": "Everything you've followed is currently shared with the family.",
+    "cs": "Všechny pořady, které odebíráte, jsou teď sdílené s rodinou."
+  },
+  "podcasts.list.empty.noneTitle": {
+    "en": "No shows yet",
+    "cs": "Zatím žádné pořady"
+  },
+  "podcasts.list.empty.noneBody": {
+    "en": "Search the directory, or paste an RSS or YouTube URL.",
+    "cs": "Hledejte v katalogu, nebo vložte adresu RSS či YouTube."
+  },
+  "podcasts.list.findShow": {
+    "en": "Find a show",
+    "cs": "Najít pořad"
+  },
+  "podcasts.list.updated": {
+    "en": "Updated {when}",
+    "cs": "Aktualizováno {when}",
+    "note": "{when} is a relative time such as “5 min ago” / “před 5 min”."
+  },
+  "podcasts.list.unfollowConfirm.title": {
+    "en": "Unfollow “{title}”?",
+    "cs": "Zrušit odběr pořadu „{title}“?"
+  },
+  "podcasts.list.unfollowConfirm.body": {
+    "en": "You can always follow it again later.",
+    "cs": "Později ho můžete kdykoli znovu odebírat."
+  },
+  "podcasts.list.pickShow.title": {
+    "en": "Pick a show",
+    "cs": "Vyberte pořad"
+  },
+  "podcasts.list.pickShow.body": {
+    "en": "Its episodes show up here.",
+    "cs": "Zobrazí se tu jeho epizody."
+  },
+  "podcasts.add.title": {
+    "en": "Follow a podcast",
+    "cs": "Přidat podcast"
+  },
+  "podcasts.add.description": {
+    "en": "Search the directory, or paste a feed URL.",
+    "cs": "Hledejte v katalogu, nebo vložte adresu kanálu."
+  },
+  "podcasts.add.searchPlaceholder": {
+    "en": "Search by show, host or topic",
+    "cs": "Pořad, moderátor nebo téma"
+  },
+  "podcasts.add.searchLabel": {
+    "en": "Search podcasts",
+    "cs": "Hledat podcasty"
+  },
+  "podcasts.add.browseHint": {
+    "en": "Pick a category, or search by show, host or topic.",
+    "cs": "Vyberte kategorii, nebo hledejte podle pořadu, moderátora či tématu."
+  },
+  "podcasts.add.catalogueDown": {
+    "en": "The catalogue didn't answer. Paste the feed URL below instead.",
+    "cs": "Katalog neodpověděl. Vložte místo toho adresu kanálu níže."
+  },
+  "podcasts.add.nothingFound": {
+    "en": "Nothing found for “{query}”.",
+    "cs": "Pro „{query}“ se nic nenašlo."
+  },
+  "podcasts.add.categoryEmpty": {
+    "en": "Nothing live in that category right now.",
+    "cs": "V této kategorii teď nic aktivního není."
+  },
+  "podcasts.add.urlLabel": {
+    "en": "Or paste a feed URL",
+    "cs": "Nebo vložte adresu kanálu"
+  },
+  "podcasts.add.urlPlaceholder": {
+    "en": "https://example.com/feed.rss or https://youtube.com/@channel",
+    "cs": "https://example.com/feed.rss nebo https://youtube.com/@channel"
+  },
+  "podcasts.add.urlHint": {
+    "en": "Use this for a show the directory misses, or a YouTube channel.",
+    "cs": "Pro pořad, který katalog nezná, nebo pro kanál na YouTube."
+  },
+  "podcasts.add.shareHint": {
+    "en": "Everyone in your family sees this show and its episodes.",
+    "cs": "Pořad i jeho epizody uvidí všichni ve vaší rodině."
+  },
+  "podcasts.add.error.follow": {
+    "en": "Couldn't follow that feed.",
+    "cs": "Tento kanál se nepodařilo přidat."
+  },
+  "podcasts.similar.title": {
+    "en": "Shows like this one",
+    "cs": "Podobné pořady"
+  },
+  "podcasts.similar.description": {
+    "en": "Same categories as “{title}”. Based on that feed, not on your listening.",
+    "cs": "Stejné kategorie jako „{title}“. Podle toho kanálu, ne podle toho, co posloucháte."
+  },
+  "podcasts.similar.catalogueDown": {
+    "en": "The catalogue didn't answer. Try again in a moment.",
+    "cs": "Katalog neodpověděl. Zkuste to za chvíli znovu."
+  },
+  "podcasts.similar.empty": {
+    "en": "Nothing to suggest for this show. The catalogue may not know it yet, or you already follow everything like it.",
+    "cs": "K tomuto pořadu nemáme co nabídnout. Katalog ho ještě nemusí znát, nebo už odebíráte všechno podobné."
+  },
+  "podcasts.similar.shareHint": {
+    "en": "Applies to shows you follow from here. Everyone in your family sees them.",
+    "cs": "Platí pro pořady, které odsud začnete odebírat. Uvidí je všichni ve vaší rodině."
+  },
+  "podcasts.similar.inlineTitle": {
+    "en": "You might also like",
+    "cs": "Mohlo by se vám líbit",
+    "note": "Heading at the end of a show's page."
+  },
+  "podcasts.similar.inlineBody": {
+    "en": "Shows in the same categories. Based on this feed, not on your listening.",
+    "cs": "Pořady ze stejných kategorií. Podle tohoto kanálu, ne podle toho, co posloucháte."
+  },
+  "podcasts.similar.seeAll": {
+    "en": "See all {count, number}",
+    "cs": "Zobrazit všech {count, number}",
+    "note": "Always more than eight."
+  },
+  "podcasts.translate.title": {
+    "en": "Translate this episode",
+    "cs": "Přeložit tuto epizodu"
+  },
+  "podcasts.translate.description": {
+    "en": "It's translated from the transcript the podcast publishes, then narrated in the voice you pick.",
+    "cs": "Přeloží se z přepisu, který podcast zveřejňuje, a namluví hlasem, který si vyberete."
+  },
+  "podcasts.translate.action": {
+    "en": "Translate",
+    "cs": "Přeložit"
+  },
+  "podcasts.translate.language": {
+    "en": "Language",
+    "cs": "Jazyk"
+  },
+  "podcasts.translate.voice": {
+    "en": "Voice",
+    "cs": "Hlas"
+  },
+  "podcasts.translate.noVoice": {
+    "en": "No voice for this language yet.",
+    "cs": "Pro tento jazyk zatím není k dispozici hlas."
+  },
+  "podcasts.translate.price": {
+    "en": "Price",
+    "cs": "Cena"
+  },
+  "podcasts.translate.chargeLine": {
+    "en": "{count, plural, one {# character} other {# characters}} · charged to your family's credit",
+    "cs": "{count, plural, one {# znak} few {# znaky} other {# znaků}} · hradí se z kreditu rodiny"
+  },
+  "podcasts.translate.pickForPrice": {
+    "en": "Pick a language and voice to see the price.",
+    "cs": "Vyberte jazyk a hlas, ať uvidíte cenu."
+  },
+  "podcasts.translate.started": {
+    "en": "Translation started",
+    "cs": "Překlad byl spuštěn"
+  },
+  "podcasts.translate.startedBody": {
+    "en": "It appears under the episode when it's ready.",
+    "cs": "Až bude hotový, objeví se pod epizodou."
+  },
+  "podcasts.translate.error.start": {
+    "en": "Couldn't start that translation.",
+    "cs": "Překlad se nepodařilo spustit."
+  },
+  "podcasts.translate.error.quote": {
+    "en": "Couldn't price this translation.",
+    "cs": "Cenu překladu se nepodařilo zjistit."
+  },
+  "podcasts.translatePage.title": {
+    "en": "Translate an episode",
+    "cs": "Přeložit epizodu"
+  },
+  "podcasts.translatePage.intro": {
+    "en": "A podcast episode in your language: translated from the transcript the show publishes, then narrated in a voice you choose.",
+    "cs": "Epizoda podcastu ve vašem jazyce: přeloží se z přepisu, který pořad zveřejňuje, a namluví hlasem, který si vyberete."
+  },
+  "podcasts.translatePage.pickShow": {
+    "en": "Choose a show",
+    "cs": "Vyberte pořad"
+  },
+  "podcasts.translatePage.pickEpisode": {
+    "en": "Choose an episode",
+    "cs": "Vyberte epizodu"
+  },
+  "podcasts.translatePage.noShowsTitle": {
+    "en": "None of your shows publishes transcripts",
+    "cs": "Žádný z vašich pořadů nezveřejňuje přepisy"
+  },
+  "podcasts.translatePage.noShowsBody": {
+    "en": "Follow a show that does — they're marked “Can be translated”.",
+    "cs": "Odebírejte pořad, který je zveřejňuje — poznáte ho podle značky „Lze přeložit“."
+  },
+  "podcasts.translatePage.noEpisodes": {
+    "en": "No episode of this show has a transcript yet.",
+    "cs": "Žádná epizoda tohoto pořadu zatím nemá přepis."
+  },
+  "podcasts.translatePage.openShow": {
+    "en": "See its translations",
+    "cs": "Zobrazit překlady",
+    "note": "Opens the show, where each episode lists its translations."
+  },
+  "podcasts.translatePage.yours": {
+    "en": "Your translations",
+    "cs": "Vaše překlady"
+  },
+  "podcasts.translatePage.playLanguage": {
+    "en": "Play the {language} translation",
+    "cs": "Přehrát překlad ({language})"
+  },
+  "podcasts.translation.status.translating": {
+    "en": "Translating…",
+    "cs": "Překládání…"
+  },
+  "podcasts.translation.status.narrating": {
+    "en": "Narrating…",
+    "cs": "Namlouvání…"
+  },
+  "podcasts.translation.status.assembling": {
+    "en": "Finishing up…",
+    "cs": "Dokončování…"
+  },
+  "podcasts.translation.status.complete": {
+    "en": "Ready",
+    "cs": "Připraveno"
+  },
+  "podcasts.translation.status.failed": {
+    "en": "Failed",
+    "cs": "Selhalo"
+  },
+  "podcasts.translation.row": {
+    "en": "{language} — <status>{state}</status>",
+    "cs": "{language} — <status>{state}</status>",
+    "note": "{language} is a language code such as CS; <status> is coloured."
+  },
+  "podcasts.translation.played": {
+    "en": "played",
+    "cs": "přehráno",
+    "note": "Appended to a translation's row after an em dash."
+  },
+  "podcasts.translation.left": {
+    "en": "{time} left",
+    "cs": "zbývá {time}",
+    "note": "Appended to a translation's row after an em dash; {time} like “12 min”."
+  },
+  "podcasts.translation.notCharged": {
+    "en": "You haven't been charged.",
+    "cs": "Nic vám nebylo účtováno."
+  },
+  "podcasts.translation.notChargedWithError": {
+    "en": "{error} — you haven't been charged.",
+    "cs": "{error} — nic vám nebylo účtováno.",
+    "note": "{error} is the server's message, shown as it arrives."
+  },
+  "podcasts.translation.translateAnother": {
+    "en": "Translate to another language",
+    "cs": "Přeložit do jiného jazyka"
+  },
+  "podcasts.archive.title": {
+    "en": "Save {title} to own.audio",
+    "cs": "Uložit {title} do own.audio"
+  },
+  "podcasts.archive.description": {
+    "en": "The server downloads the episodes and keeps them, so they stay in your library after a paid subscription ends. It runs in the background, one episode after another.",
+    "cs": "Server epizody stáhne a uchová, takže vám zůstanou v knihovně i po skončení placeného předplatného. Probíhá to na pozadí, jedna epizoda po druhé."
+  },
+  "podcasts.archive.scope.newest": {
+    "en": "The newest",
+    "cs": "Nejnovější"
+  },
+  "podcasts.archive.scope.all": {
+    "en": "All",
+    "cs": "Vše"
+  },
+  "podcasts.archive.newestCount": {
+    "en": "{count, plural, one {Newest <input></input> episode} other {Newest <input></input> episodes}}",
+    "cs": "{count, plural, one {Nejnovější <input></input> epizoda} few {Nejnovější <input></input> epizody} other {Nejnovějších <input></input> epizod}}",
+    "note": "<input> is the number field; {count} is its value."
+  },
+  "podcasts.archive.queued": {
+    "en": "{count, plural, one {# episode is on its way to own.audio.} other {# episodes are on their way to own.audio.}}",
+    "cs": "{count, plural, one {Do own.audio se ukládá # epizoda.} few {Do own.audio se ukládají # epizody.} other {Do own.audio se ukládá # epizod.}}"
+  },
+  "podcasts.archive.preview": {
+    "en": "{count, plural, one {# episode not stored yet, about {size}.} other {# episodes not stored yet, about {size}.}}",
+    "cs": "{count, plural, one {# epizoda ještě není uložená, přibližně {size}.} few {# epizody ještě nejsou uložené, přibližně {size}.} other {# epizod ještě není uložených, přibližně {size}.}}",
+    "note": "{size} is formatted storage such as “1.2 GB”."
+  },
+  "podcasts.archive.error": {
+    "en": "Couldn't queue those episodes",
+    "cs": "Epizody se nepodařilo zařadit k uložení"
+  },
+  "podcasts.feed.autoStore.on": {
+    "en": "New episodes will be saved to own.audio",
+    "cs": "Nové epizody se budou ukládat do own.audio"
+  },
+  "podcasts.feed.autoStore.off": {
+    "en": "New episodes are no longer saved",
+    "cs": "Nové epizody se už neukládají"
+  },
+  "podcasts.feed.autoStore.error": {
+    "en": "Couldn't change that setting",
+    "cs": "Nastavení se nepodařilo změnit"
+  },
+  "podcasts.feed.autoStore.hint": {
+    "en": "Store every new episode in own.audio as it is published, so it stays in your library even if the feed removes it.",
+    "cs": "Každá nová epizoda se po vydání uloží do own.audio, takže vám zůstane v knihovně, i když ji kanál odstraní."
+  },
+  "podcasts.feed.autoStore.buttonOn": {
+    "en": "Saving new episodes: on",
+    "cs": "Ukládání nových epizod: zapnuto"
+  },
+  "podcasts.feed.autoStore.buttonOff": {
+    "en": "Save new episodes",
+    "cs": "Ukládat nové epizody"
+  },
+  "podcasts.feed.saveArchive": {
+    "en": "Save archive…",
+    "cs": "Uložit archiv…"
+  },
+  "podcasts.feed.visibility.shared": {
+    "en": "Shared with the family",
+    "cs": "Sdíleno s rodinou"
+  },
+  "podcasts.feed.visibility.private": {
+    "en": "Made private",
+    "cs": "Nastaveno jako soukromé"
+  },
+  "podcasts.feed.visibility.error": {
+    "en": "Couldn't change who can see this show",
+    "cs": "Nepodařilo se změnit, kdo pořad uvidí"
+  },
+  "podcasts.feed.markedPlayed": {
+    "en": "{count, plural, one {Marked played} other {# episodes marked played}}",
+    "cs": "{count, plural, one {Označeno jako přehrané} few {# epizody označeny jako přehrané} other {# epizod označeno jako přehrané}}"
+  },
+  "podcasts.feed.markedUnplayed": {
+    "en": "{count, plural, one {Marked unplayed} other {# episodes marked unplayed}}",
+    "cs": "{count, plural, one {Označeno jako nepřehrané} few {# epizody označeny jako nepřehrané} other {# epizod označeno jako nepřehrané}}"
+  },
+  "podcasts.feed.error.markPlayed": {
+    "en": "Couldn't update those episodes",
+    "cs": "Epizody se nepodařilo aktualizovat"
+  },
+  "podcasts.feed.readyToPlay": {
+    "en": "Ready to play",
+    "cs": "Připraveno k přehrání"
+  },
+  "podcasts.feed.error.fetch": {
+    "en": "Couldn't fetch that episode",
+    "cs": "Epizodu se nepodařilo stáhnout"
+  },
+  "podcasts.feed.error.fetchBody": {
+    "en": "The feed may be slow or the file gone.",
+    "cs": "Kanál možná odpovídá pomalu, nebo soubor už neexistuje."
+  },
+  "podcasts.feed.error.download": {
+    "en": "Couldn't start that download",
+    "cs": "Stahování se nepodařilo spustit"
+  },
+  "podcasts.feed.error.play": {
+    "en": "Couldn't start that episode",
+    "cs": "Epizodu se nepodařilo spustit"
+  },
+  "podcasts.feed.whoCanHear": {
+    "en": "Who can hear this",
+    "cs": "Kdo to uslyší"
+  },
+  "podcasts.feed.fetchArtwork": {
+    "en": "Fetch artwork",
+    "cs": "Stáhnout obálku"
+  },
+  "podcasts.feed.markAllPlayed": {
+    "en": "Mark all played",
+    "cs": "Označit vše jako přehrané"
+  },
+  "podcasts.feed.searchEpisodes": {
+    "en": "Search episodes",
+    "cs": "Hledat epizody"
+  },
+  "podcasts.feed.empty.title": {
+    "en": "No episodes",
+    "cs": "Žádné epizody"
+  },
+  "podcasts.feed.empty.body": {
+    "en": "This feed hasn't published anything the server could read.",
+    "cs": "Tento kanál nezveřejnil nic, co by server dokázal přečíst."
+  },
+  "podcasts.feed.episode.number": {
+    "en": "#{number}",
+    "cs": "#{number}",
+    "note": "Episode number from the feed."
+  },
+  "podcasts.feed.episode.played": {
+    "en": "Played",
+    "cs": "Přehráno"
+  },
+  "podcasts.feed.episode.fetching": {
+    "en": "Fetching it now…",
+    "cs": "Stahuje se…"
+  },
+  "podcasts.feed.episode.notOnServer": {
+    "en": "Not on the server yet",
+    "cs": "Zatím není na serveru"
+  },
+  "podcasts.feed.episode.fetchAndPlay": {
+    "en": "Fetch and play",
+    "cs": "Stáhnout a přehrát"
+  },
+  "podcasts.feed.episode.markPlayed": {
+    "en": "Mark played",
+    "cs": "Označit jako přehrané"
+  },
+  "podcasts.feed.episode.markUnplayed": {
+    "en": "Mark unplayed",
+    "cs": "Označit jako nepřehrané"
+  },
+  "podcasts.feed.episode.downloadToLibrary": {
+    "en": "Download to your library",
+    "cs": "Stáhnout do knihovny"
+  },
+  "podcasts.feed.episode.saveCopy": {
+    "en": "Save a copy to this device",
+    "cs": "Uložit kopii do tohoto zařízení"
+  },
+  "podcasts.feed.episode.collapse": {
+    "en": "Collapse",
+    "cs": "Sbalit"
+  },
+  "podcasts.feed.episode.expand": {
+    "en": "Expand",
+    "cs": "Rozbalit"
+  }
+}

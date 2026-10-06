@@ -1,0 +1,349 @@
+{
+  "home.greeting.night": {
+    "en": "Still up",
+    "cs": "Ještě vzhůru",
+    "note": "Home title between midnight and 5 am, no name."
+  },
+  "home.greeting.nightName": {
+    "en": "Still up, {name}",
+    "cs": "Ještě vzhůru, {name}",
+    "note": "Home title between midnight and 5 am; name is the first name."
+  },
+  "home.greeting.morning": {
+    "en": "Good morning",
+    "cs": "Dobré ráno"
+  },
+  "home.greeting.morningName": {
+    "en": "Good morning, {name}",
+    "cs": "Dobré ráno, {name}"
+  },
+  "home.greeting.afternoon": {
+    "en": "Good afternoon",
+    "cs": "Dobré odpoledne"
+  },
+  "home.greeting.afternoonName": {
+    "en": "Good afternoon, {name}",
+    "cs": "Dobré odpoledne, {name}"
+  },
+  "home.greeting.evening": {
+    "en": "Good evening",
+    "cs": "Dobrý večer"
+  },
+  "home.greeting.eveningName": {
+    "en": "Good evening, {name}",
+    "cs": "Dobrý večer, {name}"
+  },
+  "home.empty.title": {
+    "en": "Nothing shown",
+    "cs": "Nic se nezobrazuje"
+  },
+  "home.empty.description": {
+    "en": "Add a widget to see your library here.",
+    "cs": "Přidejte widget a uvidíte tu svou knihovnu."
+  },
+  "home.empty.chooseWidgets": {
+    "en": "Choose widgets",
+    "cs": "Vybrat widgety"
+  },
+  "home.settings.title": {
+    "en": "Home widgets",
+    "cs": "Widgety na kartě Domů",
+    "note": "Sheet title and the Home toolbar button's label."
+  },
+  "home.settings.description": {
+    "en": "Choose what shows on Home, and in what order.",
+    "cs": "Vyberte, co se na kartě Domů zobrazí a v jakém pořadí."
+  },
+  "home.settings.notOnHome": {
+    "en": "Not on Home",
+    "cs": "Není na kartě Domů",
+    "note": "Small heading above the hidden widgets."
+  },
+  "home.settings.moveUp": {
+    "en": "Move up",
+    "cs": "Posunout nahoru"
+  },
+  "home.settings.moveDown": {
+    "en": "Move down",
+    "cs": "Posunout dolů"
+  },
+  "home.widget.quickLinks.label": {
+    "en": "Quick links",
+    "cs": "Rychlé odkazy"
+  },
+  "home.widget.quickLinks.description": {
+    "en": "Three big buttons to Audiobooks, Podcasts and Music.",
+    "cs": "Tři velká tlačítka do Audioknih, Podcastů a Hudby."
+  },
+  "home.widget.weekSummary.label": {
+    "en": "This week",
+    "cs": "Tento týden"
+  },
+  "home.widget.weekSummary.description": {
+    "en": "Your average day of audiobooks, podcasts and music over the last 7 days.",
+    "cs": "Váš průměrný den audioknih, podcastů a hudby za posledních 7 dní."
+  },
+  "home.widget.continue.label": {
+    "en": "Continue listening",
+    "cs": "Pokračovat v poslechu"
+  },
+  "home.widget.continue.description": {
+    "en": "Audiobooks and episodes you're partway through.",
+    "cs": "Rozposlouchané audioknihy a epizody."
+  },
+  "home.widget.storage.label": {
+    "en": "Storage & credit",
+    "cs": "Úložiště a kredit"
+  },
+  "home.widget.storage.description": {
+    "en": "What the library is using, and how long the credit lasts.",
+    "cs": "Kolik knihovna zabírá a na jak dlouho vystačí kredit."
+  },
+  "home.widget.recentSongs.label": {
+    "en": "Recent songs",
+    "cs": "Nedávné skladby"
+  },
+  "home.widget.recentSongs.description": {
+    "en": "Songs from your listening history.",
+    "cs": "Skladby z vaší historie poslechu."
+  },
+  "home.widget.recentAlbums.label": {
+    "en": "Recent albums",
+    "cs": "Nedávná alba"
+  },
+  "home.widget.recentAlbums.description": {
+    "en": "Albums those songs came from.",
+    "cs": "Alba, ze kterých ty skladby pocházejí."
+  },
+  "home.widget.recentPlaylists.label": {
+    "en": "Recent playlists",
+    "cs": "Nedávné playlisty"
+  },
+  "home.widget.recentPlaylists.description": {
+    "en": "Playlists by last edit — a play session never records which playlist it came from.",
+    "cs": "Playlisty podle poslední úpravy — poslech si nepamatuje, ze kterého playlistu byl spuštěn."
+  },
+  "home.widget.booksInProgress.label": {
+    "en": "Audiobooks in progress",
+    "cs": "Rozposlouchané audioknihy"
+  },
+  "home.widget.booksInProgress.description": {
+    "en": "Books you stopped partway through.",
+    "cs": "Knihy, které jste nedoposlouchali."
+  },
+  "home.widget.newBooks.label": {
+    "en": "New audiobooks",
+    "cs": "Nové audioknihy"
+  },
+  "home.widget.newBooks.description": {
+    "en": "Books added to the library most recently.",
+    "cs": "Knihy naposledy přidané do knihovny."
+  },
+  "home.widget.recentBooks.label": {
+    "en": "Recent audiobooks",
+    "cs": "Nedávné audioknihy"
+  },
+  "home.widget.recentBooks.description": {
+    "en": "Books you listened to most recently.",
+    "cs": "Knihy, které jste poslouchali naposledy."
+  },
+  "home.widget.latestEpisodes.label": {
+    "en": "Latest podcast episodes",
+    "cs": "Nejnovější epizody"
+  },
+  "home.widget.latestEpisodes.description": {
+    "en": "The newest episodes of the shows you follow.",
+    "cs": "Nejnovější epizody pořadů, které odebíráte."
+  },
+  "home.widget.listeningChart.label": {
+    "en": "Listening time",
+    "cs": "Doba poslechu"
+  },
+  "home.widget.listeningChart.description": {
+    "en": "The last 7 days as a bar chart, split into audiobooks, podcasts and music.",
+    "cs": "Posledních 7 dní ve sloupcovém grafu, rozdělených na audioknihy, podcasty a hudbu."
+  },
+  "home.widget.activity.label": {
+    "en": "Listening activity",
+    "cs": "Aktivita poslechu"
+  },
+  "home.widget.activity.description": {
+    "en": "Every day of the last 12 months, for audiobooks, podcasts and music.",
+    "cs": "Každý den posledních 12 měsíců, pro audioknihy, podcasty a hudbu."
+  },
+  "home.continue.nothing": {
+    "en": "Nothing in progress right now.",
+    "cs": "Právě nic nerozposlouchaného."
+  },
+  "home.continue.noBook": {
+    "en": "No audiobook in progress right now.",
+    "cs": "Právě nemáte rozposlouchanou žádnou audioknihu."
+  },
+  "home.continue.translated": {
+    "en": "{show} - translated into {language}",
+    "cs": "{show} – přeloženo do {language}",
+    "note": "Subtitle of a translated episode; language is a code like DE."
+  },
+  "home.continue.podcastFallback": {
+    "en": "Podcast",
+    "cs": "Podcast",
+    "note": "Stands in for a missing show title."
+  },
+  "home.recentSongs.empty": {
+    "en": "No recently played songs yet.",
+    "cs": "Zatím žádné nedávno hrané skladby."
+  },
+  "home.recentAlbums.empty": {
+    "en": "No recently played albums yet.",
+    "cs": "Zatím žádná nedávno hraná alba."
+  },
+  "home.recentAlbums.unknownArtist": {
+    "en": "Unknown Artist",
+    "cs": "Neznámý interpret"
+  },
+  "home.recentPlaylists.empty": {
+    "en": "No playlists yet.",
+    "cs": "Zatím žádné playlisty."
+  },
+  "home.playlist.songCount": {
+    "en": "{count, plural, one {# song} other {# songs}}",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+  },
+  "home.newBooks.empty": {
+    "en": "No audiobooks yet.",
+    "cs": "Zatím žádné audioknihy."
+  },
+  "home.recentBooks.empty": {
+    "en": "No audiobooks listened to yet.",
+    "cs": "Zatím jste neposlouchali žádnou audioknihu."
+  },
+  "home.latestEpisodes.empty": {
+    "en": "Follow a show to see its new episodes here.",
+    "cs": "Odebírejte pořad a jeho nové epizody uvidíte tady."
+  },
+  "home.storage.unavailable": {
+    "en": "Storage figures aren't available right now.",
+    "cs": "Údaje o úložišti teď nejsou k dispozici."
+  },
+  "home.storage.stored": {
+    "en": "Stored",
+    "cs": "Uloženo"
+  },
+  "home.storage.credit": {
+    "en": "Credit",
+    "cs": "Kredit"
+  },
+  "home.storage.daysLeft": {
+    "en": "Days left",
+    "cs": "Zbývá dní"
+  },
+  "home.quickLinks.label": {
+    "en": "Libraries",
+    "cs": "Knihovny",
+    "note": "Accessible name of the Quick links row."
+  },
+  "home.getStarted.title": {
+    "en": "Get started",
+    "cs": "Začínáme"
+  },
+  "home.getStarted.progress": {
+    "en": "{done, number} of {total, number} done",
+    "cs": "Hotovo {done, number} z {total, number}"
+  },
+  "home.getStarted.credit": {
+    "en": "You have {amount} of credit to start with.",
+    "cs": "Na začátek máte kredit {amount}."
+  },
+  "home.getStarted.hide": {
+    "en": "Hide Get started",
+    "cs": "Skrýt Začínáme"
+  },
+  "home.getStarted.done": {
+    "en": "Done",
+    "cs": "Hotovo",
+    "note": "Accessible label of a ticked step."
+  },
+  "home.getStarted.follow.title": {
+    "en": "Follow a podcast",
+    "cs": "Přidat podcast"
+  },
+  "home.getStarted.follow.description": {
+    "en": "Search the directory and follow a show.",
+    "cs": "Vyhledejte v katalogu pořad a začněte ho odebírat."
+  },
+  "home.getStarted.book.title": {
+    "en": "Add an audiobook",
+    "cs": "Přidat audioknihu"
+  },
+  "home.getStarted.book.description": {
+    "en": "Upload the files of a book you own.",
+    "cs": "Nahrajte soubory knihy, kterou vlastníte."
+  },
+  "home.getStarted.music.title": {
+    "en": "Add music",
+    "cs": "Přidat hudbu"
+  },
+  "home.getStarted.music.description": {
+    "en": "Upload songs or whole albums.",
+    "cs": "Nahrajte skladby nebo celá alba."
+  },
+  "home.getStarted.family.title": {
+    "en": "Invite your family",
+    "cs": "Pozvat rodinu"
+  },
+  "home.getStarted.family.description": {
+    "en": "Send a link. Everyone gets their own account and shares the library.",
+    "cs": "Pošlete odkaz. Každý dostane vlastní účet a sdílí knihovnu."
+  },
+  "home.activity.unavailable": {
+    "en": "Listening activity isn't available right now.",
+    "cs": "Aktivita poslechu teď není k dispozici."
+  },
+  "home.activity.allListening": {
+    "en": "All listening",
+    "cs": "Veškerý poslech"
+  },
+  "home.activity.none": {
+    "en": "no listening",
+    "cs": "bez poslechu",
+    "note": "A day cell's tooltip for a day with no listening."
+  },
+  "home.activity.rowSummary": {
+    "en": "{time} · {days, plural, one {# day} other {# days}}",
+    "cs": "{time} · {days, plural, one {# den} few {# dny} other {# dní}}",
+    "note": "time is a duration like 3 h 20 min."
+  },
+  "home.activity.rowLabel": {
+    "en": "{kind}: {time} over {days, plural, one {# day} other {# days}} in the last 12 months",
+    "cs": "{kind}: {time} během {days, plural, one {# dne} few {# dnů} other {# dnů}} za posledních 12 měsíců"
+  },
+  "home.activity.cell": {
+    "en": "{date} · {time}",
+    "cs": "{date} · {time}"
+  },
+  "home.activity.less": {
+    "en": "Less",
+    "cs": "Méně",
+    "note": "Legend under the activity grid."
+  },
+  "home.activity.more": {
+    "en": "More",
+    "cs": "Více"
+  },
+  "home.week.unavailable": {
+    "en": "Listening figures aren't available right now.",
+    "cs": "Údaje o poslechu teď nejsou k dispozici."
+  },
+  "home.week.perDay": {
+    "en": "a day on average",
+    "cs": "denně v průměru"
+  },
+  "home.week.total": {
+    "en": "{time} in the last 7 days",
+    "cs": "{time} za posledních 7 dní"
+  },
+  "home.week.totalStreak": {
+    "en": "{time} in the last 7 days · {days, number}-day streak",
+    "cs": "{time} za posledních 7 dní · {days, plural, one {# den} few {# dny} other {# dní}} v řadě"
+  }
+}

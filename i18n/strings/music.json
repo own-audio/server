@@ -1,0 +1,1155 @@
+{
+  "music.mode.songs": {
+    "en": "Songs",
+    "cs": "Skladby"
+  },
+  "music.mode.artists": {
+    "en": "Artists",
+    "cs": "Interpreti"
+  },
+  "music.mode.albums": {
+    "en": "Albums",
+    "cs": "Alba"
+  },
+  "music.mode.genres": {
+    "en": "Genres",
+    "cs": "Žánry"
+  },
+  "music.mode.playlists": {
+    "en": "Playlists",
+    "cs": "Playlisty"
+  },
+  "music.mode.smart": {
+    "en": "Smart",
+    "cs": "Chytré",
+    "note": "Tab: smart playlists (built on demand from a rule)."
+  },
+  "music.mode.downloads": {
+    "en": "Downloads",
+    "cs": "Stažené"
+  },
+  "music.sort.name": {
+    "en": "Name",
+    "cs": "Název"
+  },
+  "music.sort.mostTracks": {
+    "en": "Most tracks",
+    "cs": "Nejvíc skladeb"
+  },
+  "music.sort.recent": {
+    "en": "Recently added",
+    "cs": "Nedávno přidané"
+  },
+  "music.count.songs": {
+    "en": "{count, plural, one {# song} other {# songs}}",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+  },
+  "music.count.albumsAndSongs": {
+    "en": "{albums, plural, one {# album} other {# albums}} · {songs, plural, one {# song} other {# songs}}",
+    "cs": "{albums, plural, one {# album} few {# alba} other {# alb}} · {songs, plural, one {# skladba} few {# skladby} other {# skladeb}}",
+    "note": "Subtitle of an artist row."
+  },
+  "music.count.songsWithDuration": {
+    "en": "{count, plural, one {# song} other {# songs}} · {duration}",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · {duration}",
+    "note": "duration is already formatted, e.g. 1 h 20 min."
+  },
+  "music.count.ofTotal": {
+    "en": "{count, number} of {total, number}",
+    "cs": "{count, number} z {total, number}"
+  },
+  "music.count.andMore": {
+    "en": "and {count, number} more…",
+    "cs": "{count, plural, one {a # další…} few {a # další…} other {a # dalších…}}",
+    "note": "Last line of a list cut short."
+  },
+  "music.field.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "music.field.artist": {
+    "en": "Artist",
+    "cs": "Interpret"
+  },
+  "music.field.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.field.genre": {
+    "en": "Genre",
+    "cs": "Žánr"
+  },
+  "music.field.trackNumber": {
+    "en": "Track number",
+    "cs": "Číslo skladby"
+  },
+  "music.field.cover": {
+    "en": "Cover",
+    "cs": "Obálka"
+  },
+  "music.field.chooseImage": {
+    "en": "Choose an image…",
+    "cs": "Vybrat obrázek…"
+  },
+  "music.field.name": {
+    "en": "Name",
+    "cs": "Název",
+    "note": "A playlist's name."
+  },
+  "music.field.description": {
+    "en": "Description",
+    "cs": "Popis"
+  },
+  "music.field.optional": {
+    "en": "Optional",
+    "cs": "Nepovinné",
+    "note": "Placeholder of an optional field."
+  },
+  "music.field.playlistPlaceholder": {
+    "en": "Sunday morning",
+    "cs": "Nedělní ráno",
+    "note": "Example playlist name shown as a placeholder."
+  },
+  "music.action.addMusic": {
+    "en": "Add music",
+    "cs": "Přidat hudbu"
+  },
+  "music.action.newPlaylist": {
+    "en": "New playlist",
+    "cs": "Nový playlist"
+  },
+  "music.action.shuffle": {
+    "en": "Shuffle",
+    "cs": "Náhodně"
+  },
+  "music.action.addToPlaylist": {
+    "en": "Add to playlist",
+    "cs": "Přidat do playlistu"
+  },
+  "music.action.addToPlaylistMenu": {
+    "en": "Add to playlist…",
+    "cs": "Přidat do playlistu…"
+  },
+  "music.action.addToQueue": {
+    "en": "Add to queue",
+    "cs": "Přidat do fronty"
+  },
+  "music.action.identify": {
+    "en": "Identify",
+    "cs": "Identifikovat"
+  },
+  "music.action.identifyMenu": {
+    "en": "Identify…",
+    "cs": "Identifikovat…"
+  },
+  "music.action.identifyAll": {
+    "en": "Identify all",
+    "cs": "Identifikovat vše"
+  },
+  "music.action.fixIdentityMenu": {
+    "en": "Fix identity…",
+    "cs": "Opravit identifikaci…",
+    "note": "Correct a track that was identified as the wrong recording."
+  },
+  "music.action.editMenu": {
+    "en": "Edit…",
+    "cs": "Upravit…"
+  },
+  "music.action.lyricsMenu": {
+    "en": "Lyrics…",
+    "cs": "Text…"
+  },
+  "music.action.notFeelingIt": {
+    "en": "Not feeling it",
+    "cs": "Zrovna nesedí",
+    "note": "Soft dislike: the track comes up less often in automatic selections."
+  },
+  "music.action.neverPlay": {
+    "en": "Never play this again",
+    "cs": "Už nikdy nepřehrávat"
+  },
+  "music.action.moveToTrash": {
+    "en": "Move to Trash",
+    "cs": "Přesunout do koše"
+  },
+  "music.action.moveToTrashConfirm": {
+    "en": "Move to Trash…",
+    "cs": "Přesunout do koše…",
+    "note": "Asks for confirmation first (someone else's track)."
+  },
+  "music.action.makePrivate": {
+    "en": "Make private",
+    "cs": "Nastavit jako soukromé"
+  },
+  "music.action.shareWithFamily": {
+    "en": "Share with family",
+    "cs": "Sdílet s rodinou"
+  },
+  "music.action.shareRest": {
+    "en": "Share the rest ({count, number})",
+    "cs": "Sdílet zbytek ({count, number})"
+  },
+  "music.action.select": {
+    "en": "Select",
+    "cs": "Vybrat"
+  },
+  "music.action.apply": {
+    "en": "Apply",
+    "cs": "Použít"
+  },
+  "music.action.useThis": {
+    "en": "Use this",
+    "cs": "Použít"
+  },
+  "music.action.create": {
+    "en": "Create",
+    "cs": "Vytvořit"
+  },
+  "music.toast.sharedWithFamily": {
+    "en": "Shared with the family",
+    "cs": "Sdíleno s rodinou"
+  },
+  "music.toast.madePrivate": {
+    "en": "Made private",
+    "cs": "Nastaveno jako soukromé"
+  },
+  "music.toast.trackUpdated": {
+    "en": "Track updated",
+    "cs": "Skladba upravena"
+  },
+  "music.toast.addedToQueue": {
+    "en": "Added to the queue",
+    "cs": "Přidáno do fronty"
+  },
+  "music.toast.tryAgain": {
+    "en": "Try again.",
+    "cs": "Zkuste to znovu."
+  },
+  "music.toast.bannedTitle": {
+    "en": "Won't play this again",
+    "cs": "Už se nepřehraje"
+  },
+  "music.toast.bannedBody": {
+    "en": "It stays in the library — you can undo this in settings.",
+    "cs": "V knihovně zůstává — v Nastavení to můžete vrátit."
+  },
+  "music.toast.dislikedTitle": {
+    "en": "Noted",
+    "cs": "Poznamenáno"
+  },
+  "music.toast.dislikedBody": {
+    "en": "It'll come up less often.",
+    "cs": "Bude se objevovat méně často."
+  },
+  "music.toast.feedbackFailed": {
+    "en": "Couldn't save that",
+    "cs": "Nepodařilo se to uložit"
+  },
+  "music.error.visibility": {
+    "en": "Couldn't change who can see this.",
+    "cs": "Nepodařilo se změnit, kdo to uvidí."
+  },
+  "music.error.saveChanges": {
+    "en": "Couldn't save those changes.",
+    "cs": "Změny se nepodařilo uložit."
+  },
+  "music.error.trashTrack": {
+    "en": "Couldn't move that track to the trash.",
+    "cs": "Skladbu se nepodařilo přesunout do koše."
+  },
+  "music.error.trash": {
+    "en": "Couldn't move that to the trash",
+    "cs": "Přesun do koše se nezdařil"
+  },
+  "music.error.lookup": {
+    "en": "The lookup didn't work. Try again in a moment.",
+    "cs": "Vyhledávání se nezdařilo. Zkuste to za chvíli znovu."
+  },
+  "music.error.noResults": {
+    "en": "Nothing matched. Try fewer words, or just the artist.",
+    "cs": "Nic neodpovídá. Zkuste méně slov, nebo jen interpreta."
+  },
+  "music.browse.filter": {
+    "en": "Filter",
+    "cs": "Filtr"
+  },
+  "music.browse.everything": {
+    "en": "Everything",
+    "cs": "Vše",
+    "note": "Owner filter: every song you can see."
+  },
+  "music.browse.mine": {
+    "en": "Mine",
+    "cs": "Moje",
+    "note": "Owner filter: only your songs not shared with the family."
+  },
+  "music.browse.findDuplicates": {
+    "en": "Find duplicates",
+    "cs": "Najít duplicity"
+  },
+  "music.browse.noMatch": {
+    "en": "Nothing matches that",
+    "cs": "Nic tomu neodpovídá"
+  },
+  "music.browse.noMatchHint": {
+    "en": "Try a different word.",
+    "cs": "Zkuste jiné slovo."
+  },
+  "music.browse.noPlaylists": {
+    "en": "No playlists yet",
+    "cs": "Zatím žádné playlisty"
+  },
+  "music.browse.noMusic": {
+    "en": "No music yet",
+    "cs": "Zatím žádná hudba"
+  },
+  "music.browse.emptyHint": {
+    "en": "Upload tracks to fill this section.",
+    "cs": "Nahrajte skladby a tato sekce se zaplní."
+  },
+  "music.browse.pickTitle": {
+    "en": "Pick something",
+    "cs": "Vyberte něco"
+  },
+  "music.browse.pickDescription": {
+    "en": "An artist, album, genre or playlist — its songs show up here.",
+    "cs": "Interpret, album, žánr nebo playlist — jeho skladby se zobrazí tady."
+  },
+  "music.detail.playlist": {
+    "en": "Playlist",
+    "cs": "Playlist",
+    "note": "Heading while a playlist's name is loading."
+  },
+  "music.detail.allSongs": {
+    "en": "All songs",
+    "cs": "Všechny skladby"
+  },
+  "music.detail.yourSelection": {
+    "en": "your selection",
+    "cs": "váš výběr",
+    "note": "What is being added to a playlist: the selected songs. Shown as {label} in music.addToPlaylist.description."
+  },
+  "music.detail.theseTracks": {
+    "en": "these tracks",
+    "cs": "tyto skladby",
+    "note": "Inserted as {label} in music.identify.title (Identify these tracks)."
+  },
+  "music.detail.sharedCount": {
+    "en": "{count, plural, one {# song shared with the family} other {# songs shared with the family}}",
+    "cs": "{count, plural, one {# skladba sdílena s rodinou} few {# skladby sdíleny s rodinou} other {# skladeb sdíleno s rodinou}}"
+  },
+  "music.detail.privateCount": {
+    "en": "{count, plural, one {# song made private} other {# songs made private}}",
+    "cs": "{count, plural, one {# skladba nastavena jako soukromá} few {# skladby nastaveny jako soukromé} other {# skladeb nastaveno jako soukromé}}"
+  },
+  "music.detail.partialChanged": {
+    "en": "{done, number} of {total, number} changed",
+    "cs": "Změněno {done, number} z {total, number}"
+  },
+  "music.detail.partialChangedBody": {
+    "en": "Some songs couldn't be updated — try again.",
+    "cs": "Některé skladby se nepodařilo upravit — zkuste to znovu."
+  },
+  "music.detail.noSongs": {
+    "en": "No songs here",
+    "cs": "Nejsou tu žádné skladby"
+  },
+  "music.detail.noSongsPlaylist": {
+    "en": "Add songs from anywhere in Music.",
+    "cs": "Přidejte skladby odkudkoli z Hudby."
+  },
+  "music.detail.noSongsSelection": {
+    "en": "Nothing matches this selection.",
+    "cs": "Tomuto výběru nic neodpovídá."
+  },
+  "music.edit.title": {
+    "en": "Edit track",
+    "cs": "Upravit skladbu"
+  },
+  "music.edit.audience": {
+    "en": "Who can hear this",
+    "cs": "Kdo to uslyší"
+  },
+  "music.upload.title": {
+    "en": "Add music",
+    "cs": "Přidat hudbu"
+  },
+  "music.upload.description": {
+    "en": "Tags are read from the files server-side.",
+    "cs": "Značky se ze souborů načtou na serveru."
+  },
+  "music.upload.drop": {
+    "en": "Drop audio files or a folder here",
+    "cs": "Sem přetáhněte zvukové soubory nebo složku"
+  },
+  "music.upload.scanning": {
+    "en": "Looking through the folder…",
+    "cs": "Prohledávám složku…"
+  },
+  "music.upload.hint": {
+    "en": "Folders are searched all the way down; anything that isn't audio is skipped. Each track uploads on its own — a failure only affects that file.",
+    "cs": "Složky se prohledají i se všemi podsložkami; co není zvuk, se přeskočí. Každá skladba se nahrává zvlášť — chyba se týká jen daného souboru."
+  },
+  "music.upload.chooseFiles": {
+    "en": "Choose files",
+    "cs": "Vybrat soubory"
+  },
+  "music.upload.progress": {
+    "en": "Uploading {current, number} of {total, number}: {name}",
+    "cs": "Nahrávání {current, number} z {total, number}: {name}"
+  },
+  "music.upload.jobFailed": {
+    "en": "Didn't upload",
+    "cs": "Nenahráno",
+    "note": "Status of one file in the upload list."
+  },
+  "music.upload.done": {
+    "en": "{count, plural, one {Added # track} other {Added # tracks}}",
+    "cs": "{count, plural, one {Přidána # skladba} few {Přidány # skladby} other {Přidáno # skladeb}}"
+  },
+  "music.upload.failed": {
+    "en": "{count, plural, one {# file didn't upload} other {# files didn't upload}}: {names}",
+    "cs": "{count, plural, one {# soubor se nenahrál} few {# soubory se nenahrály} other {# souborů se nenahrálo}}: {names}"
+  },
+  "music.identify.unknown": {
+    "en": "Unknown",
+    "cs": "Neznámé",
+    "note": "A match with no artist and no album."
+  },
+  "music.identify.trackNumber": {
+    "en": "Track {number}",
+    "cs": "Skladba {number}",
+    "note": "Position on the release, in a small pill."
+  },
+  "music.identify.score": {
+    "en": "{score}% match",
+    "cs": "Shoda {score} %"
+  },
+  "music.identify.applyFailed": {
+    "en": "Couldn't apply that.",
+    "cs": "Nepodařilo se to použít."
+  },
+  "music.identify.trackTitle": {
+    "en": "Identify this track",
+    "cs": "Identifikovat tuto skladbu"
+  },
+  "music.identify.trackDescription": {
+    "en": "Looks the recording up in MusicBrainz and fills in the details.",
+    "cs": "Vyhledá nahrávku v MusicBrainz a doplní metadata."
+  },
+  "music.identify.title": {
+    "en": "Identify {label}",
+    "cs": "Identifikovat {label}",
+    "note": "label is an album or artist name, or music.detail.theseTracks."
+  },
+  "music.identify.pickAlbum": {
+    "en": "{count, plural, one {# track} other {# tracks}}. Pick the album they're from.",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}. Vyberte album, ze kterého jsou."
+  },
+  "music.identify.reviewEach": {
+    "en": "{count, plural, one {# track} other {# tracks}}. Nothing changes until you apply.",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}. Nic se nezmění, dokud změny nepoužijete."
+  },
+  "music.identify.albumDescription": {
+    "en": "{details}. Nothing changes until you apply.",
+    "cs": "{details}. Nic se nezmění, dokud změny nepoužijete.",
+    "note": "details: artist · year · kind of release, from MusicBrainz."
+  },
+  "music.identify.applyMatches": {
+    "en": "{count, plural, one {Apply # match} other {Apply # matches}}",
+    "cs": "{count, plural, one {Použít # shodu} few {Použít # shody} other {Použít # shod}}"
+  },
+  "music.identify.applyFor": {
+    "en": "Apply the match for {title}",
+    "cs": "Použít shodu pro {title}"
+  },
+  "music.identify.notOnAlbum": {
+    "en": "Not on this album — left as it is",
+    "cs": "Na tomto albu není — zůstane beze změny"
+  },
+  "music.identify.oneByOne": {
+    "en": "Match songs one by one",
+    "cs": "Identifikovat skladby jednotlivě"
+  },
+  "music.identify.useAlbum": {
+    "en": "Use this album",
+    "cs": "Použít toto album"
+  },
+  "music.identify.lookingForAlbum": {
+    "en": "Looking for the album…",
+    "cs": "Hledám album…"
+  },
+  "music.identify.albumLookupFailed": {
+    "en": "The lookup didn't work. Try again, or match the songs one by one.",
+    "cs": "Vyhledání se nezdařilo. Zkuste to znovu, nebo identifikujte skladby jednotlivě."
+  },
+  "music.identify.noAlbum": {
+    "en": "No album found for these songs. Match them one by one instead.",
+    "cs": "Pro tyto skladby se nenašlo žádné album. Identifikujte je raději jednotlivě."
+  },
+  "music.identify.noAlbumNoArtist": {
+    "en": "No album found for these songs — they have no artist to go on. Match them one by one instead.",
+    "cs": "Pro tyto skladby se nenašlo žádné album — nemají uvedeného interpreta. Identifikujte je raději jednotlivě."
+  },
+  "music.identify.editions": {
+    "en": "{count, plural, one {# edition} other {# editions}}",
+    "cs": "{count, plural, one {# vydání} few {# vydání} other {# vydání}}"
+  },
+  "music.identify.updated": {
+    "en": "{count, plural, one {# track updated} other {# tracks updated}}",
+    "cs": "{count, plural, one {Upravena # skladba} few {Upraveny # skladby} other {Upraveno # skladeb}}"
+  },
+  "music.identify.partialUpdated": {
+    "en": "{done, number} of {total, number} updated",
+    "cs": "Upraveno {done, number} z {total, number}"
+  },
+  "music.identify.failedFor": {
+    "en": "Didn't work for: {names}",
+    "cs": "Nepodařilo se u: {names}"
+  },
+  "music.identify.lookThemUp": {
+    "en": "Look them up",
+    "cs": "Vyhledat shody"
+  },
+  "music.identify.noMatch": {
+    "en": "No match",
+    "cs": "Žádná shoda"
+  },
+  "music.identify.lookupFailed": {
+    "en": "Lookup failed",
+    "cs": "Vyhledání selhalo"
+  },
+  "music.identify.outlier": {
+    "en": "Different album from the rest — left out unless you tick it",
+    "cs": "Jiné album než u ostatních — vynecháno, pokud ho nezaškrtnete"
+  },
+  "music.identify.unknownArtist": {
+    "en": "Unknown artist",
+    "cs": "Neznámý interpret"
+  },
+  "music.lyrics.saved": {
+    "en": "Lyrics saved",
+    "cs": "Text uložen"
+  },
+  "music.lyrics.saveFailed": {
+    "en": "Couldn't save those lyrics",
+    "cs": "Text se nepodařilo uložit"
+  },
+  "music.lyrics.description": {
+    "en": "Lyrics come from the file's own tag. Editing them here changes what own.audio shows, not the file.",
+    "cs": "Text pochází ze značky v souboru. Úprava zde mění jen to, co zobrazuje own.audio, ne soubor."
+  },
+  "music.lyrics.noTag": {
+    "en": "This file has no lyrics tag. You can type them in.",
+    "cs": "Tento soubor nemá značku s textem. Můžete ho napsat sami."
+  },
+  "music.lyrics.placeholder": {
+    "en": "Type or paste the lyrics…",
+    "cs": "Napište nebo vložte text…"
+  },
+  "music.duplicates.title": {
+    "en": "Duplicates",
+    "cs": "Duplicity"
+  },
+  "music.duplicates.trashTitle": {
+    "en": "One copy of the song",
+    "cs": "Jedna kopie skladby",
+    "note": "Names the item in the Move to Trash / Undo toast."
+  },
+  "music.duplicates.trashFailed": {
+    "en": "Couldn't move that copy to the trash",
+    "cs": "Kopii se nepodařilo přesunout do koše"
+  },
+  "music.duplicates.emptyTitle": {
+    "en": "No duplicates",
+    "cs": "Žádné duplicity"
+  },
+  "music.duplicates.emptyDescription": {
+    "en": "Nothing in your music is a byte-for-byte copy of anything else.",
+    "cs": "Nic ve vaší hudbě není bajt po bajtu kopií něčeho jiného."
+  },
+  "music.duplicates.summary": {
+    "en": "{count, plural, one {# set of identical files} other {# sets of identical files}}. Only your own tracks are listed — a copy someone else in the family uploaded is theirs, not a duplicate of yours.",
+    "cs": "{count, plural, one {# sada shodných souborů} few {# sady shodných souborů} other {# sad shodných souborů}}. Uvedeny jsou jen vaše skladby — kopie, kterou nahrál někdo jiný z rodiny, patří jemu a není duplicitou té vaší."
+  },
+  "music.duplicates.copies": {
+    "en": "{count, plural, one {# identical copy} other {# identical copies}}",
+    "cs": "{count, plural, one {# shodná kopie} few {# shodné kopie} other {# shodných kopií}}"
+  },
+  "music.duplicates.trashCopy": {
+    "en": "Move this copy to Trash",
+    "cs": "Přesunout tuto kopii do koše"
+  },
+  "music.refine.title": {
+    "en": "Fix this track's identity",
+    "cs": "Opravit identifikaci skladby"
+  },
+  "music.refine.description": {
+    "en": "Search again with better terms, or set the MusicBrainz recording yourself.",
+    "cs": "Hledejte znovu s lepšími výrazy, nebo nahrávku MusicBrainz nastavte sami."
+  },
+  "music.refine.nothingRecorded": {
+    "en": "Nothing recorded.",
+    "cs": "Nic nezaznamenáno."
+  },
+  "music.refine.fileName": {
+    "en": "File name",
+    "cs": "Název souboru"
+  },
+  "music.refine.searchWithThese": {
+    "en": "Search with these",
+    "cs": "Hledat podle těchto"
+  },
+  "music.refine.corrected": {
+    "en": "Identity corrected",
+    "cs": "Identifikace opravena"
+  },
+  "music.refine.applyFailed": {
+    "en": "Couldn't apply that recording.",
+    "cs": "Nahrávku se nepodařilo použít."
+  },
+  "music.refine.badId": {
+    "en": "That doesn't look like a MusicBrainz recording id.",
+    "cs": "Tohle nevypadá jako ID nahrávky MusicBrainz."
+  },
+  "music.refine.inLibrary": {
+    "en": "In your library",
+    "cs": "Ve vaší knihovně"
+  },
+  "music.refine.fromMatch": {
+    "en": "From a MusicBrainz match.",
+    "cs": "Ze shody v MusicBrainz."
+  },
+  "music.refine.asUploaded": {
+    "en": "As it was uploaded.",
+    "cs": "Tak, jak bylo nahráno."
+  },
+  "music.refine.inFile": {
+    "en": "In the file",
+    "cs": "V souboru"
+  },
+  "music.refine.fileTagsFailed": {
+    "en": "Couldn't read this file's tags.",
+    "cs": "Značky tohoto souboru se nepodařilo načíst."
+  },
+  "music.refine.fileNote": {
+    "en": "The audio's own tags — never changed by identifying.",
+    "cs": "Vlastní značky zvukového souboru — identifikace je nikdy nemění."
+  },
+  "music.refine.differs": {
+    "en": "These disagree. Identifying a track updates the library and leaves the file alone, so the file often still holds what it arrived with.",
+    "cs": "Tyto hodnoty se liší. Identifikace skladby upraví knihovnu a soubor nechá být, takže soubor často pořád obsahuje to, s čím přišel."
+  },
+  "music.refine.noReleaseDetails": {
+    "en": "No release details",
+    "cs": "Bez údajů o vydání"
+  },
+  "music.refine.current": {
+    "en": "current",
+    "cs": "současná",
+    "note": "Marks the recording the track is matched to now."
+  },
+  "music.refine.reapply": {
+    "en": "Re-apply",
+    "cs": "Použít znovu"
+  },
+  "music.refine.knowIt": {
+    "en": "Know the right one already?",
+    "cs": "Už víte, která je správná?"
+  },
+  "music.refine.pasteHint": {
+    "en": "Paste a MusicBrainz recording id, or the address of its page.",
+    "cs": "Vložte ID nahrávky MusicBrainz, nebo adresu její stránky."
+  },
+  "music.refine.recordingId": {
+    "en": "Recording id",
+    "cs": "ID nahrávky"
+  },
+  "music.playlist.created": {
+    "en": "Playlist created",
+    "cs": "Playlist vytvořen"
+  },
+  "music.playlist.createFailed": {
+    "en": "Couldn't create that playlist.",
+    "cs": "Playlist se nepodařilo vytvořit."
+  },
+  "music.playlist.reorderItem": {
+    "en": "Reorder {title}",
+    "cs": "Změnit pořadí: {title}"
+  },
+  "music.playlist.removeItem": {
+    "en": "Remove {title}",
+    "cs": "Odebrat: {title}"
+  },
+  "music.playlist.updated": {
+    "en": "Playlist updated",
+    "cs": "Playlist upraven"
+  },
+  "music.playlist.saveFailed": {
+    "en": "Couldn't save that playlist.",
+    "cs": "Playlist se nepodařilo uložit."
+  },
+  "music.playlist.removeSongFailed": {
+    "en": "Couldn't remove that song",
+    "cs": "Skladbu se nepodařilo odebrat"
+  },
+  "music.playlist.trashFailed": {
+    "en": "Couldn't move that playlist to the trash.",
+    "cs": "Playlist se nepodařilo přesunout do koše."
+  },
+  "music.playlist.editTitle": {
+    "en": "Edit playlist",
+    "cs": "Upravit playlist"
+  },
+  "music.playlist.dragHint": {
+    "en": "Drag to reorder.",
+    "cs": "Přetažením změníte pořadí."
+  },
+  "music.playlist.songsStay": {
+    "en": "The songs stay in your library.",
+    "cs": "Skladby ve vaší knihovně zůstanou."
+  },
+  "music.addToPlaylist.title": {
+    "en": "Add to a playlist",
+    "cs": "Přidat do playlistu"
+  },
+  "music.addToPlaylist.description": {
+    "en": "{count, plural, one {# song} other {# songs}} from {label}",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · {label}",
+    "note": "label: an album, artist, genre or playlist name, or music.detail.yourSelection."
+  },
+  "music.addToPlaylist.addedOne": {
+    "en": "Added to {playlist}",
+    "cs": "Přidáno do playlistu {playlist}"
+  },
+  "music.addToPlaylist.addedMany": {
+    "en": "{count, plural, one {# song added} other {# songs added}} to {playlist}",
+    "cs": "{count, plural, one {# skladba přidána} few {# skladby přidány} other {# skladeb přidáno}} do playlistu {playlist}"
+  },
+  "music.addToPlaylist.partial": {
+    "en": "{done, number} of {total, number} added",
+    "cs": "Přidáno {done, number} z {total, number}"
+  },
+  "music.addToPlaylist.partialBody": {
+    "en": "Some songs couldn't be added — try those again.",
+    "cs": "Některé skladby se nepodařilo přidat — zkuste je přidat znovu."
+  },
+  "music.addToPlaylist.createAndAdd": {
+    "en": "Create and add",
+    "cs": "Vytvořit a přidat"
+  },
+  "music.addToPlaylist.orPick": {
+    "en": "or pick one",
+    "cs": "nebo vyberte existující"
+  },
+  "music.addToPlaylist.find": {
+    "en": "Find a playlist",
+    "cs": "Najít playlist"
+  },
+  "music.addToPlaylist.emptyHint": {
+    "en": "Name one above and these songs go straight into it.",
+    "cs": "Pojmenujte ho výše a tyto skladby do něj rovnou přibudou."
+  },
+  "music.addToPlaylist.allPresent": {
+    "en": "{count, plural, one {# song} other {# songs}} · already in here",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · už tu jsou"
+  },
+  "music.addToPlaylist.somePresent": {
+    "en": "{count, plural, one {# song} other {# songs}} · {already, number} already in here",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · {already, number} už tu je"
+  },
+  "music.addToPlaylist.adding": {
+    "en": "Adding…",
+    "cs": "Přidávání…"
+  },
+  "music.downloads.downloaded": {
+    "en": "Downloaded",
+    "cs": "Staženo"
+  },
+  "music.downloads.downloading": {
+    "en": "Downloading",
+    "cs": "Stahuje se"
+  },
+  "music.downloads.waiting": {
+    "en": "Waiting to download",
+    "cs": "Čeká na stažení"
+  },
+  "music.downloads.remove": {
+    "en": "Remove download",
+    "cs": "Odebrat stažené"
+  },
+  "music.downloads.cancel": {
+    "en": "Cancel download",
+    "cs": "Zrušit stahování"
+  },
+  "music.downloads.download": {
+    "en": "Download",
+    "cs": "Stáhnout"
+  },
+  "music.downloads.cancelRest": {
+    "en": "Cancel the rest",
+    "cs": "Zrušit zbytek"
+  },
+  "music.downloads.progress": {
+    "en": "Downloading {count, number} of {total, number}",
+    "cs": "Stahování {count, number} z {total, number}"
+  },
+  "music.downloads.removed": {
+    "en": "Removed from this device",
+    "cs": "Odebráno z tohoto zařízení"
+  },
+  "music.downloads.started": {
+    "en": "{count, plural, one {# song} other {# songs}}. It carries on when you're back online if the connection drops.",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}. Pokud spojení vypadne, bude pokračovat, až budete zase online."
+  },
+  "music.downloads.downloadRest": {
+    "en": "Download the rest ({count, number})",
+    "cs": "Stáhnout zbytek ({count, number})"
+  },
+  "music.downloads.homeLimit": {
+    "en": "{max, plural, one {Up to # playlist per device} other {Up to # playlists per device}}",
+    "cs": "{max, plural, one {Nejvýše # playlist na zařízení} few {Nejvýše # playlisty na zařízení} other {Nejvýše # playlistů na zařízení}}"
+  },
+  "music.downloads.homeLimitBody": {
+    "en": "Remove one under Music → Downloads first.",
+    "cs": "Nejdřív jeden odeberte v Hudba → Stažené."
+  },
+  "music.downloads.savePlaylistFailed": {
+    "en": "Couldn't save the playlist",
+    "cs": "Playlist se nepodařilo uložit"
+  },
+  "music.downloads.checkConnection": {
+    "en": "Check the connection and try again.",
+    "cs": "Zkontrolujte připojení a zkuste to znovu."
+  },
+  "music.downloads.openPlayer": {
+    "en": "Open player",
+    "cs": "Otevřít přehrávač"
+  },
+  "music.downloads.addToHomeScreen": {
+    "en": "Add to Home Screen",
+    "cs": "Přidat na plochu",
+    "note": "The device's home screen (a web-app icon)."
+  },
+  "music.downloads.homePlaylists": {
+    "en": "Home Screen playlists ({count, number} of {max, number})",
+    "cs": "Playlisty na ploše ({count, number} z {max, number})"
+  },
+  "music.downloads.homePlaylistsHint": {
+    "en": "Removing one here stops keeping it up to date; its songs stay in Downloads. Delete the icon itself from the Home Screen.",
+    "cs": "Když ho tady odeberete, přestane se aktualizovat; jeho skladby zůstanou ve Stažených. Samotnou ikonu smažte z plochy."
+  },
+  "music.downloads.open": {
+    "en": "Open {name}",
+    "cs": "Otevřít {name}"
+  },
+  "music.downloads.stopKeeping": {
+    "en": "Stop keeping {name}",
+    "cs": "Přestat uchovávat {name}"
+  },
+  "music.downloads.left": {
+    "en": "{count, plural, one {# song left to download} other {# songs left to download}}",
+    "cs": "{count, plural, one {Zbývá stáhnout # skladbu} few {Zbývá stáhnout # skladby} other {Zbývá stáhnout # skladeb}}"
+  },
+  "music.downloads.cancelAll": {
+    "en": "Cancel all",
+    "cs": "Zrušit vše"
+  },
+  "music.downloads.full": {
+    "en": "This device is out of space. Remove some downloads and the rest will continue.",
+    "cs": "V tomto zařízení došlo místo. Odeberte některé stažené položky a zbytek bude pokračovat."
+  },
+  "music.downloads.waitingForNetwork": {
+    "en": "Waiting for a connection. It continues on its own once you're back online, while own.audio is open.",
+    "cs": "Čeká se na připojení. Jakmile budete zase online, bude samo pokračovat, dokud je own.audio otevřené."
+  },
+  "music.downloads.now": {
+    "en": "Now: {title}",
+    "cs": "Nyní: {title}"
+  },
+  "music.downloads.nowPercent": {
+    "en": "Now: {title} — {pct, number}%",
+    "cs": "Nyní: {title} — {pct, number} %"
+  },
+  "music.downloads.starting": {
+    "en": "Starting…",
+    "cs": "Spouštění…"
+  },
+  "music.downloads.cancelItem": {
+    "en": "Cancel {title}",
+    "cs": "Zrušit: {title}"
+  },
+  "music.downloads.unavailableTitle": {
+    "en": "Downloads aren't available",
+    "cs": "Stahování není k dispozici"
+  },
+  "music.downloads.unavailableBody": {
+    "en": "This browser isn't letting own.audio store anything, so songs can't be kept for offline listening here.",
+    "cs": "Tento prohlížeč nedovoluje own.audio nic ukládat, takže tady nejde skladby uchovat pro offline poslech."
+  },
+  "music.downloads.emptyTitle": {
+    "en": "Nothing downloaded yet",
+    "cs": "Zatím nic staženého"
+  },
+  "music.downloads.emptyBody": {
+    "en": "Open a playlist or an album and choose Download, or pick Download from a song's menu. Downloaded songs play without a connection. On an iPhone, add own.audio to the Home Screen first.",
+    "cs": "Otevřete playlist nebo album a zvolte Stáhnout, nebo vyberte Stáhnout v nabídce skladby. Stažené skladby hrají i bez připojení. V iPhonu nejdřív přidejte own.audio na plochu."
+  },
+  "music.downloads.summary": {
+    "en": "{count, plural, one {# song} other {# songs}} · {size} on this device",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · {size} v tomto zařízení"
+  },
+  "music.downloads.summaryWithDuration": {
+    "en": "{count, plural, one {# song} other {# songs}} · {duration} · {size} on this device",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}} · {duration} · {size} v tomto zařízení"
+  },
+  "music.downloads.removeAll": {
+    "en": "Remove all",
+    "cs": "Odebrat vše"
+  },
+  "music.downloads.removeAllConfirm": {
+    "en": "{count, plural, one {Remove the # downloaded song from this device?} other {Remove all # downloaded songs from this device?}}",
+    "cs": "{count, plural, one {Odebrat # staženou skladbu z tohoto zařízení?} few {Odebrat všechny # stažené skladby z tohoto zařízení?} other {Odebrat všech # stažených skladeb z tohoto zařízení?}}"
+  },
+  "music.smart.shortResult": {
+    "en": "{candidates, plural, one {Only # track matches} other {Only # tracks match}} this request, so it came to {got, number} minutes rather than {wanted, number}. A wider request, or measuring more of the library, would give more to choose from.",
+    "cs": "{candidates, plural, one {Tomuto požadavku odpovídá jen # skladba} few {Tomuto požadavku odpovídají jen # skladby} other {Tomuto požadavku odpovídá jen # skladeb}}, takže vyšlo {got, number} min místo {wanted, number} min. Širší požadavek nebo změření větší části knihovny by dalo víc na výběr."
+  },
+  "music.smart.askFailed": {
+    "en": "Couldn't make sense of that",
+    "cs": "Tomu jsme nerozuměli"
+  },
+  "music.smart.askFailedHint": {
+    "en": "Try naming an activity, a mood, or how long you want.",
+    "cs": "Zkuste uvést činnost, náladu nebo jak dlouho chcete poslouchat."
+  },
+  "music.smart.askTitle": {
+    "en": "Ask for a playlist",
+    "cs": "Požádat o playlist"
+  },
+  "music.smart.askHint": {
+    "en": "Say what you’re doing and how long for — “pilates for two hours”, “something to relax to this evening”.",
+    "cs": "Řekněte, co děláte a jak dlouho — „pilates na dvě hodiny“, „něco k odpočinku na dnešní večer“."
+  },
+  "music.smart.askPlaceholder": {
+    "en": "pilates for two hours",
+    "cs": "pilates na dvě hodiny"
+  },
+  "music.smart.askLabel": {
+    "en": "Describe the playlist you want",
+    "cs": "Popište playlist, který chcete"
+  },
+  "music.smart.thinking": {
+    "en": "Thinking…",
+    "cs": "Přemýšlím…"
+  },
+  "music.smart.ask": {
+    "en": "Ask",
+    "cs": "Požádat",
+    "note": "Button: send the request for a playlist."
+  },
+  "music.smart.buildFailed": {
+    "en": "Couldn't build that",
+    "cs": "Nepodařilo se sestavit"
+  },
+  "music.smart.building": {
+    "en": "Building…",
+    "cs": "Sestavování…"
+  },
+  "music.smart.build": {
+    "en": "Build",
+    "cs": "Sestavit",
+    "note": "Button: build a playlist from a preset."
+  },
+  "music.smart.nothingFits": {
+    "en": "Nothing in the library fits this right now.",
+    "cs": "Tomuto momentálně nic v knihovně neodpovídá."
+  },
+  "music.smart.readyMade": {
+    "en": "Ready-made",
+    "cs": "Připravené",
+    "note": "Heading above the preset smart playlists."
+  },
+  "music.smart.noPresets": {
+    "en": "No presets",
+    "cs": "Žádné předvolby"
+  },
+  "music.smart.noPresetsBody": {
+    "en": "The server returned none.",
+    "cs": "Server žádné nevrátil."
+  },
+  "music.smart.preset.forgottenFavourites.name": {
+    "en": "Forgotten favourites",
+    "cs": "Zapomenuté oblíbené"
+  },
+  "music.smart.preset.forgottenFavourites.body": {
+    "en": "Songs you starred but haven't played for a year.",
+    "cs": "Oblíbené skladby, které jste rok neposlouchali."
+  },
+  "music.smart.preset.newInTheLibrary.name": {
+    "en": "New in the library",
+    "cs": "Nové v knihovně"
+  },
+  "music.smart.preset.newInTheLibrary.body": {
+    "en": "Added in the last 30 days.",
+    "cs": "Přidané za posledních 30 dní."
+  },
+  "music.smart.preset.backInRotation.name": {
+    "en": "Back in rotation",
+    "cs": "Zase po čase"
+  },
+  "music.smart.preset.backInRotation.body": {
+    "en": "Rated four stars or more, not heard for two months.",
+    "cs": "Hodnocené čtyřmi hvězdičkami a víc, dva měsíce neslyšené."
+  },
+  "music.smart.preset.whatTheFamilyPlays.name": {
+    "en": "What the family plays",
+    "cs": "Co poslouchá rodina"
+  },
+  "music.smart.preset.whatTheFamilyPlays.body": {
+    "en": "What others in the family play and you haven't yet.",
+    "cs": "Co pouštějí ostatní v rodině a vy ještě ne."
+  },
+  "music.smart.preset.genreStation.name": {
+    "en": "Genre station",
+    "cs": "Žánrová stanice"
+  },
+  "music.smart.preset.genreStation.body": {
+    "en": "Up to 100 songs of one genre, no artist twice in a row.",
+    "cs": "Až 100 skladeb jednoho žánru, žádný interpret dvakrát po sobě."
+  },
+  "music.smart.allGenres": {
+    "en": "All genres",
+    "cs": "Všechny žánry"
+  },
+  "music.smart.genre": {
+    "en": "Genre",
+    "cs": "Žánr"
+  },
+  "music.smart.preview": {
+    "en": "Preview",
+    "cs": "Náhled",
+    "note": "Builds a smart playlist and lists its songs without playing."
+  },
+  "music.smart.playPreset": {
+    "en": "Play {name}",
+    "cs": "Přehrát {name}",
+    "note": "Accessible name of a smart playlist's play button."
+  },
+  "music.smart.savedDescription": {
+    "en": "Generated {when}.",
+    "cs": "Vygenerováno {when}.",
+    "note": "Description of a saved generated playlist; {when} is a date and time."
+  },
+  "music.smart.presetWithGenre": {
+    "en": "{name}: {genre}",
+    "cs": "{name}: {genre}",
+    "note": "Name of a saved genre station, e.g. 'Genre station: Rock'."
+  },
+  "music.smart.generated": {
+    "en": "Generated",
+    "cs": "Vygenerované",
+    "note": "Heading above playlists saved from the generator."
+  },
+  "music.smart.playFailed": {
+    "en": "Couldn't start the playlist",
+    "cs": "Playlist se nepodařilo spustit"
+  },
+  "music.smart.keepQuestion": {
+    "en": "A generated playlist. Keep it?",
+    "cs": "Vygenerovaný playlist. Ponechat si ho?",
+    "note": "Bar on a playlist made by the smart-playlist generator, until the owner decides."
+  },
+  "music.smart.keep": {
+    "en": "Keep",
+    "cs": "Ponechat"
+  },
+  "music.smart.kept": {
+    "en": "Kept in your playlists",
+    "cs": "Zůstane mezi vašimi playlisty",
+    "note": "Toast after keeping a generated playlist."
+  },
+  "music.smart.clearUnkept": {
+    "en": "Remove the ones not kept ({count})",
+    "cs": "Smazat nepotvrzené ({count})",
+    "note": "Moves every generated playlist nobody chose to keep to the trash."
+  },
+  "music.smart.unkeptCount": {
+    "en": "{count, plural, one {# generated playlist} other {# generated playlists}}",
+    "cs": "{count, plural, one {# vygenerovaný playlist} few {# vygenerované playlisty} other {# vygenerovaných playlistů}}"
+  },
+  "music.smart.notKept": {
+    "en": "not kept yet",
+    "cs": "zatím nepotvrzený",
+    "note": "Marks a generated playlist the owner hasn't chosen to keep."
+  },
+  "music.share.action": {
+    "en": "Share…",
+    "cs": "Sdílet…"
+  },
+  "music.share.title": {
+    "en": "Share “{name}”",
+    "cs": "Sdílet „{name}“"
+  },
+  "music.share.mode.live": {
+    "en": "Live",
+    "cs": "Živě"
+  },
+  "music.share.mode.liveHint": {
+    "en": "They play your playlist and see every change you make.",
+    "cs": "Poslouchají váš playlist a vidí každou vaši změnu."
+  },
+  "music.share.mode.copy": {
+    "en": "As a copy",
+    "cs": "Jako kopii"
+  },
+  "music.share.mode.copyHint": {
+    "en": "Each gets a playlist of their own to change as they like.",
+    "cs": "Každý dostane vlastní playlist, který si může upravit."
+  },
+  "music.share.who": {
+    "en": "Who",
+    "cs": "Komu"
+  },
+  "music.share.adminAlways": {
+    "en": "always sees it (admin)",
+    "cs": "vidí vždy (správce)"
+  },
+  "music.share.privateSongs": {
+    "en": "{count, plural, one {# song only you can play will be shared with them.} other {# songs only you can play will be shared with them.}}",
+    "cs": "{count, plural, one {# skladba, kterou máte jen pro sebe, se jim nasdílí.} few {# skladby, které máte jen pro sebe, se jim nasdílí.} other {# skladeb, které máte jen pro sebe, se jim nasdílí.}}"
+  },
+  "music.share.submitLive": {
+    "en": "Share",
+    "cs": "Sdílet"
+  },
+  "music.share.submitCopy": {
+    "en": "Send copies",
+    "cs": "Poslat kopie"
+  },
+  "music.share.stop": {
+    "en": "Stop sharing",
+    "cs": "Přestat sdílet"
+  },
+  "music.share.doneLive": {
+    "en": "Shared",
+    "cs": "Nasdíleno",
+    "note": "Toast title; the playlist's name is shown under it."
+  },
+  "music.share.doneCopy": {
+    "en": "{count, plural, one {Copy sent} other {# copies sent}}",
+    "cs": "{count, plural, one {Kopie odeslána} few {Odeslány # kopie} other {Odesláno # kopií}}"
+  },
+  "music.share.stopped": {
+    "en": "No longer shared",
+    "cs": "Už se nesdílí"
+  },
+  "music.share.failed": {
+    "en": "Couldn't share the playlist",
+    "cs": "Playlist se nepodařilo nasdílet"
+  },
+  "music.share.nobody": {
+    "en": "There is nobody else in your family yet.",
+    "cs": "Ve vaší rodině zatím nikdo další není."
+  }
+}

@@ -1,0 +1,127 @@
+{
+  "generate.step.upload": { "en": "Upload", "cs": "Nahrání", "note": "Wizard step name (noun)." },
+  "generate.step.language": { "en": "Language", "cs": "Jazyk", "note": "Wizard step name." },
+  "generate.step.voice": { "en": "Voice", "cs": "Hlas", "note": "Wizard step name." },
+  "generate.step.cover": { "en": "Cover", "cs": "Obálka", "note": "Wizard step name." },
+  "generate.step.confirm": { "en": "Confirm", "cs": "Potvrzení", "note": "Wizard step name." },
+  "generate.intro": { "en": "An ebook becomes an audiobook, read in a voice you choose.", "cs": "Z e-knihy vznikne audiokniha namluvená hlasem, který si vyberete." },
+  "generate.stepOf": { "en": "Step {n} of {total}", "cs": "Krok {n} z {total}" },
+  "generate.voice.otherLanguages": { "en": "Voices in other languages ({count})", "cs": "Hlasy v jiných jazycích ({count})" },
+  "generate.start": { "en": "Start narrating", "cs": "Spustit namlouvání" },
+  "generate.chargeNote": {
+    "en": "Narrating a book is charged against your family's credit at the price quoted on the last step. If a job fails you aren't charged, but it has to be started again from scratch.",
+    "cs": "Namluvení knihy se zaplatí z kreditu vaší rodiny v ceně uvedené v posledním kroku. Když úloha selže, nic se neúčtuje, ale je potřeba ji spustit znovu od začátku."
+  },
+  "generate.error.missing": { "en": "Missing required fields.", "cs": "Chybí povinné údaje." },
+  "generate.error.start": { "en": "Couldn't start narrating the book.", "cs": "Namlouvání knihy se nepodařilo spustit." },
+
+  "generate.upload.title": { "en": "Upload your book", "cs": "Nahrajte svou knihu" },
+  "generate.upload.formats": { "en": "EPUB, MOBI, or TXT — up to ~50 MB.", "cs": "EPUB, MOBI nebo TXT — nejvýš asi 50 MB." },
+  "generate.upload.unsupported": { "en": "Only EPUB, MOBI, or TXT files are supported.", "cs": "Podporované jsou jen soubory EPUB, MOBI a TXT." },
+  "generate.upload.drop": { "en": "Drop your book file here", "cs": "Přetáhněte sem soubor s knihou" },
+  "generate.upload.or": { "en": "or", "cs": "nebo" },
+  "generate.upload.chooseFile": { "en": "Choose file", "cs": "Vybrat soubor" },
+  "generate.upload.chooseDifferent": { "en": "Choose a different file", "cs": "Vybrat jiný soubor" },
+
+  "generate.language.title": { "en": "Language", "cs": "Jazyk" },
+  "generate.language.intro": {
+    "en": "Tell us what language the book is in, and whether it should be translated.",
+    "cs": "Uveďte, v jakém jazyce je kniha a zda ji chcete přeložit."
+  },
+  "generate.language.source": { "en": "Source language", "cs": "Jazyk knihy" },
+  "generate.language.target": { "en": "Target language", "cs": "Cílový jazyk" },
+  "generate.language.translate": { "en": "Translate to a different language", "cs": "Přeložit do jiného jazyka" },
+  "generate.language.sourceNote": {
+    "en": "The audiobook will be narrated in the source language.",
+    "cs": "Audiokniha bude namluvena v jazyce knihy."
+  },
+
+  "generate.voice.title": { "en": "Choose a voice", "cs": "Vyberte hlas" },
+  "generate.voice.intro": {
+    "en": "Preview each voice, then pick the one to narrate your audiobook.",
+    "cs": "Poslechněte si ukázky a vyberte hlas, který audioknihu namluví."
+  },
+  "generate.voice.loading": { "en": "Loading voices…", "cs": "Načítání hlasů…" },
+  "generate.voice.meta": {
+    "en": "{language} · {gender, select, male {Male} female {Female} other {Neutral}} · Google TTS",
+    "cs": "{language} · {gender, select, male {Mužský} female {Ženský} other {Neutrální}} · Google TTS",
+    "note": "Under a voice's name: language code, the voice's gender, the provider."
+  },
+  "generate.voice.noPreview": { "en": "Preview unavailable", "cs": "Ukázka není k dispozici" },
+  "generate.voice.output": { "en": "Output format", "cs": "Výstupní formát" },
+  "generate.voice.singleM4b": { "en": "Single M4B", "cs": "Jediný soubor (M4B)" },
+  "generate.voice.singleM4bHint": { "en": "One file with chapter markers", "cs": "Jeden soubor se značkami kapitol" },
+  "generate.voice.perChapter": { "en": "Per-chapter files", "cs": "Samostatné kapitoly" },
+  "generate.voice.perChapterHint": { "en": "No single-file download", "cs": "Nedá se stáhnout jako jeden soubor" },
+
+  "generate.cover.title": { "en": "Name it and give it a cover", "cs": "Pojmenujte ji a dejte jí obálku" },
+  "generate.cover.intro": { "en": "All of this can be changed afterwards.", "cs": "Vše lze později změnit." },
+  "generate.cover.auto": { "en": "Make one for me", "cs": "Vytvořit za mě" },
+  "generate.cover.autoHint": { "en": "Generated from the book", "cs": "Vytvoří se podle knihy" },
+  "generate.cover.custom": { "en": "Describe it", "cs": "Popsat vlastními slovy" },
+  "generate.cover.customHint": { "en": "Your own brief", "cs": "Váš vlastní popis" },
+  "generate.cover.none": { "en": "No cover", "cs": "Bez obálky" },
+  "generate.cover.noneHint": { "en": "Leave it blank", "cs": "Nechat prázdné" },
+  "generate.cover.prompt": { "en": "What should it look like?", "cs": "Jak má vypadat?" },
+  "generate.cover.loadingBrief": { "en": "Loading the default brief…", "cs": "Načítání výchozího popisu…" },
+  "generate.cover.resetBrief": { "en": "Reset to the default brief", "cs": "Obnovit výchozí popis" },
+  "generate.cover.printTitle": { "en": "Print the title on the cover", "cs": "Zobrazit na obálce název" },
+
+  "generate.quote.title": { "en": "Review & confirm", "cs": "Shrnutí a potvrzení" },
+  "generate.quote.intro": {
+    "en": "You'll only be charged if the audiobook is generated successfully.",
+    "cs": "Platíte jen tehdy, když se audiokniha úspěšně vytvoří."
+  },
+  "generate.quote.calculating": { "en": "Calculating price…", "cs": "Výpočet ceny…" },
+  "generate.quote.characters": { "en": "Estimated characters", "cs": "Odhadovaný počet znaků" },
+  "generate.quote.translation": { "en": "Translation", "cs": "Překlad" },
+  "generate.quote.narration": { "en": "Narration (TTS)", "cs": "Namluvení (TTS)" },
+  "generate.quote.total": { "en": "Total price", "cs": "Celková cena" },
+  "generate.quote.finalNote": {
+    "en": "Final charge may be lower than this quote, and is only captured once your audiobook is ready — never on a failed generation.",
+    "cs": "Výsledná částka může být nižší než tato nabídka a strhne se až ve chvíli, kdy je audiokniha hotová — za neúspěšné namlouvání nikdy."
+  },
+
+  "generate.stage.extracting": { "en": "Reading the book", "cs": "Čtení knihy" },
+  "generate.stage.translating": { "en": "Translating", "cs": "Překládání" },
+  "generate.stage.preprocessing": { "en": "Splitting into chapters", "cs": "Rozdělování na kapitoly" },
+  "generate.stage.narrating": { "en": "Narrating", "cs": "Namlouvání" },
+  "generate.stage.assembling": { "en": "Assembling the audiobook", "cs": "Skládání audioknihy" },
+
+  "generate.status.finished": { "en": "Finished.", "cs": "Hotovo." },
+  "generate.status.stoppedEarly": { "en": "This job stopped early.", "cs": "Tato úloha skončila předčasně." },
+  "generate.status.narrating": { "en": "Narrating your book…", "cs": "Vaše kniha se namlouvá…" },
+  "generate.status.failedTitle": { "en": "Narration failed", "cs": "Namlouvání selhalo" },
+  "generate.status.failedFallback": {
+    "en": "Something went wrong. You have not been charged.",
+    "cs": "Něco se pokazilo. Nic vám nebylo účtováno."
+  },
+  "generate.status.progressTitle": { "en": "Narrating your audiobook", "cs": "Namlouvání audioknihy" },
+  "generate.status.blocks": {
+    "en": "{done, number}/{total, number} blocks",
+    "cs": "Bloky: {done, number}/{total, number}",
+    "note": "Blocks are the small pieces of text narrated one at a time."
+  },
+  "generate.status.ready": { "en": "Your audiobook is ready.", "cs": "Vaše audiokniha je hotová." },
+  "generate.status.listenNow": { "en": "Listen now", "cs": "Poslechnout si" },
+  "generate.status.download": { "en": "Download", "cs": "Stáhnout" },
+  "generate.status.perChapterNote": {
+    "en": "You chose one file per chapter, so there is no single file to download — the book is in your library.",
+    "cs": "Zvolili jste samostatné kapitoly, takže není jeden soubor ke stažení — kniha je ve vaší knihovně."
+  },
+  "generate.status.quoted": { "en": "Quoted", "cs": "Nabídnutá cena" },
+  "generate.status.actualCost": { "en": "Actual cost", "cs": "Skutečná cena" },
+  "generate.status.another": { "en": "← Narrate another book", "cs": "← Namluvit další knihu" },
+
+  "generate.eta.estimating": { "en": "Estimating time remaining…", "cs": "Odhadování zbývajícího času…" },
+  "generate.eta.finishing": { "en": "Finishing up…", "cs": "Dokončování…" },
+  "generate.eta.minutes": {
+    "en": "{count, plural, one {About # minute remaining} other {About # minutes remaining}}",
+    "cs": "{count, plural, one {Zbývá asi # minuta} few {Zbývají asi # minuty} other {Zbývá asi # minut}}"
+  },
+  "generate.eta.duration": {
+    "en": "About {duration} remaining",
+    "cs": "Zbývá asi {duration}",
+    "note": "duration is formatted like 1 h 20 min."
+  }
+}

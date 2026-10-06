@@ -1,0 +1,127 @@
+/* Animation for the own.audio mark — the "dynamic logo" from
+   audio2-www/brand/brand.svg, kept as global CSS so many instances share one
+   set of keyframes rather than each inlining a <style> block.
+
+   Three separate motions: the acoustic arcs rotate, the family of five waltzes
+   around the centre, and the core pulses like a bass speaker. All are
+   transform-only, so they stay on the compositor and cost nothing to run. */
+
+.own-mark .mark-arcs {
+  transform-origin: 50px 50px;
+}
+.own-mark .mark-family {
+  transform-origin: 50px 50px;
+}
+.own-mark .mark-core {
+  transform-origin: 50px 50px;
+}
+
+.own-mark--animated .mark-arcs {
+  animation: own-mark-spin 6s linear infinite;
+}
+.own-mark--animated .mark-family {
+  animation: own-mark-waltz 4s ease-in-out infinite alternate;
+}
+.own-mark--animated .mark-core {
+  /* A sharp curve, so the beat lands rather than drifts. */
+  animation: own-mark-bass 0.4s cubic-bezier(0.21, 0.98, 0.6, 0.99) infinite alternate;
+}
+
+@keyframes own-mark-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes own-mark-waltz {
+  from {
+    transform: rotate(-8deg) scale(0.98);
+  }
+  to {
+    transform: rotate(8deg) scale(1.02);
+  }
+}
+
+@keyframes own-mark-bass {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.25);
+  }
+}
+
+/* The global reduced-motion rule collapses durations to 0.01ms, which for an
+   `alternate` animation parks it at the *end* state — a permanently enlarged
+   core. Switch these off outright so the mark rests in its true proportions. */
+@media (prefers-reduced-motion: reduce) {
+  .own-mark--animated .mark-arcs,
+  .own-mark--animated .mark-family,
+  .own-mark--animated .mark-core {
+    animation: none !important;
+  }
+}
+
+/* Scrollbars inside panels — the sidebar, list columns, popovers.
+
+   The platform default is a heavy grey slab that lands on top of the nav and
+   reads as a piece of UI in its own right. These stay out of the way until
+   they are needed, and take no layout width (overlay on macOS, thin
+   elsewhere). */
+.scroll-subtle {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--fg) 22%, transparent) transparent;
+}
+.scroll-subtle::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scroll-subtle::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-subtle::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border: 2px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.scroll-subtle:hover::-webkit-scrollbar-thumb,
+.scroll-subtle:focus-within::-webkit-scrollbar-thumb {
+  background-color: color-mix(in srgb, var(--fg) 22%, transparent);
+}
+.scroll-subtle::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--fg) 38%, transparent);
+}
+
+/* The "this section is playing" glyph in the sidebar: three bars that bounce
+   while audio is running, and sit still when it is paused. */
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bounce 1s ease-in-out infinite alternate;
+}
+.eq-bar:nth-child(2) {
+  animation-delay: 0.18s;
+}
+.eq-bar:nth-child(3) {
+  animation-delay: 0.36s;
+}
+.eq--paused .eq-bar {
+  animation: none;
+  transform: scaleY(0.45);
+}
+
+@keyframes eq-bounce {
+  from {
+    transform: scaleY(0.35);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar {
+    animation: none !important;
+    transform: scaleY(0.6);
+  }
+}

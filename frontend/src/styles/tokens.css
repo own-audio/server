@@ -1,0 +1,193 @@
+/* own.audio design tokens for the web app.
+   Colours follow audio2-www/docs/brand-identity-brief.md Part 4 (accent =
+   brand core purple; cloud colours in their text-safe forms); neutrals, radii
+   and motion mirror audio2-android-book/docs/design-tokens.json and are
+   guarded by tokens.test.ts. Three theme states: bare :root is light,
+   data-theme="dark"/"light" is an explicit choice, and no attribute follows
+   the system. Every colour is defined on :root first so nothing exists only
+   inside a media query. */
+
+:root {
+  --bg: #ffffff;
+  --bg-alt: #f7f7f8;
+  --card: #ffffff;
+  --fg: #1d1d1f;
+  --muted: #6e6e73;
+  --border: #e5e5e7;
+  --accent: #6e44ff;
+  --on-accent: #ffffff;
+  /* The brand purple clears AA on white (5.34:1) but not on its own 10% tint
+     (4.44:1), which is what an active nav item sits on. Text on a tint uses
+     this darker step — the same trick the cloud colours already use, where the
+     text value is deliberately darker than the mark's colour. */
+  --accent-text: #5a2ee6;
+  --success: #1e8e3e;
+  /* `--success` is 4.2:1 on white — fine as a fill or an icon (3:1), under AA
+     as small text. Same split as `--accent-text` above. Dark enough to clear
+     4.5:1 on its own 12% tint too (a success Pill), not just on white, which
+     the first value at #1a7f37 did not. */
+  --success-text: #14682c;
+  --warning: #b25000;
+  --error: #c41e3a;
+  --on-error: #ffffff;
+  --book: #8a6100;
+  --podcast: #0a6e9c;
+  --music: #c42b21;
+  /* Chart fills, validated as a set (dataviz palette check): the cloud colours
+     themselves in light mode; one step deeper in dark, where the text-tuned
+     gold is far lighter than sky and red and outweighs them as a bar. */
+  --chart-book: var(--book);
+  --chart-podcast: var(--podcast);
+  --chart-music: var(--music);
+  --creator: #1e7a3c;
+  --overlay: rgb(0 0 0 / 0.4);
+  /* The mark's acoustic arcs. A step stronger than --border, which is tuned
+     for hairline dividers and disappears at logo sizes. */
+  --mark-arc: #c7c7cc;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px rgb(0 0 0 / 0.08);
+  --shadow-pop: 0 12px 40px rgb(0 0 0 / 0.16);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #000000;
+    --bg-alt: #0c0c0e;
+    --card: #131316;
+    --fg: #f5f5f7;
+    --muted: #98989d;
+    --border: #1d1d1f;
+    --accent: #9b7bff;
+    --on-accent: #0d0d0f;
+    --accent-text: #b49aff;
+    --success: #30d158;
+    --success-text: #30d158;
+    --warning: #ff9f0a;
+    --error: #ff453a;
+    --on-error: #0d0d0f;
+    --book: #fabb05;
+    --podcast: #29abe2;
+    --music: #ff6b61;
+    --chart-book: #bb8900;
+    --chart-podcast: #1f9fd6;
+    --chart-music: #ea4b42;
+    --creator: #34c759;
+    --overlay: rgb(0 0 0 / 0.6);
+    --mark-arc: #48484a;
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.5);
+    --shadow-pop: 0 12px 40px rgb(0 0 0 / 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #000000;
+  --bg-alt: #0c0c0e;
+  --card: #131316;
+  --fg: #f5f5f7;
+  --muted: #98989d;
+  --border: #1d1d1f;
+  --accent: #9b7bff;
+  --on-accent: #0d0d0f;
+  --accent-text: #b49aff;
+  --success: #30d158;
+  --success-text: #30d158;
+  --warning: #ff9f0a;
+  --error: #ff453a;
+  --on-error: #0d0d0f;
+  --book: #fabb05;
+  --podcast: #29abe2;
+  --music: #ff6b61;
+  --chart-book: #bb8900;
+  --chart-podcast: #1f9fd6;
+  --chart-music: #ea4b42;
+  --creator: #34c759;
+  --overlay: rgb(0 0 0 / 0.6);
+  --mark-arc: #48484a;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 8px 24px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 12px 40px rgb(0 0 0 / 0.7);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-alt: var(--bg-alt);
+  --color-card: var(--card);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-text: var(--accent-text);
+  --color-on-accent: var(--on-accent);
+  --color-success: var(--success);
+  --color-success-text: var(--success-text);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+  --color-on-error: var(--on-error);
+  --color-book: var(--book);
+  --color-podcast: var(--podcast);
+  --color-music: var(--music);
+  --color-creator: var(--creator);
+  --color-overlay: var(--overlay);
+
+  --radius-card: 12px;
+  --radius-cover: 12px;
+  --radius-player: 16px;
+  --radius-sheet: 28px;
+  --radius-pill: 999px;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
+
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+    system-ui, "Segoe UI", Roboto, sans-serif;
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-cover: 200ms;
+  --duration-screen: 300ms;
+}
+
+html {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* The one place a cloud colour is allowed as a background: a 6–10% tint. */
+.cloud-tint-book { background: color-mix(in srgb, var(--book) 8%, var(--bg-alt)); }
+.cloud-tint-podcast { background: color-mix(in srgb, var(--podcast) 8%, var(--bg-alt)); }
+.cloud-tint-music { background: color-mix(in srgb, var(--music) 8%, var(--bg-alt)); }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Entrances animate `scale`, `opacity` and `transform` only, never `translate`:
+   Tailwind 4's translate utilities set the separate `translate` property, which
+   centred dialogs rely on. A keyframe that wrote translate into `transform` used
+   to draw them half their size off-centre for the whole animation, then snap. */
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fade-out { from { opacity: 1; } to { opacity: 0; } }
+@keyframes pop-in { from { opacity: 0; scale: 0.96; } to { opacity: 1; scale: 1; } }
+@keyframes pop-out { from { opacity: 1; scale: 1; } to { opacity: 0; scale: 0.96; } }
+@keyframes sheet-in { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes sheet-out { from { transform: translateY(0); } to { transform: translateY(100%); } }
+@keyframes drawer-in { from { transform: translateX(-100%); } to { transform: translateX(0); } }
+@utility animate-fade-in { animation: fade-in var(--duration-cover) var(--ease-out-soft); }
+@utility animate-fade-out { animation: fade-out 150ms ease-in forwards; }
+@utility animate-pop-in { animation: pop-in var(--duration-cover) var(--ease-out-soft); }
+@utility animate-pop-out { animation: pop-out 150ms ease-in forwards; }
+@utility animate-sheet-in { animation: sheet-in var(--duration-screen) var(--ease-out-soft); }
+@utility animate-sheet-out { animation: sheet-out 200ms ease-in forwards; }
+@utility animate-drawer-in { animation: drawer-in var(--duration-screen) var(--ease-out-soft); }
+
+/* Sideways chip rows: the fade at the edge says there is more, so the bar itself is hidden. */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar { display: none; }
+}

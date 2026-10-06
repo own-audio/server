@@ -1,0 +1,197 @@
+{
+  "family.tryAgain": { "en": "Try again.", "cs": "Zkuste to znovu.", "note": "Fallback detail under an error toast." },
+  "family.error.change": { "en": "Couldn't change that", "cs": "Nepodařilo se to změnit" },
+  "family.error.save": { "en": "Couldn't save that", "cs": "Nepodařilo se to uložit" },
+
+  "family.role.member": { "en": "Member", "cs": "Člen" },
+  "family.role.admin": { "en": "Admin", "cs": "Správce" },
+
+  "family.bracket.adult": { "en": "Adult", "cs": "Dospělý", "note": "Age bracket of a family member." },
+  "family.bracket.teen": { "en": "Teen", "cs": "Dospívající", "note": "Age bracket of a family member." },
+  "family.bracket.child": { "en": "Child", "cs": "Dítě", "note": "Age bracket of a family member." },
+
+  "family.copy.linkCopied": { "en": "Link copied", "cs": "Odkaz zkopírován" },
+  "family.copy.codeCopied": { "en": "Code copied", "cs": "Kód zkopírován" },
+  "family.copy.failed": { "en": "Couldn't copy that", "cs": "Nepodařilo se zkopírovat" },
+  "family.copy.failedHint": { "en": "Select it and copy by hand.", "cs": "Označte ho a zkopírujte ručně." },
+
+  "family.invite.setupCode": { "en": "Account setup code", "cs": "Kód pro nastavení účtu" },
+  "family.invite.anyoneWithLink": { "en": "Anyone with the link", "cs": "Kdokoli s odkazem" },
+  "family.invite.usesLeft": {
+    "en": "{left, number} of {max, plural, one {# use} other {# uses}} left",
+    "cs": "{left, plural, one {zbývá # z {max, number} použití} few {zbývají # z {max, number} použití} other {zbývá # z {max, number} použití}}"
+  },
+  "family.invite.expired": { "en": "expired", "cs": "platnost vypršela" },
+  "family.invite.expiresInMinutes": { "en": "expires in {count, number} min", "cs": "vyprší za {count, number} min" },
+  "family.invite.expiresInHours": {
+    "en": "expires in {count, plural, one {# hour} other {# hours}}",
+    "cs": "vyprší za {count, plural, one {# hodinu} few {# hodiny} other {# hodin}}"
+  },
+  "family.invite.expiresInDays": {
+    "en": "expires in {count, plural, one {# day} other {# days}}",
+    "cs": "vyprší za {count, plural, one {# den} few {# dny} other {# dní}}"
+  },
+  "family.invite.showQr": { "en": "Show QR code", "cs": "Zobrazit QR kód" },
+  "family.invite.copyLink": { "en": "Copy link", "cs": "Kopírovat odkaz" },
+  "family.invite.copyCode": { "en": "Copy code", "cs": "Kopírovat kód" },
+  "family.invite.revoke": { "en": "Revoke invite", "cs": "Zrušit pozvánku" },
+  "family.invite.qrNote": {
+    "en": "Anyone who scans this can join as {role, select, family_admin {an admin} other {a member}}. It can never grant admin.",
+    "cs": "Kdokoli, kdo to naskenuje, se může připojit jako {role, select, family_admin {správce} other {člen}}. Správcem se tím nikdy nestane.",
+    "note": "{role} is the invite's family role: family_admin or member."
+  },
+  "family.invite.revoked": { "en": "Invite revoked", "cs": "Pozvánka zrušena" },
+  "family.invite.revokeFailed": { "en": "Couldn't revoke that invite", "cs": "Pozvánku se nepodařilo zrušit" },
+
+  "family.inviteCreated.title": { "en": "Share this with them", "cs": "Pošlete jim to" },
+  "family.inviteCreated.claimDescription": { "en": "They set their own password by opening this. Nothing is emailed.", "cs": "Otevřením si nastaví vlastní heslo. Nic se neposílá e-mailem." },
+  "family.inviteCreated.description": { "en": "Send the link, or let them scan the code.", "cs": "Pošlete jim odkaz, nebo ať naskenují kód." },
+  "family.inviteCreated.keyWarning": {
+    "en": "Treat this like a key: anyone who has it can join your family as {role, select, family_admin {an admin} other {a member}}.",
+    "cs": "Zacházejte s tím jako s klíčem: kdokoli, kdo to má, se může připojit k vaší rodině jako {role, select, family_admin {správce} other {člen}}."
+  },
+
+  "family.inviteDialog.title": { "en": "Invite someone", "cs": "Pozvat člena rodiny" },
+  "family.inviteDialog.create": { "en": "Create invite", "cs": "Vytvořit pozvánku" },
+  "family.inviteDialog.createFailed": { "en": "Couldn't create that invite.", "cs": "Pozvánku se nepodařilo vytvořit." },
+  "family.inviteDialog.tab.email": { "en": "By email", "cs": "E-mailem" },
+  "family.inviteDialog.tab.link": { "en": "Link or QR", "cs": "Odkaz nebo QR" },
+  "family.inviteDialog.tab.provision": { "en": "Set up for them", "cs": "Nastavit jejich účet" },
+  "family.inviteDialog.email": { "en": "Their email", "cs": "Jejich e-mail" },
+  "family.inviteDialog.emailHint": {
+    "en": "Mailed automatically if this server sends mail. The code works either way, so you can pass it on yourself.",
+    "cs": "Pokud tento server umí odesílat poštu, pozvánka odejde automaticky. Kód funguje tak jako tak, takže ho můžete předat i sami."
+  },
+  "family.inviteDialog.note": { "en": "Note", "cs": "Poznámka" },
+  "family.inviteDialog.notePlaceholder": { "en": "Fridge QR", "cs": "QR na lednici", "note": "Example note for a link invite." },
+  "family.inviteDialog.noteHint": { "en": "For you, never shown to them.", "cs": "Jen pro vás, oni ji neuvidí." },
+  "family.inviteDialog.maxUses": { "en": "How many people can use it", "cs": "Kolik lidí ho může použít" },
+  "family.inviteDialog.people": {
+    "en": "{count, plural, one {# person} other {# people}}",
+    "cs": "{count, plural, one {# člověk} few {# lidé} other {# lidí}}"
+  },
+  "family.inviteDialog.provisionIntro": {
+    "en": "For someone with no mailbox of their own — a child, say. Creates their account now, with no password; they set one by opening the code you get next.",
+    "cs": "Pro někoho bez vlastní e-mailové schránky — třeba pro dítě. Vytvoří jejich účet hned, bez hesla. Heslo si nastaví sami otevřením kódu, který dostanete v dalším kroku."
+  },
+  "family.inviteDialog.name": { "en": "Their name", "cs": "Jejich jméno" },
+  "family.inviteDialog.namePlaceholder": { "en": "Lena", "cs": "Lena", "note": "Example first name." },
+  "family.inviteDialog.loginEmail": { "en": "Sign-in address", "cs": "Přihlašovací identifikátor" },
+  "family.inviteDialog.loginEmailPlaceholder": { "en": "lena@yourfamily.example", "cs": "lena@vaserodina.example", "note": "Example sign-in identifier; keep the .example ending." },
+  "family.inviteDialog.loginEmailHint": { "en": "Just an identifier to sign in with. No mail is ever sent to it.", "cs": "Slouží jen k přihlášení. Nikdy na něj nepřijde žádná pošta." },
+
+  "family.identity.updated": { "en": "Family updated", "cs": "Rodina upravena" },
+  "family.identity.memberCount": {
+    "en": "{count, plural, one {# member} other {# members}}",
+    "cs": "{count, plural, one {# člen} few {# členové} other {# členů}}"
+  },
+  "family.identity.edit": { "en": "Edit family name and photo", "cs": "Upravit název a fotku rodiny" },
+  "family.identity.name": { "en": "Family name", "cs": "Název rodiny" },
+  "family.identity.photo": { "en": "Photo", "cs": "Fotka" },
+  "family.identity.choosePhoto": { "en": "Choose an image…", "cs": "Vybrat obrázek…" },
+
+  "family.leave.left": { "en": "You've left the family", "cs": "Opustili jste rodinu" },
+  "family.leave.failed": { "en": "Couldn't leave", "cs": "Z rodiny se nepodařilo odejít" },
+  "family.leave.failedHint": { "en": "A family needs at least one admin.", "cs": "Rodina musí mít alespoň jednoho správce." },
+  "family.leave.button": { "en": "Leave this family", "cs": "Opustit rodinu" },
+  "family.leave.title": { "en": "Leave {family}?", "cs": "Opustit rodinu {family}?" },
+  "family.leave.description": {
+    "en": "Anything you've shared goes back to private. You keep your account, your library and your progress — in a family of your own.",
+    "cs": "Vše, co jste sdíleli, bude zase jen vaše. Účet, knihovna i váš postup vám zůstanou — ve vaší vlastní rodině.",
+    "note": "Unshared items are 'Just me' (Jen já), not private/locked."
+  },
+  "family.leave.stay": { "en": "Stay", "cs": "Zůstat" },
+  "family.leave.confirm": { "en": "Leave", "cs": "Odejít" },
+  "family.leave.detail": { "en": "You'll stop seeing anything the others shared with the family.", "cs": "Přestanete vidět vše, co ostatní sdíleli s rodinou." },
+
+  "family.member.roleFailed": { "en": "Couldn't change that role", "cs": "Roli člena se nepodařilo změnit" },
+  "family.member.actionFailed": { "en": "Couldn't do that", "cs": "Nepodařilo se to" },
+  "family.member.removed": { "en": "Removed from the family", "cs": "Odebráno z rodiny" },
+  "family.member.removedHint": { "en": "Their account and library are untouched.", "cs": "Jejich účet i knihovna zůstávají beze změny." },
+  "family.member.removeFailed": { "en": "Couldn't remove them", "cs": "Člena se nepodařilo odebrat" },
+  "family.member.you": { "en": "You", "cs": "Vy", "note": "Badge on your own row in the member list." },
+  "family.member.noPassword": { "en": "Hasn't set a password yet", "cs": "Heslo zatím nenastaveno" },
+  "family.member.blocked": { "en": "Blocked", "cs": "Blokován" },
+  "family.member.cantAdd": { "en": "Can't add audio", "cs": "Nemůže přidávat audio" },
+  "family.member.roleFor": { "en": "Role for {name}", "cs": "Role pro {name}" },
+  "family.member.permissionsFor": { "en": "Permissions for {name}", "cs": "Oprávnění pro {name}" },
+  "family.member.block": { "en": "Block", "cs": "Zablokovat" },
+  "family.member.unblock": { "en": "Unblock", "cs": "Zrušit blokování" },
+  "family.member.removeFromFamily": { "en": "Remove from family", "cs": "Odebrat z rodiny" },
+  "family.member.removeTitle": { "en": "Remove {name}?", "cs": "Odebrat {name} z rodiny?" },
+  "family.member.removeDescription": {
+    "en": "Anything they've shared goes back to private. They keep their account, their library and their progress — just outside this family.",
+    "cs": "Vše, co sdíleli, bude zase jen jejich. Zachovají si svůj účet, knihovnu i postup — jen mimo tuto rodinu.",
+    "note": "Unshared items are 'Just me' (Jen já), not private/locked."
+  },
+  "family.member.blockInstead": { "en": "Blocking instead keeps them in the family but signs them out everywhere.", "cs": "Zablokováním místo toho zůstanou v rodině, ale odhlásí se na všech zařízeních." },
+
+  "family.members": { "en": "Members", "cs": "Členové" },
+  "family.openInvites": { "en": "Open invites", "cs": "Čekající pozvánky" },
+  "family.noInvites.title": { "en": "No pending invites", "cs": "Žádné čekající pozvánky" },
+  "family.noInvites.description": { "en": "Invite by email, or hand someone a link or QR code.", "cs": "Pozvěte někoho e-mailem, nebo mu dejte odkaz či QR kód." },
+
+  "family.analysis.started": { "en": "Measuring your library", "cs": "Knihovna se měří" },
+  "family.analysis.stopped": { "en": "Stopped. Existing measurements are kept.", "cs": "Zastaveno. Dosavadní měření zůstávají." },
+  "family.analysis.title": { "en": "Music analysis", "cs": "Analýza hudby" },
+  "family.analysis.heading": { "en": "Measure the music library", "cs": "Změřit hudební knihovnu" },
+  "family.analysis.body": {
+    "en": "Works out each track’s tempo, loudness and energy so playlists can be built around how music actually sounds. This reads every track once, which takes a while on a large library. Nothing leaves your server.",
+    "cs": "Zjistí tempo, hlasitost a energii každé skladby, aby šlo sestavovat playlisty podle toho, jak hudba skutečně zní. Každou skladbu přečte jednou, což u velké knihovny chvíli trvá. Nic neopustí váš server."
+  },
+  "family.analysis.start": { "en": "Start", "cs": "Spustit" },
+  "family.analysis.stop": { "en": "Stop", "cs": "Zastavit" },
+  "family.analysis.progress": { "en": "{measured, number} of {total, number} measured", "cs": "Změřeno {measured, number} z {total, number}" },
+  "family.analysis.mostPlayedFirst": {
+    "en": "Most-played tracks first, so playlists work before this finishes. {remaining, plural, one {# to go} other {# to go}}.",
+    "cs": "Nejdřív nejhranější skladby, takže playlisty fungují ještě před dokončením. {remaining, plural, one {Zbývá #} few {Zbývají #} other {Zbývá #}}."
+  },
+  "family.analysis.adminOnly": { "en": "Only a family admin can change this — it applies to the whole shared library.", "cs": "Změnit to může jen správce rodiny — platí to pro celou sdílenou knihovnu." },
+  "family.analysis.stopKeeps": { "en": "Stopping keeps what has already been measured.", "cs": "Zastavením se nic z už změřeného neztratí." },
+
+  "family.access.title": { "en": "{name}'s access", "cs": "Oprávnění: {name}" },
+  "family.access.description": { "en": "What they can do, and what they can hear. Both are enforced by the server.", "cs": "Co smí dělat a co smí poslouchat. Obojí hlídá server." },
+  "family.access.saved": { "en": "Saved", "cs": "Uloženo" },
+  "family.access.savedDetail": { "en": "{name}'s permissions updated", "cs": "Oprávnění pro {name} upravena" },
+  "family.access.saveFailed": { "en": "Couldn't save those permissions.", "cs": "Oprávnění se nepodařilo uložit." },
+  "family.access.whoTheyAre": { "en": "Who they are", "cs": "Kdo to je" },
+  "family.access.bracket.adult": { "en": "Can do everything, including adding to the library.", "cs": "Smí všechno, včetně přidávání do knihovny." },
+  "family.access.bracket.teen": { "en": "Listens, and adds only if you allow it below.", "cs": "Poslouchá a přidává jen tehdy, když to níže povolíte." },
+  "family.access.bracket.child": { "en": "Listens only. Adding audio and making narrations are always off.", "cs": "Jen poslouchá. Přidávání audia a načítání knih je vždy vypnuté." },
+  "family.access.bracketNote": { "en": "An age bracket, never a birthday — we don't ask for a child's date of birth.", "cs": "Jen věková skupina, nikdy datum narození — na datum narození dítěte se neptáme." },
+  "family.access.whatTheyAdd": { "en": "What they can add", "cs": "Co smí přidávat" },
+  "family.access.addAudio": { "en": "Add audio to the library", "cs": "Přidávat audio do knihovny" },
+  "family.access.addAudioHint": { "en": "Upload books, music, and follow podcasts.", "cs": "Nahrávat knihy a hudbu a odebírat podcasty." },
+  "family.access.narrate": { "en": "Make AI narrations", "cs": "Načítat knihy umělou inteligencí" },
+  "family.access.narrateHint": { "en": "Narrating a book spends the family's credit.", "cs": "Namluvení knihy čerpá kredit rodiny." },
+  "family.access.alwaysOffForChild": { "en": "Always off for a child.", "cs": "U dítěte vždy vypnuto." },
+  "family.access.whatTheyHear": { "en": "What they can hear", "cs": "Co smí poslouchat" },
+  "family.access.savedAsYouGo": { "en": "Saved as you change them, separately from the button below.", "cs": "Ukládá se hned při změně, nezávisle na tlačítku níže." },
+  "family.access.theirListening": { "en": "Their listening", "cs": "Jejich poslech" },
+  "family.access.showListening": { "en": "Show me what they listen to", "cs": "Ukázat mi, co poslouchají" },
+  "family.access.showListeningHint": { "en": "Their totals appear on your Stats page. They can see this setting too.", "cs": "Jejich souhrny se objeví na vaší stránce Statistiky. Toto nastavení vidí i oni." },
+
+  "family.access.allOfIt": { "en": "All of it", "cs": "Všechno" },
+  "family.access.noneOfIt": { "en": "None of it", "cs": "Nic" },
+  "family.access.hiddenExcept": {
+    "en": "{kind, select, audiobook {Audiobooks are} podcast {Podcasts are} other {Music is}} hidden from {name}, except anything you allow below.",
+    "cs": "{name} nevidí {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}, kromě toho, co níže povolíte.",
+    "note": "{kind} is audiobook, podcast or music."
+  },
+  "family.access.visibleExcept": {
+    "en": "{name} sees all {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}, except anything you block below.",
+    "cs": "{name} vidí {kind, select, audiobook {všechny audioknihy} podcast {všechny podcasty} other {veškerou hudbu}}, kromě toho, co níže zablokujete.",
+    "note": "{kind} is audiobook, podcast or music."
+  },
+  "family.access.exceptions": { "en": "Exceptions", "cs": "Výjimky" },
+  "family.access.exceptionsCount": { "en": "Exceptions ({count, number})", "cs": "Výjimky ({count, number})" },
+  "family.access.hideExceptions": { "en": "Hide exceptions", "cs": "Skrýt výjimky" },
+  "family.access.find": {
+    "en": "Find {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}",
+    "cs": "Hledat {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}"
+  },
+  "family.access.exceptionsFailed": { "en": "Couldn't save those exceptions", "cs": "Výjimky se nepodařilo uložit" },
+  "family.access.nothingToList": { "en": "Nothing to list.", "cs": "Není co zobrazit." },
+  "family.access.tickedAllowed": { "en": "Ticked items stay available to them.", "cs": "Zaškrtnuté položky zůstanou dostupné." },
+  "family.access.tickedHidden": { "en": "Ticked items are hidden from them.", "cs": "Zaškrtnuté položky neuvidí." }
+}

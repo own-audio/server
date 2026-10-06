@@ -1,0 +1,13 @@
+{
+  "name": "audio2-i18n",
+  "private": true,
+  "type": "module",
+  "description": "The one catalog of UI strings for every audio2 client, and the tools that check it and generate each platform's files.",
+  "scripts": {
+    "check": "node scripts/i18n.mjs check",
+    "build:web": "node scripts/i18n.mjs web ../frontend/src/i18n/generated"
+  },
+  "devDependencies": {
+    "@formatjs/icu-messageformat-parser": "^2.11.2"
+  }
+}

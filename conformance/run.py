@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: AGPL-3.0-or-later
 """Black-box conformance suite for the own.audio server API.
 
     python3 conformance/run.py --base-url http://127.0.0.1:8080 \
@@ -41,6 +42,7 @@ def main() -> int:
     ap.add_argument("--compose-dir", type=pathlib.Path, default=None,
                     help="directory with the server's docker-compose.yml; enables SQL-backed checks")
     ap.add_argument("--database", default="audio2", help="database name for the SQL-backed checks (default audio2)")
+    ap.add_argument("--database-user", default="audio2", help="postgres user for the SQL-backed checks (default audio2)")
     ap.add_argument("--only", default="", help="comma-separated suite names to run")
     ap.add_argument("--skip", default="", help="comma-separated suite names to skip")
     ap.add_argument("--require-media", action="store_true", help="fail instead of skip when no streamable media exists")
@@ -66,7 +68,7 @@ def main() -> int:
     ctx = Ctx(
         base_url=args.base_url.rstrip("/"), admin_email=args.admin_email, admin_password=args.admin_password,
         compose_dir=args.compose_dir.resolve() if args.compose_dir else None,
-        database=args.database,
+        database=args.database, database_user=args.database_user,
         require_media=args.require_media, verbose=not args.quiet,
     )
     started = time.time()

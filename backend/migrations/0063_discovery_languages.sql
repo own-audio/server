@@ -1,0 +1,21 @@
+-- Migration 0063: which languages podcast discovery answers in.
+--
+-- P10 of docs/podcast-recommendations-plan.md asks for exactly this and says
+-- why it cannot be inferred: a household with one German show in it is not a
+-- German-speaking household, and guessing wrong fills a discovery screen with
+-- results nobody can listen to. So it is asked, not derived.
+--
+-- Empty means "every language", which is what search and browse did before
+-- this column existed and what `similar` still does by locking to the seed
+-- feed's own language. Nothing is backfilled from a locale or from the
+-- catalogue: an empty array is a real answer here, not a missing one.
+--
+-- Per user, not per family, for the same reason `recommendations_enabled` is
+-- (migration 0061): which languages someone reads is theirs to state, and an
+-- admin setting it for a member would be deciding what they can understand.
+--
+-- Base subtags only (`en`, not `en-US`) — 112 spellings of English exist in the
+-- catalogue and every language filter in the pipeline reads the folded
+-- `language_base`.
+ALTER TABLE users
+    ADD COLUMN discovery_languages TEXT[] NOT NULL DEFAULT '{}'::text[];

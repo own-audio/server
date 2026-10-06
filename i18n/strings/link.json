@@ -1,0 +1,19 @@
+{
+  "link.error.answerFailed": { "en": "Couldn't answer for that code. It may have run out.", "cs": "Na tento kód se nepodařilo odpovědět. Možná už vypršel." },
+  "link.approved.title": { "en": "Signed in", "cs": "Přihlášeno" },
+  "link.approved.subtitle": { "en": "The device is being let in now. You can put this away.", "cs": "Zařízení se právě přihlašuje. Tuto stránku už můžete zavřít." },
+  "link.denied.title": { "en": "Refused", "cs": "Odmítnuto" },
+  "link.denied.subtitle": { "en": "Nothing was let in. If that code wasn't yours, nobody else has it either.", "cs": "Nic se nepřihlásilo. Pokud kód nebyl váš, nikdo jiný ho teď už nepoužije." },
+  "link.enter.title": { "en": "Sign in a device", "cs": "Přihlásit zařízení" },
+  "link.enter.subtitle": { "en": "Enter the code shown on your TV.", "cs": "Zadejte kód zobrazený na televizi." },
+  "link.enter.codeLabel": { "en": "Code from the TV", "cs": "Kód z televize" },
+  "link.continue": { "en": "Continue", "cs": "Pokračovat" },
+  "link.expired.title": { "en": "That code has run out", "cs": "Platnost kódu vypršela" },
+  "link.expired.subtitle": { "en": "Codes last ten minutes. Start again on the TV for a new one.", "cs": "Kód platí deset minut. Pro nový začněte na televizi znovu." },
+  "link.expired.enterAnother": { "en": "Enter another code", "cs": "Zadat jiný kód" },
+  "link.decide.title": { "en": "Let this device in?", "cs": "Přihlásit toto zařízení?" },
+  "link.decide.subtitle": { "en": "It will be signed in as you, and you can sign it out again from Settings.", "cs": "Přihlásí se jako vy a v Nastavení ho můžete zase odhlásit." },
+  "link.decide.code": { "en": "Code {code}", "cs": "Kód {code}" },
+  "link.decide.approve": { "en": "Let it in", "cs": "Přihlásit" },
+  "link.decide.deny": { "en": "Not me", "cs": "To nejsem já" }
+}

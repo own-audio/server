@@ -269,7 +269,7 @@ def run(ctx: Ctx) -> None:
         # A transaction that commits after the feed was read is still delivered.
         log("\n[late commit]")
         slow = subprocess.Popen(
-            ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "audio2", "-d", ctx.database, "-c",
+            ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", ctx.database_user, "-d", ctx.database, "-c",
              f"BEGIN; UPDATE music_tracks SET family_id = family_id WHERE id = '{same['id']}'; SELECT pg_sleep(4); COMMIT;"],
             cwd=ctx.compose_dir, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(1.5)

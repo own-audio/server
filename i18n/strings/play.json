@@ -1,0 +1,110 @@
+{
+  "play.tryAgain": { "en": "Try again.", "cs": "Zkuste to znovu.", "note": "Fallback detail under an error toast." },
+  "play.install.prepareFailed": { "en": "Couldn't prepare the link", "cs": "Odkaz se nepodařilo připravit" },
+  "play.install.checkConnection": { "en": "Check the connection and try again.", "cs": "Zkontrolujte připojení a zkuste to znovu." },
+  "play.install.linkCopied": { "en": "Link copied", "cs": "Odkaz zkopírován" },
+  "play.install.pasteInSafari": { "en": "Paste it into Safari within 10 minutes.", "cs": "Do 10 minut ho vložte do Safari." },
+  "play.install.copyThisLink": { "en": "Copy this link", "cs": "Zkopírujte tento odkaz" },
+  "play.install.title": {
+    "en": "Put this playlist on your Home Screen",
+    "cs": "Přidejte si tento playlist na plochu",
+    "note": "iOS and Android in Czech call it 'plocha' (menu item 'Přidat na plochu'), so the hint uses their word."
+  },
+  "play.install.androidApp": {
+    "en": "The songs are on this device. For the playlist’s own icon, open it in Chrome and choose <b>Install</b> or <b>Add to Home screen</b> from the menu.",
+    "cs": "Skladby jsou v tomto zařízení. Pokud chcete pro playlist vlastní ikonu, otevřete ho v Chromu a v nabídce zvolte <b>Nainstalovat aplikaci</b> nebo <b>Přidat na plochu</b>.",
+    "note": "<b> names are Chrome for Android's menu items in that language."
+  },
+  "play.install.openInChrome": { "en": "Open in Chrome", "cs": "Otevřít v Chromu" },
+  "play.install.iosApp": {
+    "en": "The songs are on this device. For the playlist’s own icon, open it in Safari and add it to the Home Screen from there. The new icon signs itself in.",
+    "cs": "Skladby jsou v tomto zařízení. Pokud chcete pro playlist vlastní ikonu, otevřete ho v Safari a odtud ho přidejte na plochu. Nová ikona se přihlásí sama."
+  },
+  "play.install.openInSafari": { "en": "Open in Safari", "cs": "Otevřít v Safari" },
+  "play.install.copyLink": { "en": "Copy link", "cs": "Kopírovat odkaz" },
+  "play.install.linkWarning": { "en": "The link signs in as you for 10 minutes, once. Don’t send it to anyone.", "cs": "Odkaz vás jednou přihlásí, a to do 10 minut. Nikomu ho neposílejte." },
+  "play.install.addToHomeScreen": { "en": "Add to Home Screen", "cs": "Přidat na plochu" },
+  "play.install.browserMenu": {
+    "en": "Open your browser’s menu and choose <b>Add to Home screen</b> or <b>Install</b>.",
+    "cs": "Otevřete nabídku prohlížeče a zvolte <b>Přidat na plochu</b> nebo <b>Nainstalovat</b>."
+  },
+
+  "play.safari.prepareFailed": { "en": "Couldn't prepare this playlist. Try again from own.audio.", "cs": "Playlist se nepodařilo připravit. Zkuste to znovu z own.audio." },
+  "play.safari.preparing": { "en": "Preparing…", "cs": "Příprava…" },
+  "play.safari.yourPlaylist": { "en": "Your playlist", "cs": "Váš playlist" },
+  "play.safari.step1": {
+    "en": "1. Tap <share></share> <b>Share</b> in Safari’s toolbar.",
+    "cs": "1. Klepněte na <share></share> <b>Sdílet</b> na liště Safari.",
+    "note": "<share></share> is the Share icon. <b> is the button's name in iOS."
+  },
+  "play.safari.step2": {
+    "en": "2. Choose <b>Add to Home Screen</b>, then <b>Add</b>.",
+    "cs": "2. Zvolte <b>Přidat na plochu</b> a potom <b>Přidat</b>.",
+    "note": "<b> names are iOS menu items in that language."
+  },
+  "play.safari.step3": {
+    "en": "3. Open the new icon within 10 minutes. It signs itself in and downloads the songs; after that it plays offline.",
+    "cs": "3. Do 10 minut otevřete novou ikonu. Sama se přihlásí a stáhne skladby; pak hraje i offline."
+  },
+  "play.signingIn": { "en": "Signing in…", "cs": "Přihlašování…" },
+
+  "play.update.noConnection": { "en": "No connection", "cs": "Bez připojení" },
+  "play.update.noConnectionHint": { "en": "Connect to a network, then check again.", "cs": "Připojte se k síti a zkontrolujte to znovu." },
+  "play.update.upToDate": { "en": "Up to date", "cs": "Aktuální" },
+  "play.update.nothingNew": { "en": "Nothing new to download.", "cs": "Není co nového stahovat." },
+  "play.update.checkFailed": { "en": "Couldn't check", "cs": "Kontrola se nezdařila" },
+  "play.update.noAnswer": { "en": "The server didn't answer. Try again later.", "cs": "Server neodpověděl. Zkuste to později." },
+  "play.update.updating": { "en": "Updating", "cs": "Aktualizace" },
+  "play.update.downloading": {
+    "en": "Downloading {count, plural, one {# song} other {# songs}}.",
+    "cs": "{count, plural, one {Stahuje se # skladba} few {Stahují se # skladby} other {Stahuje se # skladeb}}."
+  },
+  "play.update.done": { "en": "Done.", "cs": "Hotovo." },
+  "play.update.failed": { "en": "Couldn't update", "cs": "Aktualizace se nezdařila" },
+  "play.update.changes": { "en": "Changes to this playlist", "cs": "Změny v tomto playlistu" },
+  "play.update.toDownload": {
+    "en": "{count, plural, one {# song} other {# songs}} to download",
+    "cs": "Ke stažení: {count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+  },
+  "play.update.toDownloadSize": {
+    "en": "{count, plural, one {# song} other {# songs}} to download, about {size}",
+    "cs": "Ke stažení: {count, plural, one {# skladba} few {# skladby} other {# skladeb}}, asi {size}"
+  },
+  "play.update.toRemove": {
+    "en": "{count, plural, one {# song} other {# songs}} no longer in it, deleted from this device",
+    "cs": "{count, plural, one {# skladba už v něm není, smaže se} few {# skladby už v něm nejsou, smažou se} other {# skladeb už v něm není, smaže se}} z tohoto zařízení"
+  },
+  "play.update.mobileData": { "en": "You're on mobile data. Wait for Wi-Fi if that's too much.", "cs": "Jste na mobilních datech. Pokud je to moc, počkejte na Wi-Fi." },
+  "play.update.whileOpen": { "en": "Downloading happens while the app is open. On mobile data, you may want to wait for Wi-Fi.", "cs": "Stahuje se, dokud je aplikace otevřená. Na mobilních datech možná raději počkejte na Wi-Fi." },
+  "play.update.apply": { "en": "Update", "cs": "Aktualizovat", "note": "Verb, button." },
+  "play.update.notNow": { "en": "Not now", "cs": "Teď ne" },
+  "play.update.updatedAgo": { "en": "Updated {when}", "cs": "Aktualizováno {when}", "note": "{when} is relative, e.g. 'před 5 min'." },
+  "play.update.check": { "en": "Check for updates", "cs": "Zkontrolovat aktualizace" },
+
+  "play.nothingToPlay": { "en": "Nothing to play yet", "cs": "Zatím není co přehrát" },
+  "play.noneOnDevice": { "en": "None of these songs are on this device yet.", "cs": "Žádná z těchto skladeb zatím není v tomto zařízení." },
+  "play.notOnDevice": { "en": "Not on this device yet", "cs": "Zatím není v tomto zařízení" },
+  "play.playsWhenDownloaded": { "en": "It'll play once it has downloaded.", "cs": "Přehraje se, jakmile se stáhne." },
+  "play.limit.title": {
+    "en": "Up to {max, plural, one {# playlist} other {# playlists}} per device",
+    "cs": "Nejvýše {max, plural, one {# playlist} few {# playlisty} other {# playlistů}} na zařízení"
+  },
+  "play.limit.description": { "en": "Each one keeps every song on this device. Remove one in Music → Downloads, then open this again.", "cs": "Každý z nich má všechny skladby uložené v tomto zařízení. Jeden odeberte v Hudba → Stažené a pak tuto stránku otevřete znovu." },
+  "play.limit.openDownloads": { "en": "Open Downloads", "cs": "Otevřít Stažené" },
+  "play.gone.title": { "en": "This playlist isn't available", "cs": "Tento playlist není dostupný" },
+  "play.gone.description": { "en": "It may have been deleted, or it's no longer shared with you.", "cs": "Možná byl smazán, nebo už s vámi není sdílený." },
+  "play.gone.stillPlays": { "en": "This playlist is no longer available online; what's on this device still plays.", "cs": "Tento playlist už online není dostupný; co je v tomto zařízení, hraje dál." },
+  "play.notYet.description": { "en": "Open this once with a connection and the playlist downloads itself.", "cs": "Otevřete ho jednou s připojením a playlist se stáhne sám." },
+  "play.songCount": {
+    "en": "{count, plural, one {# song} other {# songs}}",
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+  },
+  "play.allOnDevice": { "en": "all on this device", "cs": "vše v tomto zařízení" },
+  "play.someOnDevice": { "en": "{have, number} of {total, number} on this device", "cs": "{have, number} z {total, number} v tomto zařízení" },
+  "play.someOnDeviceWaiting": { "en": "{have, number} of {total, number} on this device, waiting for a connection", "cs": "{have, number} z {total, number} v tomto zařízení, čeká se na připojení" },
+  "play.continue": { "en": "Continue", "cs": "Pokračovat" },
+  "play.from": { "en": "from {time}", "cs": "od {time}", "note": "Resume position under the Continue button, e.g. 'from 2:15'." },
+  "play.fromStart": { "en": "From the start", "cs": "Od začátku" },
+  "play.shuffle": { "en": "Shuffle", "cs": "Náhodně" },
+  "play.openApp": { "en": "Open own.audio", "cs": "Otevřít own.audio" }
+}

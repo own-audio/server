@@ -1,0 +1,235 @@
+{
+  "player.error.aborted": {
+    "en": "Playback was interrupted.",
+    "cs": "Přehrávání bylo přerušeno."
+  },
+  "player.episodeNotes": {
+    "en": "Episode notes",
+    "cs": "Popis epizody",
+    "note": "Button and sheet title in the player: the episode's description from the feed."
+  },
+  "player.favorite.add": {
+    "en": "Add to favourites",
+    "cs": "Přidat do oblíbených"
+  },
+  "player.favorite.remove": {
+    "en": "Remove from favourites",
+    "cs": "Odebrat z oblíbených"
+  },
+  "player.lyrics": {
+    "en": "Lyrics",
+    "cs": "Text",
+    "note": "Button: the song's lyrics (glossary: Lyrics = Text)."
+  },
+  "player.goToArtist": {
+    "en": "Go to {artist}",
+    "cs": "Přejít na {artist}"
+  },
+  "player.goToAlbum": {
+    "en": "Go to the album {album}",
+    "cs": "Přejít na album {album}"
+  },
+  "player.from.playlist": {
+    "en": "Playing from playlist",
+    "cs": "Hraje z playlistu",
+    "note": "Small caps above the playlist's name on Now Playing; the name is a link to it."
+  },
+  "player.from.album": {
+    "en": "Playing from album",
+    "cs": "Hraje z alba"
+  },
+  "player.from.artist": {
+    "en": "Playing from artist",
+    "cs": "Hraje od interpreta"
+  },
+  "player.from.genre": {
+    "en": "Playing from genre",
+    "cs": "Hraje žánr"
+  },
+  "player.from.open": {
+    "en": "Open {name}",
+    "cs": "Otevřít {name}"
+  },
+  "player.error.network": {
+    "en": "The connection dropped while loading it.",
+    "cs": "Při načítání vypadlo připojení."
+  },
+  "player.error.decode": {
+    "en": "This file couldn't be decoded.",
+    "cs": "Tento soubor se nepodařilo dekódovat."
+  },
+  "player.error.source": {
+    "en": "The link expired, or the file isn't on the server.",
+    "cs": "Platnost odkazu vypršela, nebo soubor na serveru není."
+  },
+  "player.error.generic": {
+    "en": "Something went wrong loading it.",
+    "cs": "Při načítání se něco pokazilo."
+  },
+  "player.error.noFreshLink": {
+    "en": "The server wouldn't give out a fresh link for it.",
+    "cs": "Server nevydal nový odkaz."
+  },
+  "player.error.cantPlay": {
+    "en": "Couldn't play this",
+    "cs": "Nepodařilo se přehrát"
+  },
+  "player.partTitle": {
+    "en": "Part {n}",
+    "cs": "Část {n}",
+    "note": "Name of an audiobook file that has no title of its own."
+  },
+  "player.bookPart": {
+    "en": "{book} · Part {n}",
+    "cs": "{book} · Část {n}",
+    "note": "Player subtitle: book title and file number."
+  },
+  "player.skipBack": {
+    "en": "{seconds, plural, one {Back # second} other {Back # seconds}}",
+    "cs": "{seconds, plural, one {Zpět o # sekundu} few {Zpět o # sekundy} other {Zpět o # sekund}}"
+  },
+  "player.skipForward": {
+    "en": "{seconds, plural, one {Forward # second} other {Forward # seconds}}",
+    "cs": "{seconds, plural, one {Vpřed o # sekundu} few {Vpřed o # sekundy} other {Vpřed o # sekund}}"
+  },
+  "player.shuffle": {
+    "en": "Shuffle",
+    "cs": "Náhodně"
+  },
+  "player.repeat": {
+    "en": "Repeat",
+    "cs": "Opakovat"
+  },
+  "player.repeatMode": {
+    "en": "{mode, select, one {Repeat one} all {Repeat all} other {Repeat off}}",
+    "cs": "{mode, select, one {Opakovat jednu} all {Opakovat vše} other {Neopakovat}}",
+    "note": "The repeat button's name, saying the current mode."
+  },
+  "player.minimize": {
+    "en": "Minimize",
+    "cs": "Zmenšit"
+  },
+  "player.nowPlaying": {
+    "en": "Now playing",
+    "cs": "Právě hraje"
+  },
+  "player.queue.title": {
+    "en": "Queue",
+    "cs": "Fronta"
+  },
+  "player.expandPlayer": {
+    "en": "Expand player",
+    "cs": "Rozbalit přehrávač"
+  },
+  "player.queue.close": {
+    "en": "Close queue",
+    "cs": "Zavřít frontu"
+  },
+  "player.queue.empty": {
+    "en": "Queue is empty",
+    "cs": "Fronta je prázdná"
+  },
+  "player.queue.remove": {
+    "en": "Remove {title} from the queue",
+    "cs": "Odebrat z fronty: {title}"
+  },
+  "player.seek": {
+    "en": "Playback position",
+    "cs": "Pozice přehrávání",
+    "note": "Accessible name of the seek bar."
+  },
+  "player.mute": {
+    "en": "Mute",
+    "cs": "Ztlumit"
+  },
+  "player.unmute": {
+    "en": "Unmute",
+    "cs": "Zrušit ztlumení"
+  },
+  "player.volume": {
+    "en": "Volume",
+    "cs": "Hlasitost"
+  },
+  "player.speed.value": {
+    "en": "{speed, number}×",
+    "cs": "{speed, number}×",
+    "note": "Playback rate, e.g. 1.5×."
+  },
+  "player.speed.current": {
+    "en": "Speed: {speed, number}×",
+    "cs": "Rychlost: {speed, number}×"
+  },
+  "player.speed.title": {
+    "en": "Playback speed",
+    "cs": "Rychlost přehrávání"
+  },
+  "player.speed.heading": {
+    "en": "Speed",
+    "cs": "Rychlost"
+  },
+  "player.sleep.title": {
+    "en": "Sleep timer",
+    "cs": "Časovač vypnutí"
+  },
+  "player.sleep.current": {
+    "en": "Sleep timer: {remaining}",
+    "cs": "Časovač vypnutí: {remaining}",
+    "note": "{remaining} is a clock like 12:34, or player.sleep.end."
+  },
+  "player.sleep.end": {
+    "en": "End",
+    "cs": "Konec",
+    "note": "Short: the timer stops at the end of the current track."
+  },
+  "player.sleep.heading": {
+    "en": "Stop playing in",
+    "cs": "Zastavit přehrávání za"
+  },
+  "player.sleep.endOfTrack": {
+    "en": "End of this track",
+    "cs": "Na konci této stopy",
+    "note": "For audiobooks and podcasts: the current file or episode."
+  },
+  "player.sleep.off": {
+    "en": "Turn off",
+    "cs": "Vypnout"
+  },
+  "player.chapters": {
+    "en": "Chapters",
+    "cs": "Kapitoly"
+  },
+  "player.parts": {
+    "en": "Parts",
+    "cs": "Části",
+    "note": "An audiobook's files."
+  },
+  "player.bookmarks.title": {
+    "en": "Bookmarks",
+    "cs": "Záložky"
+  },
+  "player.bookmarks.added": {
+    "en": "Bookmark added",
+    "cs": "Záložka přidána"
+  },
+  "player.bookmarks.addFailed": {
+    "en": "Couldn't add that bookmark",
+    "cs": "Záložku se nepodařilo přidat"
+  },
+  "player.bookmarks.addAt": {
+    "en": "Add at {time}",
+    "cs": "Přidat v čase {time}"
+  },
+  "player.bookmarks.empty": {
+    "en": "No bookmarks in this book yet.",
+    "cs": "V této knize zatím nejsou žádné záložky."
+  },
+  "player.bookmarks.untitled": {
+    "en": "Bookmark",
+    "cs": "Záložka",
+    "note": "A bookmark without a name of its own."
+  },
+  "player.bookmarks.delete": {
+    "en": "Delete bookmark",
+    "cs": "Smazat záložku"
+  }
+}

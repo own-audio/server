@@ -1,0 +1,894 @@
+{
+  "audiobooks.field.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "audiobooks.field.author": {
+    "en": "Author",
+    "cs": "Autor"
+  },
+  "audiobooks.field.narrator": {
+    "en": "Narrator",
+    "cs": "Vypravěč"
+  },
+  "audiobooks.field.description": {
+    "en": "Description",
+    "cs": "Popis"
+  },
+  "audiobooks.field.publisher": {
+    "en": "Publisher",
+    "cs": "Vydavatel"
+  },
+  "audiobooks.field.year": {
+    "en": "Year",
+    "cs": "Rok"
+  },
+  "audiobooks.field.isbn": {
+    "en": "ISBN",
+    "cs": "ISBN"
+  },
+  "audiobooks.field.cover": {
+    "en": "Cover",
+    "cs": "Obálka"
+  },
+  "audiobooks.optional": {
+    "en": "Optional",
+    "cs": "Nepovinné",
+    "note": "Placeholder of an optional field."
+  },
+  "audiobooks.unknownAuthor": {
+    "en": "Unknown author",
+    "cs": "Neznámý autor"
+  },
+  "audiobooks.bookCount": {
+    "en": "{count, plural, one {# book} other {# books}}",
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}}"
+  },
+  "audiobooks.sort.recent": {
+    "en": "Recently added",
+    "cs": "Nedávno přidané"
+  },
+  "audiobooks.sort.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "audiobooks.sort.author": {
+    "en": "Author",
+    "cs": "Autor"
+  },
+  "audiobooks.sort.length": {
+    "en": "Length",
+    "cs": "Délka"
+  },
+  "audiobooks.list.filter": {
+    "en": "Filter books",
+    "cs": "Filtrovat knihy"
+  },
+  "audiobooks.owner.all": {
+    "en": "Everything",
+    "cs": "Vše",
+    "note": "Owner filter: every book, shared or not."
+  },
+  "audiobooks.owner.mine": {
+    "en": "Mine",
+    "cs": "Moje",
+    "note": "Owner filter: only books not shared with the family."
+  },
+  "audiobooks.group.all": {
+    "en": "All",
+    "cs": "Všechny",
+    "note": "Listening-state filter: all books."
+  },
+  "audiobooks.group.inProgress": {
+    "en": "Listening",
+    "cs": "Rozposlouchané",
+    "note": "Filter: books started but not finished."
+  },
+  "audiobooks.group.finished": {
+    "en": "Finished",
+    "cs": "Dokončené",
+    "note": "Filter: finished books."
+  },
+  "audiobooks.group.byAuthor": {
+    "en": "By author",
+    "cs": "Podle autora"
+  },
+  "audiobooks.selection.clear": {
+    "en": "Clear selection",
+    "cs": "Zrušit výběr"
+  },
+  "audiobooks.selection.selectAll": {
+    "en": "Select all",
+    "cs": "Vybrat vše"
+  },
+  "audiobooks.list.addToCollection": {
+    "en": "Add to collection",
+    "cs": "Přidat do sbírky"
+  },
+  "audiobooks.status.finished": {
+    "en": "Finished",
+    "cs": "Dokončeno"
+  },
+  "audiobooks.status.progress": {
+    "en": "{progress, number, percent} · {remaining} left",
+    "cs": "{progress, number, percent} · zbývá {remaining}",
+    "note": "A book's progress; remaining is a formatted duration such as 1 h 20 min."
+  },
+  "audiobooks.status.new": {
+    "en": "New",
+    "cs": "Nové",
+    "note": "A book nobody has started."
+  },
+  "audiobooks.menu.open": {
+    "en": "Open",
+    "cs": "Otevřít"
+  },
+  "audiobooks.menu.select": {
+    "en": "Select",
+    "cs": "Vybrat"
+  },
+  "audiobooks.menu.edit": {
+    "en": "Edit…",
+    "cs": "Upravit…"
+  },
+  "audiobooks.menu.identify": {
+    "en": "Identify…",
+    "cs": "Identifikovat…"
+  },
+  "audiobooks.menu.moveToTrash": {
+    "en": "Move to Trash",
+    "cs": "Přesunout do koše"
+  },
+  "audiobooks.menu.moveToTrashConfirm": {
+    "en": "Move to Trash…",
+    "cs": "Přesunout do koše…",
+    "note": "Opens a confirmation first."
+  },
+  "audiobooks.action.startOver": {
+    "en": "Start over",
+    "cs": "Začít od začátku"
+  },
+  "audiobooks.action.makePrivate": {
+    "en": "Make private",
+    "cs": "Nastavit jako soukromé"
+  },
+  "audiobooks.action.shareWithFamily": {
+    "en": "Share with family",
+    "cs": "Sdílet s rodinou"
+  },
+  "audiobooks.visibility.shared": {
+    "en": "Shared with the family",
+    "cs": "Sdíleno s rodinou"
+  },
+  "audiobooks.visibility.madePrivate": {
+    "en": "Made private",
+    "cs": "Nastaveno jako soukromé"
+  },
+  "audiobooks.toast.restarted": {
+    "en": "Back to the beginning",
+    "cs": "Zpět na začátek"
+  },
+  "audiobooks.toast.bookUpdated": {
+    "en": "Book updated",
+    "cs": "Kniha upravena"
+  },
+  "audiobooks.error.visibility": {
+    "en": "Couldn't change who can see that.",
+    "cs": "Nepodařilo se změnit, kdo to uvidí."
+  },
+  "audiobooks.error.restart": {
+    "en": "Couldn't reset that book.",
+    "cs": "Knihu se nepodařilo vrátit na začátek."
+  },
+  "audiobooks.error.trash": {
+    "en": "Couldn't move that to the trash.",
+    "cs": "Nepodařilo se to přesunout do koše."
+  },
+  "audiobooks.empty.noMatch.title": {
+    "en": "Nothing matches that",
+    "cs": "Nic tomu neodpovídá"
+  },
+  "audiobooks.empty.noMatch.description": {
+    "en": "Try a different word.",
+    "cs": "Zkuste jiné slovo."
+  },
+  "audiobooks.empty.noPrivate.title": {
+    "en": "No private books",
+    "cs": "Žádné soukromé knihy"
+  },
+  "audiobooks.empty.noPrivate.description": {
+    "en": "Everything you've uploaded is currently shared with the family.",
+    "cs": "Vše, co jste nahráli, je teď sdíleno s rodinou."
+  },
+  "audiobooks.empty.none.title": {
+    "en": "No audiobooks yet",
+    "cs": "Zatím žádné audioknihy"
+  },
+  "audiobooks.empty.none.description": {
+    "en": "Drop a file or a folder of chapters to add your first book.",
+    "cs": "Přetáhněte sem soubor nebo složku s kapitolami a přidejte svou první knihu."
+  },
+  "audiobooks.empty.pickBook.title": {
+    "en": "Pick a book",
+    "cs": "Vyberte knihu"
+  },
+  "audiobooks.empty.pickBook.description": {
+    "en": "Its chapters, files and details show up here.",
+    "cs": "Zde se zobrazí její kapitoly, soubory a podrobnosti."
+  },
+  "audiobooks.file.part": {
+    "en": "Part {n}",
+    "cs": "Část {n}",
+    "note": "Fallback name of an untitled file in a book."
+  },
+  "audiobooks.file.reorder": {
+    "en": "Reorder {title}",
+    "cs": "Změnit pořadí: {title}",
+    "note": "Accessible name of a drag handle."
+  },
+  "audiobooks.file.rename": {
+    "en": "Rename this file",
+    "cs": "Přejmenovat tento soubor"
+  },
+  "audiobooks.file.delete": {
+    "en": "Delete this file",
+    "cs": "Smazat tento soubor"
+  },
+  "audiobooks.file.play": {
+    "en": "Play this file",
+    "cs": "Přehrát tento soubor"
+  },
+  "audiobooks.file.deleted": {
+    "en": "File deleted",
+    "cs": "Soubor smazán"
+  },
+  "audiobooks.file.errorRename": {
+    "en": "Couldn't rename that file.",
+    "cs": "Soubor se nepodařilo přejmenovat."
+  },
+  "audiobooks.file.errorReorder": {
+    "en": "Couldn't reorder those files.",
+    "cs": "Pořadí souborů se nepodařilo změnit."
+  },
+  "audiobooks.file.errorDelete": {
+    "en": "Couldn't delete that file.",
+    "cs": "Soubor se nepodařilo smazat."
+  },
+  "audiobooks.file.confirmDelete.title": {
+    "en": "Delete \"{title}\"?",
+    "cs": "Smazat „{title}“?"
+  },
+  "audiobooks.file.confirmDelete.body": {
+    "en": "This removes just this file from the book. This cannot be undone.",
+    "cs": "Z knihy se odstraní jen tento soubor. Tuto akci nelze vrátit."
+  },
+  "audiobooks.detail.narratedBy": {
+    "en": "Narrated by {name}",
+    "cs": "Načetl(a) {name}"
+  },
+  "audiobooks.detail.fileCount": {
+    "en": "{count, plural, one {# file} other {# files}}",
+    "cs": "{count, plural, one {# soubor} few {# soubory} other {# souborů}}"
+  },
+  "audiobooks.detail.addFavorite": {
+    "en": "Add to favorites",
+    "cs": "Přidat k oblíbeným"
+  },
+  "audiobooks.detail.removeFavorite": {
+    "en": "Remove from favorites",
+    "cs": "Odebrat z oblíbených"
+  },
+  "audiobooks.detail.editDetails": {
+    "en": "Edit details",
+    "cs": "Upravit údaje"
+  },
+  "audiobooks.detail.whoCanHear": {
+    "en": "Who can hear this",
+    "cs": "Kdo to uslyší",
+    "note": "Title of the list of family members who can play a shared item."
+  },
+  "audiobooks.detail.isbn": {
+    "en": "ISBN {isbn}",
+    "cs": "ISBN {isbn}"
+  },
+  "audiobooks.detail.files": {
+    "en": "Files",
+    "cs": "Soubory"
+  },
+  "audiobooks.detail.chapters": {
+    "en": "Chapters",
+    "cs": "Kapitoly"
+  },
+  "audiobooks.detail.dragHint": {
+    "en": "Drag to reorder — this is the order it plays in.",
+    "cs": "Přetažením změníte pořadí — v tomto pořadí se kniha přehrává."
+  },
+  "audiobooks.detail.noFiles": {
+    "en": "No files attached to this book.",
+    "cs": "Kniha nemá žádné soubory."
+  },
+  "audiobooks.identify.title": {
+    "en": "Identify this book",
+    "cs": "Identifikovat tuto knihu"
+  },
+  "audiobooks.identify.confirmTitle": {
+    "en": "What should this change?",
+    "cs": "Co se má změnit?"
+  },
+  "audiobooks.identify.searchDescription": {
+    "en": "Searches Google Books for the printed edition and fills in what it finds.",
+    "cs": "Vyhledá tištěné vydání v Google Books a doplní, co najde."
+  },
+  "audiobooks.identify.confirmDescription": {
+    "en": "Only the ticked fields are written. Everything else keeps what it has.",
+    "cs": "Zapíší se jen zaškrtnutá pole. Vše ostatní zůstane, jak je."
+  },
+  "audiobooks.identify.apply": {
+    "en": "Apply",
+    "cs": "Použít"
+  },
+  "audiobooks.identify.pages": {
+    "en": "{count, plural, one {# page} other {# pages}}",
+    "cs": "{count, plural, one {# stránka} few {# stránky} other {# stránek}}"
+  },
+  "audiobooks.identify.score": {
+    "en": "{score}% match",
+    "cs": "shoda {score} %"
+  },
+  "audiobooks.identify.newCover": {
+    "en": "New cover art",
+    "cs": "Nová obálka"
+  },
+  "audiobooks.identify.currentCover": {
+    "en": "Current cover",
+    "cs": "Současná obálka"
+  },
+  "audiobooks.identify.nothingHere": {
+    "en": "Google Books has nothing here",
+    "cs": "Google Books zde nic nemá"
+  },
+  "audiobooks.identify.now": {
+    "en": "Now: {value}",
+    "cs": "Teď: {value}",
+    "note": "The field's current value, beside the proposed one."
+  },
+  "audiobooks.identify.narratorNote": {
+    "en": "Narrator and file titles are left alone — Google Books describes the printed book and has no narration to match against.",
+    "cs": "Google Books popisuje tištěné vydání, takže vypravěč ani názvy souborů se nikdy nemění."
+  },
+  "audiobooks.identify.noResults": {
+    "en": "Nothing matched. Try just the title, or drop a subtitle and any series number.",
+    "cs": "Žádné shody. Zkuste jen název, případně vynechte podtitul a číslo série."
+  },
+  "audiobooks.identify.errorSearch": {
+    "en": "The lookup didn't work. Try again in a moment.",
+    "cs": "Vyhledávání se nezdařilo. Zkuste to za chvíli znovu."
+  },
+  "audiobooks.identify.errorApply": {
+    "en": "Couldn't apply that match.",
+    "cs": "Shodu se nepodařilo použít."
+  },
+  "audiobooks.addToCollection.title": {
+    "en": "Add to a collection",
+    "cs": "Přidat do sbírky"
+  },
+  "audiobooks.addToCollection.selected": {
+    "en": "{count, plural, one {# book selected} other {# books selected}}",
+    "cs": "{count, plural, one {Vybrána # kniha} few {Vybrány # knihy} other {Vybráno # knih}}"
+  },
+  "audiobooks.addToCollection.addedOne": {
+    "en": "Added to {name}",
+    "cs": "Přidáno do sbírky {name}"
+  },
+  "audiobooks.addToCollection.addedMany": {
+    "en": "{count, plural, one {# book added to {name}} other {# books added to {name}}}",
+    "cs": "{count, plural, one {# kniha přidána do sbírky {name}} few {# knihy přidány do sbírky {name}} other {# knih přidáno do sbírky {name}}}"
+  },
+  "audiobooks.addToCollection.partial": {
+    "en": "{added, number} of {total, number} added",
+    "cs": "Přidáno {added, number} z {total, number}"
+  },
+  "audiobooks.addToCollection.partialHint": {
+    "en": "Some books couldn't be added — try those again.",
+    "cs": "Některé knihy se nepodařilo přidat — zkuste je přidat znovu."
+  },
+  "audiobooks.addToCollection.errorCreate": {
+    "en": "Couldn't create that collection.",
+    "cs": "Sbírku se nepodařilo vytvořit."
+  },
+  "audiobooks.addToCollection.newPlaceholder": {
+    "en": "Bedtime stories",
+    "cs": "Pohádky na dobrou noc",
+    "note": "Example name of a new collection."
+  },
+  "audiobooks.addToCollection.createAndAdd": {
+    "en": "Create and add",
+    "cs": "Vytvořit a přidat"
+  },
+  "audiobooks.addToCollection.orPick": {
+    "en": "or pick one",
+    "cs": "nebo vyberte existující"
+  },
+  "audiobooks.addToCollection.find": {
+    "en": "Find a collection",
+    "cs": "Najít sbírku"
+  },
+  "audiobooks.addToCollection.emptyHint": {
+    "en": "Name one above and these books go straight into it.",
+    "cs": "Pojmenujte ji výše a knihy se do ní rovnou přidají."
+  },
+  "audiobooks.addToCollection.allPresent": {
+    "en": "{count, plural, one {# book} other {# books}} · already in here",
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · vybrané už tu jsou"
+  },
+  "audiobooks.addToCollection.somePresent": {
+    "en": "{count, plural, one {# book} other {# books}} · {already, number} already in here",
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · {already, number} z vybraných už tu je"
+  },
+  "audiobooks.addToCollection.adding": {
+    "en": "Adding…",
+    "cs": "Přidávání…"
+  },
+  "audiobooks.upload.title": {
+    "en": "Add an audiobook",
+    "cs": "Přidat audioknihu"
+  },
+  "audiobooks.upload.description": {
+    "en": "One file, or a folder of chapters. Track order follows the file names.",
+    "cs": "Jeden soubor, nebo složka s kapitolami. Pořadí se řídí názvy souborů."
+  },
+  "audiobooks.upload.defaultTitle": {
+    "en": "Audiobook",
+    "cs": "Audiokniha",
+    "note": "Title given to a book uploaded with no title and no usable file name."
+  },
+  "audiobooks.upload.noAudio": {
+    "en": "No audio files in that drop.",
+    "cs": "Mezi přetaženými soubory není žádný zvukový."
+  },
+  "audiobooks.upload.statusCover": {
+    "en": "Uploading cover…",
+    "cs": "Nahrávání obálky…"
+  },
+  "audiobooks.upload.statusFiles": {
+    "en": "{count, plural, one {Uploading # file…} other {Uploading # files…}}",
+    "cs": "{count, plural, one {Nahrávání # souboru…} few {Nahrávání # souborů…} other {Nahrávání # souborů…}}"
+  },
+  "audiobooks.upload.statusProgress": {
+    "en": "Uploaded {done, number} of {total, number}…",
+    "cs": "Nahráno {done, number} z {total, number}…"
+  },
+  "audiobooks.upload.statusCreating": {
+    "en": "Creating the book…",
+    "cs": "Vytváření knihy…"
+  },
+  "audiobooks.upload.added": {
+    "en": "Book added",
+    "cs": "Kniha přidána"
+  },
+  "audiobooks.upload.queueFailed": {
+    "en": "Didn't finish",
+    "cs": "Nedokončeno",
+    "note": "Status of a failed job in the uploads indicator."
+  },
+  "audiobooks.upload.error": {
+    "en": "The upload didn't finish. A failed upload starts over from the beginning.",
+    "cs": "Nahrávání se nedokončilo. Neúspěšné nahrávání začíná znovu od začátku."
+  },
+  "audiobooks.upload.submit": {
+    "en": "{count, plural, one {Upload # file} other {Upload # files}}",
+    "cs": "{count, plural, one {Nahrát # soubor} few {Nahrát # soubory} other {Nahrát # souborů}}"
+  },
+  "audiobooks.upload.dropTitle": {
+    "en": "Drop a file or a whole folder",
+    "cs": "Přetáhněte sem soubor nebo celou složku"
+  },
+  "audiobooks.upload.dropHint": {
+    "en": "Nested folders keep their order. An image named cover, folder or front becomes the artwork.",
+    "cs": "Vnořené složky si zachovají pořadí. Obrázek s názvem cover, folder nebo front se stane obálkou.",
+    "note": "cover, folder, front are literal file names — do not translate them."
+  },
+  "audiobooks.upload.chooseFiles": {
+    "en": "Choose files",
+    "cs": "Vybrat soubory"
+  },
+  "audiobooks.upload.chooseFolder": {
+    "en": "Choose folder",
+    "cs": "Vybrat složku"
+  },
+  "audiobooks.upload.ready": {
+    "en": "{count, plural, one {# file ready} other {# files ready}}",
+    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}}"
+  },
+  "audiobooks.upload.readyWithCover": {
+    "en": "{count, plural, one {# file ready} other {# files ready}} · cover: {name}",
+    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}} · obálka: {name}"
+  },
+  "audiobooks.upload.clear": {
+    "en": "Clear",
+    "cs": "Vymazat"
+  },
+  "audiobooks.upload.orNarrate": {
+    "en": "No recording? Have a book narrated",
+    "cs": "Nemáte nahrávku? Vytvořte audioknihu z e-knihy"
+  },
+  "audiobooks.upload.narrate.title": {
+    "en": "Narrate an ebook",
+    "cs": "Namluvit e-knihu"
+  },
+  "audiobooks.upload.narrate.body": {
+    "en": "EPUB, MOBI or TXT, read aloud by a voice you choose.",
+    "cs": "Nahrajte EPUB, MOBI nebo TXT a vyberte hlas, který ji namluví."
+  },
+  "audiobooks.upload.translate.title": {
+    "en": "Translate and narrate",
+    "cs": "Přeložit a namluvit"
+  },
+  "audiobooks.upload.translate.body": {
+    "en": "An ebook in another language, translated and read aloud in yours.",
+    "cs": "E-knihu v jiném jazyce přeložíme a namluvíme ve vašem jazyce."
+  },
+  "audiobooks.upload.titlePlaceholder": {
+    "en": "The Hobbit",
+    "cs": "Hobit",
+    "note": "Example book title."
+  },
+  "audiobooks.upload.authorPlaceholder": {
+    "en": "J.R.R. Tolkien",
+    "cs": "J. R. R. Tolkien",
+    "note": "Example author."
+  },
+  "audiobooks.upload.narratorPlaceholder": {
+    "en": "Andy Serkis",
+    "cs": "Andy Serkis",
+    "note": "Example narrator."
+  },
+  "audiobooks.edit.title": {
+    "en": "Edit book",
+    "cs": "Upravit knihu"
+  },
+  "audiobooks.edit.chooseImage": {
+    "en": "Choose an image…",
+    "cs": "Vybrat obrázek…"
+  },
+  "audiobooks.edit.order": {
+    "en": "Order",
+    "cs": "Pořadí",
+    "note": "Play order of the book's files."
+  },
+  "audiobooks.edit.errorSave": {
+    "en": "Couldn't save those changes.",
+    "cs": "Změny se nepodařilo uložit."
+  },
+  "audiobooks.edit.errorTrash": {
+    "en": "Couldn't move that book to the trash.",
+    "cs": "Knihu se nepodařilo přesunout do koše."
+  },
+  "audiobooks.credits.title": {
+    "en": "Credits",
+    "cs": "Tvůrci",
+    "note": "People credited on a book: author, narrator, editor."
+  },
+  "audiobooks.credits.hint": {
+    "en": "Who wrote it, who read it. The same person can hold more than one role.",
+    "cs": "Kdo knihu napsal a kdo ji načetl. Jedna osoba může mít víc rolí."
+  },
+  "audiobooks.credits.none": {
+    "en": "Nobody credited yet.",
+    "cs": "Zatím nikdo neuveden."
+  },
+  "audiobooks.credits.name": {
+    "en": "Name",
+    "cs": "Jméno",
+    "note": "A person's name."
+  },
+  "audiobooks.credits.role": {
+    "en": "Role",
+    "cs": "Role"
+  },
+  "audiobooks.credits.add": {
+    "en": "Add a credit",
+    "cs": "Přidat tvůrce"
+  },
+  "audiobooks.credits.remove": {
+    "en": "Remove {name} as {role}",
+    "cs": "Odebrat: {name} ({role})"
+  },
+  "audiobooks.credits.errorAdd": {
+    "en": "Couldn't add that person.",
+    "cs": "Osobu se nepodařilo přidat."
+  },
+  "audiobooks.credits.errorRemove": {
+    "en": "Couldn't remove that credit.",
+    "cs": "Tvůrce se nepodařilo odebrat."
+  },
+  "audiobooks.role.author": {
+    "en": "author",
+    "cs": "autor",
+    "note": "Credit role, shown in lower case beside the name."
+  },
+  "audiobooks.role.narrator": {
+    "en": "narrator",
+    "cs": "vypravěč",
+    "note": "Credit role, shown in lower case beside the name."
+  },
+  "audiobooks.role.editor": {
+    "en": "editor",
+    "cs": "editor",
+    "note": "Credit role, shown in lower case beside the name."
+  },
+  "audiobooks.tags.title": {
+    "en": "Tags",
+    "cs": "Štítky",
+    "note": "The user's own labels on a book — not file metadata tags."
+  },
+  "audiobooks.tags.hint": {
+    "en": "Your own words for it — \"bedtime\", \"re-read\", whatever helps you find it.",
+    "cs": "Vlastní slova pro knihu — „na dobrou noc“, „znovu přečíst“, cokoli, co vám ji pomůže najít."
+  },
+  "audiobooks.tags.none": {
+    "en": "No tags yet.",
+    "cs": "Zatím žádné štítky."
+  },
+  "audiobooks.tags.add": {
+    "en": "Add a tag",
+    "cs": "Přidat štítek"
+  },
+  "audiobooks.tags.remove": {
+    "en": "Remove tag {name}",
+    "cs": "Odebrat štítek {name}"
+  },
+  "audiobooks.tags.errorSave": {
+    "en": "Couldn't save those tags.",
+    "cs": "Štítky se nepodařilo uložit."
+  },
+  "audiobooks.organize.mode.collections": {
+    "en": "Collections",
+    "cs": "Sbírky"
+  },
+  "audiobooks.organize.mode.series": {
+    "en": "Series",
+    "cs": "Série"
+  },
+  "audiobooks.organize.mode.authors": {
+    "en": "Authors",
+    "cs": "Autoři"
+  },
+  "audiobooks.organize.mode.favorites": {
+    "en": "Favorites",
+    "cs": "Oblíbené"
+  },
+  "audiobooks.organize.filter": {
+    "en": "Filter",
+    "cs": "Filtrovat"
+  },
+  "audiobooks.organize.new": {
+    "en": "New",
+    "cs": "Nová",
+    "note": "Button: new collection or new series (both feminine in Czech)."
+  },
+  "audiobooks.organize.emptyCollections": {
+    "en": "No collections yet",
+    "cs": "Zatím žádné sbírky"
+  },
+  "audiobooks.organize.emptySeries": {
+    "en": "No series yet",
+    "cs": "Zatím žádné série"
+  },
+  "audiobooks.organize.emptyAuthors": {
+    "en": "No authors yet",
+    "cs": "Zatím žádní autoři"
+  },
+  "audiobooks.organize.emptyFavorites": {
+    "en": "No favorites yet",
+    "cs": "Zatím žádné oblíbené"
+  },
+  "audiobooks.organize.emptyFavoritesHint": {
+    "en": "Tap the heart on a book to keep it here.",
+    "cs": "Klepnutím na srdce u knihy si ji sem uložíte."
+  },
+  "audiobooks.organize.emptyHint": {
+    "en": "Create one to group your books.",
+    "cs": "Vytvořte si první a seskupte své knihy."
+  },
+  "audiobooks.organize.pickGroup": {
+    "en": "Pick a group",
+    "cs": "Vyberte skupinu"
+  },
+  "audiobooks.organize.pickGroupHint": {
+    "en": "Its books show up here.",
+    "cs": "Zde se zobrazí její knihy."
+  },
+  "audiobooks.organize.name": {
+    "en": "Name",
+    "cs": "Název",
+    "note": "Name of a collection or series."
+  },
+  "audiobooks.organize.create": {
+    "en": "Create",
+    "cs": "Vytvořit"
+  },
+  "audiobooks.organize.saved": {
+    "en": "Saved",
+    "cs": "Uloženo"
+  },
+  "audiobooks.organize.added": {
+    "en": "Added",
+    "cs": "Přidáno"
+  },
+  "audiobooks.organize.errorCreate": {
+    "en": "Couldn't create that.",
+    "cs": "Nepodařilo se to vytvořit."
+  },
+  "audiobooks.organize.errorSave": {
+    "en": "Couldn't save that.",
+    "cs": "Nepodařilo se to uložit."
+  },
+  "audiobooks.organize.editNamed": {
+    "en": "Edit {name}",
+    "cs": "Upravit: {name}"
+  },
+  "audiobooks.organize.removeNamed": {
+    "en": "Remove {name}",
+    "cs": "Odebrat: {name}"
+  },
+  "audiobooks.organize.booksUntouched": {
+    "en": "The books themselves are untouched.",
+    "cs": "Samotných knih se to nijak nedotklo."
+  },
+  "audiobooks.collection.new": {
+    "en": "New collection",
+    "cs": "Nová sbírka"
+  },
+  "audiobooks.collection.edit": {
+    "en": "Edit collection",
+    "cs": "Upravit sbírku"
+  },
+  "audiobooks.collection.about": {
+    "en": "A collection is any grouping you like — a shelf, a mood, a road trip.",
+    "cs": "Sbírka je jakékoli seskupení, které se vám hodí — polička, nálada, cesta autem."
+  },
+  "audiobooks.collection.created": {
+    "en": "Collection created",
+    "cs": "Sbírka vytvořena"
+  },
+  "audiobooks.collection.deleted": {
+    "en": "Collection deleted",
+    "cs": "Sbírka smazána"
+  },
+  "audiobooks.collection.delete": {
+    "en": "Delete collection",
+    "cs": "Smazat sbírku"
+  },
+  "audiobooks.collection.addBooks": {
+    "en": "Add books",
+    "cs": "Přidat knihy"
+  },
+  "audiobooks.collection.emptyTitle": {
+    "en": "Nothing here yet",
+    "cs": "Zatím je tu prázdno"
+  },
+  "audiobooks.collection.emptyHint": {
+    "en": "Add books to build this collection.",
+    "cs": "Přidejte do této sbírky knihy."
+  },
+  "audiobooks.collection.searchBooks": {
+    "en": "Search your books",
+    "cs": "Hledat v knihách"
+  },
+  "audiobooks.collection.added": {
+    "en": "Added",
+    "cs": "Přidáno",
+    "note": "Button state: the book is already in the collection."
+  },
+  "audiobooks.collection.errorAddBook": {
+    "en": "Couldn't add that book.",
+    "cs": "Knihu se nepodařilo přidat."
+  },
+  "audiobooks.series.new": {
+    "en": "New series",
+    "cs": "Nová série"
+  },
+  "audiobooks.series.edit": {
+    "en": "Edit series",
+    "cs": "Upravit sérii"
+  },
+  "audiobooks.series.about": {
+    "en": "A series is books in reading order, like a trilogy.",
+    "cs": "Série jsou knihy v pořadí čtení, třeba trilogie."
+  },
+  "audiobooks.series.created": {
+    "en": "Series created",
+    "cs": "Série vytvořena"
+  },
+  "audiobooks.series.deleted": {
+    "en": "Series deleted",
+    "cs": "Série smazána"
+  },
+  "audiobooks.series.delete": {
+    "en": "Delete series",
+    "cs": "Smazat sérii"
+  },
+  "audiobooks.series.countInOrder": {
+    "en": "{count, plural, one {# book, in order} other {# books, in order}}",
+    "cs": "{count, plural, one {# kniha, v pořadí} few {# knihy, v pořadí} other {# knih, v pořadí}}"
+  },
+  "audiobooks.series.emptyTitle": {
+    "en": "No books in this series",
+    "cs": "V této sérii nejsou žádné knihy"
+  },
+  "audiobooks.series.emptyHint": {
+    "en": "Add books to it from a book's own menu.",
+    "cs": "Knihy do ní přidáte z nabídky dané knihy."
+  },
+  "audiobooks.person.add": {
+    "en": "Add a person",
+    "cs": "Přidat osobu"
+  },
+  "audiobooks.person.edit": {
+    "en": "Edit person",
+    "cs": "Upravit osobu"
+  },
+  "audiobooks.person.about": {
+    "en": "Authors and narrators share one list — a role is set per book.",
+    "cs": "Autoři a vypravěči sdílejí jeden seznam — roli určuje každá kniha zvlášť."
+  },
+  "audiobooks.person.namePlaceholder": {
+    "en": "Isaac Asimov",
+    "cs": "Isaac Asimov",
+    "note": "Example author name."
+  },
+  "audiobooks.person.sortAs": {
+    "en": "Sort as",
+    "cs": "Řadit jako"
+  },
+  "audiobooks.person.sortAsPlaceholder": {
+    "en": "Asimov, Isaac",
+    "cs": "Asimov, Isaac"
+  },
+  "audiobooks.person.sortAsHint": {
+    "en": "Optional — how they file on a shelf.",
+    "cs": "Nepovinné — jak se řadí v knihovničce."
+  },
+  "audiobooks.person.bio": {
+    "en": "About",
+    "cs": "Medailonek",
+    "note": "A short biography of an author or narrator."
+  },
+  "audiobooks.person.sortsAs": {
+    "en": "Sorts as {name}",
+    "cs": "Řadí se jako {name}"
+  },
+  "audiobooks.person.useAutomaticPhoto": {
+    "en": "Use the automatic photo instead",
+    "cs": "Použít automatickou fotku"
+  },
+  "audiobooks.person.removed": {
+    "en": "Removed from the list",
+    "cs": "Odebráno ze seznamu"
+  },
+  "audiobooks.person.photoReset": {
+    "en": "Back to the automatic photo",
+    "cs": "Zpět k automatické fotce"
+  },
+  "audiobooks.person.errorRemove": {
+    "en": "Couldn't remove that person.",
+    "cs": "Osobu se nepodařilo odebrat."
+  },
+  "audiobooks.person.errorPhoto": {
+    "en": "Couldn't set that photo.",
+    "cs": "Fotku se nepodařilo nastavit."
+  },
+  "audiobooks.person.errorPhotoReset": {
+    "en": "Couldn't reset that photo.",
+    "cs": "Fotku se nepodařilo obnovit."
+  },
+  "audiobooks.person.noBooks": {
+    "en": "No books credited",
+    "cs": "Žádné knihy"
+  },
+  "audiobooks.person.noBooksHint": {
+    "en": "Add a credit from a book's own editor.",
+    "cs": "Tvůrce přidáte v úpravách knihy."
+  }
+}

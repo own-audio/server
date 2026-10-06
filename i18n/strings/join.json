@@ -1,0 +1,30 @@
+{
+  "join.welcome": { "en": "Welcome to {family}", "cs": "Vítejte v rodině {family}" },
+  "join.youreIn": { "en": "You're in", "cs": "Vítejte" },
+  "join.error.joinFailed": { "en": "Couldn't join with that code.", "cs": "S tímto kódem se nepodařilo připojit." },
+  "join.error.claimFailed": { "en": "Couldn't set that password.", "cs": "Heslo se nepodařilo nastavit." },
+  "join.invalid.title": { "en": "This link won't work", "cs": "Tento odkaz nefunguje" },
+  "join.invalid.expired": { "en": "That invite has expired.", "cs": "Platnost pozvánky vypršela." },
+  "join.invalid.exhausted": { "en": "That invite has already been used.", "cs": "Pozvánka už byla použita." },
+  "join.invalid.unknown": { "en": "That invite code isn't valid.", "cs": "Kód pozvánky není platný." },
+  "join.invalid.askAgain": { "en": "Ask whoever invited you for a fresh one — they can make a new link in seconds.", "cs": "Požádejte toho, kdo vás pozval, o nový — odkaz vytvoří během pár vteřin." },
+  "join.invalid.goToSignIn": { "en": "Go to sign in", "cs": "Přejít na přihlášení" },
+  "join.invitedBy": { "en": "<b>{inviter}</b> invited you to <b>{family}</b>", "cs": "<b>{inviter}</b> vás zve do rodiny <b>{family}</b>" },
+  "join.invitedBySomeone": { "en": "Someone invited you to <b>{family}</b>", "cs": "Někdo vás zve do rodiny <b>{family}</b>" },
+  "join.alreadyThere": {
+    "en": "{count, plural, one {# person} other {# people}} already there",
+    "cs": "{count, plural, one {Už je tam # člověk} few {Už jsou tam # lidé} other {Už je tam # lidí}}"
+  },
+  "join.claim.title": { "en": "Pick a password", "cs": "Zvolte si heslo" },
+  "join.claim.subtitle": { "en": "Your account is ready. You'll sign in as {email}.", "cs": "Váš účet je připravený. Budete se přihlašovat jako {email}." },
+  "join.claim.start": { "en": "Start listening", "cs": "Začít poslouchat" },
+  "join.signedIn.title": { "en": "Join this family?", "cs": "Připojit se k této rodině?" },
+  "join.signedIn.subtitle": { "en": "You're already signed in, so this is the only step.", "cs": "Už jste přihlášeni, takže stačí jen tento krok." },
+  "join.signedIn.join": { "en": "Join {family}", "cs": "Připojit se k rodině {family}" },
+  "join.notNow": { "en": "Not now", "cs": "Teď ne" },
+  "join.signIn.title": { "en": "Sign in to join", "cs": "Přihlaste se a připojte se" },
+  "join.register.subtitle": { "en": "One account, shared with the family library.", "cs": "Jeden účet a k němu sdílená rodinná knihovna." },
+  "join.signIn.subtitle": { "en": "We'll add you to the family once you're in.", "cs": "Po přihlášení vás přidáme do rodiny." },
+  "join.register.submit": { "en": "Create account and join", "cs": "Vytvořit účet a připojit se" },
+  "join.signIn.submit": { "en": "Sign in and join", "cs": "Přihlásit se a připojit se" }
+}

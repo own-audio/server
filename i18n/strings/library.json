@@ -1,0 +1,172 @@
+{
+  "library.visibility.title": {
+    "en": "Who can see this",
+    "cs": "Kdo to uvidí"
+  },
+  "library.visibility.private": {
+    "en": "Just me",
+    "cs": "Jen já",
+    "note": "Not shared with the family. Not 'private' — nothing is locked."
+  },
+  "library.visibility.privateHint": {
+    "en": "Nobody else sees it",
+    "cs": "Nikdo jiný to neuvidí"
+  },
+  "library.visibility.family": {
+    "en": "My family",
+    "cs": "Moje rodina"
+  },
+  "library.visibility.familyHint": {
+    "en": "Everyone in the family sees it",
+    "cs": "Uvidí to celá rodina"
+  },
+  "library.visibility.ownerOnly": {
+    "en": "Only the person who added this can change it.",
+    "cs": "Změnit to může jen ten, kdo to přidal."
+  },
+  "library.confirmTrash.title": {
+    "en": "Move “{title}” to the trash?",
+    "cs": "Přesunout „{title}“ do koše?"
+  },
+  "library.confirmTrash.description": {
+    "en": "This belongs to another family member. It disappears for everyone, they're notified, and they can restore it for 30 days.",
+    "cs": "Patří jinému členovi rodiny. Zmizí všem, dostane o tom oznámení a může ji 30 dnů obnovit."
+  },
+  "library.confirmTrash.failed": {
+    "en": "Couldn't move that to the trash",
+    "cs": "Přesun do koše se nezdařil"
+  },
+  "library.view.grid": {
+    "en": "Grid",
+    "cs": "Mřížka"
+  },
+  "library.view.list": {
+    "en": "List",
+    "cs": "Seznam"
+  },
+  "library.sort": {
+    "en": "Sort",
+    "cs": "Řadit"
+  },
+  "library.filter": {
+    "en": "Filter",
+    "cs": "Filtrovat",
+    "note": "Placeholder of a field that narrows the list."
+  },
+  "library.show": {
+    "en": "Show",
+    "cs": "Zobrazit",
+    "note": "Accessible name of a row of filter chips above a library list."
+  },
+  "library.text.more": {
+    "en": "More",
+    "cs": "Více",
+    "note": "Expands a description cut to a few lines."
+  },
+  "library.text.less": {
+    "en": "Less",
+    "cs": "Méně",
+    "note": "Collapses an expanded description."
+  },
+  "library.card.play": {
+    "en": "Play {title}",
+    "cs": "Přehrát {title}"
+  },
+  "library.card.pause": {
+    "en": "Pause {title}",
+    "cs": "Pozastavit {title}"
+  },
+  "library.audience.summary": {
+    "en": "{listeners, number} of {total, number} in the family. Sharing decides who it reaches; each person's own permissions can still hold it back.",
+    "cs": "V rodině: {listeners, number} z {total, number}. Komu se dostane, určuje sdílení; oprávnění jednotlivých členů ho přesto mohou zadržet."
+  },
+  "library.audience.locked": {
+    "en": "{count, plural, one {{names} always has access} other {{names} always have access}} — the owner and family admins can't be held back from their own family's content.",
+    "cs": "{count, plural, one {{names} má vždy přístup} few {{names} mají vždy přístup} other {{names} mají vždy přístup}} — vlastníkovi a správcům rodiny nelze obsah jejich vlastní rodiny odepřít.",
+    "note": "{names} is a list of people, already joined with 'and'."
+  },
+  "library.audience.everyone": {
+    "en": "Everyone",
+    "cs": "Všichni"
+  },
+  "library.audience.some": {
+    "en": "Just some people",
+    "cs": "Jen někteří"
+  },
+  "library.audience.let": {
+    "en": "Let {name} hear this",
+    "cs": "Povolit poslech: {name}"
+  },
+  "library.audience.failed": {
+    "en": "Could not change who this is for.",
+    "cs": "Nepodařilo se změnit, pro koho to je."
+  },
+  "library.batch.selected": {
+    "en": "{count, plural, one {# selected} other {# selected}}",
+    "cs": "{count, plural, one {# vybraná} few {# vybrané} other {# vybraných}}"
+  },
+  "library.batch.notYours": {
+    "en": "({count, number} not yours)",
+    "cs": "(nepatří vám: {count, number})"
+  },
+  "library.batch.makePrivate": {
+    "en": "Make private",
+    "cs": "Nastavit jako soukromé"
+  },
+  "library.batch.clearSelection": {
+    "en": "Clear selection",
+    "cs": "Zrušit výběr"
+  },
+  "library.batch.movedToTrash": {
+    "en": "{count, plural, one {# moved to Trash} other {# moved to Trash}}",
+    "cs": "{count, plural, one {# položka přesunuta do koše} few {# položky přesunuty do koše} other {# položek přesunuto do koše}}"
+  },
+  "library.batch.partlyMoved": {
+    "en": "{ok, number} of {total, number} moved to Trash",
+    "cs": "Do koše přesunuto {ok, number} z {total, number}"
+  },
+  "library.batch.partlyDone": {
+    "en": "{ok, number} of {total, number} done",
+    "cs": "Hotovo {ok, number} z {total, number}"
+  },
+  "library.batch.failedFor": {
+    "en": "Didn't work for: {names}",
+    "cs": "Nepodařilo se u: {names}"
+  },
+  "library.batch.failedForMore": {
+    "en": "Didn't work for: {names} and {more, number} more",
+    "cs": "Nepovedlo se u: {names} a {more, plural, one {# další} few {# dalších} other {# dalších}}"
+  },
+  "library.batch.shared": {
+    "en": "{count, plural, one {# shared with the family} other {# shared with the family}}",
+    "cs": "{count, plural, one {# položka sdílena s rodinou} few {# položky sdíleny s rodinou} other {# položek sdíleno s rodinou}}"
+  },
+  "library.batch.madePrivate": {
+    "en": "{count, plural, one {# made private} other {# made private}}",
+    "cs": "{count, plural, one {# položka nastavena jako soukromá} few {# položky nastaveny jako soukromé} other {# položek nastaveno jako soukromé}}"
+  },
+  "library.batch.deleted": {
+    "en": "{count, plural, one {# deleted} other {# deleted}}",
+    "cs": "{count, plural, one {# položka smazána} few {# položky smazány} other {# položek smazáno}}"
+  },
+  "library.batch.trashTitle": {
+    "en": "{count, plural, one {Move # item to the trash?} other {Move # items to the trash?}}",
+    "cs": "{count, plural, one {Přesunout # položku do koše?} few {Přesunout # položky do koše?} other {Přesunout # položek do koše?}}"
+  },
+  "library.batch.trashBody": {
+    "en": "They disappear for everyone they're shared with. You can restore them from the trash for 30 days.",
+    "cs": "Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit."
+  },
+  "library.batch.trashBodyOthers": {
+    "en": "{count, plural, one {They disappear for everyone they're shared with. You can restore them from the trash for 30 days. One of them belongs to another family member, who will be notified.} other {They disappear for everyone they're shared with. You can restore them from the trash for 30 days. # of them belong to other family members, who will be notified.}}",
+    "cs": "{count, plural, one {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. Jedna z nich patří jinému členovi rodiny, který dostane oznámení.} few {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.} other {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.}}"
+  },
+  "library.batch.deleteTitle": {
+    "en": "{count, plural, one {Delete # item?} other {Delete # items?}}",
+    "cs": "{count, plural, one {Smazat # položku?} few {Smazat # položky?} other {Smazat # položek?}}"
+  },
+  "library.batch.deleteBody": {
+    "en": "This removes them from the library for everyone they're shared with. It can't be undone.",
+    "cs": "Odebere je z knihovny všem, s nimiž jsou sdílené. Nelze to vrátit."
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "private.title": { "en": "Just me", "cs": "Jen já", "note": "Items not shared with the family. Not 'private' — nothing is locked, only unshared." },
+  "private.find": { "en": "Find something", "cs": "Hledat" },
+  "private.intro": {
+    "en": "Everything you have added that your family doesn’t see. Share it from here — one at a time, an album, or all at once.",
+    "cs": "Vše, co jste přidali a rodina to nevidí. Nasdílet to můžete přímo tady — jednotlivě, po albech, nebo všechno najednou.",
+    "note": "Intro on the Just me page, which now has share buttons of its own."
+  },
+  "private.loadFailed.title": { "en": "Couldn’t load this", "cs": "Nepodařilo se načíst" },
+  "private.loadFailed.description": { "en": "Try again in a moment.", "cs": "Zkuste to za chvíli znovu." },
+  "private.empty.title": { "en": "Nothing here yet", "cs": "Zatím je tu prázdno" },
+  "private.empty.description": { "en": "Everything you have added so far is shared with your family.", "cs": "Vše, co jste zatím přidali, sdílíte s rodinou." },
+  "private.noMatch.title": { "en": "Nothing matches that", "cs": "Nic tomu neodpovídá" },
+  "private.noMatch.description": { "en": "Try a different word.", "cs": "Zkuste jiné slovo." },
+  "private.all": { "en": "All", "cs": "Vše", "note": "Chip: every kind of item." },
+  "private.share": { "en": "Share with the family", "cs": "Sdílet s rodinou" },
+  "private.shareAll": { "en": "Share all ({count})", "cs": "Sdílet vše ({count})" },
+  "private.shareAlbum": { "en": "Share the album", "cs": "Sdílet album" },
+  "private.shared": { "en": "{count, plural, one {Shared with the family} other {# shared with the family}}", "cs": "{count, plural, one {Sdíleno s rodinou} few {# položky sdíleny s rodinou} other {# položek sdíleno s rodinou}}" },
+  "private.shareFailed": { "en": "Couldn't share that", "cs": "Sdílení se nezdařilo" },
+  "private.noAlbum": { "en": "No album", "cs": "Bez alba", "note": "Heading for songs whose files name no album." }
+}

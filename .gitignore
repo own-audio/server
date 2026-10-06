@@ -8,3 +8,7 @@ dist/
 .DS_Store
 __pycache__/
 *.pyc
+frontend/src/i18n/generated/*.bak
+.docker-certs/*.crt
+.docker-certs/*.pem
+backend/ui/
