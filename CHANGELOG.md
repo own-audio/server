@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.1] - 2026-10-06
+
+Contract revision 1. The first build of the open-source server; not for
+production use yet — the install guide, the SMTP mailer and library folders
+are still to come (see `docs/IMPLEMENTATION_PLAN.md`).
+
 ### Added
 - The server, imported from the private codebase behind own.audio as a
   snapshot (no history) at its version 0.1.56 — audiobooks, podcasts, music,
@@ -21,7 +27,8 @@ semver. Each release states the **API contract revision** it serves
   conformance suite against the compose stack; a release workflow that
   publishes `ownaudio/server` (amd64 + arm64) on a `v*` tag.
 - `rust-toolchain.toml` pins Rust 1.97 for CI, local and the image alike;
-  CI installs that exact version.
+  CI installs that exact version. The release workflow publishes to GHCR
+  (and Docker Hub once its token exists), amd64 only for now.
 - `GET /api/v1/server`: edition, version, API revision and the `features`
   map every client gates on. Contract revision **1**.
 - `GET /api/v1/family/storage`: a family's bytes per media kind.
