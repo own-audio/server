@@ -6,3 +6,5 @@ dist/
 !.env.example
 *.local.md
 .DS_Store
+__pycache__/
+*.pyc

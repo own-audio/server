@@ -343,9 +343,12 @@ Exit: first tagged pre-release `v1.0.0-alpha.1`. Nothing public yet.
 
 Goal: `audio2` production runs a binary built from `hosted/` + this crate.
 
-0. **Conformance first** (moved up from Phase 3): fold the eight Python
-   scripts into `conformance/` driven by `--base-url`, run it against canary,
-   and keep it green through every step below.
+0. **Conformance first** (moved up from Phase 3) — **done 2026-10-06**:
+   `conformance/` in this repo (`run.py`, `core.py`, seven suites, 316
+   checks). Green against the local stack (316 ok) and against canary
+   (142 ok, trash and filesync skipped there: they need SQL access and a
+   server that can reach the test machine). Keep it green through every
+   step below; run it before and after each seam commit.
 1. **Build the seam in `audio2` first**, on `main`, while it is still one
    repo: introduce `Hooks`, move billing call sites behind it, split routes,
    move config, add the job registry, add per-route rate limiting
@@ -601,7 +604,7 @@ features come from `/api/v1/server`, and both editions must pass.
 |---|---|---|
 | 0 | done except open items (2026-10-06) | Files written; scope, licence, names, security, sequencing decided; remote `own-audio/server` on GitHub. Open without deadline: key rotation (Phase 6 gate), lawyer, EUIPO |
 | 1 | not started | |
-| 2 | not started | |
+| 2 | in progress (2026-10-06) | step 0 done: conformance suite green locally and on canary |
 | 3 | not started | |
 | 4 | not started | library folders + local media + public metadata providers |
 | 5 | not started | clients |

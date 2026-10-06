@@ -83,7 +83,7 @@ Releases happen when they are ready. There is no SLA and no roadmap promise
 beyond what the plan says.
 
 Security problems: please report them privately, see `SECURITY.md` once it
-exists; until then, e-mail hello@own.audio.
+exists; until then, e-mail contact@own.audio.
 
 ## Licence
 
