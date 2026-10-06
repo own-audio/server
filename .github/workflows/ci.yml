@@ -24,8 +24,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      # Reads rust-toolchain.toml, so CI lints with the same clippy as the Dockerfile.
-      - uses: dtolnay/rust-toolchain@master
+      # Same version as rust-toolchain.toml and backend/Dockerfile — bump all three together.
+      - uses: dtolnay/rust-toolchain@1.97
+        with: { components: clippy }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: backend }
       - run: cargo check

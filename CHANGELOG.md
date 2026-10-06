@@ -20,7 +20,8 @@ semver. Each release states the **API contract revision** it serves
   console lint/test/build with an npm licence check, gitleaks, and the
   conformance suite against the compose stack; a release workflow that
   publishes `ownaudio/server` (amd64 + arm64) on a `v*` tag.
-- `rust-toolchain.toml` pins Rust 1.97 for CI, local and the image alike.
+- `rust-toolchain.toml` pins Rust 1.97 for CI, local and the image alike;
+  CI installs that exact version.
 - `GET /api/v1/server`: edition, version, API revision and the `features`
   map every client gates on. Contract revision **1**.
 - `GET /api/v1/family/storage`: a family's bytes per media kind.
