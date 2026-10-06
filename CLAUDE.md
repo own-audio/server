@@ -330,7 +330,13 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 ## 9. Where we left off (2026-10-06, late)
 
 Phase 1 done and tagged `v1.0.0-alpha.1` (contract revision 1; CI green
-including the conformance job on a GitHub runner). `audio2` now depends on
+including the conformance job on a GitHub runner; the release workflow
+published `ghcr.io/own-audio/server:1.0.0-alpha.1`, amd64, in 22 minutes).
+**Actions minutes are a budget**: the org is on GitHub Free (2,000 min/month
+for a private repo) and a full CI run costs about 25; docs-only pushes skip
+the heavy jobs and superseded runs are cancelled, but push deliberately,
+batch small changes, and prefer a self-hosted runner for the heavy jobs if
+the repo stays private for long. `audio2` now depends on
 that tag and has no core code of its own; its `hosted/Dockerfile` clones this
 repo's console at the same tag. Next: Kornel adds the Forgejo secret
 `OWN_AUDIO_SERVER_TOKEN` (GitHub fine-grained PAT, read-only on this repo)
