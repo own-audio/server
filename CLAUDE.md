@@ -251,6 +251,11 @@ queries.
 - **Work on `main`, no feature branches**, while this is a one-person job —
   the same rule as the rest of the family, for the same reason (a branch
   drifted and cost a hand-merge). Revisit when a second person contributes.
+- **Every change gets a `CHANGELOG.md` line in the same commit** (Kornel's
+  rule, 2026-10-06), under `[Unreleased]` in Keep-a-Changelog form: Added /
+  Changed / Fixed / Removed, one line per user-visible or operator-visible
+  change, naming the endpoint, setting or page it touches. A release moves
+  the block under its version and states the contract revision.
 - **Comments explain WHY, not WHAT.** Default to none.
 - `cargo check`, `cargo clippy -- -D warnings` (clean since the import —
   keep it so), `cargo test`, the console build, and `conformance/` against

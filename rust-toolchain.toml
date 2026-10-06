@@ -1,0 +1,6 @@
+# One toolchain everywhere: this file, CI (dtolnay/rust-toolchain reads it) and
+# backend/Dockerfile (rust:1.97-slim-bookworm) must agree, or `clippy -D warnings`
+# fails on a lint one of them does not have yet. Bump all three together.
+[toolchain]
+channel = "1.97"
+components = ["clippy", "rustfmt"]

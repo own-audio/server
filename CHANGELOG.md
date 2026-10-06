@@ -11,7 +11,16 @@ semver. Each release states the **API contract revision** it serves
 - The server, imported from the private codebase behind own.audio as a
   snapshot (no history) at its version 0.1.56 — audiobooks, podcasts, music,
   families with parental controls, playback sync, the own.audio folder sync
-  protocol, an OpenSubsonic surface, and the web console.
+  protocol, an OpenSubsonic surface, and the web console. Every source file
+  carries an SPDX header; PT Serif ships with its OFL text
+  (`THIRD_PARTY_NOTICES.md`).
+- A compose stack for self-hosters: PostgreSQL 16, RustFS 1.0.1 as the
+  object store, the server built from source; `.env.example`, `INSTALL.md`.
+- CI: check, `clippy -D warnings`, tests, `cargo deny` licence allow-list,
+  console lint/test/build with an npm licence check, gitleaks, and the
+  conformance suite against the compose stack; a release workflow that
+  publishes `ownaudio/server` (amd64 + arm64) on a `v*` tag.
+- `rust-toolchain.toml` pins Rust 1.97 for CI, local and the image alike.
 - `GET /api/v1/server`: edition, version, API revision and the `features`
   map every client gates on. Contract revision **1**.
 - `GET /api/v1/family/storage`: a family's bytes per media kind.
@@ -19,7 +28,13 @@ semver. Each release states the **API contract revision** it serves
   (`SERVER__RATE_LIMIT__*`), answering `429 rate_limited` with `Retry-After`.
 - `501 feature_unavailable` for routes of features this edition does not
   offer (billing, narration, translation).
-- Conformance suite (`conformance/`, 330 checks) runnable against any server.
+- Conformance suite (`conformance/`, 330 checks) runnable against any server,
+  with `--compose-dir`, `--database` and `--database-user` for the SQL-backed
+  checks; billing-only expectations are gated on `features.billing`.
+
+### Changed
+- Clippy debt from the private codebase paid at import (`-D warnings` is
+  clean); `backend/.env.example` uses obvious placeholders for the S3 keys.
 
 ### Removed (relative to the hosted codebase)
 - Billing, payments, the narration and translation pipelines, the operator
