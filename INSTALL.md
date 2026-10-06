@@ -1,8 +1,8 @@
 # Installing the own.audio server
 
-> Pre-release. The steps below describe the compose stack in this repository
-> as it is meant to work from the first tagged release; until then the image
-> `ownaudio/server` does not exist yet and you build from source.
+> Pre-release (`1.0.0-alpha.1`). The published image is
+> `ghcr.io/own-audio/server`, amd64 only for now; on arm64 build from source
+> with `docker compose build server`.
 
 ## What you need
 
@@ -24,6 +24,7 @@ git clone https://github.com/own-audio/server.git
 cd server
 cp .env.example .env
 # set POSTGRES_PASSWORD, S3_SECRET_KEY and SESSION_SECRET (openssl rand -hex 32)
+docker compose pull server      # amd64; on arm64 run `docker compose build server` instead
 docker compose up -d
 ```
 

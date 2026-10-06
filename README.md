@@ -61,17 +61,17 @@ it offers.
 
 ## Running it
 
-From source, today:
-
 ```bash
 git clone https://github.com/own-audio/server.git && cd server
-cp .env.example .env     # set POSTGRES_PASSWORD, S3_SECRET_KEY, SESSION_SECRET
-docker compose up -d     # PostgreSQL 16, RustFS, and the server built from source
+cp .env.example .env            # set POSTGRES_PASSWORD, S3_SECRET_KEY, SESSION_SECRET
+docker compose pull server      # amd64: the published pre-release image
+docker compose build server     # arm64 (Raspberry Pi, Apple silicon): build it, ~15 min
+docker compose up -d            # PostgreSQL 16, RustFS and the server
 ```
 
-Then open `http://localhost:8080` and create the first admin. The first
-tagged release will add a published image (`ownaudio/server`, amd64 and
-arm64) so the build step goes away. [INSTALL.md](INSTALL.md) has the details.
+Then open `http://localhost:8080` and create the first admin. The image is
+`ghcr.io/own-audio/server` (amd64 for now; arm64 comes with a native build
+runner). [INSTALL.md](INSTALL.md) has the details.
 
 ## Clients
 

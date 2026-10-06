@@ -8,7 +8,9 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Changed
-- The repository is public (2026-10-06).
+- The repository is public (2026-10-06); the compose stack defaults to the
+  published `ghcr.io/own-audio/server:1.0.0-alpha.1` image (amd64), with
+  `docker compose build server` for arm64.
 
 ### Removed
 - The inherited `install.sh` (it set up the old Garage stack under the old

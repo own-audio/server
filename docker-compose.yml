@@ -41,8 +41,10 @@ services:
     restart: unless-stopped
 
   server:
-    image: ${SERVER_IMAGE:-ownaudio/server:latest}
-    # To build from source instead:  docker compose build server
+    # amd64: `docker compose pull server` takes the published image. arm64 (a Pi,
+    # an Apple-silicon Mac): `docker compose build server` builds it from this
+    # checkout until the release workflow has a native arm64 runner.
+    image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-alpha.1}
     build:
       context: .
       dockerfile: backend/Dockerfile
