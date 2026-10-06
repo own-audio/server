@@ -202,6 +202,12 @@ queries.
   `:ro` mounts, and the sweeps (`storage_sweep`, `trash_purge`,
   `find_unreferenced`) skip `backend = 'folder'`. A test guards this; keep
   it green. (Phase 4 — see the plan.)
+- **The AWS SDK is pulled in without its legacy `rustls` feature** (hyper
+  0.14 + rustls 0.21, both with open advisories). Cargo unifies features
+  across the graph, so any crate in the build that depends on `aws-config`
+  or `aws-sdk-s3` with default features silently brings the old stack back —
+  the hosted edition's crate included. `cargo deny check advisories` is the
+  guard; keep it green.
 - **Subsonic**: use `subsonic::extract::SubsonicQuery`, never axum's `Query`;
   never restate `db::music::TRACK_COLS`; every response, refusals included,
   is a `subsonic-response` envelope.
@@ -251,11 +257,26 @@ queries.
 - **Work on `main`, no feature branches**, while this is a one-person job —
   the same rule as the rest of the family, for the same reason (a branch
   drifted and cost a hand-merge). Revisit when a second person contributes.
-- **Every change gets a `CHANGELOG.md` line in the same commit** (Kornel's
-  rule, 2026-10-06), under `[Unreleased]` in Keep-a-Changelog form: Added /
-  Changed / Fixed / Removed, one line per user-visible or operator-visible
-  change, naming the endpoint, setting or page it touches. A release moves
-  the block under its version and states the contract revision.
+- **The changelog is part of every change** (Kornel's rule, 2026-10-06).
+  `CHANGELOG.md`, Keep-a-Changelog form, semver releases:
+  - Every commit that changes what a client, operator or self-hoster can
+    notice adds a line under `## [Unreleased]`, in the same commit. Pure
+    refactors, test-only and CI-only changes get a line too when they change
+    how the project is built or verified; typo fixes do not.
+  - Sections, in this order and only when non-empty: `### Added`,
+    `### Changed`, `### Deprecated`, `### Removed`, `### Fixed`,
+    `### Security`. One bullet per change, present tense, starting with the
+    thing (endpoint, setting, page, job) in backticks where it has a name:
+    `` - `GET /api/v1/family/storage` — a family's bytes per media kind. ``
+  - A contract change (new endpoint, field, enum value, `features` key)
+    says so and names the new `api.revision`; a deprecation names the
+    sunset date (API_COMPATIBILITY.md §5).
+  - Cutting a release: rename `[Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`,
+    add the line `Contract revision N.`, open a fresh empty `[Unreleased]`,
+    bump `backend/Cargo.toml`, tag `vX.Y.Z`. Never edit a released block
+    except to fix a factual error, and then say so in the commit.
+  - Don't duplicate `git log`: the changelog explains what changed for the
+    reader, not which files moved.
 - **Comments explain WHY, not WHAT.** Default to none.
 - `cargo check`, `cargo clippy -- -D warnings` (clean since the import —
   keep it so), `cargo test`, the console build, and `conformance/` against

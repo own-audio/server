@@ -51,8 +51,10 @@ jsonwebtoken = "9"
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "stream"] }
 
 # Object storage (S3-compatible: Garage, MinIO, AWS)
-aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-sdk-s3 = { version = "1" }
+# Default features minus the legacy `rustls` client (hyper 0.14 + rustls 0.21, both with
+# open advisories); the SDK's modern HTTPS client is what remains.
+aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "credentials-process", "default-https-client", "rt-tokio", "sso"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
 aws-credential-types = "1"
 
 # Tracing / observability
@@ -85,7 +87,7 @@ urlencoding = "2"
 # Paths in the own.audio folder are stored NFC (filesync::paths): macOS hands
 # out decomposed names, and the same name must compare equal everywhere.
 unicode-normalization = "0.1"
-quick-xml = { version = "0.36", features = ["serialize"] }
+quick-xml = { version = "0.41", features = ["serialize"] }
 # Cover-art title/author text overlay (audiobook_gen::cover).
 image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
 imageproc = "0.25"

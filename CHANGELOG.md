@@ -37,6 +37,18 @@ semver. Each release states the **API contract revision** it serves
 - Clippy debt from the private codebase paid at import (`-D warnings` is
   clean); `backend/.env.example` uses obvious placeholders for the S3 keys.
 
+### Security
+- `quick-xml` 0.36 → 0.41 (RUSTSEC-2026-0194, -0195: quadratic duplicate-attribute
+  check and unbounded namespace allocation in the Subsonic XML envelope).
+- The AWS SDK no longer pulls its legacy TLS client: `hyper` 0.14 / `h2` 0.3
+  (RUSTSEC-2026-0258) and `rustls` 0.21 / `rustls-webpki` 0.101
+  (RUSTSEC-2026-0098, -0099, -0104) are gone from the dependency graph;
+  `aws-config` and `aws-sdk-s3` use the SDK's modern HTTPS client.
+- `cargo deny check advisories` runs in CI; two unmaintained transitive
+  crates (`paste`, `ttf-parser`) are accepted with reasons in `deny.toml`.
+- `Cargo.lock` is committed, so a build is reproducible and audits mean
+  something.
+
 ### Removed (relative to the hosted codebase)
 - Billing, payments, the narration and translation pipelines, the operator
   console — hosted-only, see `docs/SCOPE.md`.

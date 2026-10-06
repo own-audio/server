@@ -17,3 +17,10 @@ multiple-versions = "allow"
 
 [advisories]
 yanked = "warn"
+# Unmaintained-crate notices we cannot act on: both arrive through
+# dependencies that have no maintained alternative yet. Revisit at each
+# release; drop the entry the moment the parent crate moves off it.
+ignore = [
+  { id = "RUSTSEC-2024-0436", reason = "paste (proc-macro) via lofty and exr; build-time only" },
+  { id = "RUSTSEC-2026-0192", reason = "ttf-parser via ab_glyph (cover watermark text); no maintained drop-in" },
+]

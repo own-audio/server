@@ -35,13 +35,10 @@ jobs:
         working-directory: backend
       - run: cargo test
         working-directory: backend
-      - uses: EmbarkStudios/cargo-deny-action@v2
-        with:
-          manifest-path: backend/Cargo.toml
-          command: check licenses advisories
-      - run: cargo audit
-        working-directory: backend
-        continue-on-error: true
+      # Native install rather than the Docker action: the action's container
+      # does not carry the toolchain rust-toolchain.toml pins.
+      - uses: taiki-e/install-action@cargo-deny
+      - run: cargo deny check licenses advisories bans
 
   console:
     name: web console (i18n, lint, test, build)
