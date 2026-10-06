@@ -59,6 +59,14 @@ it offers.
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |
 | Storage billing, payments | — | yes |
 
+## Try it first
+
+A public demo of exactly this edition runs at **https://demo.own.audio**:
+sign in as `guest@demo.own.audio` with the password `own-audio-demo`. It
+holds a public-domain audiobook (LibriVox's *Alice's Adventures in
+Wonderland*), three Creative Commons tracks by Kevin MacLeod and the Hacker
+Public Radio podcast, and it resets every night, so change whatever you like.
+
 ## Running it
 
 ```bash

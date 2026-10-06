@@ -15,6 +15,10 @@ semver. Each release states the **API contract revision** it serves
   package shows exactly two platforms. The Docker Hub repository name comes
   from the `DOCKERHUB_IMAGE` repository variable (set to `kornelko2/own-audio-server`).
 
+### Added
+- A public demo of this edition at https://demo.own.audio (guest account in
+  the README), reset nightly.
+
 ### Changed
 - The repository is public (2026-10-06); the compose stack defaults to the
   published `ghcr.io/own-audio/server:1.0.0-alpha.1` image (amd64), with
