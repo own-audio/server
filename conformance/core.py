@@ -69,6 +69,7 @@ class Ctx:
     admin_email: str
     admin_password: str
     compose_dir: pathlib.Path | None = None
+    database: str = "audio2"
     require_media: bool = False
     timeout: float = 60.0
     verbose: bool = True
@@ -315,7 +316,7 @@ class Ctx:
         if self.compose_dir is None:
             raise Skip("needs --compose-dir for SQL access to the server database")
         out = subprocess.run(
-            ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "audio2", "-d", "audio2", "-At", "-c", query],
+            ["docker", "compose", "exec", "-T", "postgres", "psql", "-U", "audio2", "-d", self.database, "-At", "-c", query],
             cwd=self.compose_dir, capture_output=True, text=True, check=True,
         )
         return out.stdout.strip()

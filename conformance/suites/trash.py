@@ -141,13 +141,20 @@ def run(ctx: Ctx) -> None:
             f"(SELECT audio_object_id FROM music_tracks_all WHERE id = '{a1['id']}')")
         sql(f"UPDATE music_tracks_all SET trashed_at = now() - interval '5 days 1 hour' WHERE id = '{a1['id']}'")
         row = next(r for r in call("GET", "/api/v1/trash", owner_tok) if r["id"] == a1["id"])
-        check("the list shows what a restore would cost", row["restore_charge_micro"] > 0, str(row["restore_charge_micro"]))
+        # Only a billing edition charges for a restore; elsewhere the quote is 0 by contract.
+        if ctx.feature("billing"):
+            check("the list shows what a restore would cost", row["restore_charge_micro"] > 0, str(row["restore_charge_micro"]))
+        else:
+            check("the list shows a restore costs nothing without billing", row["restore_charge_micro"] == 0, str(row["restore_charge_micro"]))
         r = call("POST", f"/api/v1/trash/music_track/{a1['id']}/restore", owner_tok)
         check("restore charges exactly that", r["charged_micro"] == row["restore_charge_micro"],
               f"charged {r['charged_micro']}, listed {row['restore_charge_micro']}")
         ledger = sql(f"SELECT amount_micro FROM credit_ledger WHERE entry_type = 'trash_restore_charge' "
                      f"AND user_id = '{owner_id}'")
-        check("a trash_restore_charge ledger entry was written", ledger == str(-r["charged_micro"]), ledger)
+        if ctx.feature("billing"):
+            check("a trash_restore_charge ledger entry was written", ledger == str(-r["charged_micro"]), ledger)
+        else:
+            check("no ledger entry without billing", ledger in ("", "0") , ledger)
         days = sql(f"SELECT days_in_trash FROM trash_restores WHERE item_id = '{a1['id']}' ORDER BY created_at DESC LIMIT 1")
         check("the restore is recorded for monitoring", days == "5", days)
         stats = call("GET", "/api/v1/admin/families/trash", admin_tok)
