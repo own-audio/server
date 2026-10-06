@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- The release workflow builds `linux/arm64` natively next to `linux/amd64`
+  and publishes one multi-arch tag; it pushes to Docker Hub (`ownaudio/server`)
+  as soon as the account's token is configured, and can be re-run for an
+  existing tag (`workflow_dispatch`).
+
 ### Changed
 - The repository is public (2026-10-06); the compose stack defaults to the
   published `ghcr.io/own-audio/server:1.0.0-alpha.1` image (amd64), with
