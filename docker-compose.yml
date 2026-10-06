@@ -1,0 +1,85 @@
+# The own.audio server for a self-hoster: the server, PostgreSQL and an
+# S3-compatible object store (RustFS). Copy .env.example to .env, set the
+# three secrets, `docker compose up -d`, open http://localhost:8080 and create
+# the first admin. INSTALL.md has the long version.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ownaudio}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-ownaudio}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-ownaudio} -d ${POSTGRES_DB:-ownaudio}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Object store for uploads. Any S3-compatible store works; RustFS is the one
+  # this stack ships with. Console: http://localhost:9001/rustfs/console/
+  rustfs:
+    image: rustfs/rustfs:1.0.1
+    command: ["/data"]
+    environment:
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY:-ownaudio}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY:?set S3_SECRET_KEY in .env}
+      RUSTFS_OBS_LOGGER_LEVEL: "error"
+    volumes:
+      - rustfs_data:/data
+    ports:
+      # Browsers and apps fetch media straight from the store through presigned
+      # URLs, so this port must be reachable from them (see STORAGE__PUBLIC_ENDPOINT).
+      - "${S3_PORT:-9000}:9000"
+      - "${S3_CONSOLE_PORT:-9001}:9001"
+    restart: unless-stopped
+
+  server:
+    image: ${SERVER_IMAGE:-ownaudio/server:latest}
+    # To build from source instead:  docker compose build server
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rustfs:
+        condition: service_started
+    environment:
+      SERVER__HOST: "0.0.0.0"
+      SERVER__PORT: "8080"
+      # The address people and apps use to reach this server.
+      SERVER__BASE_URL: ${PUBLIC_URL:-http://localhost:8080}
+      DATABASE_URL: "postgres://${POSTGRES_USER:-ownaudio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ownaudio}"
+      STORAGE__ENDPOINT: "http://rustfs:9000"
+      # What a browser can reach; presigned URLs are signed against it, so it
+      # must be the address the store is really served at.
+      STORAGE__PUBLIC_ENDPOINT: ${S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      STORAGE__REGION: "us-east-1"
+      STORAGE__BUCKET: ${S3_BUCKET:-own-audio}
+      STORAGE__ACCESS_KEY: ${S3_ACCESS_KEY:-ownaudio}
+      STORAGE__SECRET_KEY: ${S3_SECRET_KEY}
+      STORAGE__PATH_STYLE: "true"
+      AUTH__SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env (openssl rand -hex 32)}
+      AUTH__LOCAL_ENABLED: "true"
+      # Accounts are created by the admin or by family invite; open sign-up is off.
+      AUTH__REGISTRATION_OPEN: "false"
+      RUST_LOG: ${RUST_LOG:-audio2=info,tower_http=warn}
+    ports:
+      - "${PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  rustfs_data:
