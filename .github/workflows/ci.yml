@@ -3,7 +3,16 @@ name: ci
 on:
   push:
     branches: [main]
+    paths-ignore: ["**.md", "docs/**", "brand/**", "LICENSE", "TRADEMARK.md"]
   pull_request:
+    paths-ignore: ["**.md", "docs/**", "brand/**", "LICENSE", "TRADEMARK.md"]
+
+# A newer push to the same branch cancels the run it supersedes: GitHub's
+# free minutes for a private organisation repo are 2,000 a month and one full
+# run is about 25 of them.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   secrets:
@@ -68,12 +77,22 @@ jobs:
     needs: [server, console]
     steps:
       - uses: actions/checkout@v4
-      - name: Start the stack from source
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the server image (layer cache shared across runs)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          load: true
+          tags: ownaudio/server:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start the stack
         run: |
           cp .env.example .env
           sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^S3_SECRET_KEY=$/S3_SECRET_KEY=ci-secret-key-0000/; s/^SESSION_SECRET=$/SESSION_SECRET=ci-session-secret-not-for-production/' .env
-          docker compose build server
-          docker compose up -d
+          echo 'SERVER_IMAGE=ownaudio/server:ci' >> .env
+          docker compose up -d --no-build
           for i in $(seq 1 60); do curl -fs http://localhost:8080/health && break; sleep 2; done
       - name: First admin
         run: |

@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+- CI spends fewer minutes: the conformance job reuses Docker layer cache
+  between runs, documentation-only pushes skip the heavy jobs, and a newer
+  push cancels the run it supersedes.
+
 ## [1.0.0-alpha.1] - 2026-10-06
 
 Contract revision 1. The first build of the open-source server; not for
