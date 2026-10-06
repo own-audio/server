@@ -39,6 +39,7 @@ uploads, file sync and Subsonic on, everything else off.
 
 | Suite | Covers | Needs |
 |---|---|---|
+| `server` | `GET /server` shape, `404 not_found` vs `501 feature_unavailable`, features agree with `/auth/providers` | — |
 | `smoke` | health, login, users, refresh tokens, library listing, streaming, progress, smart playlists, families, Subsonic | — |
 | `families` | private vs family visibility, sharing, parental policies, who can stream what | — |
 | `join` | link and QR invites, account claim, invite guardrails | — |
