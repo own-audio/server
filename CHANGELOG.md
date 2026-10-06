@@ -12,7 +12,8 @@ semver. Each release states the **API contract revision** it serves
   and publishes one multi-arch tag; it pushes to Docker Hub (`ownaudio/server`)
   as soon as the account's token is configured, and can be re-run for an
   existing tag (`workflow_dispatch`). Attestation manifests are off, so the
-  package shows exactly two platforms.
+  package shows exactly two platforms. The Docker Hub repository name comes
+  from the `DOCKERHUB_IMAGE` repository variable (default `ownaudio/server`).
 
 ### Changed
 - The repository is public (2026-10-06); the compose stack defaults to the

@@ -12,6 +12,8 @@ on:
 env:
   # Docker Hub is optional until the account exists; GHCR always gets the image.
   HAS_DOCKERHUB: ${{ secrets.DOCKERHUB_USERNAME != '' && secrets.DOCKERHUB_TOKEN != '' }}
+  # The Docker Hub repository; a repository *variable* overrides the default.
+  DOCKERHUB_IMAGE: ${{ vars.DOCKERHUB_IMAGE || 'ownaudio/server' }}
 
 jobs:
   # One native build per architecture (no QEMU: a Rust release build under
@@ -97,7 +99,7 @@ jobs:
         with:
           images: |
             ghcr.io/own-audio/server
-            ${{ env.HAS_DOCKERHUB == 'true' && 'ownaudio/server' || '' }}
+            ${{ env.HAS_DOCKERHUB == 'true' && env.DOCKERHUB_IMAGE || '' }}
           tags: |
             type=semver,pattern={{version}},value=${{ github.event.inputs.ref || github.ref_name }}
             type=semver,pattern={{major}}.{{minor}},value=${{ github.event.inputs.ref || github.ref_name }},enable=${{ !contains(github.event.inputs.ref || github.ref_name, '-') }}
