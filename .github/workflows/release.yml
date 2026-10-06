@@ -53,6 +53,10 @@ jobs:
           file: backend/Dockerfile
           platforms: ${{ matrix.platform }}
           outputs: type=image,name=ghcr.io/own-audio/server,push-by-digest=true,name-canonical=true,push=true
+          # No provenance/SBOM attestations: GHCR shows them as a bogus
+          # "unknown/unknown" platform next to amd64 and arm64.
+          provenance: false
+          sbom: false
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
       - name: Export digest

@@ -11,7 +11,8 @@ semver. Each release states the **API contract revision** it serves
 - The release workflow builds `linux/arm64` natively next to `linux/amd64`
   and publishes one multi-arch tag; it pushes to Docker Hub (`ownaudio/server`)
   as soon as the account's token is configured, and can be re-run for an
-  existing tag (`workflow_dispatch`).
+  existing tag (`workflow_dispatch`). Attestation manifests are off, so the
+  package shows exactly two platforms.
 
 ### Changed
 - The repository is public (2026-10-06); the compose stack defaults to the
