@@ -329,13 +329,13 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-06, late)
 
-Phase 0 done; Phase 1 (import) done in the working tree — commit pending the
-compose-stack conformance run; the hosted repo's S1–S6 are committed and on
-canary. Next, in order: tag `v1.0.0-alpha.1`; in `audio2`, switch
-`hosted/Cargo.toml` to the git tag, delete `backend/`, `frontend/`, `i18n/`
-there, rewrite its CLAUDE.md (draft exists), fix its frontend CI to build the
-console from this repo at the pinned tag; promote the two-crate build to
-production with `SERVER__CORS_ORIGINS`/`TRUST_PROXY_HEADERS` set. Open without
+Phase 1 done and tagged `v1.0.0-alpha.1` (contract revision 1; CI green
+including the conformance job on a GitHub runner). `audio2` now depends on
+that tag and has no core code of its own; its `hosted/Dockerfile` clones this
+repo's console at the same tag. Next: Kornel adds the Forgejo secret
+`OWN_AUDIO_SERVER_TOKEN` (GitHub fine-grained PAT, read-only on this repo)
+so canary can build; promote; then Phase 3 (OpenAPI from code) and Phase 4
+(library folders, local storage, public MusicBrainz). Open without
 deadline: rotate the Google Cloud key that leaked into `audio2`'s history
 (`AIzaSyD3S28JJ…`, commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer;
 EUIPO. RustFS passed its first full conformance run (321/321); keep watching

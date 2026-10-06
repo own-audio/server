@@ -608,8 +608,8 @@ features come from `/api/v1/server`, and both editions must pass.
 | Phase | State | Notes |
 |---|---|---|
 | 0 | done except open items (2026-10-06) | Files written; scope, licence, names, security, sequencing decided; remote `own-audio/server` on GitHub. Open without deadline: key rotation (Phase 6 gate), lawyer, EUIPO |
-| 1 | done in the tree 2026-10-06 (commit pending the compose conformance run) | snapshot import via a one-time script; SPDX on 280 files; clippy debt paid; `cargo deny` clean; gitleaks clean with `.gitleaks.toml`; `podcast-recommendations-plan.md` left out (private infrastructure details) |
-| 2 | S0–S6 done 2026-10-06 in `audio2` (see its `docs/foss-seam-plan.md`); S7 = this import + the tag/pin switch, in progress |
+| 1 | done 2026-10-06 — tag `v1.0.0-alpha.1` | snapshot import via a one-time script; SPDX on 280 files; clippy debt paid; `cargo deny` clean; gitleaks clean with `.gitleaks.toml`; `podcast-recommendations-plan.md` left out (private infrastructure details) |
+| 2 | S0–S7 done 2026-10-06: `audio2` depends on `own-audio/server` at `v1.0.0-alpha.1`, its core directories are gone. Left: the Forgejo secret for the private repo, a canary deploy on the new Dockerfile, promote to production |
 | 3 | not started | |
 | 4 | not started | library folders + local media + public metadata providers |
 | 5 | not started | clients |
