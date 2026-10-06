@@ -11,8 +11,8 @@ an invite authorizes the registration *and* joins the new account to the
 inviting family, which is the only way to end up with six people in one family
 instead of six personal families.
 
-    python3 scripts/seed_test_family.py --base-url https://api-canary.own.audio \
-        --admin-email admin@own.audio --admin-password '...' --family-name 'Test Family'
+    python3 conformance/tools/seed_test_family.py --base-url https://audio.example.com \
+        --admin-email admin@example.com --admin-password '...' --family-name 'Test Family'
 
 Prints a table of the accounts it ensured. Passwords are supplied by the
 caller and never generated here, so nothing secret is invented behind your
@@ -28,11 +28,11 @@ import urllib.error
 import urllib.request
 
 MEMBERS = [
-    ("anna@own.audio", "Anna"),
-    ("petr@own.audio", "Petr"),
-    ("eva@own.audio", "Eva"),
-    ("jan@own.audio", "Jan"),
-    ("lucie@own.audio", "Lucie"),
+    ("anna@example.com", "Anna"),
+    ("petr@example.com", "Petr"),
+    ("eva@example.com", "Eva"),
+    ("jan@example.com", "Jan"),
+    ("lucie@example.com", "Lucie"),
 ]
 
 

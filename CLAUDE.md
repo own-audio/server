@@ -8,9 +8,10 @@ The agent contract for this repository. Read before changing code.
 
 The **open-source own.audio server**: one Rust/Axum binary over Postgres and
 S3-compatible storage that serves audiobooks, podcasts and music to a family,
-with the React web console embedded. Licensed **AGPL-3.0-or-later**. Public
-repository (or about to be): everything here is written for strangers to
-read, build and run.
+with the React web console embedded. Licensed **AGPL-3.0-or-later**. **Public
+repository since 2026-10-06**: everything here is written for strangers to
+read, build and run, and GitHub Actions minutes are free here — which is why
+the heavy CI (the conformance stack) stays on GitHub.
 
 It is the **upstream** of the hosted service at own.audio. The hosted edition
 lives in the private `audio2` repository as a small binary crate that
@@ -156,7 +157,6 @@ docs/                 contract (android-client-guide, mobile-backend-api-spec),
 Cargo.toml            a one-member workspace so backend/Dockerfile's shape matches
                       the hosted repo's; deny.toml; .gitleaks.toml
 docker-compose.yml    PostgreSQL + RustFS + server, for self-hosters (.env.example)
-install.sh            inherited, to be reworked in Phase 6
 .github/workflows/    ci.yml (check, clippy -D warnings, test, deny, console, gitleaks,
                       conformance against the compose stack), release.yml (image on tag)
 ```
@@ -304,8 +304,8 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 - **GitHub is the home, Docker Hub is where the image lives** (decided
   2026-10-06). Remote `origin` is `github.com/own-audio/server`
-  (private until publication); remote `forgejo` (`jo.marazfamily.eu/kornelko/own-audio-foss`) is a
-  mirror. The image is `ownaudio/server`, the binary `own-audio-server`,
+  (public since 2026-10-06); a Forgejo mirror remote (`forgejo`) exists on
+  Kornel's machine. The image is `ownaudio/server`, the binary `own-audio-server`,
   port 8080, data at `/data`, library folders at `/library/<name>`,
   `PUID`/`PGID` for the container user. These names are permanent from 1.0:
   every self-hoster's compose file carries them. GitHub Actions builds
@@ -345,5 +345,5 @@ so canary can build; promote; then Phase 3 (OpenAPI from code) and Phase 4
 deadline: rotate the Google Cloud key that leaked into `audio2`'s history
 (`AIzaSyD3S28JJ…`, commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer;
 EUIPO. RustFS passed its first full conformance run (321/321); keep watching
-it. Mail is still JMAP code (Phase 6 replaces it with SMTP); `install.sh` and
-`README`'s run instructions still describe the old Garage stack.
+it. Mail is still JMAP code (Phase 6 replaces it with SMTP); the install
+script is gone until Phase 6 writes the new one (compose + INSTALL.md until then).

@@ -330,7 +330,7 @@ code in it, and the tree is secret-free.
    the binary and the hosted binary build the same code.
 5. Add SPDX headers (`// SPDX-License-Identifier: AGPL-3.0-or-later`) with a
    script; a CI check keeps them present.
-6. `docker compose up -d` from a clean checkout → `install.sh` → first admin
+6. `docker compose up -d` from a clean checkout → first admin
    through the console → `conformance/` passes. Fix the stale README/INSTALL
    claims found in the survey ("first registered user becomes admin" is
    wrong — it is `POST /setup/complete`; `STORAGE__DATA_DIR` does not exist;
@@ -359,7 +359,7 @@ Goal: `audio2` production runs a binary built from `hosted/` + this crate.
    refactoring with the full test surface available, and it means Phase 1's
    import is of code that already has the seam.
 2. In `audio2`, create `hosted/` (binary crate `audio2-hosted`) that
-   depends on `audio2 = { git = "https://jo.marazfamily.eu/kornelko/own-audio-foss.git", tag = "v1.0.0-alpha.N" }`
+   depends on `audio2 = { git = "https://github.com/own-audio/server.git", tag = "v1.0.0-alpha.N" }`
    and moves `billing/`, `db/billing.rs`, the storage-billing job, the
    `/family/billing*` handlers, the `admin/` console and the production
    deploy under it. A `[patch]` to a sibling path checkout is allowed
@@ -539,8 +539,11 @@ default is just a prefilled host and stays.
    S3-compatible) is on trial as that default since 2026-10-06 (Kornel's
    call: use it for development and testing, report bugs upstream); Garage
    stays the documented alternative until the trial is over; `install.sh` gets an update mode and
-   asks for library folders (Phase 4). A `docker run` recipe for an existing
-   Postgres, with local storage as the default and S3 as the alternative.
+   asks for library folders (Phase 4); the inherited `install.sh` was
+   removed at import because it described the old Garage stack — the
+   compose file plus `INSTALL.md` is the install path until the new script
+   exists. A `docker run` recipe for an existing Postgres, with local storage
+   as the default and S3 as the alternative.
 2. SMTP mail, optional, replacing JMAP (decided; `mail/` is rewritten, the
    `audio2-www` waitlist mailer is the reference implementation).
 3. Docs: `INSTALL.md`, `UPGRADING.md` (back up first; forward-only
@@ -555,7 +558,9 @@ default is just a prefilled host and stays.
    `INSTALL.md` only, connect the Mac and one iPhone app. Fix what breaks.
 5. **Gate: rotate the Google Cloud key that leaked into `audio2`'s history**
    (pre-flight), create `security@own.audio`, confirm `gitleaks` is clean on
-   the whole tree. Then tag `v1.0.0`. Make the repository public. Announce on the roadmap page
+   the whole tree. Then tag `v1.0.0`. (The repository went public on
+   2026-10-06 already, at alpha.1 — Kornel's call, after a hygiene check:
+   free Actions minutes and nothing in the tree to hide.) Announce on the roadmap page
    and the blog (audio2-www; "self-hostable" becomes a true claim then, not
    before — §3 of that repo's CLAUDE.md).
 

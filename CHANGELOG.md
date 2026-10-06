@@ -8,6 +8,13 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Changed
+- The repository is public (2026-10-06).
+
+### Removed
+- The inherited `install.sh` (it set up the old Garage stack under the old
+  name); `docker compose up -d` with `.env` is the install path, see `INSTALL.md`.
+
+### Changed
 - CI spends fewer minutes: the conformance job reuses Docker layer cache
   between runs, documentation-only pushes skip the heavy jobs, and a newer
   push cancels the run it supersedes.
