@@ -1,0 +1,302 @@
+# CLAUDE.md — own-audio-foss
+
+The agent contract for this repository. Read before changing code.
+
+---
+
+## 1. What this repo is
+
+The **open-source own.audio server**: one Rust/Axum binary over Postgres and
+S3-compatible storage that serves audiobooks, podcasts and music to a family,
+with the React web console embedded. Licensed **AGPL-3.0-or-later**. Public
+repository (or about to be): everything here is written for strangers to
+read, build and run.
+
+It is the **upstream** of the hosted service at own.audio. The hosted edition
+lives in the private `audio2` repository as a small binary crate that
+**depends on this crate** and adds billing, payments, the AI narration and
+translation pipelines, the operator console and the production deployment.
+There is one copy of the core, and it is this one.
+
+State right now: **Phase 0.** The licence, policy and plan exist; the code has
+not been imported yet. `docs/IMPLEMENTATION_PLAN.md` says what happens next
+and in what order; `docs/SCOPE.md` says what is in and out; `docs/API_COMPATIBILITY.md`
+is the versioning policy every client relies on. Update their status tables
+as work lands.
+
+---
+
+## 2. The audio2 repository family
+
+Ten repositories, one product. Know which one you are in.
+
+| Repo | What it is | Stack |
+|---|---|---|
+| **`own-audio-foss`** (this one) | The open-source server + web console. **The API contract.** | Rust, TypeScript |
+| `audio2` | The hosted edition: depends on this crate; billing, AI pipelines, operations. Private. | Rust, TypeScript |
+| `audio2-sync` | Shared Rust sync core (the own.audio folder); UniFFI for the Mac Finder extension | Rust |
+| `music-metadata` | Lookup service over a MusicBrainz mirror. Open source, separate deployable; optional for this server. | Rust |
+| `audio2-mac` | Lead client; home of the shared Swift packages | Swift |
+| `audio2-ios-book`, `-ios-podcast`, `-ios-music`, `audio2-tvos` | Apple clients, shared packages by submodule from `audio2-mac` | Swift |
+| `audio2-android-book`, `-android-podcast`, `-android-music` | Android clients, `core/network` copied per repo | Kotlin |
+| `audio2-win` | Windows client | C# / WinUI 3 |
+| `audio2-www` | Marketing site, roadmap, waitlist. Tracks cross-repo progress. | Astro |
+
+What is shared, and how:
+
+- **The API contract is shared as a generated document and an executable
+  suite**: `docs/api/openapi.json` (from `utoipa` annotations in this repo)
+  and `conformance/`. Until Phase 3 lands, the prose client guide in `docs/`
+  is authoritative, as it was in `audio2`.
+- **Code is shared with the hosted edition only, as a Cargo git dependency
+  pinned to a tag of this repo.** No submodule, no copy, no "port later".
+- **Nothing here is shared as code with any client.** Swift is shared by
+  submodule among the Apple repos; Kotlin by copy; design tokens by hand.
+  Deliberate.
+- **Cross-repo progress is tracked in `audio2-www`**, not here. When work
+  here finishes a roadmap item, say so in your summary; don't edit that repo
+  from this one.
+
+---
+
+## 3. The rule that matters most: the contract is additive, and it is one contract
+
+Clients cannot see this source. Nine of them, on four platforms, run months-old
+builds against today's server — and against two editions of it.
+
+1. **Within `/api/v1`, change only additively.** New endpoint, new optional
+   field, new `features` key, new enum value where the contract says unknown
+   values are tolerated. Never remove, rename, retype, or change a status
+   code a client handles. The full rules, the deprecation process (six
+   months minimum) and the "contract revision" number are in
+   `docs/API_COMPATIBILITY.md`. If what you need is not additive, it goes
+   on the `/api/v2` list in that file, not into v1.
+2. **A contract change and its documentation land in the same commit**: the
+   handler, the OpenAPI annotations, the revision bump, the `CHANGELOG.md`
+   line, the client guide where prose is needed. CI fails on a stale
+   `openapi.json`.
+3. **Optional features are discovered, never assumed.** Every feature that an
+   operator can switch off has a key in `GET /api/v1/server` → `features`,
+   which is `true` only when fully configured. A request for a feature that
+   is off answers `501 { "error": "feature_unavailable", "feature": "…" }` —
+   never a fake success, never a 404 (which means "missing or not visible to
+   you", deliberately, and must keep meaning that).
+4. **The hosted edition reaches the core through five extension points and
+   nothing else**: `http::router::api_routes()` + `finalize()` (routes), the
+   `Hooks` trait in `AppState` (money and dashboard extras), the job
+   registry, its own `HostedConfig`, its own migrator in the `hosted`
+   schema. Adding a sixth is a design discussion, not a quick fix. Never
+   add a branch on "edition" inside the core.
+5. **When the contract document and the code disagree, the code is right
+   and the document is a bug.** Fix the document and say so in the commit.
+
+---
+
+## 4. Scope — what must never be in this repository
+
+Full list in `docs/SCOPE.md`. The short version, because it is also a
+licensing boundary:
+
+- **No money.** No credit ledger logic, Stripe, storage charges, top-ups.
+  The three billing tables exist in the migration sequence (continuity with
+  the hosted database) and stay empty here; `grep -ri stripe backend/src`
+  must return nothing.
+- **No AI pipelines.** Narration and podcast translation are hosted-only
+  (decided 2026-10-06, reversible later). Their tables stay dormant in the
+  core sequence; their console pages stay here, hidden when
+  `features.narration` / `features.translation` are false.
+- **No own.audio operations.** No tunnel names, VPS addresses, R2 bucket
+  names, canary workflows, or the operator console. `metadata.own.audio` is
+  not a default anywhere — there is no shared metadata mirror.
+- **No copyrighted test material.** `audio2/books-data/` (an e-book text
+  used for narration tests) never comes here; test fixtures must be public
+  domain or generated.
+- **No secrets, ever, including in history.** This repo has a fresh history
+  for exactly this reason (a Google Cloud key was once committed to
+  `audio2`); the code is imported as a snapshot, never with `audio2`'s
+  commits. `gitleaks` runs in CI; run it locally before the first commit of
+  any imported tree. `.env` is gitignored and stays so.
+- **No hosted-only code copied here "temporarily".** If the hosted edition
+  needs something the core lacks, add an extension point (§3.4) in the core
+  and the feature in `audio2`.
+
+Things that are **in** and optional (off until configured): SSO with Google,
+Apple and Microsoft; SMTP mail notifications; book identify through Google
+Books; Podcast Index with a free key. Music identify through the public
+MusicBrainz API is on by default. Config-gated, reported in `features`.
+
+---
+
+## 5. Layout (target, after Phase 1)
+
+```
+backend/src/
+  app/        config, state, bootstrap, run      http/       router, handlers, /server
+  auth/       login, JWT, refresh, SSO, device   db/         all SQL, one module per domain
+  users/ families/ setup/ dashboard.rs            jobs/       worker loop + handler registry
+  library/    search, delta sync, private         storage/    S3 presigning, family keys
+  audiobooks/ podcasts/ music/ youtube/           playback/   progress, queue, bookmarks
+  metadata/   music-metadata client, Google Books, cover-art cascade, Wikimedia
+  subsonic/   OpenSubsonic at /rest               filesync/   the own.audio folder protocol
+  library/scan/  read-only library folders         media/      server-served streams + local uploads
+  trash/ uploads/ stats/ devices/ mail/           hooks.rs    the Hooks trait + NoopHooks
+backend/migrations/   numbered, forward-only, all 85 imported verbatim
+frontend/             React console (served from ui/dist by the binary)
+i18n/                 the one catalog of UI strings (en + cs)
+conformance/          black-box API suite, takes --base-url
+docs/                 contract, policy, plan, scope, install/upgrade/backup
+docker-compose.yml  install.sh  Dockerfile (in backend/)
+```
+
+**All SQL lives in `db/`.** Domain modules call into it; they don't embed
+queries.
+
+---
+
+## 6. Gotchas inherited from `audio2` (all still true after import)
+
+- **`sqlx::migrate!()` embeds migrations at compile time.** A new migration
+  needs a rebuild (`docker compose build`), not a restart.
+- **`device_kind` is validated in four places that must agree**: the
+  allowlists in `auth::issue_tokens` and `playback::normalize_device_kind`,
+  plus `CHECK` constraints on `refresh_tokens` (0017) and
+  `listening_sessions` (0020). Relaxing only the Rust side turns a
+  collapsed-to-`other` value into a constraint violation and a 500 on login.
+- **404 means "missing *or* not visible to you."** Never distinguish them.
+- **Presigned URLs are signed against `STORAGE__PUBLIC_ENDPOINT`**, not
+  `STORAGE__ENDPOINT`. In Docker both must be set; a wrong public endpoint
+  fails only at playback time.
+- **Uploads run with `DefaultBodyLimit::disable()`.** The ceiling is the
+  reverse proxy's.
+- **Audiobook upload order is decided by `relative_path`**, not send order.
+- **`audiobook_books`, `music_tracks`, `music_playlists` are views** over
+  `…_all` tables (the 30-day trash). A migration that adds a column must
+  alter `…_all` and recreate the view; only `db::trash`, the purge job and
+  reference checks may name `…_all`.
+- **A new job type must be in `WORKER_JOB_TYPES` wherever it is set**
+  (`docker-compose.yml`), or no container claims it.
+- **PostgreSQL only, 16 and up; dev runs 17.** SQLite was considered and
+  rejected (`docs/SCOPE.md` decision 10) — don't start a "just make this
+  query portable" effort; there is nothing for it to lead to. Before
+  shipping a migration, apply the whole sequence to a throwaway `postgres:16`
+  (recipe in `docs/UPGRADING.md` once written; until then, the one in
+  `audio2`'s CLAUDE.md §6).
+- **Never recompute an object key to read an object**; read
+  `media_objects.object_key` *and* `media_objects.backend`. Objects live in
+  S3, in the local data dir, or in a read-only library folder; the layout
+  changed once already.
+- **The server never writes inside a library folder.** Read-only handles,
+  `:ro` mounts, and the sweeps (`storage_sweep`, `trash_purge`,
+  `find_unreferenced`) skip `backend = 'folder'`. A test guards this; keep
+  it green. (Phase 4 — see the plan.)
+- **Subsonic**: use `subsonic::extract::SubsonicQuery`, never axum's `Query`;
+  never restate `db::music::TRACK_COLS`; every response, refusals included,
+  is a `subsonic-response` envelope.
+
+---
+
+## 7. Working rules
+
+- **Licence headers.** Every source file starts with
+  `// SPDX-License-Identifier: AGPL-3.0-or-later` (or the language's comment
+  form). A CI check enforces it. The full licence text is `LICENSE`; never
+  replace it with a pointer.
+- **Contributions need the CLA** (`CONTRIBUTING.md`, Phase 6). Until it
+  exists, no outside pull request is merged. Reason: the hosted edition
+  combines this code with private code, which Kornel's own copyright allows
+  and a third party's AGPL contribution would not.
+- **The brand is not licensed.** `TRADEMARK.md`. The mark lives in `brand/`
+  under trademark terms, not AGPL; an unmodified build may show it, a fork
+  must replace it. The console says "own.audio server" and shows the
+  licence.
+- **Dependency licences are checked at import and at every dependency
+  change.** `cargo deny check licenses` (allow-list: MIT, Apache-2.0, BSD,
+  ISC, MPL-2.0, Unicode, Zlib, OFL, CC0) and `npx license-checker
+  --onlyAllow …` over `frontend/` and `i18n/`. Both run in CI. A new crate
+  or npm package with a licence outside the list is refused in review, not
+  waved through. Any bundled font or asset ships with its own licence text
+  next to it (`THIRD_PARTY_NOTICES.md` lists them). Today nothing is
+  bundled: the PT Serif fonts belong to the hosted narration pipeline.
+- **`music-metadata` and `audio2-sync` are private and proprietary**
+  (decided 2026-10-06). This server never vendors or depends on their code
+  and never links `audio2-sync`. Metadata comes through the
+  `MetadataProvider` trait: the public MusicBrainz / iTunes / Podcast Index
+  provider here, the private mirror in the hosted edition. **MusicBrainz's
+  public API allows 1 request per second and requires an identifying
+  `User-Agent`**; the token bucket and the header are not optional, and a
+  build that hammers musicbrainz.org gets the whole project's IP range
+  blocked.
+- **Write for strangers.** README, INSTALL, error messages, config names:
+  someone who has never heard of the family of repos must be able to run
+  this from the docs alone. No "ask Kornel", no internal hostnames.
+- **No user-facing text in code.** Console strings live in
+  `i18n/strings/<area>.json` (en + cs); `cd frontend && npm run i18n` checks
+  and regenerates. Czech follows `i18n/GLOSSARY.md`.
+- **No lock/security framing for "private" content.** `private` means "not
+  shared with the family", nothing more. No lock icons, no "secure" wording.
+- **Migrations are forward-only and numbered.** Never edit a committed one.
+- **Work on `main`, no feature branches**, while this is a one-person job —
+  the same rule as the rest of the family, for the same reason (a branch
+  drifted and cost a hand-merge). Revisit when a second person contributes.
+- **Comments explain WHY, not WHAT.** Default to none.
+- `cargo check`, `cargo clippy -D warnings`, `cargo test`, the console
+  build, and `conformance/` against the compose stack before calling a
+  change done. `gitleaks detect` before every push.
+- **Don't commit or push on the user's behalf** unless asked; prepare the
+  change and show it. (Global rule; nothing here overrides it.)
+
+```bash
+# after Phase 1
+docker compose up -d                 # postgres + garage + server
+docker compose build server && docker compose up -d   # after code/migration change
+cargo check && cargo clippy -- -D warnings && cargo test
+cd frontend && npm run i18n && npm run build
+python3 conformance/run.py --base-url http://localhost:8080
+```
+
+---
+
+## 8. Releasing
+
+- **GitHub is the home, Docker Hub is where the image lives** (decided
+  2026-10-06). Remote `origin` is `github.com/own-audio/server`
+  (private until publication); remote `forgejo` (`jo.marazfamily.eu/kornelko/own-audio-foss`) is a
+  mirror. The image is `ownaudio/server`, the binary `own-audio-server`,
+  port 8080, data at `/data`, library folders at `/library/<name>`,
+  `PUID`/`PGID` for the container user. These names are permanent from 1.0:
+  every self-hoster's compose file carries them. GitHub Actions builds
+  amd64 + arm64 on every tag and pushes to Docker Hub (GHCR as a mirror).
+- **No Dependabot.** Dependencies are updated by hand before each release
+  and verified with the conformance suite; `cargo audit` runs in CI and
+  weekly. Questions go to GitHub Discussions, bugs to issues.
+- Semver tags `vMAJOR.MINOR.PATCH`; the image is tagged the same plus
+  `latest`. The contract revision is stated in every `CHANGELOG.md` entry.
+- A tag is what the hosted edition pins. **Core changes land here first,
+  get tagged, and `audio2` bumps its pin** — never the other way round, and
+  never a `[patch]` path override committed on either side.
+- Before tagging: the conformance suite green against compose; the hosted
+  repo's CI green against the candidate tag (it builds against the new tag
+  before the pin is merged).
+- Publishing is outward-facing. Claims in the README about what the server
+  does must be true of this edition, not of own.audio — the marketing site's
+  §3 rule applies here too.
+
+---
+
+## 9. Where we left off (2026-10-06)
+
+Phase 0 done. Decided 2026-10-06 and recorded in the plan's §1 and §1a:
+AGPL-3.0-or-later; narration/translation hosted-only; SSO in; public
+MusicBrainz and podcast directories instead of the private mirror; SMTP
+mail; read-only library folders before 1.0; names (`own-audio/server`,
+`ownaudio/server`); rate limiting + security pass + `security@` +
+`cargo audit`; conformance suite before the seam; no Dependabot; nothing on
+the marketing site until publication. Open without deadline: rotate the
+Google Cloud key that leaked into `audio2`'s history (`AIzaSyD3S28JJ…`,
+commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer review; EUIPO mark.
+Nothing is committed yet: Kornel commits. Licence rationale
+is in `docs/LICENSING.md`; read-only library folders are Phase 4 of the plan. Scope decided (`docs/SCOPE.md` decisions
+table). Next: Phase 2 step 1 — build the seam **inside `audio2`** while it
+is still one repo (Hooks trait, route split, job registry, config split),
+then Phase 1's import of the tree that already has the seam. Read
+`docs/IMPLEMENTATION_PLAN.md` §4 before starting.
