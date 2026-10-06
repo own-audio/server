@@ -63,8 +63,9 @@ private hosted repository and never in this one.
   streamed by the server. Nothing is copied, nothing is ever written there.
   Items from folders are read-only in every client.
 - **Local storage** for uploads (`STORAGE__KIND=local`), so a self-hosted
-  install needs no S3 at all; or any S3-compatible store (Garage and MinIO
-  tested; R2 and AWS work).
+  install needs no S3 at all; or any S3-compatible store. RustFS is the one
+  the compose stack ships with (on trial since 2026-10-06); Garage and MinIO
+  tested; R2 and AWS work.
 
 ### Platform
 - The web console (React), embedded in the image, in English and Czech from

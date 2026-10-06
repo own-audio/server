@@ -89,11 +89,13 @@ now than after the first public push.
       are separate questions; the code was written on personal time and the
       pieces have been rewritten since — recorded here so the question is
       answered if it is ever asked.)
-- [x] **Bundled fonts**: `backend/assets/fonts/PTSerif-*.ttf` are used only
-      by `audiobook_gen/cover.rs`, which is hosted-only, so they do not come
-      here at all. The console uses system fonts. Rule recorded in
-      `CLAUDE.md`: any asset that is ever bundled ships with its licence
-      text and a line in `THIRD_PARTY_NOTICES.md`.
+- [ ] **Bundled fonts**: `backend/assets/fonts/PTSerif-*.ttf` are embedded
+      by the core too (`metadata/watermark.rs` draws the cover watermark with
+      PT Serif Regular), not only by the hosted narration covers — found
+      during S6. So the OFL 1.1 text (PT Serif: Copyright 2010 ParaType Ltd,
+      Reserved Font Names "PT Sans", "PT Serif", "ParaType") ships at
+      `backend/assets/fonts/OFL.txt` and `THIRD_PARTY_NOTICES.md` lists it.
+      Done at the import (Phase 1 step 3).
 - [ ] **`cargo deny` with a licence allow-list** (MIT, Apache-2.0, BSD,
       ISC, MPL-2.0, Unicode, Zlib, OFL, CC0) over `Cargo.lock` (6,161 lines)
       and `license-checker` over the two `package-lock.json` files, **at the
@@ -533,7 +535,10 @@ default is just a prefilled host and stays.
    to Docker Hub, with GHCR as a mirror. Forgejo stays a mirror.
    `docker-compose.yml` uses
    `image: ${SERVER_IMAGE:-ownaudio/server:latest}` with
-   Postgres and, optionally, Garage; `install.sh` gets an update mode and
+   Postgres and, optionally, an S3 store — **RustFS** (v1.0.1, Rust,
+   S3-compatible) is on trial as that default since 2026-10-06 (Kornel's
+   call: use it for development and testing, report bugs upstream); Garage
+   stays the documented alternative until the trial is over; `install.sh` gets an update mode and
    asks for library folders (Phase 4). A `docker run` recipe for an existing
    Postgres, with local storage as the default and S3 as the alternative.
 2. SMTP mail, optional, replacing JMAP (decided; `mail/` is rewritten, the
