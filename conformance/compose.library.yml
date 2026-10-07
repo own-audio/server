@@ -1,0 +1,12 @@
+# Mounts the generated fixture library read-only for the `library` suite:
+#   conformance/tools/make_library_fixtures.sh /tmp/oa-library
+#   docker compose -f docker-compose.yml -f conformance/compose.library.yml up -d
+services:
+  server:
+    environment:
+      LIBRARY__MUSIC: /music
+      LIBRARY__AUDIOBOOKS: /audiobooks
+      LIBRARY__SCAN_INTERVAL_SECS: "60"
+    volumes:
+      - ${LIBRARY_FIXTURES:-/tmp/oa-library}/music:/music:ro
+      - ${LIBRARY_FIXTURES:-/tmp/oa-library}/audiobooks:/audiobooks:ro

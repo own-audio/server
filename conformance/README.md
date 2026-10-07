@@ -47,6 +47,7 @@ uploads, file sync and Subsonic on, everything else off.
 | `stats` | listening history batches, idempotent retries, device attribution, day bucketing, stats privacy | — |
 | `trash` | 30-day trash: delete, list, restore, purge, permissions | `--compose-dir` (backdates rows through SQL) |
 | `filesync` | the own.audio folder: paths, sync feed and cursor, shortcuts, holdings, auto-stored episodes | loopback `--base-url` and `--compose-dir` (serves an RSS feed the server fetches from this machine) |
+| `library` | read-only library folders: scan, tags, books as folders in natural order, streaming from a folder, removing hides | a server with folders configured: `tools/make_library_fixtures.sh /tmp/oa-library` and `-f conformance/compose.library.yml`; skipped otherwise |
 
 ## Writing a suite
 

@@ -8,6 +8,10 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- Conformance suite `library` (scan, tags, natural chapter order, streaming
+  from a folder, removing hides) on generated fixtures
+  (`conformance/tools/make_library_fixtures.sh`,
+  `conformance/compose.library.yml`); CI runs it in the local-storage job.
 - API contract revision 3: tracks and books carry `source` (`upload` or
   `folder`) and `read_only`; `GET /library/folders` and
   `POST /library/folders/scan`; stream URLs may point at the server's own

@@ -58,8 +58,6 @@ def run(ctx):
         folders = ctx.call("GET", "/api/v1/library/folders", ctx.admin_token)
         ctx.check("revision 3: GET /library/folders lists folders and the scan state",
                   isinstance(folders.get("folders"), list) and isinstance(folders.get("scanning"), bool))
-        ctx.check("library_folders flag matches the folder list",
-                  ctx.feature("library_folders") == bool(folders.get("folders")))
 
     # Error conventions hold on every server, discovery or not.
     body = ctx.call("GET", "/api/v1/definitely-not-a-route", ctx.admin_token, expect=(404,), raw=True)

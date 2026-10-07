@@ -26,7 +26,7 @@ from core import ApiError, Ctx, Skip  # noqa: E402
 
 SUITES_DIR = pathlib.Path(__file__).resolve().parent / "suites"
 # Order matters a little: smoke first (it validates login), the rest independent.
-ORDER = ["server", "smoke", "families", "join", "mobile", "stats", "trash", "filesync"]
+ORDER = ["server", "smoke", "families", "join", "mobile", "stats", "trash", "filesync", "library"]
 
 
 def discover_suites() -> list[str]:
