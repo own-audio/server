@@ -13,6 +13,11 @@ semver. Each release states the **API contract revision** it serves
   calls on every loop.
 
 ### Fixed
+- `GET /music/tracks` (streamed since 1.0.0-alpha.6) broke for every client
+  that asked for gzip — browsers included: the stream panicked when the
+  compression layer polled it after its end, so the response arrived empty.
+  The stream is fused now, and the conformance suite fetches the main lists
+  with `Accept-Encoding: gzip`.
 - Claiming a file-sync path compared the new path with every path the owner
   already had (no index could serve the "inside another folder" test), so a
   first library scan slowed down with every file. The test is now three index

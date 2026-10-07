@@ -59,6 +59,23 @@ def run(ctx):
         ctx.check("revision 3: GET /library/folders lists folders and the scan state",
                   isinstance(folders.get("folders"), list) and isinstance(folders.get("scanning"), bool))
 
+    # Browsers always ask for gzip; a streamed body that breaks under the
+    # compression layer only shows up there (1.0.0-alpha.6, the track list).
+    import gzip, json as _json, urllib.request
+    for path in ("/api/v1/music/tracks", "/api/v1/music/albums", "/api/v1/audiobooks", "/api/v1/library/continue"):
+        req = urllib.request.Request(ctx.base_url + path, headers={
+            "Authorization": f"Bearer {ctx.admin_token}", "Accept-Encoding": "gzip", "User-Agent": "own-audio-conformance"})
+        try:
+            with urllib.request.urlopen(req, timeout=60) as r:
+                raw = r.read()
+                if r.headers.get("Content-Encoding") == "gzip":
+                    raw = gzip.decompress(raw)
+            _json.loads(raw)
+            ok, detail = True, ""
+        except Exception as e:  # noqa: BLE001 — any failure is the finding
+            ok, detail = False, f"{type(e).__name__}: {e}"[:120]
+        ctx.check(f"{path} works for a client that asks for gzip", ok, detail)
+
     # Error conventions hold on every server, discovery or not.
     body = ctx.call("GET", "/api/v1/definitely-not-a-route", ctx.admin_token, expect=(404,), raw=True)
     ctx.check("unknown route is 404 not_found", b'"not_found"' in body, body[:80].decode(errors="replace"))

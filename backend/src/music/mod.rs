@@ -742,6 +742,9 @@ async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> ax
             None => Some((Ok(bytes::Bytes::from_static(if first { b"[]" } else { b"]" })), (rx, first, true))),
         }
     });
+    // Fused: the compression layer polls once more after the end, and a bare
+    // `unfold` panics on that (it cost every gzip client the whole list).
+    let body = futures_util::StreamExt::fuse(body);
     (
         [(axum::http::header::CONTENT_TYPE, "application/json")],
         axum::body::Body::from_stream(body),
