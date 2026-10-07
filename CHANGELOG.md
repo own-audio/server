@@ -8,6 +8,10 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- Plan, Phase 6 item 4, and scope decision 14: PostgreSQL stays the only
+  database, and before 1.0 the server makes it painless — family-sized
+  settings by default, nightly automatic backups with a tested restore, and
+  a one-command PostgreSQL major upgrade.
 - `docs/RAM_USAGE.md`: why Navidrome and Audiobookshelf cannot be measured on
   PostgreSQL (both are SQLite-only, checked in their repositories).
 

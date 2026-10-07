@@ -506,6 +506,7 @@ footprint than Navidrome and Audiobookshelf. Work, in order:
    three `MALLOC_*` variables; measured peak 272 → 28 MiB.
 2. **PostgreSQL for one family** in the compose file (`shared_buffers`,
    `max_connections`) and a server pool of 10; measure the stack again.
+   Part of Phase 6 item 4, with backups and major upgrades.
 3. **One family per install** in this edition: the first-run setup creates
    the family, accounts come only by invite into it, and a second family
    cannot be created. No limit on the number of members. The hosted edition
@@ -576,9 +577,29 @@ default is just a prefilled host and stays.
    `docs/LICENSING.md` kept current,
    `CHANGELOG.md` restarted at 1.0.0 with a pointer to the pre-split history
    summary.
-4. Run the whole thing on a machine that is not Kornel's: fresh VPS, follow
+4. **Make PostgreSQL painless** (decided 2026-10-07: PostgreSQL-only stays,
+   its costs are ours to absorb, not the self-hoster's). Before 1.0:
+   - **Sized for a family by default.** The compose file starts PostgreSQL
+     with family settings (`shared_buffers` 32 MB, `max_connections` 30,
+     `work_mem` small) and the server with a pool of 10; one place documents
+     how to raise them for a very large catalog. Measured with the stack
+     comparison in `RAM_USAGE.md`.
+   - **Backups without thinking.** A `db_backup` job in the server writes a
+     compressed `pg_dump` to a backup folder or the bucket every night, keeps
+     the last 7 daily and 4 weekly copies, and reports the last success in
+     the admin view; `BACKUP.md` shows the restore, tested in CI by
+     restoring a dump into an empty database and running the conformance
+     smoke suite against it.
+   - **PostgreSQL major upgrades in one command.** A script (`scripts/pg-upgrade.sh`)
+     dumps the running database, starts the new PostgreSQL major on a fresh
+     volume, restores, checks row counts, and keeps the old volume until the
+     user removes it. `UPGRADING.md` explains when it is needed (the
+     PostgreSQL image's major changes, never on a server update alone) and
+     the compose file pins the major (`postgres:16-alpine`) so it never
+     changes by accident.
+5. Run the whole thing on a machine that is not Kornel's: fresh VPS, follow
    `INSTALL.md` only, connect the Mac and one iPhone app. Fix what breaks.
-5. **Gate: rotate the Google Cloud key that leaked into `audio2`'s history**
+6. **Gate: rotate the Google Cloud key that leaked into `audio2`'s history**
    (pre-flight), create `security@own.audio`, confirm `gitleaks` is clean on
    the whole tree. Then tag `v1.0.0`. (The repository went public on
    2026-10-06 already, at alpha.1 — Kornel's call, after a hygiene check:
