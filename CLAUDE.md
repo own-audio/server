@@ -340,6 +340,10 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-07)
 
+`v1.0.0-alpha.6` (contract revision 3) adds local storage, the server's media
+route (`/api/v1/media`, also for S3 behind firewalls), read-only library
+folders, allocator settings and family-sized PostgreSQL, the streamed track
+list, inline visibility and stored grouping keys (scale test: docs/CAPACITY.md).
 `v1.0.0-alpha.5` fixes audiobook progress in the console (in-file positions, as
 the API defines), names format errors in the player, answers 409 for an
 undownloaded episode, and loads console pages on demand. `v1.0.0-alpha.4` schedules the hourly `stats_rollup` (smart playlists'

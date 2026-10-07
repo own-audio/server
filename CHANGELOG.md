@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.6] - 2026-10-07
+
+Contract revision 3.
+
 ### Added
 - `docs/RASPBERRY_PI.md`: the server on a Raspberry Pi 3 or newer (64-bit
   OS, a USB disk, library folders, local storage, a Cloudflare Tunnel).
