@@ -15,7 +15,8 @@ paid service. Clients cannot tell the two apart; they read
 | S3-compatible storage | optional | yes |
 | Sign-in with Google, Apple, Microsoft | optional, your own client ids | as the operator enables them |
 | Invite mail | optional, your SMTP server | the operator's mail server |
-| Music identify, podcast discovery | coming (public MusicBrainz) | yes (a private metadata service) |
+| Music identify | yes, through the public MusicBrainz API (one request a second) | yes (a private metadata service) |
+| Podcast discovery: search, categories, similar shows | — | yes (the same service) |
 | Narrate a book, translate a podcast episode | — | yes, paid per use |
 | Storage billing, credit, payments | — | yes |
 
@@ -27,8 +28,9 @@ What is not here, and why, so nobody has to ask:
   translation services on the operator's account, metered per family; they
   live with the billing they depend on.
 - **The private metadata service.** A MusicBrainz mirror and its own index,
-  too big to bundle. This edition will use the public MusicBrainz API instead
-  (`docs/IMPLEMENTATION_PLAN.md`, Phase 4D).
+  too big to bundle. This edition identifies music through the public
+  MusicBrainz API instead, which is slower (MusicBrainz allows one request a
+  second) and has no podcast catalogue.
 
 The split is made at one place in the code, `backend/src/hooks.rs`: the
 hosted edition plugs into it and adds routes, jobs and feature flags. Nothing

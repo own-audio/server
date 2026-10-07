@@ -44,8 +44,8 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
   where the feed has them, YouTube channels as feeds.
 - **Music**: tags-based library, albums, artists and genres, playlists, smart
   playlists, lyrics, stars and ratings, duplicate detection; an OpenSubsonic
-  API so your favourite music app works too. Identify against the public
-  MusicBrainz API is coming (Phase 4).
+  API so your favourite music app works too. Identify tracks and albums
+  against MusicBrainz.
 - **Family**: one server, several people. Private by default, shared when you
   say so; roles, parental controls per member, join by link or QR code.
 - **Your files stay yours**: point the server at the music and audiobook
@@ -56,11 +56,15 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
   the web console and the apps; a 30-day trash catches mistakes.
 - **Statistics**: listening history per member and a yearly recap.
 - **Nothing phones home.** No telemetry, no update checks, no accounts
-  anywhere but on your server.
+  anywhere but on your server. It reaches out only for what you use: the
+  podcast feeds you subscribe to, musicbrainz.org and the Cover Art Archive
+  when you press identify (`MUSICBRAINZ__ENABLED=false` turns that off), and
+  Wikimedia Commons for an artist's photo the first time it is shown.
 
 Optional, off until you configure them: sign-in with Google, Apple or
-Microsoft; book identification through Google Books. Coming: e-mail
-notifications over SMTP and podcast discovery through Podcast Index.
+Microsoft; book identification through Google Books; invite mail over SMTP.
+Podcast discovery (search by topic, categories, similar shows) needs a
+catalogue this edition does not have yet.
 
 ## Two editions, one API
 
@@ -76,7 +80,7 @@ it offers.
 | Read-only library folders | yes | — |
 | Sign-in providers | optional, you configure | yes |
 | SMTP mail | optional | yes |
-| Music identify | coming, optional | yes |
+| Music identify | public MusicBrainz, on by default | yes |
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |
 | Storage billing, payments | — | yes |
 

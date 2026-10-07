@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Identify through the public MusicBrainz API when no metadata service is
+  set: track candidates, which album a group of tracks is, and the details
+  applied, with the metadata service's album matching. Asked only when
+  someone presses identify, at most once a second, with a User-Agent naming
+  the server (`MUSICBRAINZ__CONTACT`); `MUSICBRAINZ__ENABLED=false` turns it
+  off. `features.music_identify` is now `true` on a default install.
+  Podcast discovery still needs the metadata service.
+
 ## [1.0.0-beta.1] - 2026-10-08
 
 Contract revision 4. The first beta: the API contract is executable

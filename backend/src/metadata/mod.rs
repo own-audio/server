@@ -12,7 +12,57 @@ pub mod google_books;
 pub mod wikimedia;
 pub mod mirror;
 pub mod musicbrainz;
+pub mod public;
 pub mod watermark;
+
+/// Where "identify" asks: the private metadata service when it is set (the
+/// hosted edition), else the public MusicBrainz API unless switched off.
+pub enum Identify<'a> {
+    Mirror(mirror::MetadataMirror<'a>),
+    Public(public::MusicBrainz),
+}
+
+impl<'a> Identify<'a> {
+    pub fn from_config(config: &'a crate::app::AppConfig) -> Option<anyhow::Result<Self>> {
+        if let Some(metadata) = config.metadata.as_ref() {
+            return Some(Ok(Self::Mirror(mirror::MetadataMirror::new(metadata))));
+        }
+        config.musicbrainz.enabled.then(|| public::MusicBrainz::new(&config.musicbrainz).map(Self::Public))
+    }
+
+    pub async fn identify(
+        &self,
+        title: Option<&str>,
+        artist: Option<&str>,
+        album: Option<&str>,
+        duration_ms: Option<u64>,
+        limit: usize,
+    ) -> anyhow::Result<Vec<MetadataCandidate>> {
+        match self {
+            Self::Mirror(m) => m.identify(title, artist, album, duration_ms, limit).await,
+            Self::Public(p) => p.identify(title, artist, album, duration_ms, limit).await,
+        }
+    }
+
+    pub async fn identify_album(
+        &self,
+        artist: &str,
+        album: Option<&str>,
+        tracks: Vec<mirror::AlbumTrackQuery<'_>>,
+    ) -> anyhow::Result<Vec<AlbumCandidate>> {
+        match self {
+            Self::Mirror(m) => m.identify_album(artist, album, tracks).await,
+            Self::Public(p) => p.identify_album(artist, album, tracks).await,
+        }
+    }
+
+    pub async fn recording(&self, mb_recording_id: &str, mb_release_id: Option<&str>) -> anyhow::Result<RecordingDetail> {
+        match self {
+            Self::Mirror(m) => m.recording(mb_recording_id, mb_release_id).await,
+            Self::Public(p) => p.recording(mb_recording_id, mb_release_id).await,
+        }
+    }
+}
 
 use serde::{Deserialize, Serialize};
 

@@ -43,10 +43,10 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
         }),
     );
     features.insert("uploads".into(), json!({ "presigned": true, "multipart_max_bytes": Value::Null }));
-    // Identify and discovery need a metadata provider; today that is the
-    // configured mirror service, in Phase 4 of the FOSS plan also the public
-    // MusicBrainz API.
-    features.insert("music_identify".into(), json!(cfg.metadata.is_some()));
+    // Identify: the metadata service, or else the public MusicBrainz API
+    // (unless MUSICBRAINZ__ENABLED=false). Podcast discovery (search,
+    // categories, similar shows) needs the metadata service's catalogue.
+    features.insert("music_identify".into(), json!(cfg.metadata.is_some() || cfg.musicbrainz.enabled));
     features.insert("podcast_discovery".into(), json!(cfg.metadata.is_some()));
     features.insert("file_sync".into(), json!(true));
     features.insert(

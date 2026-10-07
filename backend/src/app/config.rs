@@ -41,6 +41,11 @@ pub struct AppConfig {
     /// delivery; only the email step no-ops. See `crate::mail`.
     pub mail: Option<MailConfig>,
 
+    /// Identify through the public MusicBrainz API (`MUSICBRAINZ__*`) when
+    /// no metadata service is set. On by default; see [`MusicBrainzConfig`].
+    #[serde(default)]
+    pub musicbrainz: MusicBrainzConfig,
+
     /// Read-only library folders (`LIBRARY__*`), indexed in place. Unset ⇒
     /// none; see [`LibraryConfig`].
     pub library: Option<LibraryConfig>,
@@ -291,6 +296,26 @@ pub struct MetadataConfig {
     /// The pre-shared key the service checks (`Authorization: Bearer …`). A
     /// second line of defence behind network isolation, not the primary one.
     pub api_key: String,
+}
+
+/// The public MusicBrainz web service, used for "identify" only when the
+/// private metadata service (`METADATA__*`) is not set. It is asked only when
+/// someone presses identify, at most once a second, never by a background job.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct MusicBrainzConfig {
+    /// `MUSICBRAINZ__ENABLED=false` keeps the server from contacting
+    /// musicbrainz.org at all.
+    pub enabled: bool,
+    /// Who to contact about this server's requests, sent in the User-Agent as
+    /// MusicBrainz asks: an e-mail address or a URL. Unset ⇒ the project's.
+    pub contact: Option<String>,
+}
+
+impl Default for MusicBrainzConfig {
+    fn default() -> Self {
+        Self { enabled: true, contact: None }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

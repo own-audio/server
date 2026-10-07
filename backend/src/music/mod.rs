@@ -1572,23 +1572,16 @@ async fn store_rescanned_cover(
     let _ = tx.commit().await;
 }
 
-/// The metadata mirror, or a clear error when it isn't configured.
-///
-/// Deliberately an error rather than a fallback to the public MusicBrainz API:
-/// that path is rate-limited to ~1 req/s for the entire deployment, so silently
-/// dropping onto it would turn a misconfiguration into an unexplained slowdown
-/// exactly when load is highest. See docs/music-metadata-plan.md.
-fn metadata_mirror(state: &AppState) -> Result<crate::metadata::mirror::MetadataMirror<'_>, AuthError> {
-    state
-        .config()
-        .metadata
-        .as_ref()
-        .map(crate::metadata::mirror::MetadataMirror::new)
-        .ok_or_else(|| {
-            AuthError::Internal(anyhow::anyhow!(
-                "music metadata service is not configured (METADATA__BASE_URL / METADATA__API_KEY)"
-            ))
-        })
+/// Where identify asks (`metadata::Identify`): the metadata service when it is
+/// configured, else the public MusicBrainz API, slow but enough for a person
+/// identifying their tracks; an error when both are off.
+fn metadata_source(state: &AppState) -> Result<crate::metadata::Identify<'_>, AuthError> {
+    match crate::metadata::Identify::from_config(state.config()) {
+        Some(source) => source.map_err(AuthError::Internal),
+        None => Err(AuthError::Internal(anyhow::anyhow!(
+            "identify is off: no metadata service (METADATA__BASE_URL) and MUSICBRAINZ__ENABLED=false"
+        ))),
+    }
 }
 
 /// POST /api/v1/music/tracks/:id/metadata/search — MusicBrainz recording
@@ -1624,7 +1617,7 @@ async fn search_track_metadata(
         .filter(|secs| *secs > 0)
         .map(|secs| secs as u64 * 1000);
 
-    let results = metadata_mirror(&state)?
+    let results = metadata_source(&state)?
         .identify(
             body.title.as_deref(),
             body.artist.as_deref(),
@@ -1725,7 +1718,7 @@ async fn identify_album(
         })
         .collect();
 
-    let candidates = metadata_mirror(&state)?
+    let candidates = metadata_source(&state)?
         .identify_album(artist, album, queries)
         .await
         .map_err(AuthError::Internal)?;
@@ -1782,7 +1775,7 @@ async fn apply_track_metadata(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    let recording = metadata_mirror(&state)?
+    let recording = metadata_source(&state)?
         .recording(
             &body.mb_recording_id,
             body.mb_release_id.as_deref(),
