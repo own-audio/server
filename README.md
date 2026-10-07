@@ -25,6 +25,16 @@ Free software under the GNU Affero General Public License, version 3 or later.
 > - [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md) — how the API is versioned so every client works with every server
 > - [docs/LICENSING.md](docs/LICENSING.md) — why AGPL
 
+## Who it is for
+
+One install serves **one family**: up to 12 people, on a home server, a NAS
+or a small VPS. It is built for big collections — a data-hoarder household
+with hundreds of thousands of songs and a thousand audiobooks — and aims for
+a smaller footprint than running Navidrome and Audiobookshelf side by side.
+The server process needs about 20 MiB at rest. How far the code is from that
+target, and what is left to do, is in [docs/CAPACITY.md](docs/CAPACITY.md)
+and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
+
 ## What it does
 
 - **Audiobooks**: upload or index in place, multi-file books, authors,

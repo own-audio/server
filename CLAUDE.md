@@ -216,6 +216,15 @@ queries.
 
 ## 7. Working rules
 
+- **Size every change for one family with a huge catalog**
+  (`docs/CAPACITY.md`, decided 2026-10-07): up to 12 people, up to 600,000
+  songs and 1,000 audiobooks, a smaller footprint than Navidrome and
+  Audiobookshelf. Catalog size may cost PostgreSQL rows and storage, never
+  server memory: every list is paginated, every catalog-wide question is
+  answered in SQL with an index, files are streamed, never read whole. A new
+  `fetch_all` over a catalog table is a bug. Memory figures and how to measure
+  them: `docs/RAM_USAGE.md`.
+
 - **Licence headers.** Every source file starts with
   `// SPDX-License-Identifier: AGPL-3.0-or-later` (or the language's comment
   form). A CI check enforces it. The full licence text is `LICENSE`; never

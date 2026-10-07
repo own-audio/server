@@ -496,6 +496,27 @@ music share and one audiobook share, plays in the console and in the Mac
 app, survives a rename on the share, and the conformance suite passes with
 `library_folders: true`.
 
+### Scale and footprint (decided 2026-10-07, runs alongside Phase 4)
+
+The positioning in `CAPACITY.md`: one install is one family of up to 12
+people, with catalogs up to 600,000 songs and 1,000 audiobooks, and a smaller
+footprint than Navidrome and Audiobookshelf. Work, in order:
+
+1. **Allocator settings** in the image (`RAM_USAGE.md`, "Proposed change"):
+   three `MALLOC_*` variables; measured peak 272 → 28 MiB.
+2. **PostgreSQL for one family** in the compose file (`shared_buffers`,
+   `max_connections`) and a server pool of 10; measure the stack again.
+3. **One family per install** in this edition: the first-run setup creates
+   the family, accounts come only by invite into it, and a second family
+   cannot be created. The member limit is a setting with 12 as its default,
+   not a hard-coded number. The hosted edition keeps many families.
+4. **Catalog-sized paths** (`CAPACITY.md`, "Known gaps", issue #2):
+   paginate, index, aggregate in SQL, stream files. Subsonic album and artist
+   lookups and `GET /music/tracks` first; they are on every client's path.
+5. **Scale test** in CI or as a script: 600k generated tracks, memory flat,
+   browse calls under 300 ms. Read-only library folders (issue #1) are only
+   done when their first scan passes it.
+
 ### Phase 5 — Clients learn to ask (rolling, per repo)
 
 What the survey found: every client already lets the user type a host, all

@@ -7,13 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-### Fixed
-- The release workflow pasted the image metadata into a shell string; once
-  the repository description contained an apostrophe, `v1.0.0-alpha.4` built
-  both images but created no tag. The metadata now goes through the
-  environment, and the step fails when it tags nothing.
-
 ### Added
+- `docs/CAPACITY.md`: who the server is for — one family of up to 12 people,
+  catalogs up to 600,000 songs and 1,000 audiobooks, a smaller footprint
+  than Navidrome and Audiobookshelf — and an audit of the places where
+  today's code still grows with the catalog (tracked in issue #2).
+- `docs/RAM_USAGE.md`: the memory investigation. The server needs about
+  20 MiB at rest; the 270 MiB seen after a burst is glibc keeping freed
+  memory, and three `MALLOC_*` settings bring the peak to 28 MiB. Includes a
+  comparison with Navidrome and Audiobookshelf.
+- Scope decisions 11–13 (one family per install, catalog size, footprint
+  goal) and a "Scale and footprint" section in the implementation plan.
+- README: who the server is for.
+- GitHub issues #1 (read-only library folders) and #2 (scale to a 600k-song
+  catalog).
 - `brand/github-avatar-512.png` and `brand/github-social-preview.png` for
   the GitHub organisation and the repository's link preview.
 - A Docker Hub overview (`DOCKERHUB.md`), published by its own workflow
@@ -43,6 +50,12 @@ semver. Each release states the **API contract revision** it serves
   local storage, SMTP mail, music identify, podcast discovery) are marked as
   coming instead of listed as available. The native apps are described as in
   development.
+
+### Fixed
+- The release workflow pasted the image metadata into a shell string; once
+  the repository description contained an apostrophe, `v1.0.0-alpha.4` built
+  both images but created no tag. The metadata now goes through the
+  environment, and the step fails when it tags nothing.
 
 ## [1.0.0-alpha.4] - 2026-10-07
 
