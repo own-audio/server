@@ -11,9 +11,10 @@ Navidrome and Audiobookshelf. The target this serves is in
   allocator keeps** after the work is done, not data the server still holds.
 - Three environment variables bring the peak under the full API test suite
   from **272 MiB to 28 MiB**, with every test passing at the same speed. They
-  are not applied yet; see "Proposed change".
-- With them, the server process is well below Navidrome and Audiobookshelf.
-  The whole stack is not yet, because PostgreSQL comes on top.
+  are set in the image since 1.0.0-alpha.6 (see "Applied").
+- With them and a family-sized PostgreSQL, **the whole stack** (server and
+  database) uses **41 MiB idle and 111 MiB at peak** — less than Navidrome
+  and Audiobookshelf together (about 164 MiB idle, 176 MiB peak).
 
 ## Method
 
@@ -170,9 +171,24 @@ Other notes:
   with 512 MiB) has real headroom instead of filling up with retained
   memory.
 
-## Proposed change (not applied)
+## Applied (2026-10-07, 1.0.0-alpha.6)
 
-1. Set the three variables in the runtime stage of `backend/Dockerfile`
+Whole stack after the change, container memory as `docker stats` reports it,
+same suite:
+
+| | Idle | Peak during the suite | 60 s after |
+|---|---|---|---|
+| server | 14 MiB | 27 MiB | 23 MiB |
+| PostgreSQL (`shared_buffers` 32 MB, 30 connections) | 27 MiB | 84 MiB | 79 MiB |
+| **together** | **41 MiB** | **111 MiB** | **102 MiB** |
+
+The suite passed (321 ok). PostgreSQL's peak includes the pages it has just
+read; it does not grow with the number of requests.
+
+What was changed:
+
+1. The three variables in the runtime stage of `backend/Dockerfile` (the
+   hosted edition's Dockerfile should follow once canary has measured it): in the runtime stage of `backend/Dockerfile`
    (and the hosted edition's Dockerfile), so every install gets them:
 
    ```dockerfile
@@ -183,10 +199,11 @@ Other notes:
 
    The heavier alternative is a different global allocator (jemalloc or
    mimalloc as `#[global_allocator]`); not needed while the variables work.
-2. Tune PostgreSQL for one family in the compose file: `shared_buffers=64MB`,
-   `max_connections=30`, and a server pool of 10 instead of 20
-   (`db/mod.rs`). Measure the stack again afterwards.
-3. Remove the catalog-sized allocations listed in
+2. PostgreSQL in the compose file: `shared_buffers=32MB`,
+   `max_connections=30`, `work_mem=4MB`; the server's pool is 10
+   (`DATABASE_MAX_CONNECTIONS`, was a fixed 20).
+
+Still to do: remove the catalog-sized allocations listed in
    [CAPACITY.md](CAPACITY.md) before claiming flat memory for large
    catalogs.
 

@@ -502,9 +502,9 @@ The positioning in `CAPACITY.md`: one install is one family, with no limit
 on its members, with catalogs up to 600,000 songs and 1,000 audiobooks, and a smaller
 footprint than Navidrome and Audiobookshelf. Work, in order:
 
-1. **Allocator settings** in the image (`RAM_USAGE.md`, "Proposed change"):
+1. **Done (alpha.6).** **Allocator settings** in the image (`RAM_USAGE.md`, "Applied"):
    three `MALLOC_*` variables; measured peak 272 → 28 MiB.
-2. **PostgreSQL for one family** in the compose file (`shared_buffers`,
+2. **Done (alpha.6).** **PostgreSQL for one family** in the compose file (`shared_buffers`,
    `max_connections`) and a server pool of 10; measure the stack again.
    Part of Phase 6 item 4, with backups and major upgrades.
 3. **One family per install** in this edition: the first-run setup creates
@@ -652,6 +652,17 @@ features come from `/api/v1/server`, and both editions must pass.
 ---
 
 ## 7. Status
+
+**Release target (Kornel, 2026-10-07):** the whole plan — Phases 3, 4, 6 and
+"Scale and footprint" — ships together as **1.1.0**. Pre-releases
+(`1.0.0-alpha.N`) keep coming for the demo while it is built.
+
+**Raspberry Pi demo (Kornel, 2026-10-07):** a Raspberry Pi 3 (1 GB) at home
+runs the server with **local storage and library folders only** — no S3, no
+cloud — and is published through a Cloudflare Tunnel from the home network.
+It is the marketing proof that the server runs on small hardware; it needs
+Phase 4 (local storage, library folders, server streaming) first. Measured
+figures from it go into `RAM_USAGE.md` and the README.
 
 | Phase | State | Notes |
 |---|---|---|

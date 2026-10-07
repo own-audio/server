@@ -23,10 +23,15 @@ pub mod music;
 pub mod subsonic;
 pub mod trash;
 
+/// Pool size when `DATABASE_MAX_CONNECTIONS` is unset. A family's requests,
+/// the worker and file sync fit in ten; every idle PostgreSQL connection costs
+/// a few MB of the database's memory (`docs/RAM_USAGE.md`).
+pub const DEFAULT_MAX_CONNECTIONS: u32 = 10;
+
 /// Connect to PostgreSQL and return a connection pool.
-pub async fn connect(database_url: &str) -> anyhow::Result<PgPool> {
+pub async fn connect(database_url: &str, max_connections: u32) -> anyhow::Result<PgPool> {
     PgPoolOptions::new()
-        .max_connections(20)
+        .max_connections(max_connections)
         .connect(database_url)
         .await
         .context("could not connect to PostgreSQL")

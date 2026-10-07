@@ -35,7 +35,10 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
     );
 
     // Connect to PostgreSQL
-    let pool = db::connect(&config.database_url)
+    let pool = db::connect(
+        &config.database_url,
+        config.database_max_connections.unwrap_or(db::DEFAULT_MAX_CONNECTIONS),
+    )
         .await
         .context("failed to connect to database")?;
 

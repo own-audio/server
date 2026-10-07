@@ -11,6 +11,11 @@ pub struct AppConfig {
     /// PostgreSQL connection URL.
     pub database_url: String,
 
+    /// `DATABASE_MAX_CONNECTIONS` — the server's connection pool size. Unset
+    /// ⇒ [`crate::db::DEFAULT_MAX_CONNECTIONS`] (10), sized for one family; a
+    /// busy multi-family deployment raises it.
+    pub database_max_connections: Option<u32>,
+
     /// Storage configuration (S3-compatible object storage).
     pub storage: StorageConfig,
 

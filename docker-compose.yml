@@ -4,7 +4,18 @@
 # the first admin. INSTALL.md has the long version.
 services:
   postgres:
+    # The major version is pinned on purpose: a new major needs a dump and
+    # restore (UPGRADING.md), so it must never change by accident.
     image: postgres:16-alpine
+    # Sized for one family (docs/RAM_USAGE.md); raise shared_buffers for a very
+    # large catalog. The server's pool is 10 (DATABASE_MAX_CONNECTIONS).
+    command: >
+      postgres
+      -c shared_buffers=32MB
+      -c max_connections=30
+      -c work_mem=4MB
+      -c maintenance_work_mem=32MB
+      -c effective_cache_size=256MB
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-ownaudio}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}

@@ -85,6 +85,14 @@ RUN if find /tmp/audio2-extra-certs -type f \( -name '*.crt' -o -name '*.pem' \)
             update-ca-certificates; \
         fi
 
+# glibc keeps freed memory per thread arena and grows its mmap threshold after
+# the first large buffer, so the process holds the peak of every burst; these
+# hand it back (docs/RAM_USAGE.md: test-suite peak 272 MiB -> 28 MiB, same
+# speed). Override in compose if a deployment measures otherwise.
+ENV MALLOC_ARENA_MAX=2 \
+    MALLOC_MMAP_THRESHOLD_=131072 \
+    MALLOC_TRIM_THRESHOLD_=131072
+
 WORKDIR /app
 
 COPY --from=builder       /build/audio2                         /app/audio2

@@ -7,7 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+- The image sets `MALLOC_ARENA_MAX=2`, `MALLOC_MMAP_THRESHOLD_=131072` and
+  `MALLOC_TRIM_THRESHOLD_=131072`: the server's peak under the test suite
+  falls from 272 MiB to 27 MiB at the same speed.
+- The compose file runs PostgreSQL sized for one family (`shared_buffers`
+  32 MB, 30 connections) and pins its major version. Server and database
+  together: 41 MiB idle, 111 MiB at peak.
+- The server's database pool is 10 connections by default and configurable
+  with `DATABASE_MAX_CONNECTIONS` (it was a fixed 20). A busy deployment —
+  the hosted edition — should set it explicitly.
+
 ### Added
+- Plan: everything ships together as 1.1.0; a Raspberry Pi 3 demo with local
+  storage only, published through a Cloudflare Tunnel.
 - Plan, Phase 6 item 4, and scope decision 14: PostgreSQL stays the only
   database, and before 1.0 the server makes it painless — family-sized
   settings by default, nightly automatic backups with a tested restore, and
