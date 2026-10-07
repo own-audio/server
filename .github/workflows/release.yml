@@ -110,7 +110,12 @@ jobs:
           set -e
           for image in $(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[] | split(":")[0]' | sort -u); do
             tags=$(echo '${{ steps.meta.outputs.json }}' | jq -r --arg img "$image" '.tags[] | select(startswith($img + ":")) | "-t " + .' | tr '\n' ' ')
-            docker buildx imagetools create $tags $(for d in *; do echo "ghcr.io/own-audio/server@$(cat "$d")"; done)
+            # Index annotations: GHCR shows the description on a multi-arch package only from these.
+            docker buildx imagetools create $tags \
+              --annotation "index:org.opencontainers.image.description=Self-hosted server for a family's audiobooks, podcasts and music. AGPL-3.0." \
+              --annotation "index:org.opencontainers.image.source=https://github.com/own-audio/server" \
+              --annotation "index:org.opencontainers.image.licenses=AGPL-3.0-or-later" \
+              $(for d in *; do echo "ghcr.io/own-audio/server@$(cat "$d")"; done)
           done
       - name: Inspect
         run: docker buildx imagetools inspect ghcr.io/own-audio/server:${{ steps.meta.outputs.version }}

@@ -5,16 +5,20 @@
 # own.audio server
 
 A self-hosted server for a family's **audiobooks, podcasts and music** — one
-library, one server, native apps for Mac, iPhone, iPad, Apple TV, Android and
-Windows, plus a web console. Rust and PostgreSQL. Free software under the
-GNU Affero General Public License, version 3 or later.
+library, one server, a web console and an OpenSubsonic API, with native apps
+for Apple devices, Android and Windows in development. Rust and PostgreSQL.
+Free software under the GNU Affero General Public License, version 3 or later.
 
-> **Status: pre-release.** The server code is here (a snapshot of the
-> codebase behind the hosted service at [own.audio](https://www.own.audio),
-> with the hosted-only parts left out) and builds from source with the compose
-> stack below; there is no tagged release or published image yet, and the
-> install guide is still being reworked. The plan, the scope and the API
-> policy are the place to start:
+[![Demo](https://img.shields.io/badge/demo-demo.own.audio-7c5cff)](https://demo.own.audio)
+[![Docker Hub](https://img.shields.io/docker/v/kornelko2/own-audio-server?label=docker%20hub&sort=semver)](https://hub.docker.com/r/kornelko2/own-audio-server)
+[![Licence](https://img.shields.io/badge/licence-AGPL--3.0--or--later-blue)](LICENSE)
+
+> **Status: pre-release.** This is the codebase behind the hosted service at
+> [own.audio](https://www.own.audio), with the hosted-only parts left out.
+> Alpha releases are tagged and published as images for amd64 and arm64
+> (see [CHANGELOG.md](CHANGELOG.md)); some features below are still being
+> built and are marked as such. The plan, the scope and the API policy are
+> the place to start:
 >
 > - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — what happens, in what order
 > - [docs/SCOPE.md](docs/SCOPE.md) — what is in, what is optional, what stays hosted-only
@@ -27,22 +31,25 @@ GNU Affero General Public License, version 3 or later.
   series, collections, bookmarks, progress that follows you between devices.
 - **Podcasts**: subscribe, refresh, download on the server, transcripts
   where the feed has them, YouTube channels as feeds.
-- **Music**: tags-based library, albums and artists, playlists, smart
-  playlists, lyrics, stars, duplicate detection; identify against MusicBrainz;
-  an OpenSubsonic API so your favourite music app works too.
+- **Music**: tags-based library, albums, artists and genres, playlists, smart
+  playlists, lyrics, stars and ratings, duplicate detection; an OpenSubsonic
+  API so your favourite music app works too. Identify against the public
+  MusicBrainz API is coming (Phase 4).
 - **Family**: one server, several people. Private by default, shared when you
   say so; roles, parental controls per member, join by link or QR code.
-- **Your files stay yours**: point the server at the music and audiobook
-  folders you already have on a disk or NAS. It indexes them read-only and
-  never writes there. Uploads go to local storage or any S3-compatible bucket.
+- **Your files stay yours**: uploads go to any S3-compatible bucket. Coming
+  before 1.0 (Phase 4): point the server at the music and audiobook folders
+  you already have on a disk or NAS, indexed read-only, and plain local
+  storage instead of a bucket.
 - **Playback everywhere**: progress, bookmarks and the play queue sync across
-  the native apps and the web console; a 30-day trash catches mistakes.
+  the web console and the apps; a 30-day trash catches mistakes.
+- **Statistics**: listening history per member and a yearly recap.
 - **Nothing phones home.** No telemetry, no update checks, no accounts
   anywhere but on your server.
 
 Optional, off until you configure them: sign-in with Google, Apple or
-Microsoft; e-mail notifications over SMTP; book identification through
-Google Books; podcast discovery through Podcast Index.
+Microsoft; book identification through Google Books. Coming: e-mail
+notifications over SMTP and podcast discovery through Podcast Index.
 
 ## Two editions, one API
 
@@ -54,8 +61,9 @@ it offers.
 |---|---|---|
 | Run it on your own hardware | yes | — |
 | Audiobooks, podcasts, music, family sharing, web console, OpenSubsonic | yes | yes |
-| Read-only library folders, local storage | yes | — |
-| Sign-in providers, SMTP mail, music identify | optional, you configure | yes |
+| Read-only library folders, local storage | coming (Phase 4) | — |
+| Sign-in providers | optional, you configure | yes |
+| SMTP mail, music identify | coming, optional | yes |
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |
 | Storage billing, payments | — | yes |
 
@@ -63,17 +71,17 @@ it offers.
 
 A public demo of exactly this edition runs at **https://demo.own.audio**:
 sign in as `guest@demo.own.audio` with the password `own-audio-demo`. It
-holds a public-domain audiobook (LibriVox's *Alice's Adventures in
-Wonderland*), three Creative Commons tracks by Kevin MacLeod and the Hacker
-Public Radio podcast, and it resets every night, so change whatever you like.
+holds four public-domain LibriVox audiobooks, 38 Creative Commons songs,
+three Creative Commons podcasts and a year of the guest's listening, so the
+statistics, the yearly recap and the smart playlists have something to show.
+It resets every night, so change whatever you like.
 
 ## Running it
 
 ```bash
 git clone https://github.com/own-audio/server.git && cd server
 cp .env.example .env            # set POSTGRES_PASSWORD, S3_SECRET_KEY, SESSION_SECRET
-docker compose pull server      # amd64: the published pre-release image
-docker compose build server     # arm64 (Raspberry Pi, Apple silicon): build it, ~15 min
+docker compose pull             # the published pre-release image, amd64 or arm64
 docker compose up -d            # PostgreSQL 16, RustFS and the server
 ```
 
@@ -84,9 +92,9 @@ amd64 and arm64. [INSTALL.md](INSTALL.md) has the details.
 ## Clients
 
 The native apps live in their own repositories and are not part of this one.
-They work against this server and against the hosted service alike; the
-minimum server version each needs is stated in its README. Any OpenSubsonic
-client works with the music library.
+They are in development and not released yet. They are built to work against
+this server and the hosted service alike. Today, any OpenSubsonic client
+works with the music library, and the web console covers everything else.
 
 ## Project
 

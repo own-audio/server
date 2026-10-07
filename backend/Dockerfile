@@ -64,6 +64,12 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
 
 # ── Stage 3: runtime ─────────────────────────────────────
 FROM debian:bookworm-slim
+LABEL org.opencontainers.image.title="own.audio server" \
+      org.opencontainers.image.description="Self-hosted server for a family's audiobooks, podcasts and music. AGPL-3.0." \
+      org.opencontainers.image.source="https://github.com/own-audio/server" \
+      org.opencontainers.image.url="https://demo.own.audio" \
+      org.opencontainers.image.documentation="https://github.com/own-audio/server/blob/main/INSTALL.md" \
+      org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \

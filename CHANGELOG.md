@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- A Docker Hub overview (`DOCKERHUB.md`), published by its own workflow
+  whenever it changes; OCI labels on the image and annotations on the multi-arch
+  index, so GHCR and Docker Hub show a description, the source and the licence.
+
+### Changed
+- README and INSTALL: both architectures are pulled, the demo's content is
+  described as it is now, and features still being built (library folders,
+  local storage, SMTP mail, music identify, podcast discovery) are marked as
+  coming instead of listed as available. The native apps are described as in
+  development.
+
 ## [1.0.0-alpha.4] - 2026-10-07
 
 Contract revision 2 (unchanged).

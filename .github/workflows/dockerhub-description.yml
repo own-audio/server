@@ -1,0 +1,22 @@
+name: docker hub description
+
+# The Docker Hub page: overview from DOCKERHUB.md and a one-line summary.
+# The token needs the "Read, Write, Delete" scope; pushing images alone does not.
+on:
+  push:
+    branches: [main]
+    paths: [DOCKERHUB.md, .github/workflows/dockerhub-description.yml]
+  workflow_dispatch:
+
+jobs:
+  description:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: ${{ vars.DOCKERHUB_IMAGE || 'ownaudio/server' }}
+          short-description: "Self-hosted audiobooks, podcasts and music for a family. Rust, PostgreSQL, AGPL."
+          readme-filepath: ./DOCKERHUB.md

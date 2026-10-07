@@ -41,9 +41,8 @@ services:
     restart: unless-stopped
 
   server:
-    # amd64: `docker compose pull server` takes the published image. arm64 (a Pi,
-    # an Apple-silicon Mac): `docker compose build server` builds it from this
-    # checkout until the release workflow has a native arm64 runner.
+    # `docker compose pull server` takes the published image (amd64 and arm64);
+    # `docker compose build server` builds this checkout instead.
     image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-alpha.4}
     build:
       context: .

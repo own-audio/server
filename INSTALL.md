@@ -1,8 +1,8 @@
 # Installing the own.audio server
 
 > Pre-release (`1.0.0-alpha.4`). The published image is
-> `ghcr.io/own-audio/server`, amd64 only for now; on arm64 build from source
-> with `docker compose build server`.
+> `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker
+> Hub), for amd64 and arm64.
 
 ## What you need
 
@@ -24,7 +24,7 @@ git clone https://github.com/own-audio/server.git
 cd server
 cp .env.example .env
 # set POSTGRES_PASSWORD, S3_SECRET_KEY and SESSION_SECRET (openssl rand -hex 32)
-docker compose pull server      # amd64; on arm64 run `docker compose build server` instead
+docker compose pull server
 docker compose up -d
 ```
 
