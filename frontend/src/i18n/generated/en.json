@@ -1072,6 +1072,7 @@
   "player.error.aborted": "Playback was interrupted.",
   "player.error.cantPlay": "Couldn't play this",
   "player.error.decode": "This file couldn't be decoded.",
+  "player.error.format": "This browser can't play the file's format. Try another browser, such as Chrome or Firefox.",
   "player.error.generic": "Something went wrong loading it.",
   "player.error.network": "The connection dropped while loading it.",
   "player.error.noFreshLink": "The server wouldn't give out a fresh link for it.",

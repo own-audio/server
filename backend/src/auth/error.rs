@@ -36,6 +36,12 @@ pub enum AuthError {
     #[error("provider not configured")]
     ProviderNotConfigured,
 
+    /// The request is valid but the item is not in the state it needs — a
+    /// podcast episode streamed before it was downloaded. `409` with the
+    /// given message, never a `500`: nothing failed on the server.
+    #[error("{0}")]
+    Conflict(String),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -52,6 +58,7 @@ impl IntoResponse for AuthError {
             AuthError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
             AuthError::IdentityConflict => (StatusCode::CONFLICT, self.to_string()),
             AuthError::ProviderNotConfigured => (StatusCode::NOT_IMPLEMENTED, self.to_string()),
+            AuthError::Conflict(message) => (StatusCode::CONFLICT, message.clone()),
             AuthError::Internal(e) => {
                 tracing::error!("auth internal error: {e:#}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal server error".to_string())

@@ -1078,6 +1078,7 @@ export interface MessageParams {
   "player.error.aborted": undefined;
   "player.error.cantPlay": undefined;
   "player.error.decode": undefined;
+  "player.error.format": undefined;
   "player.error.generic": undefined;
   "player.error.network": undefined;
   "player.error.noFreshLink": undefined;

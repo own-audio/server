@@ -1992,9 +1992,9 @@ async fn stream_episode(
         return Err(AuthError::ItemNotFound);
     }
 
-    let audio_object_id = episode.audio_object_id.ok_or_else(|| {
-        AuthError::Internal(anyhow::anyhow!("episode not yet downloaded — call /download first"))
-    })?;
+    let audio_object_id = episode
+        .audio_object_id
+        .ok_or_else(|| AuthError::Conflict("episode_not_downloaded".to_string()))?;
 
     // Read the stored key rather than recomputing it: the layout changed once
     // already (episodes are under the family prefix now) and objects written

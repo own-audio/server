@@ -53,6 +53,13 @@ semver. Each release states the **API contract revision** it serves
   development.
 
 ### Fixed
+- Streaming a podcast episode that is not downloaded yet answers
+  `409 episode_not_downloaded` instead of a `500` that logged an internal
+  error.
+- The console's player said "the link expired, or the file isn't on the
+  server" when the file was fine but the browser cannot play its format —
+  Safari and Ogg Vorbis podcasts. It now checks whether the file loads and
+  says the format is the problem.
 - The release workflow pasted the image metadata into a shell string; once
   the repository description contained an apostrophe, `v1.0.0-alpha.4` built
   both images but created no tag. The metadata now goes through the

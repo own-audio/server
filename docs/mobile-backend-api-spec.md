@@ -448,7 +448,7 @@ included, together with the storage objects that leaves unreferenced.
 | POST | `/podcasts/{id}/sync-images` | Backfill missing channel/episode artwork into S3. |
 | POST | `/podcasts/{id}/episodes/{ep_id}/download` | Fetch the episode's enclosure and persist it to S3 (idempotent). |
 | DELETE | `/podcasts/{id}/episodes/{ep_id}/download` | Move the stored copy to the trash (§4d); the episode stays listed with `has_local: false`. Subscriber, or a family admin when the feed is shared. Returns the episode. |
-| GET | `/podcasts/{id}/episodes/{ep_id}/stream` | `{url, expires_in_secs}` — presigned S3 URL, **requires prior `/download`**. |
+| GET | `/podcasts/{id}/episodes/{ep_id}/stream` | `{url, expires_in_secs}` — presigned S3 URL, **requires prior `/download`**. Before the download has finished: `409 {"error": "episode_not_downloaded"}` (it was a `500` before 1.0.0-alpha.5); play the episode's `audio_url` meanwhile. |
 | GET | `/podcasts/{id}/episodes/{ep_id}/image` | Proxied episode artwork. |
 
 Background refresh also happens via the `feed_refresh` job type (see §8),

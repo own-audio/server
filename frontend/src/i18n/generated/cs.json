@@ -1072,6 +1072,7 @@
   "player.error.aborted": "Přehrávání bylo přerušeno.",
   "player.error.cantPlay": "Nepodařilo se přehrát",
   "player.error.decode": "Tento soubor se nepodařilo dekódovat.",
+  "player.error.format": "Tento prohlížeč neumí formát souboru přehrát. Zkuste jiný prohlížeč, třeba Chrome nebo Firefox.",
   "player.error.generic": "Při načítání se něco pokazilo.",
   "player.error.network": "Při načítání vypadlo připojení.",
   "player.error.noFreshLink": "Server nevydal nový odkaz.",

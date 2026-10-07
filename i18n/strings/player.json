@@ -58,6 +58,11 @@
     "en": "This file couldn't be decoded.",
     "cs": "Tento soubor se nepodařilo dekódovat."
   },
+  "player.error.format": {
+    "en": "This browser can't play the file's format. Try another browser, such as Chrome or Firefox.",
+    "cs": "Tento prohlížeč neumí formát souboru přehrát. Zkuste jiný prohlížeč, třeba Chrome nebo Firefox.",
+    "note": "The file loads, but its audio format (e.g. Ogg in Safari) is not supported by the browser."
+  },
   "player.error.source": {
     "en": "The link expired, or the file isn't on the server.",
     "cs": "Platnost odkazu vypršela, nebo soubor na serveru není."

@@ -87,6 +87,21 @@ function isCompleted(pos: number, dur: number) {
   return dur > 0 && pos / dur > 0.95;
 }
 
+/** "Source not supported" covers two different failures: a link that no
+ *  longer works, and a file the link serves fine in a format this browser
+ *  cannot play (Safari and Ogg Vorbis). Asking for the first bytes tells them
+ *  apart. A link on another host may refuse the check (CORS); then we cannot
+ *  know and keep the general message. */
+async function explainSourceError(url: string): Promise<string> {
+  try {
+    const res = await fetch(url, { headers: { Range: "bytes=0-1" } });
+    if (res.ok) return translate("player.error.format");
+  } catch {
+    /* unreachable or cross-origin: no better answer */
+  }
+  return translate("player.error.source");
+}
+
 /** Re-resolve a stream URL. They expire in ~4 h, so a tab left open overnight
  *  gets a 403 from storage on the next play rather than at page load. */
 async function resolveStreamUrl(t: PlayerTrack): Promise<string> {
@@ -306,7 +321,12 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
         toast.error(translate("player.error.cantPlay"), reason);
       };
       if (retriedRef.current || !track || !audio) {
-        fail(mediaErrorText(audio?.error));
+        const src = audio?.currentSrc || audio?.src;
+        if (audio?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && src && !src.startsWith("blob:")) {
+          fail(await explainSourceError(src));
+        } else {
+          fail(mediaErrorText(audio?.error));
+        }
         return;
       }
       retriedRef.current = true;
