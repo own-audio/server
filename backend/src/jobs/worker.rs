@@ -124,6 +124,11 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
     // cadence instead of two independently-firing timers.
     let sweep_every_n_ticks = (CHECKSUM_SWEEP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
     let mut ticks_since_sweep: u64 = sweep_every_n_ticks; // sweep on the first tick too
+    // Whether the last sweep found work. While it did, the next batch goes in
+    // as soon as the previous one has drained instead of an hour later: at 200
+    // an hour a 600,000-track first import took about four months.
+    let mut checksum_backlog = false;
+    let mut analysis_backlog = false;
 
     let analysis_sweep_every_n_ticks = (ANALYSIS_SWEEP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
     let mut ticks_since_analysis_sweep: u64 = analysis_sweep_every_n_ticks;
@@ -209,10 +214,15 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
 
         let handles_media_checksum = job_types.as_ref().is_none_or(|types| types.iter().any(|t| t == "media_checksum"));
         ticks_since_sweep += 1;
-        if handles_media_checksum && ticks_since_sweep >= sweep_every_n_ticks {
+        if handles_media_checksum
+            && (ticks_since_sweep >= sweep_every_n_ticks
+                || (checksum_backlog && db::jobs::pending_count(&pool, "media_checksum").await.is_ok_and(|n| n == 0)))
+        {
             ticks_since_sweep = 0;
+            checksum_backlog = false;
             match db::media::audio_objects_missing_checksum(&pool, CHECKSUM_SWEEP_BATCH_SIZE).await {
                 Ok(ids) if !ids.is_empty() => {
+                    checksum_backlog = true;
                     let count = ids.len();
                     for object_id in ids {
                         let payload = serde_json::json!({ "media_object_id": object_id.to_string() });
@@ -335,8 +345,12 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
             .as_ref()
             .is_none_or(|types| types.iter().any(|t| t == "analyze_audio"));
 
-        if handles_analysis && ticks_since_analysis_sweep >= analysis_sweep_every_n_ticks {
+        if handles_analysis
+            && (ticks_since_analysis_sweep >= analysis_sweep_every_n_ticks
+                || (analysis_backlog && db::jobs::pending_count(&pool, "analyze_audio").await.is_ok_and(|n| n == 0)))
+        {
             ticks_since_analysis_sweep = 0;
+            analysis_backlog = false;
             match db::music::families_wanting_analysis(&pool).await {
                 Ok(families) => {
                     for family_id in families {
@@ -349,6 +363,7 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
                         .await
                         {
                             Ok(n) if n > 0 => {
+                                analysis_backlog = true;
                                 info!(%family_id, count = n, "analysis sweep enqueued tracks")
                             }
                             Ok(_) => {}
@@ -682,9 +697,8 @@ async fn execute_analyze_audio(
         return Ok(());
     };
 
-    let bytes = storage.get(&object_key).await?;
-    let temp = tempfile::NamedTempFile::new()?;
-    tokio::fs::write(temp.path(), &bytes).await?;
+    // Streamed to disk, not held: a FLAC is 100–300 MB, times the job concurrency.
+    let temp = storage.download_to_temp(&object_key).await?;
 
     let version = crate::music::analysis::ANALYSIS_VERSION;
     let analysis = match crate::music::analysis::analyze(temp.path()).await {
