@@ -13,8 +13,12 @@ Contract revision 4.
 - Mail over SMTP submission (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`,
   `MAIL_FROM` in `.env`; `MAIL__SMTP_*` underneath): implicit TLS on 465 by
   default, STARTTLS on 587, or a password-less relay on your own network.
-  No password is sent over a connection that is not encrypted. The JMAP
-  sender stays for the hosted edition until its configuration moves over.
+  No password is sent over a connection that is not encrypted.
+
+### Removed
+- The JMAP mail sender (`MAIL__JMAP_*`). Mail goes over SMTP only; an
+  install that set the JMAP variables sends no mail until `MAIL__SMTP_*`
+  (or `SMTP_*` in `.env`) is set.
 - `features.one_family` in `GET /api/v1/server` (revision 4).
 - `SECURITY.md`, `CONTRIBUTING.md` and `docs/EDITIONS.md`.
 - Nightly database backups: a `backup` service in the compose file dumps

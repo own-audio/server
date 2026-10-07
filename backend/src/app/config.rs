@@ -36,7 +36,7 @@ pub struct AppConfig {
     /// any real load. See docs/music-metadata-plan.md.
     pub metadata: Option<MetadataConfig>,
 
-    /// Outbound mail (JMAP) for family invite emails. Unset ⇒ invite
+    /// Outbound mail (SMTP) for family invite emails. Unset ⇒ invite
     /// creation still succeeds and returns the code/link for out-of-band
     /// delivery; only the email step no-ops. See `crate::mail`.
     pub mail: Option<MailConfig>,
@@ -295,8 +295,7 @@ pub struct MetadataConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MailConfig {
-    /// SMTP submission server, e.g. `smtp.example.com`. When set, mail goes
-    /// out over SMTP and the JMAP fields are ignored.
+    /// SMTP submission server, e.g. `smtp.example.com`. Unset ⇒ no mail.
     #[serde(default)]
     pub smtp_host: Option<String>,
     /// Unset or blank ⇒ 465 for `tls`, 587 for `starttls`, 25 for `none`.
@@ -311,14 +310,6 @@ pub struct MailConfig {
     /// a private network. Credentials are never sent without TLS.
     #[serde(default)]
     pub smtp_security: Option<String>,
-    /// JMAP server base URL, e.g. `https://mail.example.com` (the hosted
-    /// edition's mailer until it moves to SMTP).
-    #[serde(default)]
-    pub jmap_base_url: Option<String>,
-    #[serde(default)]
-    pub jmap_user: Option<String>,
-    #[serde(default)]
-    pub jmap_password: Option<String>,
     /// Envelope + header From address. Most providers only accept the
     /// address of the mailbox you authenticate as.
     pub from_address: String,
@@ -346,10 +337,6 @@ impl MailConfig {
     /// `Some` and not blank: compose files pass unset variables as `""`.
     pub fn smtp_host(&self) -> Option<&str> {
         self.smtp_host.as_deref().map(str::trim).filter(|h| !h.is_empty())
-    }
-
-    pub fn jmap_base_url(&self) -> Option<&str> {
-        self.jmap_base_url.as_deref().map(str::trim).filter(|u| !u.is_empty())
     }
 }
 

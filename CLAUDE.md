@@ -373,5 +373,5 @@ so canary can build; promote; then Phase 3 (OpenAPI from code) and Phase 4
 deadline: rotate the Google Cloud key that leaked into `audio2`'s history
 (`AIzaSyD3S28JJ…`, commits `b4b65ae`, `e71caf5`) — a Phase 6 gate; lawyer;
 EUIPO. RustFS passed its first full conformance run (321/321); keep watching
-it. Mail is still JMAP code (Phase 6 replaces it with SMTP); the install
+it. Mail is SMTP only since 2026-10-07 (JMAP removed); the install
 script is gone until Phase 6 writes the new one (compose + INSTALL.md until then).

@@ -85,7 +85,7 @@ private hosted repository and never in this one.
 | Music identify | the public MusicBrainz API (`musicbrainz.org`, 1 request/s, keyless) in this edition; the hosted edition uses its private mirror service behind the same provider interface | `features.music_identify` |
 | Podcast discovery (search, similar, categories) | the public iTunes Search API (keyless) and, with a free key, the Podcast Index API; the hosted edition uses its private catalogue service | `features.podcast_discovery` |
 | Book identify | Google Books key | part of audiobooks; degrades to "unavailable" |
-| Mail notifications (family invite, inbox events) | an SMTP server, plain authenticated SMTP (done 2026-10-07). The JMAP sender stays only until the hosted edition's configuration moves to SMTP, then goes | `features.mail` |
+| Mail notifications (family invite, inbox events) | an SMTP server, plain authenticated SMTP only (done 2026-10-07; the JMAP sender is gone) | `features.mail` |
 | Artist images | none (Wikidata/Commons, keyless) | always on |
 
 The rule: an optional feature that is off answers `501 feature_unavailable`,

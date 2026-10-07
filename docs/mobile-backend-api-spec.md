@@ -179,7 +179,7 @@ get 403 on any family-admin route.
 
 - **`email`** (default) — `{email, role?}`. Single-use, 14-day TTL, bound to
   one address, may grant `family_admin`. Mailed automatically when the
-  server has `mail.*` configured (JMAP — see `crate::mail`); the response
+  server has `mail.*` configured (SMTP — see `crate::mail`); the response
   always includes the code/`join_url` too, so out-of-band delivery still
   works if mail is unset.
 - **`link`** — `{max_uses?, label?}`. No email, 7-day TTL, **always

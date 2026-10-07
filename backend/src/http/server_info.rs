@@ -48,7 +48,7 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
         json!(crate::library_folders::configured(cfg).is_ok_and(|f| !f.is_empty())),
     );
     features.insert("subsonic".into(), json!(true));
-    let mail = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some() || m.jmap_base_url().is_some());
+    let mail = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some());
     features.insert("mail".into(), json!(mail));
     // Revision 4: every account joins the one family; clients hide "leave".
     features.insert("one_family".into(), json!(state.hooks().one_family()));

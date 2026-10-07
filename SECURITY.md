@@ -1,7 +1,7 @@
 # Security
 
 Please report security problems privately, not in a public issue: e-mail
-**contact@own.audio** with "security" in the subject. Include what you found,
+**security@own.audio**. Include what you found,
 how to reproduce it and which version (`GET /api/v1/server` → `version`).
 
 You will get an answer within a week. A fix goes into the next release, with

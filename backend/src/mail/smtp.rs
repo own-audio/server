@@ -87,9 +87,6 @@ mod tests {
             smtp_user: user.map(Into::into),
             smtp_password: Some("secret".into()),
             smtp_security: security.map(Into::into),
-            jmap_base_url: None,
-            jmap_user: None,
-            jmap_password: None,
             from_address: "hello@example.com".into(),
             from_name: "own.audio".into(),
         }
