@@ -39,6 +39,10 @@ def run(ctx):
         ctx.check("features.auth lists local, google, apple, microsoft",
                   all(isinstance(auth.get(p), bool) for p in ("local", "google", "apple", "microsoft")), str(auth))
         ctx.check("deprecations is a list", isinstance(info.get("deprecations"), list))
+        if "demo" in info:
+            demo = info["demo"] or {}
+            ctx.check("demo carries an email and a password",
+                      all(isinstance(demo.get(k), str) and demo[k] for k in ("email", "password")))
         ctx.check("features.auth agrees with /auth/providers",
                   all(auth.get(p) == bool((ctx.providers.get(p) or {}).get("enabled")) for p in ("google", "apple", "microsoft")))
 

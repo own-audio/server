@@ -84,6 +84,10 @@ Rules:
   everything else `false`, and fall back to probing `GET /auth/providers`.
 - `deprecations` lists endpoints or fields scheduled for removal, each with a
   `sunset` date (§5). Normally empty.
+- `demo` (revision 2, optional) is present only on a public demo server:
+  `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
+  in with. Clients may show it on their sign-in screen and offer to fill it
+  in. It is set by `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD`.
 
 The web console in this repo and every native client hide or disable UI for a
 feature whose key is `false`. There is no second source of truth (no

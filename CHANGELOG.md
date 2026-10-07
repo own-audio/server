@@ -7,31 +7,35 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-### Added
-- The release workflow builds `linux/arm64` natively next to `linux/amd64`
-  and publishes one multi-arch tag; it pushes to Docker Hub (`ownaudio/server`)
-  as soon as the account's token is configured, and can be re-run for an
-  existing tag (`workflow_dispatch`). Attestation manifests are off, so the
-  package shows exactly two platforms. The Docker Hub repository name comes
-  from the `DOCKERHUB_IMAGE` repository variable (set to `kornelko2/own-audio-server`).
+## [1.0.0-alpha.2] - 2026-10-07
+
+Contract revision 2.
 
 ### Added
+- `GET /api/v1/server` carries an optional `demo` object (`email`, `password`)
+  when `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD` are set. The
+  console's sign-in screen then shows a "This is a demo" box with the shared
+  account and a button that fills it in. The values exist only in the
+  server's environment, never in the image or the console bundle.
+- The sign-in screen shows the server's version under the form.
+- The release workflow builds `linux/arm64` natively next to `linux/amd64`
+  and publishes one multi-arch tag to GHCR and Docker Hub
+  (`kornelko2/own-audio-server`, from the `DOCKERHUB_IMAGE` repository
+  variable). It can be re-run for an existing tag (`workflow_dispatch`).
+  Attestation manifests are off, so the package shows exactly two platforms.
 - A public demo of this edition at https://demo.own.audio (guest account in
   the README), reset nightly.
 
 ### Changed
 - The repository is public (2026-10-06); the compose stack defaults to the
-  published `ghcr.io/own-audio/server:1.0.0-alpha.1` image (amd64), with
-  `docker compose build server` for arm64.
+  published `ghcr.io/own-audio/server` image.
+- CI spends fewer minutes: the conformance job reuses Docker layer cache
+  between runs, documentation-only pushes skip the heavy jobs, and a newer
+  push cancels the run it supersedes.
 
 ### Removed
 - The inherited `install.sh` (it set up the old Garage stack under the old
   name); `docker compose up -d` with `.env` is the install path, see `INSTALL.md`.
-
-### Changed
-- CI spends fewer minutes: the conformance job reuses Docker layer cache
-  between runs, documentation-only pushes skip the heavy jobs, and a newer
-  push cancels the run it supersedes.
 
 ## [1.0.0-alpha.1] - 2026-10-06
 

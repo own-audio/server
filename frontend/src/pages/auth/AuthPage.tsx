@@ -3,6 +3,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { login, register, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
+import { getServerInfo } from "../../api/server";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 import AppleSignInButton from "../../components/AppleSignInButton";
 import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
@@ -39,6 +40,10 @@ export default function AuthPage() {
     (providers?.apple.enabled && providers.apple.web_client_id)
   );
 
+  // Best-effort too: without it the screen only loses the demo box and version line.
+  const { data: server } = useQuery({ queryKey: ["server-info"], queryFn: getServerInfo, staleTime: 60_000, retry: false });
+  const demo = mode === "login" ? server?.demo : undefined;
+
   useEffect(() => {
     if (token) navigate(next, { replace: true });
   }, [token, navigate, next]);
@@ -72,6 +77,30 @@ export default function AuthPage() {
   return (
     <AuthLayout>
       <AuthHeading title={mode === "login" ? t("auth.signIn.title") : t("auth.register.title")} />
+
+      {demo && (
+        <div className="mb-6 rounded-[10px] border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          <p className="font-semibold">{t("auth.demo.title")}</p>
+          <p className="mt-1 text-muted">{t("auth.demo.body")}</p>
+          <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+            <dt className="text-muted">{t("auth.field.email")}</dt>
+            <dd className="select-all break-all font-mono">{demo.email}</dd>
+            <dt className="text-muted">{t("auth.field.password")}</dt>
+            <dd className="select-all break-all font-mono">{demo.password}</dd>
+          </dl>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail(demo.email);
+              setPassword(demo.password);
+              setError(null);
+            }}
+            className="mt-2 font-medium text-accent-text hover:underline"
+          >
+            {t("auth.demo.fill")}
+          </button>
+        </div>
+      )}
 
       {/* One tap, nothing to type or remember — so it comes first. */}
       {hasSocial && (
@@ -164,6 +193,10 @@ export default function AuthPage() {
                 ),
               })}
         </p>
+      )}
+
+      {server?.version && (
+        <p className="mt-8 text-center text-xs text-muted">{t("auth.version", { version: server.version })}</p>
       )}
     </AuthLayout>
   );

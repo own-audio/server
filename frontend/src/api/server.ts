@@ -30,6 +30,8 @@ export interface ServerInfo {
   api: { version: number; revision: number };
   features: ServerFeatures;
   deprecations: unknown[];
+  /** Only on a public demo: the shared account visitors sign in with. */
+  demo?: { email: string; password: string };
 }
 
 export const NO_FEATURES: ServerFeatures = {

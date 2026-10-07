@@ -221,6 +221,9 @@ export interface MessageParams {
   "audiobooks.visibility.madePrivate": undefined;
   "audiobooks.visibility.shared": undefined;
   "auth.brandPitch": undefined;
+  "auth.demo.body": undefined;
+  "auth.demo.fill": undefined;
+  "auth.demo.title": undefined;
   "auth.error.badLogin": undefined;
   "auth.error.nameMissing": undefined;
   "auth.error.passwordShort": undefined;
@@ -241,6 +244,7 @@ export interface MessageParams {
   "auth.register.title": undefined;
   "auth.signIn.title": undefined;
   "auth.tagline": undefined;
+  "auth.version": { "version": string | number };
   "billing.alerts.balance": { "currency": string | number };
   "billing.alerts.days": undefined;
   "billing.alerts.description": undefined;

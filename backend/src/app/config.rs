@@ -77,6 +77,19 @@ pub struct ServerConfig {
     /// [`RateLimitConfig`]; `SERVER__RATE_LIMIT__ENABLED=false` turns them off.
     #[serde(default)]
     pub rate_limit: RateLimitConfig,
+
+    /// A public demo's shared sign-in, shown on the console's sign-in screen
+    /// so a visitor can try the server without asking for an account. Both
+    /// `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD` are published
+    /// through `GET /api/v1/server` to anyone, so set them only on a server
+    /// whose whole point is to be tried by strangers.
+    pub demo: Option<DemoConfig>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DemoConfig {
+    pub email: String,
+    pub password: String,
 }
 
 /// Per-client-IP request limits for the unauthenticated, guessable routes:

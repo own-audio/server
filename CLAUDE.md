@@ -328,7 +328,14 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ---
 
-## 9. Where we left off (2026-10-06, late)
+## 9. Where we left off (2026-10-07)
+
+`v1.0.0-alpha.2` (contract revision 2) adds the optional `demo` sign-in
+shown on the console's sign-in screen and the version under the form; the
+demo at https://demo.own.audio runs it, with the guest account set only in
+that server's `.env` (`audio2/deploy/demo/`).
+
+Earlier (2026-10-06, late):
 
 Phase 1 done and tagged `v1.0.0-alpha.1` (contract revision 1; CI green
 including the conformance job on a GitHub runner; the release workflow

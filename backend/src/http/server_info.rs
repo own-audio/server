@@ -16,7 +16,8 @@ pub const API_VERSION: u32 = 1;
 /// Bumped by every additive change to the v1 contract (new endpoint, field,
 /// enum value or `features` key) — the one number a client may compare.
 /// 1: this endpoint, `GET /family/storage`, the `feature_unavailable` 501.
-pub const API_REVISION: u32 = 1;
+/// 2: `demo` in this endpoint's response.
+pub const API_REVISION: u32 = 2;
 
 pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     let cfg = state.config();
@@ -52,12 +53,19 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
         features.insert(k, v);
     }
 
-    Json(json!({
+    // Only a public demo sets this; everywhere else the key is absent.
+    let demo = cfg.server.demo.as_ref().map(|d| json!({ "email": d.email, "password": d.password }));
+
+    let mut body = json!({
         "name": "own.audio",
         "edition": state.hooks().edition(),
         "version": env!("CARGO_PKG_VERSION"),
         "api": { "version": API_VERSION, "revision": API_REVISION },
         "features": Value::Object(features),
         "deprecations": [],
-    }))
+    });
+    if let Some(demo) = demo {
+        body["demo"] = demo;
+    }
+    Json(body)
 }
