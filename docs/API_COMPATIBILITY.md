@@ -135,7 +135,18 @@ old one (§5), or it is a `/api/v2` discussion.
 **A contract change and its documentation land in the same commit**: the
 handler, the `utoipa` annotations that regenerate `docs/api/openapi.json`, the
 revision bump, the `CHANGELOG.md` entry, and the client guide if the guide
-needs prose. CI fails when the committed OpenAPI file is stale.
+needs prose.
+
+`docs/api/openapi.json` is generated from the handlers' `#[utoipa::path]`
+annotations (`backend/src/http/openapi.rs`); routes are registered through
+`routes!`, so a documented route is a real one. Its `info.version` is
+`1.<revision>`. Two checks run in CI:
+
+- `cargo test` fails when the committed file is not what the code describes
+  (`OPENAPI_WRITE=1 cargo test openapi` regenerates it);
+- `scripts/check-api-contract.py` compares it with the last release tag and
+  fails when an operation disappeared or the document changed without a
+  revision bump.
 
 ---
 
@@ -158,8 +169,10 @@ promptly. Six months is the minimum, not the target.
 
 ## 6. Error shape and "feature unavailable"
 
-Every error under `/api/v1` is JSON: `{ "error": "<snake_case_code>", ... }`.
-Codes are part of the contract; messages are not.
+Every error under `/api/v1` is JSON: `{ "error": "..." }`. Most handlers put
+an English sentence there, not a code: clients branch on the status, never on
+the text. The exceptions that are codes, and contract, are `not_found`,
+`feature_unavailable` (below) and `rate_limited`.
 
 A request for a feature this server does not offer (unconfigured narration,
 billing on the open-source edition, SSO provider switched off) answers
@@ -187,6 +200,15 @@ lives. Clients never parse it, never persist it, and never assume its host.
 - A server that cannot verify a token answers `401`; clients then refresh once
   and, on a second `401`, sign out. This is already how every client behaves
   and it must stay so.
+- **Known quirk, kept for v1:** some handlers answer `401` for an item that
+  does not exist, where `404` would be right: family members, invites and
+  join codes (`/family/*`), users (`/users/*`), jobs, uploads and statistics
+  for another member. A client following the rule above refreshes its token
+  for nothing and then gets the same `401`; it must not sign out on a `401`
+  from these routes when the refresh succeeded. Changing the status of a case
+  clients already handle is not allowed within v1 (§4), so the fix waits for
+  `/api/v2` (§11). Newer code answers `404` for missing or hidden
+  items, as `/podcasts/*`, music and audiobooks do.
 
 ---
 
@@ -227,3 +249,14 @@ key that is `false` skips that feature's tests rather than failing them.
 
 The suite is the executable half of this document. When the suite and this
 document disagree, fix whichever is wrong in the same commit.
+
+---
+
+## 11. For `/api/v2`, not before
+
+Changes v1 cannot make (§4), collected so a v2 is one deliberate step:
+
+1. `404` instead of `401` for a missing item in `/family/*`, `/users/*`,
+   jobs, uploads and statistics (§7).
+2. Error bodies with a machine-readable `code` on every error, beside the
+   human `error` text.

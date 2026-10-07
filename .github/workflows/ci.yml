@@ -33,6 +33,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        # History and tags, for the contract check against the last release.
+        with: { fetch-depth: 0 }
       # Same version as rust-toolchain.toml and backend/Dockerfile — bump all three together.
       - uses: dtolnay/rust-toolchain@1.97
         with: { components: clippy }
@@ -42,8 +44,11 @@ jobs:
         working-directory: backend
       - run: cargo clippy --all-targets -- -D warnings
         working-directory: backend
+      # Includes openapi_json_is_current: docs/api/openapi.json must match the code.
       - run: cargo test
         working-directory: backend
+      - name: API contract against the last release (additive only, revision bumped)
+        run: python3 scripts/check-api-contract.py
       # Native install rather than the Docker action: the action's container
       # does not carry the toolchain rust-toolchain.toml pins.
       - uses: taiki-e/install-action@cargo-deny

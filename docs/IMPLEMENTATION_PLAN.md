@@ -399,9 +399,12 @@ incident; `audio2` CLAUDE.md rewritten for its new shape (see §6).
    nothing). Fixing it is a status-code change for a handled case, so it is
    **not** allowed inside v1 — record it as the first entry on the `/api/v2`
    list instead.
-5. Tighten `CorsLayer::permissive()` to an allow-list from config
-   (`SERVER__CORS_ORIGINS`, default: the server's own origin). Additive —
-   same-origin console keeps working; the hosted console build sets it.
+5. ~~Tighten `CorsLayer::permissive()` to an allow-list.~~ Decided against
+   (2026-10-07): the API carries no cookies, only an `Authorization` header,
+   and the permissive layer does not allow credentials, so another site can
+   neither use nor read a session. An allow-list would protect nothing and
+   break web clients on other origins (the hosted console on its own domain,
+   web Subsonic players).
 
 Exit: `v1.0.0-beta.1`; the compatibility policy is in force.
 
