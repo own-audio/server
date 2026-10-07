@@ -411,22 +411,19 @@ pub async fn update_track_lyrics(pool: &PgPool, id: Uuid, lyrics: &str) -> anyho
 // `music_tracks` denormalizes artist/album as text, so these aggregate on the
 // fly. Blank values collapse into "Unknown …" buckets rather than vanishing.
 
-const UNKNOWN_ALBUM: &str = "Unknown Album";
-
 /// Which artist a track's album is filed under (docs/album-artist-plan.md §2.1): the explicit
 /// `album_artist`, else the track artist without its guests. The SQL twin of
 /// `MusicTrack::effective_album_artist` / `music::models::primary_artist` — same pattern, and
 /// the two must agree or an album screen lists different tracks than the album list counted.
 /// Blank on both sides collapses into "Unknown Artist", like the other "Unknown …" buckets.
-pub(crate) const ALBUM_ARTIST_SQL: &str = "COALESCE(
-    NULLIF(trim(t.album_artist), ''),
-    NULLIF(regexp_replace(trim(t.artist), '\\s+[(\\[]?(feat\\.?|ft\\.?|featuring)\\s.*$', '', 'i'), ''),
-    'Unknown Artist')";
+///
+/// Stored as a generated column since migration 0089, which holds the
+/// expression; computing it per row per query was most of an album list's time.
+pub(crate) const ALBUM_ARTIST_SQL: &str = "t.album_artist_key";
 
 /// The track's own artist without its guests — rule 3 alone, ignoring any album artist.
-const PRIMARY_ARTIST_SQL: &str = "COALESCE(
-    NULLIF(regexp_replace(trim(t.artist), '\\s+[(\\[]?(feat\\.?|ft\\.?|featuring)\\s.*$', '', 'i'), ''),
-    'Unknown Artist')";
+/// A generated column since migration 0089.
+const PRIMARY_ARTIST_SQL: &str = "t.primary_artist_key";
 
 /// Everyone with an album of their own, plus everyone who only appears on someone else's —
 /// a singer whose one track sits on a "Various Artists" compilation. Grouping by album artist
@@ -442,7 +439,7 @@ pub async fn list_artists(
                 COUNT(DISTINCT track_id) AS track_count
          FROM (
              SELECT t.id AS track_id, {ALBUM_ARTIST_SQL} AS name,
-                    COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') AS album, TRUE AS files_album
+                    t.album_key AS album, TRUE AS files_album
              FROM music_tracks t
              WHERE {VISIBLE}
              UNION ALL
@@ -467,7 +464,7 @@ pub async fn list_albums(
 ) -> anyhow::Result<Vec<(String, String, i64, Option<i64>, Option<Uuid>)>> {
     let sql = format!(
         "SELECT {ALBUM_ARTIST_SQL} AS artist,
-                COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') AS album,
+                t.album_key AS album,
                 COUNT(*) AS track_count,
                 SUM(t.duration_secs)::bigint AS duration_secs,
                 -- NULL when no track in the album has art at all: handing back a track id

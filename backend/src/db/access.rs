@@ -46,8 +46,30 @@ pub fn table_for_kind(kind: &str) -> Option<&'static str> {
 /// );
 /// sqlx::query_as(&sql).bind(user_id).bind(family_id).bind(is_admin).bind(AUDIOBOOK)
 /// ```
-pub const VISIBLE: &str =
-    "audio2_can_access($1, $2, $3, $4, t.id, t.user_id, t.family_id)";
+///
+/// It is `audio2_can_access` (migration 0019) written out inline: the owner
+/// sees their own items; a family's shared items are visible to its admins,
+/// and to members unless a per-item grant or their media policy denies it.
+/// Inline, PostgreSQL evaluates the policy once per query and the grants as
+/// one hashed set, instead of calling the function for every row — at
+/// 600,000 tracks that is 0.2 s instead of 1.6 s for a family's album list
+/// (docs/CAPACITY.md). Keep the two in step.
+pub const VISIBLE: &str = "(t.user_id = $1
+    OR (t.family_id IS NOT NULL AND t.family_id = $2 AND (
+        $3
+        OR t.id IN (SELECT g.item_id FROM content_grants g
+                     WHERE g.user_id = $1 AND g.media_kind = $4 AND g.effect = 'allow')
+        OR (t.id NOT IN (SELECT g.item_id FROM content_grants g
+                          WHERE g.user_id = $1 AND g.media_kind = $4 AND g.effect = 'deny')
+            AND COALESCE((SELECT p.policy FROM member_media_policy p
+                           WHERE p.family_id = $2 AND p.user_id = $1 AND p.media_kind = $4),
+                          'allow_all') = 'allow_all'))))";
+
+/// [`VISIBLE`] for a fixed media kind (an SQL literal such as `'music'`, or a
+/// column such as `t.media_kind`) in place of the `$4` parameter.
+pub fn visible_for(kind_sql: &str) -> String {
+    VISIBLE.replace("$4", kind_sql)
+}
 
 /// Everything needed to evaluate visibility for one request.
 #[derive(Debug, Clone, Copy)]

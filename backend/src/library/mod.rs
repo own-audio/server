@@ -355,15 +355,15 @@ async fn continue_listening(
         _,
         (uuid::Uuid, uuid::Uuid, String, String, f64, Option<i32>, DateTime<Utc>),
     >(
-        "SELECT pp.episode_id, pe.feed_id, pe.title, t.title,
+        &format!("SELECT pp.episode_id, pe.feed_id, pe.title, t.title,
                 pp.position_secs, pe.duration_secs, pp.updated_at
          FROM podcast_progress pp
          JOIN podcast_episodes pe ON pe.id = pp.episode_id
          JOIN podcast_feeds    t  ON t.id  = pe.feed_id
          WHERE pp.user_id = $1 AND pp.completed = false
-           AND audio2_can_access($1, $2, $3, 'podcast', t.id, t.user_id, t.family_id)
+           AND {visible_podcast}
          ORDER BY pp.updated_at DESC
-         LIMIT 20",
+         LIMIT 20", visible_podcast = crate::db::access::visible_for("'podcast'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)
@@ -383,7 +383,7 @@ async fn continue_listening(
         _,
         (uuid::Uuid, String, Option<String>, f64, Option<i32>, DateTime<Utc>),
     >(
-        "SELECT ap.book_id, t.title, t.author,
+        &format!("SELECT ap.book_id, t.title, t.author,
                 COALESCE(prior.prior_secs, 0) + ap.position_secs, t.total_duration_secs, ap.updated_at
          FROM audiobook_progress ap
          JOIN audiobook_books t ON t.id = ap.book_id
@@ -394,9 +394,9 @@ async fn continue_listening(
              WHERE af.book_id = ap.book_id AND af.position < cur.position
          ) prior ON true
          WHERE ap.user_id = $1 AND ap.completed = false
-           AND audio2_can_access($1, $2, $3, 'audiobook', t.id, t.user_id, t.family_id)
+           AND {visible_audiobook}
          ORDER BY ap.updated_at DESC
-         LIMIT 20",
+         LIMIT 20", visible_audiobook = crate::db::access::visible_for("'audiobook'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)
@@ -514,15 +514,15 @@ async fn search(
 
     // Podcast feeds
     let feeds = sqlx::query_as::<_, (uuid::Uuid, String, Option<String>, Option<String>)>(
-        "SELECT t.id, t.title, t.author, t.description
+        &format!("SELECT t.id, t.title, t.author, t.description
          FROM podcast_feeds t
-         WHERE audio2_can_access($1, $2, $3, 'podcast', t.id, t.user_id, t.family_id)
+         WHERE {visible_podcast}
            AND (
                     LOWER(COALESCE(t.title, '')) LIKE LOWER($4)
                  OR LOWER(COALESCE(t.author, '')) LIKE LOWER($4)
                  OR LOWER(COALESCE(t.description, '')) LIKE LOWER($4)
                )
-         LIMIT $5",
+         LIMIT $5", visible_podcast = crate::db::access::visible_for("'podcast'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)
@@ -547,13 +547,13 @@ async fn search(
         _,
         (uuid::Uuid, uuid::Uuid, String, Option<String>, Option<DateTime<Utc>>),
     >(
-        "SELECT pe.id, pe.feed_id, pe.title, t.title, pe.published_at
+        &format!("SELECT pe.id, pe.feed_id, pe.title, t.title, pe.published_at
          FROM podcast_episodes pe
          JOIN podcast_feeds t ON t.id = pe.feed_id
-         WHERE audio2_can_access($1, $2, $3, 'podcast', t.id, t.user_id, t.family_id)
+         WHERE {visible_podcast}
            AND LOWER(pe.title) LIKE LOWER($4)
          ORDER BY pe.published_at DESC
-         LIMIT $5",
+         LIMIT $5", visible_podcast = crate::db::access::visible_for("'podcast'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)
@@ -576,12 +576,12 @@ async fn search(
 
     // Audiobooks
     let books = sqlx::query_as::<_, (uuid::Uuid, String, Option<String>)>(
-        "SELECT t.id, t.title, t.author
+        &format!("SELECT t.id, t.title, t.author
          FROM audiobook_books t
-         WHERE audio2_can_access($1, $2, $3, 'audiobook', t.id, t.user_id, t.family_id)
+         WHERE {visible_audiobook}
            AND (LOWER(COALESCE(t.title, '')) LIKE LOWER($4)
                 OR LOWER(COALESCE(t.author, '')) LIKE LOWER($4))
-         LIMIT $5",
+         LIMIT $5", visible_audiobook = crate::db::access::visible_for("'audiobook'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)
@@ -602,14 +602,14 @@ async fn search(
 
     // Music tracks — previously missing from cross-library search.
     let tracks = sqlx::query_as::<_, (uuid::Uuid, String, Option<String>, Option<String>)>(
-        "SELECT t.id, t.title, t.artist, t.album
+        &format!("SELECT t.id, t.title, t.artist, t.album
          FROM music_tracks t
-         WHERE audio2_can_access($1, $2, $3, 'music', t.id, t.user_id, t.family_id)
+         WHERE {visible_music}
            AND (LOWER(COALESCE(t.title, '')) LIKE LOWER($4)
                 OR LOWER(COALESCE(t.artist, '')) LIKE LOWER($4)
                 OR LOWER(COALESCE(t.album, '')) LIKE LOWER($4))
          ORDER BY t.title
-         LIMIT $5",
+         LIMIT $5", visible_music = crate::db::access::visible_for("'music'")),
     )
     .bind(family.user_id)
     .bind(family.family_id)

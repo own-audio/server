@@ -122,9 +122,28 @@ idle 20 MiB with the catalog loaded.
 | Subsonic `search3` | 3.6 s | 3.6 s, peak 73 MiB |
 | Server after the run | 308 MiB | 73 MiB |
 
-Memory is now flat for the largest response. Latency is not yet: the album,
-artist, genre and Subsonic calls aggregate the whole catalog on every request
-(gaps 1 and 8 below) — the target is under 300 ms.
+Then two more changes, measured on a freshly generated catalog of the same
+size: the visibility check written inline instead of a per-row function
+call (the owner and family admins short-circuit; members' media policy is
+read once per query and their grants as one set), and the album grouping
+keys stored as generated columns with an index instead of a regular
+expression per row per query.
+
+| Call | Before | Now |
+|---|---|---|
+| `GET /music/tracks`, whole list | 3.0 s, peak 805 MiB | 1.8 s, peak 19 MiB |
+| `GET /music/albums` (100,000 albums, 9.7 MB) | 2.0 s | 0.67 s (0.22 s of it in PostgreSQL) |
+| `GET /music/artists` | 2.5 s | 0.37 s |
+| `GET /music/genres` | 1.1 s | 0.10 s |
+| `GET /library/search` | 0.27 s | 0.14 s |
+| Subsonic `getAlbumList2` (50 newest) | 1.7 s | 0.44 s |
+| Subsonic `getArtists` | 2.6 s | 0.68 s |
+| Subsonic `search3` | 3.6 s | 1.2 s |
+| Server after the run | 308 MiB | 67 MiB |
+
+Memory is flat. What is still above the 300 ms target is mostly the size of
+the answer (every album at once) or the Subsonic id scheme (gap 1 below:
+album and artist ids are hashes, so a lookup still aggregates the catalog).
 
 ## How we will know
 

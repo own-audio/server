@@ -52,6 +52,15 @@ semver. Each release states the **API contract revision** it serves
   PostgreSQL (both are SQLite-only, checked in their repositories).
 
 ### Changed
+- The visibility check in list queries is written inline instead of calling
+  `audio2_can_access` per row: the policy is read once per query and grants
+  as one set. At 600,000 tracks a family's album list takes 0.2 s in
+  PostgreSQL instead of 1.6–1.9 s, genres 0.1 s instead of 1.1 s. Same rules,
+  checked by the families conformance suite.
+- Album artist, primary artist and album are stored as generated columns
+  (migration 0089) with indexes, instead of a regular expression evaluated per
+  row per query. The migration rewrites `music_tracks_all` once, which takes
+  a few minutes on a very large catalog.
 - `GET /music/tracks` streams the list from the database instead of
   building it in memory: at 600,000 tracks the server peaks at 23 MiB instead
   of 805 MiB. Same JSON array, no client change.
