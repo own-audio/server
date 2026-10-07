@@ -138,6 +138,7 @@ async fn list_users(
 }
 
 /// GET /api/v1/users/:id
+/// One account: your own, or any for an instance admin.
 #[utoipa::path(get, path = "/{id}", tag = "users", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "User id")),
     responses(

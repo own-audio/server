@@ -353,6 +353,7 @@
         "tags": [
           "audiobooks"
         ],
+        "summary": "Every audiobook the caller can see",
         "operationId": "audiobooks_list_books",
         "responses": {
           "200": {
@@ -379,6 +380,7 @@
         "tags": [
           "audiobooks"
         ],
+        "summary": "Create a book from its details; files are added to it afterwards",
         "operationId": "audiobooks_create_book",
         "requestBody": {
           "content": {
@@ -1980,6 +1982,7 @@
         "tags": [
           "audiobooks"
         ],
+        "summary": "One book with its details",
         "operationId": "audiobooks_get_book",
         "parameters": [
           {
@@ -2144,6 +2147,7 @@
         "tags": [
           "audiobooks"
         ],
+        "summary": "A book's chapters, in order",
         "operationId": "audiobooks_list_chapters",
         "parameters": [
           {
@@ -2238,6 +2242,7 @@
         "tags": [
           "audiobooks"
         ],
+        "summary": "A book's audio files, in playing order",
         "operationId": "audiobooks_list_files",
         "parameters": [
           {
@@ -6500,6 +6505,2888 @@
         }
       }
     },
+    "/api/v1/music/albums": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Albums the caller can see, grouped by album artist",
+        "operationId": "music_list_albums",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "description": "Restrict to one artist; omit for the whole library.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/albums/identify": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Which album a group of tracks is",
+        "description": "which album a group of tracks is.\n\nMatching each track on its own let an album's songs scatter over live\nbootlegs and compilations, because each recording resolved to a release\nwithout knowing about the others. This asks once for the whole group; the\nclient then applies the chosen album's matches with the existing per-track\napply, so nothing about how a match is stored changes.",
+        "operationId": "music_identify_album",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumIdentifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AlbumCandidateResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Artists the caller can see",
+        "operationId": "music_list_artists",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ArtistSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/image": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The artist's photo",
+        "description": "the artist's photo.\n\nFetched from a public source on first request and cached, the same\nlazy shape `get_lyrics` uses: an artist has no upload step where this could\nhave been done eagerly, and fetching every artist in a library up front\nwould be a lot of network for pictures nobody may look at.\n\nThe artist arrives as a query parameter rather than a path segment because\nan artist here *is* its name — free text that routinely contains slashes\n(\"AC/DC\"), dots and unicode.\n\nA miss is cached too. Most libraries hold at least one name no catalogue\nknows, and without a negative entry every grid render would re-ask the\nnetwork about it forever.",
+        "operationId": "music_get_artist_image",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image bytes",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No picture known for this artist",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Forget this artist's picture, user-set or fetched, and let the automatic lookup run again next time",
+        "description": "forget this artist's picture,\nuser-set or fetched, and let the automatic lookup run again next time.\n\nDeletes the row rather than nulling it: a NULL row is the cached \"nothing\nfound\", which would suppress the very lookup this is handing control back to.",
+        "operationId": "music_delete_artist_image",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Forgotten"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/image-info": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Who to credit for the picture, and under what licence",
+        "description": "who to credit for the\npicture, and under what licence.\n\nA separate call rather than headers on the image itself, because the client\nrenders the image with a plain image view that never sees response headers —\nand because the attribution is text that belongs in the layout, not metadata\nnobody reads. Most Commons licences *require* this to be shown, so it is not\ndecoration.",
+        "operationId": "music_get_artist_image_info",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistImageInfoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/upload-image": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The user's own picture for an artist, mirroring `upload_cover` for a track",
+        "description": "the user's own picture\nfor an artist, mirroring `upload_cover` for a track.\n\nMarked `is_user_set`, which is what makes it permanent: the automatic\ncatalogue lookup skips any row carrying that flag, so a deliberate choice is\nnever quietly replaced by whatever a search returns later.",
+        "operationId": "music_upload_artist_image",
+        "parameters": [
+          {
+            "name": "artist",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `image` (the image file)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/duplicates": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "DEDUPLICATION_PLAN.md P3",
+        "description": "DEDUPLICATION_PLAN.md P3. Exact-duplicate (`sha256`-matched)\ngroups of the caller's own tracks only. Rows arrive pre-sorted by hash then upload date\n(`db::music::duplicate_tracks`), so building groups is one linear pass, not a second query\nper group.",
+        "operationId": "music_list_duplicates",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DuplicatesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/feedback": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The undo list",
+        "description": "The undo list. Someone who banned a track by a mis-tap has no other way to\nfind it, because nothing about the track itself looks different.",
+        "operationId": "music_list_track_feedback",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackFeedbackResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/genres": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Genres with their track counts",
+        "operationId": "music_list_genres",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GenreSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/intent": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Text in, validated rule out",
+        "description": "Text in, validated rule out. The caller resolves it; nothing is saved and\nnothing is played until they ask.\n\nApple clients should prefer their on-device model and use this only as a\nfallback. What leaves the device either way is the sentence and the\nlibrary's genre vocabulary — never track titles, never listening history.",
+        "operationId": "music_parse_intent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Every playlist the caller can see",
+        "operationId": "music_list_playlists",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaylistResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Create a playlist, optionally with its tracks",
+        "operationId": "music_create_playlist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "One playlist the caller can see",
+        "operationId": "music_get_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Rename a playlist or change its description",
+        "description": "rename a playlist or change its description. Owner only.",
+        "operationId": "music_update_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Moves the playlist to the trash (30 days)",
+        "operationId": "music_delete_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Moved to the trash"
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/audience": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The owner asks which family members can play their playlist",
+        "description": "the owner asks which family members\ncan play their playlist. Everyone but the owner; all `false` while it is private.",
+        "operationId": "music_playlist_audience",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaylistAudienceEntry"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/cover": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The playlist's cover, or the first of its tracks' covers",
+        "operationId": "music_get_playlist_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image bytes",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "No playlist, or neither it nor its tracks have a cover",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/keep": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The owner keeps a generated playlist",
+        "description": "the owner keeps a generated playlist.\n404 for a playlist that is not theirs or was not generated.",
+        "operationId": "music_keep_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Kept"
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/share": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The owner shares a playlist with chosen family members, live or as copies",
+        "description": "the owner shares a playlist with chosen\nfamily members, live or as copies.\n\nA playlist is only as playable as its songs: a song only its owner can hear would be\na silent gap for everyone else. So the owner's private songs in it are shared first —\nwith the chosen members only, not the whole family (the user's call, 2026-09-30) — and\nan owner's song already shared with someone else is opened to the chosen members too.\nSongs other people own are theirs to share and are left alone.\n\n`live` with nobody chosen makes the playlist private again. Family admins see anything\nshared with the family whatever is chosen, which the audience reports as `locked`.",
+        "operationId": "music_share_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SharePlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SharePlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/tracks": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The playlist's entries in order, skipping tracks the caller may not play",
+        "operationId": "music_list_playlist_tracks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PlaylistTrackResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Append a track the caller can play",
+        "description": "append a track the caller can play. Owner only.",
+        "operationId": "music_add_to_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddTrackToPlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Added"
+          },
+          "400": {
+            "description": "Bad or unknown track id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/tracks/reorder": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Set the order of the playlist's entries",
+        "description": "set the order of the playlist's entries. Owner only.",
+        "operationId": "music_reorder_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderPlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Reordered"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/tracks/{entry_id}": {
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Remove one entry",
+        "description": "remove one entry. Owner only.",
+        "operationId": "music_remove_from_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "entry_id",
+            "in": "path",
+            "description": "Playlist entry id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/upload-cover": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Set the playlist's own cover",
+        "description": "set the playlist's own cover. Owner only.",
+        "operationId": "music_upload_playlist_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `cover` (the image file)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/playlists/{id}/visibility": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Owner only",
+        "operationId": "music_set_playlist_visibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVisibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Changed"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/smart-playlists": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The caller's smart playlists and those shared with their family",
+        "operationId": "music_list_smart_playlists",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SmartPlaylistResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Save a rule as a smart playlist",
+        "operationId": "music_create_smart_playlist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmartPlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/smart-playlists/presets": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Built-ins rather than rows: they are the same for everyone, and a row per user per preset would be a migration plus a backfill for no gain",
+        "description": "Built-ins rather than rows: they are the same for everyone, and a row per\nuser per preset would be a migration plus a backfill for no gain. A client\nthat wants to edit one POSTs it as a new playlist.",
+        "operationId": "music_list_presets",
+        "responses": {
+          "200": {
+            "description": "Built-in rules, each `{slug, name, rule}`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/music/smart-playlists/resolve": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Run a rule without saving it",
+        "description": "Run a rule without saving it. This is what a natural-language request lands\non (§5): the model produces a rule, the caller resolves it, and only if the\nresult is wanted does it become a playlist.",
+        "operationId": "music_resolve_rule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveRuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedPlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/smart-playlists/{id}": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "One smart playlist",
+        "operationId": "music_get_smart_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Smart playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylistResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Replace a smart playlist's name, description and rule",
+        "description": "replace a smart playlist's name, description and rule. Owner only.",
+        "operationId": "music_update_smart_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Smart playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmartPlaylistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Delete a smart playlist",
+        "description": "delete a smart playlist. Owner only.",
+        "operationId": "music_delete_smart_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Smart playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/smart-playlists/{id}/freeze": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Materialise a rule into an ordinary playlist: resolve it once, write the result as `music_playlists` rows, and stop re-evaluating",
+        "description": "Materialise a rule into an ordinary playlist: resolve it once, write the\nresult as `music_playlists` rows, and stop re-evaluating.\n\nThis is the difference between the three sharing modes (§4.4) made concrete.\nSharing a *rule* means the receiver's own history decides what it contains,\nwhich is right for a tool and wrong for \"listen to what I made for you\".\nFreezing gives the second: a fixed list that can be edited and that never\nchanges under anyone. A single \"share\" button doing one of these silently\nwould be the wrong design.",
+        "operationId": "music_freeze_smart_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Smart playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FreezeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The rule matches nothing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/smart-playlists/{id}/resolve": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Evaluated against **the caller's** history, not the owner's",
+        "description": "Evaluated against **the caller's** history, not the owner's. That is the\ndefining property of sharing a rule rather than a result (§4.4): \"unplayed\n80s rock\" is a different set for two people, and a client must present it\nthat way or it reads as a bug.",
+        "operationId": "music_resolve_smart_playlist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Smart playlist id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResolvedPlaylistResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/starred": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Ids of the songs this user starred",
+        "description": "ids of the songs this user starred.\n\nStars were reachable only through the Subsonic API until the web's player\ngot a heart; \"Forgotten favourites\" reads them, so without a way to set\nthem in our own clients it could never find anything.",
+        "operationId": "music_list_starred_tracks",
+        "responses": {
+          "200": {
+            "description": "Track ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The whole list, as before, but streamed: rows go out as PostgreSQL returns them, so the server holds a few hundred tracks at a time whatever the catalog's size (docs/CAPACITY.md, issue #2)",
+        "description": "The whole list, as before, but streamed: rows go out as PostgreSQL returns\nthem, so the server holds a few hundred tracks at a time whatever the\ncatalog's size (docs/CAPACITY.md, issue #2). Same JSON array as ever.",
+        "operationId": "music_list_tracks",
+        "responses": {
+          "200": {
+            "description": "Every track the caller can play, streamed as one array",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/discs": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Reads the disc number of up to 20 of the caller's tracks uploaded before it was kept, and says how many are left; a client calls again until none are",
+        "description": "reads the disc number of up to 20 of the caller's\ntracks uploaded before it was kept, and says how many are left; a client calls again until\nnone are. Only the disc fields change, so an identified track is safe too. A file that\ncannot be read counts as read: it has nothing to add.",
+        "operationId": "music_read_discs",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiscsResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/from-upload": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Create a track from a file already uploaded to storage",
+        "operationId": "music_create_track_from_upload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FromUploadRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackWithPath"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The key is not in the caller's family storage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/upload": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Multipart upload of a single track",
+        "operationId": "music_upload_track",
+        "requestBody": {
+          "description": "fields: `file` (the audio, required), `cover` (image), `title`, `artist`, `album`, `album_artist`, `genre`, `track_number`, `duration_secs`, `visibility` (`private` or `family`); tags the form leaves out are read from the file",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "One track the caller can play",
+        "operationId": "music_get_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Edit a track's metadata",
+        "description": "edit a track's metadata. Owner only.",
+        "operationId": "music_update_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateTrackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Moves the track to the trash (30 days); its bytes stay until the purge",
+        "description": "Moves the track to the trash (30 days); its bytes stay until the purge.\nThe owner, or a family admin when it is shared with their family.",
+        "operationId": "music_delete_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Moved to the trash"
+          },
+          "403": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/cover": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The track's cover image",
+        "operationId": "music_get_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image bytes",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/feedback": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Mark a track disliked or banned for the caller",
+        "operationId": "music_set_track_feedback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackFeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Idempotent: clearing feedback that was never set is success, not 404",
+        "description": "Idempotent: clearing feedback that was never set is success, not 404. The\ncaller wants the track unmarked, and it is.",
+        "operationId": "music_clear_track_feedback",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Cleared"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/lyrics": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The embedded lyrics tag from the track's own stored audio file (ID3 USLT for MP3, the equivalent generic `ItemKey::Lyrics` item for FLAC/M4A/OGG via `lofty`), read once and cached on `music_tracks.lyrics` (see that column's own doc comment for the `NULL`/`\"\"`/text three-state meaning)",
+        "description": "the embedded lyrics tag from the\ntrack's own stored audio file (ID3 USLT for MP3, the equivalent generic\n`ItemKey::Lyrics` item for FLAC/M4A/OGG via `lofty`), read once and\ncached on `music_tracks.lyrics` (see that column's own doc comment for\nthe `NULL`/`\"\"`/text three-state meaning). Deliberately not folded into\n`TrackResponse`/`track_to_response` — `GET /tracks` returns the whole\nlibrary on every call, and lyrics can run to a few KB of text most of\nthose requests have no use for.",
+        "operationId": "music_get_track_lyrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LyricsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Owner-only",
+        "description": "owner-only. Lyrics the user typed or\npasted themselves.\n\nExists because the automatic path finds almost nothing: reading embedded\ntags is the only lyrics source with no licensing question attached, and\nordinary consumer rips very rarely carry a `USLT` frame. Rather than fetch\nfrom a lyrics service this product has no licence to redistribute from, this\nlets the person who owns the music put the words in themselves.\n\nWhatever arrives is stored verbatim, including LRC timestamps\n(`[mm:ss.xx] line`) if the user pasted a synced file — the format is the\nclient's to interpret, and normalising it here would throw away timing this\nbackend has no reason to discard.\n\nAn empty body clears the lyrics *and* the source marker, so the track falls\nback to being read from its file again on the next request.",
+        "operationId": "music_set_track_lyrics",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetLyricsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LyricsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/metadata/apply": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Owner-only, mirrors `update_track`'s auth",
+        "description": "owner-only, mirrors\n`update_track`'s auth. Re-fetches the chosen recording from MusicBrainz\nby id rather than trusting a client-supplied copy of a search result.",
+        "operationId": "music_apply_track_metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyMetadataRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/metadata/file-tags": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "What the audio file itself says, read fresh from storage and **not** written anywhere",
+        "description": "What the audio file itself says, read fresh from storage and **not**\nwritten anywhere. The read-only twin of `rescan`, and deliberately without\nits \"refuses once identified\" guard: the moment you most need to see the\nfile's own tags is right after a MusicBrainz match got it wrong, which is\nexactly when `rescan` won't speak to you.\n\nThe two sources drift by design — applying a MusicBrainz recording updates\nthe database and never rewrites the file — so a track can sit in the\nlibrary as one album while its bytes still say another.",
+        "operationId": "music_get_track_file_tags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTagsResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/metadata/rescan": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Owner-only",
+        "description": "owner-only. Re-reads the\ntrack's own embedded tags from the file already in storage.\n\nExists because `read_embedded_tags` was added to `upload_track` *after*\nlibraries had already been uploaded. Those tracks kept a filename-derived\ntitle and nothing else — confirmed on a real library: 199 tracks with no\nartist, no album, no genre, whose files carried all four the whole time.\nRe-uploading them to recover data already sitting in storage would be\nabsurd; this reads it in place.\n\nDistinct from the MusicBrainz flow, and not a replacement for it: this\ntrusts the file and adds no MBIDs. It refuses on a track that has already\nbeen identified, because MusicBrainz is the better source and silently\noverwriting a deliberate match with whatever a tagger once wrote would be a\nregression the user never asked for.",
+        "operationId": "music_rescan_track_tags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already identified, or the file has no tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/metadata/search": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "MusicBrainz recording candidates for this track",
+        "description": "MusicBrainz recording\ncandidates for this track. The track id only scopes visibility/auth; the\nsearch itself runs on whatever title/artist/album the client sends\n(typically the track's current values, editable before searching).",
+        "operationId": "music_search_track_metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MetadataSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MetadataCandidate"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/progress": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The caller's playback position in a track",
+        "operationId": "music_get_track_progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Save the caller's playback position in a track",
+        "operationId": "music_upsert_track_progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpsertProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/star": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Star a song the caller can play",
+        "description": "star a song the caller can play. Idempotent.",
+        "operationId": "music_star_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Starred"
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Idempotent",
+        "operationId": "music_unstar_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unstarred"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/stream": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "A time-limited URL for the track's audio",
+        "operationId": "music_stream_track",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/upload-cover": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Replace the track's cover",
+        "description": "replace the track's cover. Owner only.",
+        "operationId": "music_upload_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `cover` (the image file)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/visibility": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Move a track between the private and family folders",
+        "description": "move a track between the\nprivate and family folders. Owner only.",
+        "operationId": "music_set_track_visibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVisibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/playback/bookmarks": {
       "get": {
         "tags": [
@@ -10239,6 +13126,7 @@
         "tags": [
           "users"
         ],
+        "summary": "One account: your own, or any for an instance admin",
         "operationId": "users_get_user",
         "parameters": [
           {
@@ -10544,6 +13432,17 @@
           }
         }
       },
+      "AddTrackToPlaylistRequest": {
+        "type": "object",
+        "required": [
+          "track_id"
+        ],
+        "properties": {
+          "track_id": {
+            "type": "string"
+          }
+        }
+      },
       "AdminCreateUserRequest": {
         "type": "object",
         "required": [
@@ -10766,6 +13665,166 @@
           }
         }
       },
+      "AlbumCandidateResponse": {
+        "type": "object",
+        "description": "An album candidate, with each match pointing at one of the request's\ntracks rather than at its position in the list.",
+        "required": [
+          "mb_release_id",
+          "mb_release_group_id",
+          "title",
+          "secondary_types",
+          "track_count",
+          "matched",
+          "editions",
+          "tracks"
+        ],
+        "properties": {
+          "mb_release_id": {
+            "type": "string"
+          },
+          "mb_release_group_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "primary_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secondary_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "matched": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "editions": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "cover_art_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AlbumTrackMatchResponse"
+            }
+          }
+        }
+      },
+      "AlbumIdentifyRequest": {
+        "type": "object",
+        "required": [
+          "track_ids"
+        ],
+        "properties": {
+          "track_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "AlbumSummary": {
+        "type": "object",
+        "required": [
+          "artist",
+          "album",
+          "track_count"
+        ],
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "album": {
+            "type": "string"
+          },
+          "track_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AlbumTrackMatchResponse": {
+        "type": "object",
+        "required": [
+          "track_id",
+          "mb_recording_id",
+          "title",
+          "disc",
+          "position"
+        ],
+        "properties": {
+          "track_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "mb_recording_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "disc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "AppendFilesRequest": {
         "type": "object",
         "required": [
@@ -10862,6 +13921,90 @@
           "fields": {
             "$ref": "#/components/schemas/IdentifyFields",
             "description": "Which parts of the match to actually write. Absent means all of them,\nso a client with no field picker still behaves sensibly."
+          }
+        }
+      },
+      "ApplyMetadataRequest": {
+        "type": "object",
+        "required": [
+          "mb_recording_id"
+        ],
+        "properties": {
+          "mb_recording_id": {
+            "type": "string"
+          },
+          "mb_release_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Which release (album) to pull album name / track number / cover art\nfrom, if the recording appears on more than one."
+          },
+          "fetch_cover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArtistImageInfoResponse": {
+        "type": "object",
+        "required": [
+          "is_user_set"
+        ],
+        "properties": {
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "\"Wikimedia Commons\", or `None` for a picture the user supplied."
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_user_set": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ArtistSummary": {
+        "type": "object",
+        "required": [
+          "artist",
+          "album_count",
+          "track_count"
+        ],
+        "properties": {
+          "artist": {
+            "type": "string"
+          },
+          "album_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "track_count": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -12024,6 +15167,42 @@
           }
         }
       },
+      "CreatePlaylistRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`private` (default) or `family`."
+          },
+          "generated": {
+            "type": "boolean",
+            "description": "Made by the smart-playlist generator; the response then carries `generated_at`."
+          },
+          "track_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Tracks to put in it, in order, in the same request — a generated playlist\narrives with its songs. Ids the caller may not play are skipped."
+          }
+        }
+      },
       "CreateReportRequest": {
         "type": "object",
         "required": [
@@ -12264,6 +15443,153 @@
           "current": {
             "type": "boolean",
             "description": "True when this is the device making the request."
+          }
+        }
+      },
+      "DiscsResponse": {
+        "type": "object",
+        "required": [
+          "checked",
+          "left"
+        ],
+        "properties": {
+          "checked": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "left": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DuplicateGroupResponse": {
+        "type": "object",
+        "required": [
+          "tier",
+          "tracks"
+        ],
+        "properties": {
+          "tier": {
+            "type": "string"
+          },
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateTrackResponse"
+            }
+          }
+        }
+      },
+      "DuplicateTrackResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "created_at",
+          "updated_at",
+          "sha256",
+          "content_type",
+          "playlist_count",
+          "is_starred",
+          "visibility"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "musicbrainz_recording_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "playlist_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "How many playlists reference *this exact copy* — evidence for which copy to keep\n(DEDUPLICATION_PLAN.md's own decision: surfaced, not auto-resolved; the client doesn't\nre-link playlist entries to the survivor in v1)."
+          },
+          "is_starred": {
+            "type": "boolean"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family` — same as `TrackResponse.visibility`. Every track this endpoint\nreturns is scoped to the caller (`db::music::duplicate_tracks`'s own `user_id = $1`),\nso `is_owner` on the client's `MusicTrackDTO` conversion is always `true` regardless,\nbut visibility itself still varies per track and isn't safe to assume."
+          }
+        }
+      },
+      "DuplicatesResponse": {
+        "type": "object",
+        "description": "DEDUPLICATION_PLAN.md P3. `tier` is always `\"identical\"` for now — Tier 2 (\"likely the same\nrecording\", acoustic-fingerprint evidence) is P4; the field exists now so the client doesn't\nneed a breaking change to start rendering that tier once it exists.",
+        "required": [
+          "groups"
+        ],
+        "properties": {
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DuplicateGroupResponse"
+            }
           }
         }
       },
@@ -12684,6 +16010,67 @@
           }
         }
       },
+      "FileTagsResponse": {
+        "type": "object",
+        "description": "What the audio file's own tags say, as opposed to what the library records.\nThe two diverge whenever a MusicBrainz match has been applied, since that\nwrites the database and leaves the file untouched.",
+        "required": [
+          "is_compilation",
+          "has_cover"
+        ],
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_compilation": {
+            "type": "boolean"
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "has_cover": {
+            "type": "boolean",
+            "description": "Whether the file carries embedded art, without shipping the bytes."
+          },
+          "file_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The uploaded file's own name. Often the only honest clue left: tags can\nbe absent or wrong and a bad match overwrites the library values, but\n\"12 Vultan's Theme.flac\" still says which track this is."
+          }
+        }
+      },
       "FolderStatus": {
         "type": "object",
         "required": [
@@ -12790,6 +16177,102 @@
           }
         }
       },
+      "FreezeRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to the smart playlist's own name."
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Share the resulting playlist with the family."
+          },
+          "mark_source": {
+            "type": "boolean",
+            "description": "Mark the source as frozen. False makes this \"send a copy\" — the rule\nkeeps living and the copy goes its own way, which is the third of the\nthree sharing modes in §4.4."
+          }
+        }
+      },
+      "FromUploadRequest": {
+        "type": "object",
+        "description": "Body of `POST /music/tracks/from-upload` — the direct-to-storage twin of\nthe multipart upload, without its 100 MB Cloudflare limit.",
+        "required": [
+          "object_key",
+          "original_filename"
+        ],
+        "properties": {
+          "object_key": {
+            "type": "string",
+            "description": "Key returned by `/uploads/presign` (kind `music_track`), already PUT."
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where the file sits in the own.audio folder (`Music/…`), for a file\nput there. Without one the server gives it a default path."
+          },
+          "original_filename": {
+            "type": "string",
+            "description": "The file's own name, for a title when the tags have none."
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`private` (default) or `family`."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "FromUploadsFile": {
         "type": "object",
         "required": [
@@ -12879,6 +16362,22 @@
             "items": {
               "$ref": "#/components/schemas/FromUploadsFile"
             }
+          }
+        }
+      },
+      "GenreSummary": {
+        "type": "object",
+        "required": [
+          "genre",
+          "track_count"
+        ],
+        "properties": {
+          "genre": {
+            "type": "string"
+          },
+          "track_count": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -13195,6 +16694,29 @@
           }
         }
       },
+      "IntentRequest": {
+        "type": "object",
+        "required": [
+          "text"
+        ],
+        "properties": {
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "IntentResponse": {
+        "type": "object",
+        "required": [
+          "rule"
+        ],
+        "properties": {
+          "rule": {
+            "type": "object",
+            "description": "The rule, ready to POST to `/smart-playlists/resolve`. **Not tracks** —\nsee music::intent for why that boundary matters."
+          }
+        }
+      },
       "InviteResponse": {
         "type": "object",
         "required": [
@@ -13468,6 +16990,18 @@
           }
         }
       },
+      "LyricsResponse": {
+        "type": "object",
+        "properties": {
+          "lyrics": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`None` when the file has no embedded lyrics tag — distinct from a\ntrack that hasn't been checked yet, which this endpoint never\nreturns (it always parses-and-caches before responding)."
+          }
+        }
+      },
       "MemberAccessResponse": {
         "type": "object",
         "required": [
@@ -13555,6 +17089,114 @@
           },
           "can_generate": {
             "type": "boolean"
+          }
+        }
+      },
+      "MetadataCandidate": {
+        "type": "object",
+        "description": "One MusicBrainz recording candidate, returned from a search.",
+        "required": [
+          "mb_recording_id",
+          "title",
+          "score"
+        ],
+        "properties": {
+          "mb_recording_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mb_artist_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mb_release_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "minimum": 0
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "cover_art_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Not verified with a HEAD request — a speculative Cover Art Archive\nURL built from `mb_release_id`. May 404; the client should treat it\nas best-effort. [`musicbrainz::get_cover_art_url`] does the real\ncheck, used only for the single release chosen at apply time."
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
+      "MetadataSearchRequest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
@@ -13797,6 +17439,120 @@
               "null"
             ],
             "description": "`web`, `ios`, `android`, … — recorded on any session derived from\nthis save, so stats can break down by platform."
+          }
+        }
+      },
+      "PlaylistAudienceEntry": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "can_listen",
+          "locked"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "can_listen": {
+            "type": "boolean",
+            "description": "Can play the owner's live playlist now."
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "A family admin, who sees everything shared with the family whatever is chosen here."
+          }
+        }
+      },
+      "PlaylistResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "track_count",
+          "visibility",
+          "is_owner",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family`."
+          },
+          "is_owner": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "generated_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the smart-playlist generator made it; absent for an ordinary playlist."
+          },
+          "kept_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "When the owner chose to keep a generated playlist; absent until then."
+          }
+        }
+      },
+      "PlaylistTrackResponse": {
+        "type": "object",
+        "required": [
+          "entry_id",
+          "position",
+          "track"
+        ],
+        "properties": {
+          "entry_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "track": {
+            "$ref": "#/components/schemas/TrackResponse"
           }
         }
       },
@@ -14057,6 +17813,30 @@
               "null"
             ],
             "description": "Songs only: the album, so a client can group a long list of songs."
+          }
+        }
+      },
+      "ProgressResponse": {
+        "type": "object",
+        "required": [
+          "track_id",
+          "position_secs",
+          "completed",
+          "updated_at"
+        ],
+        "properties": {
+          "track_id": {
+            "type": "string"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string"
           }
         }
       },
@@ -14335,6 +18115,20 @@
           }
         }
       },
+      "ReorderPlaylistRequest": {
+        "type": "object",
+        "required": [
+          "entry_ids"
+        ],
+        "properties": {
+          "entry_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ReplaceGrantsRequest": {
         "type": "object",
         "required": [
@@ -14391,6 +18185,42 @@
           },
           "received": {
             "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "ResolveRuleRequest": {
+        "type": "object",
+        "required": [
+          "rule"
+        ],
+        "properties": {
+          "rule": {
+            "type": "object"
+          }
+        }
+      },
+      "ResolvedPlaylistResponse": {
+        "type": "object",
+        "required": [
+          "tracks",
+          "total_secs",
+          "candidates"
+        ],
+        "properties": {
+          "tracks": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrackResponse"
+            }
+          },
+          "total_secs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "candidates": {
+            "type": "integer",
+            "description": "How many tracks matched before sequencing. A small number here with a\nshort playlist means the rule is too narrow, not that the sequencer\nfailed — worth showing rather than leaving a client to guess.",
             "minimum": 0
           }
         }
@@ -14706,6 +18536,18 @@
           }
         }
       },
+      "SetLyricsRequest": {
+        "type": "object",
+        "properties": {
+          "lyrics": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent or empty clears them."
+          }
+        }
+      },
       "SetPolicyRequest": {
         "type": "object",
         "required": [
@@ -14761,6 +18603,45 @@
           "checks": {
             "$ref": "#/components/schemas/SystemChecks",
             "description": "System health checks."
+          }
+        }
+      },
+      "SharePlaylistRequest": {
+        "type": "object",
+        "required": [
+          "mode",
+          "user_ids"
+        ],
+        "properties": {
+          "mode": {
+            "type": "string",
+            "description": "`live` — the chosen members play the owner's playlist and see every change;\n`copy` — each of them gets a playlist of their own with the same songs."
+          },
+          "user_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "SharePlaylistResponse": {
+        "type": "object",
+        "required": [
+          "shared_tracks",
+          "copies"
+        ],
+        "properties": {
+          "shared_tracks": {
+            "type": "integer",
+            "description": "The owner's private songs that were shared with the chosen members so they can play them.",
+            "minimum": 0
+          },
+          "copies": {
+            "type": "integer",
+            "description": "Copies made (`copy` mode).",
+            "minimum": 0
           }
         }
       },
@@ -14874,6 +18755,74 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "SmartPlaylistRequest": {
+        "type": "object",
+        "required": [
+          "name",
+          "rule"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule": {
+            "type": "object"
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Share with the family. Sharing a *rule* means the receiver's own history\nis what it evaluates against — see §4.4 — so a client must say so."
+          }
+        }
+      },
+      "SmartPlaylistResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "rule",
+          "mode",
+          "shared",
+          "owned",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule": {},
+          "mode": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "boolean"
+          },
+          "owned": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
           }
         }
       },
@@ -15178,6 +19127,184 @@
             "format": "int64"
           }
         }
+      },
+      "TrackFeedbackRequest": {
+        "type": "object",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`dislike` or `banned`."
+          }
+        }
+      },
+      "TrackFeedbackResponse": {
+        "type": "object",
+        "required": [
+          "track_id",
+          "kind",
+          "updated_at"
+        ],
+        "properties": {
+          "track_id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
+      "TrackResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "visibility",
+          "is_owner",
+          "owner_id",
+          "created_at",
+          "updated_at",
+          "source",
+          "read_only"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Which artist this track's album is filed under — the explicit value, or the track artist\nwithout its guests. Group an album's tracks by this and `album`, never by `artist`."
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "disc_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Which disc of a multi-disc album, and of how many; `null` when the file does not say."
+          },
+          "disc_total": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "musicbrainz_recording_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set once this track has been matched via the metadata search+apply\nflow — lets the client grey out \"Identify\" / show a matched badge."
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family` — which folder this item lives in."
+          },
+          "is_owner": {
+            "type": "boolean",
+            "description": "False for family-shared items owned by someone else; those are\nplayable but not editable by the viewer."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Whose it is — for acting on a family member's item (a family shortcut)."
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Nullable — the `media_checksum` job fills this in asynchronously after upload\n(mirror-plan B-2)."
+          },
+          "source": {
+            "type": "string",
+            "description": "`upload` or `folder`; a folder track's file is read-only (API revision 3)."
+          },
+          "read_only": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TrackWithPath": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TrackResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A created track and where it sits in the own.audio folder — the path\nasked for, or with ` (2)` when another of the owner's files holds it."
       },
       "TrashEmptyResponse": {
         "type": "object",
@@ -15772,6 +19899,23 @@
           }
         }
       },
+      "UpdatePlaylistRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "UpdateSelfRequest": {
         "type": "object",
         "properties": {
@@ -15814,6 +19958,49 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "UpdateTrackRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Absent keeps the stored value (clients predating the field send none); `null` or `\"\"`\nclears it back to derived from the track artist; a value sets it."
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -15872,6 +20059,21 @@
           "size_bytes": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "UpsertProgressRequest": {
+        "type": "object",
+        "required": [
+          "position_secs"
+        ],
+        "properties": {
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "completed": {
+            "type": "boolean"
           }
         }
       },

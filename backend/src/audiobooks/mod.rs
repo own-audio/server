@@ -271,6 +271,7 @@ pub fn router() -> OpenApiRouter<AppState> {
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/audiobooks/
+/// Every audiobook the caller can see.
 #[utoipa::path(get, path = "/", tag = "audiobooks", security(("bearer" = [])),
     responses(
         (status = 200, body = Vec<BookResponse>)))]
@@ -286,6 +287,7 @@ async fn list_books(
 }
 
 /// POST /api/v1/audiobooks/
+/// Create a book from its details; files are added to it afterwards.
 #[utoipa::path(post, path = "/", tag = "audiobooks", security(("bearer" = [])),
     request_body = CreateBookRequest,
     responses(
@@ -846,6 +848,7 @@ async fn register_uploaded_object(
 }
 
 /// GET /api/v1/audiobooks/:id
+/// One book with its details.
 #[utoipa::path(get, path = "/{id}", tag = "audiobooks", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Book id")),
     responses(
@@ -927,6 +930,7 @@ async fn delete_book(
 }
 
 /// GET /api/v1/audiobooks/:id/files
+/// A book's audio files, in playing order.
 #[utoipa::path(get, path = "/{id}/files", tag = "audiobooks", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Book id")),
     responses(
@@ -1375,6 +1379,7 @@ async fn apply_book_cover(
 }
 
 /// GET /api/v1/audiobooks/:id/chapters
+/// A book's chapters, in order.
 #[utoipa::path(get, path = "/{id}/chapters", tag = "audiobooks", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Book id")),
     responses(

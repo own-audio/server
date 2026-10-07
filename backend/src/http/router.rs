@@ -48,7 +48,7 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
         .nest("/library", crate::library::router())
         .nest("/podcasts", crate::podcasts::router())
         .nest("/audiobooks", crate::audiobooks::router())
-        .nest("/music", crate::music::router().into())
+        .nest("/music", crate::music::router())
         .nest("/playback", crate::playback::router())
         .nest("/jobs", crate::jobs::router())
         .nest("/uploads", crate::uploads::router())

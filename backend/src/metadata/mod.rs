@@ -66,7 +66,7 @@ pub struct PodcastCategoryCount {
 }
 
 /// One MusicBrainz recording candidate, returned from a search.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct MetadataCandidate {
     pub mb_recording_id: String,
     pub title: String,

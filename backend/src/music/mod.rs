@@ -15,13 +15,13 @@ use crate::families::FamilyContext;
 use crate::metadata::wikimedia;
 use crate::http::multipart::read_text_field;
 use axum::body::Body;
-use axum::Router;
 use axum::extract::{DefaultBodyLimit, Json, Multipart, Path, Query, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post, put};
 use mime_guess::MimeGuess;
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use std::path::Path as StdPath;
 use std::path::PathBuf;
 use tempfile::NamedTempFile;
@@ -39,7 +39,7 @@ pub struct CreateTrackRequest {
     pub track_number: Option<i32>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateTrackRequest {
     pub title: String,
     pub artist: Option<String>,
@@ -57,7 +57,7 @@ fn present_or_null<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<Opti
     Option::<String>::deserialize(d).map(Some)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct MetadataSearchRequest {
     pub title: Option<String>,
     pub artist: Option<String>,
@@ -70,13 +70,13 @@ fn default_search_limit() -> usize {
     10
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetLyricsRequest {
     /// Absent or empty clears them.
     pub lyrics: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ArtistImageInfoResponse {
     /// "Wikimedia Commons", or `None` for a picture the user supplied.
     pub source: Option<String>,
@@ -87,12 +87,13 @@ pub struct ArtistImageInfoResponse {
     pub is_user_set: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ArtistImageQuery {
     pub artist: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ApplyMetadataRequest {
     pub mb_recording_id: String,
     /// Which release (album) to pull album name / track number / cover art
@@ -109,18 +110,18 @@ fn default_true() -> bool {
 /// DEDUPLICATION_PLAN.md P3. `tier` is always `"identical"` for now — Tier 2 ("likely the same
 /// recording", acoustic-fingerprint evidence) is P4; the field exists now so the client doesn't
 /// need a breaking change to start rendering that tier once it exists.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DuplicatesResponse {
     pub groups: Vec<DuplicateGroupResponse>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DuplicateGroupResponse {
     pub tier: String,
     pub tracks: Vec<DuplicateTrackResponse>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DuplicateTrackResponse {
     pub id: String,
     pub title: String,
@@ -151,7 +152,7 @@ pub struct DuplicateTrackResponse {
 /// What the audio file's own tags say, as opposed to what the library records.
 /// The two diverge whenever a MusicBrainz match has been applied, since that
 /// writes the database and leaves the file untouched.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FileTagsResponse {
     pub title: Option<String>,
     pub artist: Option<String>,
@@ -168,7 +169,7 @@ pub struct FileTagsResponse {
     pub file_name: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TrackResponse {
     pub id: String,
     pub title: String,
@@ -205,19 +206,19 @@ pub struct TrackResponse {
     pub read_only: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetVisibilityRequest {
     /// `private` or `family`.
     pub visibility: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StreamResponse {
     pub url: String,
     pub expires_in_secs: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LyricsResponse {
     /// `None` when the file has no embedded lyrics tag — distinct from a
     /// track that hasn't been checked yet, which this endpoint never
@@ -225,7 +226,7 @@ pub struct LyricsResponse {
     pub lyrics: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreatePlaylistRequest {
     pub name: String,
     pub description: Option<String>,
@@ -241,13 +242,13 @@ pub struct CreatePlaylistRequest {
     pub track_ids: Vec<Uuid>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdatePlaylistRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PlaylistResponse {
     pub id: String,
     pub name: String,
@@ -267,31 +268,31 @@ pub struct PlaylistResponse {
     pub kept_at: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PlaylistTrackResponse {
     pub entry_id: String,
     pub position: i32,
     pub track: TrackResponse,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddTrackToPlaylistRequest {
     pub track_id: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ReorderPlaylistRequest {
     pub entry_ids: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpsertProgressRequest {
     pub position_secs: f64,
     #[serde(default)]
     pub completed: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ProgressResponse {
     pub track_id: String,
     pub position_secs: f64,
@@ -301,86 +302,76 @@ pub struct ProgressResponse {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
+pub fn router() -> OpenApiRouter<AppState> {
+    use crate::http::openapi::map;
+    OpenApiRouter::new()
         // Deduplication (DEDUPLICATION_PLAN.md) — before "Tracks" since it's conceptually a
         // different view over the same data, not a track sub-resource.
-        .route("/duplicates", get(list_duplicates))
+        .routes(routes!(list_duplicates))
         // Tracks
-        .route("/tracks", get(list_tracks))
-        .route("/tracks/upload", post(upload_track).layer(DefaultBodyLimit::disable()))
-        .route("/tracks/from-upload", post(create_track_from_upload))
-        .route("/tracks/{id}", get(get_track))
-        .route("/tracks/{id}", put(update_track))
-        .route("/tracks/{id}", delete(delete_track))
-        .route("/tracks/{id}/stream", get(stream_track))
-        .route("/tracks/{id}/lyrics", get(get_track_lyrics).put(set_track_lyrics))
-        .route("/tracks/{id}/cover", get(get_cover))
-        .route("/tracks/{id}/upload-cover", post(upload_cover).layer(DefaultBodyLimit::disable()))
-        .route("/tracks/{id}/visibility", put(set_track_visibility))
+        .routes(routes!(list_tracks))
+        .routes(map(routes!(upload_track), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(create_track_from_upload))
+        .routes(routes!(get_track, update_track, delete_track))
+        .routes(routes!(stream_track))
+        .routes(routes!(get_track_lyrics, set_track_lyrics))
+        .routes(routes!(get_cover))
+        .routes(map(routes!(upload_cover), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(set_track_visibility))
         // MusicBrainz identification
-        .route("/tracks/{id}/metadata/file-tags", get(get_track_file_tags))
-        .route("/tracks/{id}/metadata/rescan", post(rescan_track_tags))
-        .route("/tracks/discs", post(read_discs))
-        .route("/tracks/{id}/metadata/search", post(search_track_metadata))
-        .route("/tracks/{id}/metadata/apply", post(apply_track_metadata))
-        .route("/albums/identify", post(identify_album))
+        .routes(routes!(get_track_file_tags))
+        .routes(routes!(rescan_track_tags))
+        .routes(routes!(read_discs))
+        .routes(routes!(search_track_metadata))
+        .routes(routes!(apply_track_metadata))
+        .routes(routes!(identify_album))
         // Track playback progress
-        .route("/tracks/{id}/progress", get(get_track_progress))
-        .route("/tracks/{id}/progress", put(upsert_track_progress))
+        .routes(routes!(get_track_progress, upsert_track_progress))
 
-        .route("/tracks/{id}/feedback", put(set_track_feedback))
-        .route("/tracks/{id}/feedback", delete(clear_track_feedback))
-        .route("/feedback", get(list_track_feedback))
-        .route("/starred", get(list_starred_tracks))
-        .route("/tracks/{id}/star", put(star_track).delete(unstar_track))
+        .routes(routes!(set_track_feedback, clear_track_feedback))
+        .routes(routes!(list_track_feedback))
+        .routes(routes!(list_starred_tracks))
+        .routes(routes!(star_track, unstar_track))
 
-        .route("/smart-playlists", get(list_smart_playlists))
-        .route("/smart-playlists", post(create_smart_playlist))
-        .route("/smart-playlists/presets", get(list_presets))
-        .route("/smart-playlists/resolve", post(resolve_rule))
-        .route("/intent", post(parse_intent))
-        .route("/smart-playlists/{id}", get(get_smart_playlist))
-        .route("/smart-playlists/{id}", put(update_smart_playlist))
-        .route("/smart-playlists/{id}", delete(delete_smart_playlist))
-        .route("/smart-playlists/{id}/resolve", post(resolve_smart_playlist))
-        .route("/smart-playlists/{id}/freeze", post(freeze_smart_playlist))
+        .routes(routes!(list_smart_playlists, create_smart_playlist))
+        .routes(routes!(list_presets))
+        .routes(routes!(resolve_rule))
+        .routes(routes!(parse_intent))
+        .routes(routes!(get_smart_playlist, update_smart_playlist, delete_smart_playlist))
+        .routes(routes!(resolve_smart_playlist))
+        .routes(routes!(freeze_smart_playlist))
         // Playlists
-        .route("/playlists", get(list_playlists))
-        .route("/playlists", post(create_playlist))
-        .route("/playlists/{id}", get(get_playlist))
-        .route("/playlists/{id}", put(update_playlist))
-        .route("/playlists/{id}", delete(delete_playlist))
-        .route("/playlists/{id}/keep", put(keep_playlist))
-        .route("/playlists/{id}/audience", get(playlist_audience))
-        .route("/playlists/{id}/share", put(share_playlist))
-        .route("/playlists/{id}/tracks", get(list_playlist_tracks))
-        .route("/playlists/{id}/tracks", post(add_to_playlist))
-        .route("/playlists/{id}/tracks/{entry_id}", delete(remove_from_playlist))
-        .route("/playlists/{id}/tracks/reorder", put(reorder_playlist))
-        .route("/playlists/{id}/visibility", put(set_playlist_visibility))
-        .route("/playlists/{id}/cover", get(get_playlist_cover))
-        .route("/playlists/{id}/upload-cover", post(upload_playlist_cover).layer(DefaultBodyLimit::disable()))
+        .routes(routes!(list_playlists, create_playlist))
+        .routes(routes!(get_playlist, update_playlist, delete_playlist))
+        .routes(routes!(keep_playlist))
+        .routes(routes!(playlist_audience))
+        .routes(routes!(share_playlist))
+        .routes(routes!(list_playlist_tracks, add_to_playlist))
+        .routes(routes!(remove_from_playlist))
+        .routes(routes!(reorder_playlist))
+        .routes(routes!(set_playlist_visibility))
+        .routes(routes!(get_playlist_cover))
+        .routes(map(routes!(upload_playlist_cover), |m| m.layer(DefaultBodyLimit::disable())))
         // Grouped browsing — mobile clients need artist/album navigation
         // without reimplementing the grouping over a flat track list.
-        .route("/artists", get(list_artists))
-        .route("/artists/image", get(get_artist_image).delete(delete_artist_image))
-        .route("/artists/upload-image", post(upload_artist_image).layer(DefaultBodyLimit::disable()))
-        .route("/artists/image-info", get(get_artist_image_info))
-        .route("/albums", get(list_albums))
-        .route("/genres", get(list_genres))
+        .routes(routes!(list_artists))
+        .routes(routes!(get_artist_image, delete_artist_image))
+        .routes(map(routes!(upload_artist_image), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(get_artist_image_info))
+        .routes(routes!(list_albums))
+        .routes(routes!(list_genres))
 }
 
 // ── Grouped browsing ──────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ArtistSummary {
     pub artist: String,
     pub album_count: i64,
     pub track_count: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AlbumSummary {
     pub artist: String,
     pub album: String,
@@ -389,13 +380,14 @@ pub struct AlbumSummary {
     pub cover_url: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct GenreSummary {
     pub genre: String,
     pub track_count: i64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct AlbumsQuery {
     /// Restrict to one artist; omit for the whole library.
     #[serde(default)]
@@ -403,6 +395,9 @@ pub struct AlbumsQuery {
 }
 
 /// GET /api/v1/music/artists
+/// Artists the caller can see.
+#[utoipa::path(get, path = "/artists", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = Vec<ArtistSummary>)))]
 async fn list_artists(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -436,6 +431,9 @@ async fn list_artists(
 /// A miss is cached too. Most libraries hold at least one name no catalogue
 /// knows, and without a negative entry every grid render would re-ask the
 /// network about it forever.
+#[utoipa::path(get, path = "/artists/image", tag = "music", security(("bearer" = [])),
+    params(ArtistImageQuery),
+    responses((status = 200, description = "The image bytes", content_type = "image/*"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, description = "No picture known for this artist", body = crate::http::openapi::ErrorBody)))]
 async fn get_artist_image(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -575,6 +573,9 @@ async fn store_artist_image(
 /// and because the attribution is text that belongs in the layout, not metadata
 /// nobody reads. Most Commons licences *require* this to be shown, so it is not
 /// decoration.
+#[utoipa::path(get, path = "/artists/image-info", tag = "music", security(("bearer" = [])),
+    params(ArtistImageQuery),
+    responses((status = 200, body = ArtistImageInfoResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_artist_image_info(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -606,6 +607,10 @@ async fn get_artist_image_info(
 /// Marked `is_user_set`, which is what makes it permanent: the automatic
 /// catalogue lookup skips any row carrying that flag, so a deliberate choice is
 /// never quietly replaced by whatever a search returns later.
+#[utoipa::path(post, path = "/artists/upload-image", tag = "music", security(("bearer" = [])),
+    params(ArtistImageQuery),
+    request_body(content_type = "multipart/form-data", description = "fields: `image` (the image file)"),
+    responses((status = 201, description = "Stored"), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn upload_artist_image(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -654,6 +659,9 @@ async fn upload_artist_image(
 ///
 /// Deletes the row rather than nulling it: a NULL row is the cached "nothing
 /// found", which would suppress the very lookup this is handing control back to.
+#[utoipa::path(delete, path = "/artists/image", tag = "music", security(("bearer" = [])),
+    params(ArtistImageQuery),
+    responses((status = 204, description = "Forgotten"), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn delete_artist_image(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -670,6 +678,10 @@ async fn delete_artist_image(
 }
 
 /// GET /api/v1/music/albums?artist=…
+/// Albums the caller can see, grouped by album artist.
+#[utoipa::path(get, path = "/albums", tag = "music", security(("bearer" = [])),
+    params(AlbumsQuery),
+    responses((status = 200, body = Vec<AlbumSummary>)))]
 async fn list_albums(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -694,6 +706,9 @@ async fn list_albums(
 }
 
 /// GET /api/v1/music/genres
+/// Genres with their track counts.
+#[utoipa::path(get, path = "/genres", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = Vec<GenreSummary>)))]
 async fn list_genres(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -716,6 +731,8 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600;
 /// The whole list, as before, but streamed: rows go out as PostgreSQL returns
 /// them, so the server holds a few hundred tracks at a time whatever the
 /// catalog's size (docs/CAPACITY.md, issue #2). Same JSON array as ever.
+#[utoipa::path(get, path = "/tracks", tag = "music", security(("bearer" = [])),
+    responses((status = 200, description = "Every track the caller can play, streamed as one array", body = Vec<TrackResponse>)))]
 async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> axum::response::Response {
     use axum::response::IntoResponse;
     let (tx, rx) = tokio::sync::mpsc::channel(256);
@@ -732,6 +749,8 @@ async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> ax
 /// groups of the caller's own tracks only. Rows arrive pre-sorted by hash then upload date
 /// (`db::music::duplicate_tracks`), so building groups is one linear pass, not a second query
 /// per group.
+#[utoipa::path(get, path = "/duplicates", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = DuplicatesResponse)))]
 async fn list_duplicates(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -777,6 +796,10 @@ fn duplicate_track_to_response(row: db::music::DuplicateTrackRow) -> DuplicateTr
     }
 }
 
+/// GET /api/v1/music/tracks/{id} — one track the caller can play.
+#[utoipa::path(get, path = "/tracks/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = TrackResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -791,6 +814,10 @@ async fn get_track(
 
 /// PUT /api/v1/music/tracks/:id/visibility — move a track between the
 /// private and family folders. Owner only.
+#[utoipa::path(put, path = "/tracks/{id}/visibility", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = SetVisibilityRequest,
+    responses((status = 200, body = TrackResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn set_track_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -834,6 +861,9 @@ fn parse_visibility(value: &str) -> Result<bool, AuthError> {
 }
 
 /// POST /api/v1/music/tracks/upload — multipart upload of a single track
+#[utoipa::path(post, path = "/tracks/upload", tag = "music", security(("bearer" = [])),
+    request_body(content_type = "multipart/form-data", description = "fields: `file` (the audio, required), `cover` (image), `title`, `artist`, `album`, `album_artist`, `genre`, `track_number`, `duration_secs`, `visibility` (`private` or `family`); tags the form leaves out are read from the file"),
+    responses((status = 201, body = TrackResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
 async fn upload_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -913,7 +943,7 @@ async fn upload_track(
 
 /// Body of `POST /music/tracks/from-upload` — the direct-to-storage twin of
 /// the multipart upload, without its 100 MB Cloudflare limit.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct FromUploadRequest {
     /// Key returned by `/uploads/presign` (kind `music_track`), already PUT.
     pub object_key: String,
@@ -944,7 +974,7 @@ pub struct FromUploadRequest {
 
 /// A created track and where it sits in the own.audio folder — the path
 /// asked for, or with ` (2)` when another of the owner's files holds it.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TrackWithPath {
     #[serde(flatten)]
     pub track: TrackResponse,
@@ -952,6 +982,10 @@ pub struct TrackWithPath {
 }
 
 /// POST /api/v1/music/tracks/from-upload
+/// Create a track from a file already uploaded to storage.
+#[utoipa::path(post, path = "/tracks/from-upload", tag = "music", security(("bearer" = [])),
+    request_body = FromUploadRequest,
+    responses((status = 201, body = TrackWithPath), (status = 400, body = crate::http::openapi::ErrorBody), (status = 401, description = "The key is not in the caller's family storage", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
 async fn create_track_from_upload(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1272,6 +1306,11 @@ pub(crate) async fn refresh_folder_track(
     Ok(())
 }
 
+/// PUT /api/v1/music/tracks/{id} — edit a track's metadata. Owner only.
+#[utoipa::path(put, path = "/tracks/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = UpdateTrackRequest,
+    responses((status = 200, body = TrackResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn update_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1312,21 +1351,6 @@ async fn update_track(
     Ok(Json(track_to_response(fresh, family.user_id)))
 }
 
-/// POST /api/v1/music/tracks/:id/metadata/rescan — owner-only. Re-reads the
-/// track's own embedded tags from the file already in storage.
-///
-/// Exists because `read_embedded_tags` was added to `upload_track` *after*
-/// libraries had already been uploaded. Those tracks kept a filename-derived
-/// title and nothing else — confirmed on a real library: 199 tracks with no
-/// artist, no album, no genre, whose files carried all four the whole time.
-/// Re-uploading them to recover data already sitting in storage would be
-/// absurd; this reads it in place.
-///
-/// Distinct from the MusicBrainz flow, and not a replacement for it: this
-/// trusts the file and adds no MBIDs. It refuses on a track that has already
-/// been identified, because MusicBrainz is the better source and silently
-/// overwriting a deliberate match with whatever a tagger once wrote would be a
-/// regression the user never asked for.
 /// GET /api/v1/music/tracks/:id/metadata/file-tags
 ///
 /// What the audio file itself says, read fresh from storage and **not**
@@ -1338,6 +1362,9 @@ async fn update_track(
 /// The two sources drift by design — applying a MusicBrainz recording updates
 /// the database and never rewrites the file — so a track can sit in the
 /// library as one album while its bytes still say another.
+#[utoipa::path(get, path = "/tracks/{id}/metadata/file-tags", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = FileTagsResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_track_file_tags(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1371,7 +1398,7 @@ async fn get_track_file_tags(
     }))
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct DiscsResponse {
     checked: usize,
     left: i64,
@@ -1381,6 +1408,8 @@ struct DiscsResponse {
 /// tracks uploaded before it was kept, and says how many are left; a client calls again until
 /// none are. Only the disc fields change, so an identified track is safe too. A file that
 /// cannot be read counts as read: it has nothing to add.
+#[utoipa::path(post, path = "/tracks/discs", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = DiscsResponse)))]
 async fn read_discs(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1406,6 +1435,24 @@ async fn read_discs(
     Ok(Json(DiscsResponse { checked: batch.len(), left }))
 }
 
+/// POST /api/v1/music/tracks/:id/metadata/rescan — owner-only. Re-reads the
+/// track's own embedded tags from the file already in storage.
+///
+/// Exists because `read_embedded_tags` was added to `upload_track` *after*
+/// libraries had already been uploaded. Those tracks kept a filename-derived
+/// title and nothing else — confirmed on a real library: 199 tracks with no
+/// artist, no album, no genre, whose files carried all four the whole time.
+/// Re-uploading them to recover data already sitting in storage would be
+/// absurd; this reads it in place.
+///
+/// Distinct from the MusicBrainz flow, and not a replacement for it: this
+/// trusts the file and adds no MBIDs. It refuses on a track that has already
+/// been identified, because MusicBrainz is the better source and silently
+/// overwriting a deliberate match with whatever a tagger once wrote would be a
+/// regression the user never asked for.
+#[utoipa::path(post, path = "/tracks/{id}/metadata/rescan", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = TrackResponse), (status = 400, description = "Already identified, or the file has no tags", body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn rescan_track_tags(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1548,6 +1595,10 @@ fn metadata_mirror(state: &AppState) -> Result<crate::metadata::mirror::Metadata
 /// candidates for this track. The track id only scopes visibility/auth; the
 /// search itself runs on whatever title/artist/album the client sends
 /// (typically the track's current values, editable before searching).
+#[utoipa::path(post, path = "/tracks/{id}/metadata/search", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = MetadataSearchRequest,
+    responses((status = 200, body = Vec<crate::metadata::MetadataCandidate>), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn search_track_metadata(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1587,14 +1638,14 @@ async fn search_track_metadata(
     Ok(Json(results))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AlbumIdentifyRequest {
     pub track_ids: Vec<Uuid>,
 }
 
 /// An album candidate, with each match pointing at one of the request's
 /// tracks rather than at its position in the list.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AlbumCandidateResponse {
     pub mb_release_id: String,
     pub mb_release_group_id: String,
@@ -1611,7 +1662,7 @@ pub struct AlbumCandidateResponse {
     pub tracks: Vec<AlbumTrackMatchResponse>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AlbumTrackMatchResponse {
     pub track_id: Uuid,
     pub mb_recording_id: String,
@@ -1640,6 +1691,9 @@ fn most_common<'a>(values: impl Iterator<Item = Option<&'a str>>) -> Option<&'a 
 /// without knowing about the others. This asks once for the whole group; the
 /// client then applies the chosen album's matches with the existing per-track
 /// apply, so nothing about how a match is stored changes.
+#[utoipa::path(post, path = "/albums/identify", tag = "music", security(("bearer" = [])),
+    request_body = AlbumIdentifyRequest,
+    responses((status = 200, body = Vec<AlbumCandidateResponse>), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn identify_album(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1713,6 +1767,10 @@ async fn identify_album(
 /// POST /api/v1/music/tracks/:id/metadata/apply — owner-only, mirrors
 /// `update_track`'s auth. Re-fetches the chosen recording from MusicBrainz
 /// by id rather than trusting a client-supplied copy of a search result.
+#[utoipa::path(post, path = "/tracks/{id}/metadata/apply", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = ApplyMetadataRequest,
+    responses((status = 200, body = TrackResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn apply_track_metadata(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1833,6 +1891,9 @@ async fn apply_cover_art(
 
 /// Moves the track to the trash (30 days); its bytes stay until the purge.
 /// The owner, or a family admin when it is shared with their family.
+#[utoipa::path(delete, path = "/tracks/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 204, description = "Moved to the trash"), (status = 403, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn delete_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1843,6 +1904,10 @@ async fn delete_track(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// GET /api/v1/music/tracks/{id}/stream — a time-limited URL for the track's audio.
+#[utoipa::path(get, path = "/tracks/{id}/stream", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = StreamResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn stream_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1875,14 +1940,6 @@ async fn stream_track(
     }))
 }
 
-/// GET /api/v1/music/tracks/{id}/lyrics — the embedded lyrics tag from the
-/// track's own stored audio file (ID3 USLT for MP3, the equivalent generic
-/// `ItemKey::Lyrics` item for FLAC/M4A/OGG via `lofty`), read once and
-/// cached on `music_tracks.lyrics` (see that column's own doc comment for
-/// the `NULL`/`""`/text three-state meaning). Deliberately not folded into
-/// `TrackResponse`/`track_to_response` — `GET /tracks` returns the whole
-/// library on every call, and lyrics can run to a few KB of text most of
-/// those requests have no use for.
 /// PUT /api/v1/music/tracks/:id/lyrics — owner-only. Lyrics the user typed or
 /// pasted themselves.
 ///
@@ -1899,6 +1956,10 @@ async fn stream_track(
 ///
 /// An empty body clears the lyrics *and* the source marker, so the track falls
 /// back to being read from its file again on the next request.
+#[utoipa::path(put, path = "/tracks/{id}/lyrics", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = SetLyricsRequest,
+    responses((status = 200, body = LyricsResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn set_track_lyrics(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1922,6 +1983,17 @@ async fn set_track_lyrics(
     }))
 }
 
+/// GET /api/v1/music/tracks/{id}/lyrics — the embedded lyrics tag from the
+/// track's own stored audio file (ID3 USLT for MP3, the equivalent generic
+/// `ItemKey::Lyrics` item for FLAC/M4A/OGG via `lofty`), read once and
+/// cached on `music_tracks.lyrics` (see that column's own doc comment for
+/// the `NULL`/`""`/text three-state meaning). Deliberately not folded into
+/// `TrackResponse`/`track_to_response` — `GET /tracks` returns the whole
+/// library on every call, and lyrics can run to a few KB of text most of
+/// those requests have no use for.
+#[utoipa::path(get, path = "/tracks/{id}/lyrics", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = LyricsResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_track_lyrics(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2069,6 +2141,10 @@ fn parse_lyrics_tag(path: &std::path::Path) -> Option<String> {
         .map(str::to_string)
 }
 
+/// GET /api/v1/music/tracks/{id}/cover — the track's cover image.
+#[utoipa::path(get, path = "/tracks/{id}/cover", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, description = "The image bytes", content_type = "image/*"), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_cover(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2095,6 +2171,11 @@ async fn get_cover(
     Ok(([(header::CONTENT_TYPE, row.1)], Body::from(bytes)).into_response())
 }
 
+/// POST /api/v1/music/tracks/{id}/upload-cover — replace the track's cover. Owner only.
+#[utoipa::path(post, path = "/tracks/{id}/upload-cover", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `cover` (the image file)"),
+    responses((status = 201, description = "Stored"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn upload_cover(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2155,7 +2236,7 @@ use crate::music::rules::Rule;
 /// short of the requested length.
 const CANDIDATE_POOL: i64 = 4_000;
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SmartPlaylistResponse {
     pub id: String,
     pub name: String,
@@ -2168,11 +2249,12 @@ pub struct SmartPlaylistResponse {
     pub updated_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SmartPlaylistRequest {
     pub name: String,
     #[serde(default)]
     pub description: Option<String>,
+    #[schema(value_type = Object)]
     pub rule: Rule,
     /// Share with the family. Sharing a *rule* means the receiver's own history
     /// is what it evaluates against — see §4.4 — so a client must say so.
@@ -2180,12 +2262,13 @@ pub struct SmartPlaylistRequest {
     pub shared: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ResolveRuleRequest {
+    #[schema(value_type = Object)]
     pub rule: Rule,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ResolvedPlaylistResponse {
     pub tracks: Vec<TrackResponse>,
     pub total_secs: i64,
@@ -2214,6 +2297,8 @@ fn smart_playlist_response(p: db::music::SmartPlaylist, viewer: Uuid) -> SmartPl
 /// Built-ins rather than rows: they are the same for everyone, and a row per
 /// user per preset would be a migration plus a backfill for no gain. A client
 /// that wants to edit one POSTs it as a new playlist.
+#[utoipa::path(get, path = "/smart-playlists/presets", tag = "music",
+    responses((status = 200, description = "Built-in rules, each `{slug, name, rule}`", body = Vec<Object>)))]
 async fn list_presets() -> Json<Vec<serde_json::Value>> {
     Json(
         crate::music::rules::presets()
@@ -2229,6 +2314,9 @@ async fn list_presets() -> Json<Vec<serde_json::Value>> {
     )
 }
 
+/// GET /api/v1/music/smart-playlists — the caller's smart playlists and those shared with their family.
+#[utoipa::path(get, path = "/smart-playlists", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = Vec<SmartPlaylistResponse>)))]
 async fn list_smart_playlists(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2243,6 +2331,10 @@ async fn list_smart_playlists(
     ))
 }
 
+/// POST /api/v1/music/smart-playlists — save a rule as a smart playlist.
+#[utoipa::path(post, path = "/smart-playlists", tag = "music", security(("bearer" = [])),
+    request_body = SmartPlaylistRequest,
+    responses((status = 201, body = SmartPlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn create_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2270,6 +2362,10 @@ async fn create_smart_playlist(
     ))
 }
 
+/// GET /api/v1/music/smart-playlists/{id} — one smart playlist.
+#[utoipa::path(get, path = "/smart-playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Smart playlist id")),
+    responses((status = 200, body = SmartPlaylistResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2282,6 +2378,11 @@ async fn get_smart_playlist(
     Ok(Json(smart_playlist_response(p, family.user_id)))
 }
 
+/// PUT /api/v1/music/smart-playlists/{id} — replace a smart playlist's name, description and rule. Owner only.
+#[utoipa::path(put, path = "/smart-playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Smart playlist id")),
+    request_body = SmartPlaylistRequest,
+    responses((status = 200, body = SmartPlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn update_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2308,6 +2409,10 @@ async fn update_smart_playlist(
     Ok(Json(smart_playlist_response(p, family.user_id)))
 }
 
+/// DELETE /api/v1/music/smart-playlists/{id} — delete a smart playlist. Owner only.
+#[utoipa::path(delete, path = "/smart-playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Smart playlist id")),
+    responses((status = 204, description = "Deleted"), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn delete_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2329,6 +2434,9 @@ async fn delete_smart_playlist(
 /// defining property of sharing a rule rather than a result (§4.4): "unplayed
 /// 80s rock" is a different set for two people, and a client must present it
 /// that way or it reads as a bug.
+#[utoipa::path(post, path = "/smart-playlists/{id}/resolve", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Smart playlist id")),
+    responses((status = 200, body = ResolvedPlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn resolve_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2350,6 +2458,9 @@ async fn resolve_smart_playlist(
 /// Run a rule without saving it. This is what a natural-language request lands
 /// on (§5): the model produces a rule, the caller resolves it, and only if the
 /// result is wanted does it become a playlist.
+#[utoipa::path(post, path = "/smart-playlists/resolve", tag = "music", security(("bearer" = [])),
+    request_body = ResolveRuleRequest,
+    responses((status = 200, body = ResolvedPlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn resolve_rule(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2361,15 +2472,16 @@ async fn resolve_rule(
     resolve(&state, &family, &body.rule).await.map(Json)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct IntentRequest {
     pub text: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct IntentResponse {
     /// The rule, ready to POST to `/smart-playlists/resolve`. **Not tracks** —
     /// see music::intent for why that boundary matters.
+    #[schema(value_type = Object)]
     pub rule: crate::music::rules::Rule,
 }
 
@@ -2381,6 +2493,9 @@ pub struct IntentResponse {
 /// Apple clients should prefer their on-device model and use this only as a
 /// fallback. What leaves the device either way is the sentence and the
 /// library's genre vocabulary — never track titles, never listening history.
+#[utoipa::path(post, path = "/intent", tag = "music", security(("bearer" = [])),
+    request_body = IntentRequest,
+    responses((status = 200, body = IntentResponse), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn parse_intent(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2409,7 +2524,7 @@ async fn parse_intent(
     Ok(Json(IntentResponse { rule }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct FreezeRequest {
     /// Defaults to the smart playlist's own name.
     #[serde(default)]
@@ -2435,6 +2550,10 @@ pub struct FreezeRequest {
 /// Freezing gives the second: a fixed list that can be edited and that never
 /// changes under anyone. A single "share" button doing one of these silently
 /// would be the wrong design.
+#[utoipa::path(post, path = "/smart-playlists/{id}/freeze", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Smart playlist id")),
+    request_body = FreezeRequest,
+    responses((status = 201, body = PlaylistResponse), (status = 400, description = "The rule matches nothing", body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn freeze_smart_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2544,13 +2663,13 @@ async fn resolve(
 // Two meanings, not one: a dislike recovers over months, a ban does not until
 // undone. Neither touches the track — see migration 0069.
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct TrackFeedbackRequest {
     /// `dislike` or `banned`.
     pub kind: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TrackFeedbackResponse {
     pub track_id: String,
     pub kind: String,
@@ -2558,6 +2677,11 @@ pub struct TrackFeedbackResponse {
 }
 
 /// PUT /music/tracks/{id}/feedback
+/// Mark a track disliked or banned for the caller.
+#[utoipa::path(put, path = "/tracks/{id}/feedback", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = TrackFeedbackRequest,
+    responses((status = 204, description = "Stored"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn set_track_feedback(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2594,6 +2718,9 @@ async fn set_track_feedback(
 ///
 /// Idempotent: clearing feedback that was never set is success, not 404. The
 /// caller wants the track unmarked, and it is.
+#[utoipa::path(delete, path = "/tracks/{id}/feedback", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 204, description = "Cleared")))]
 async fn clear_track_feedback(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2610,6 +2737,9 @@ async fn clear_track_feedback(
 ///
 /// The undo list. Someone who banned a track by a mis-tap has no other way to
 /// find it, because nothing about the track itself looks different.
+#[utoipa::path(get, path = "/feedback", tag = "music", security(("bearer" = [])),
+    params(TrackFeedbackQuery),
+    responses((status = 200, body = Vec<TrackFeedbackResponse>), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn list_track_feedback(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2638,12 +2768,17 @@ async fn list_track_feedback(
     ))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct TrackFeedbackQuery {
     #[serde(default)]
     pub kind: Option<String>,
 }
 
+/// GET /api/v1/music/tracks/{id}/progress — the caller's playback position in a track.
+#[utoipa::path(get, path = "/tracks/{id}/progress", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = ProgressResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_track_progress(
     auth: crate::auth::middleware::AuthUser,
     State(state): State<AppState>,
@@ -2662,6 +2797,11 @@ async fn get_track_progress(
     }))
 }
 
+/// PUT /api/v1/music/tracks/{id}/progress — save the caller's playback position in a track.
+#[utoipa::path(put, path = "/tracks/{id}/progress", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    request_body = UpsertProgressRequest,
+    responses((status = 200, body = ProgressResponse)))]
 async fn upsert_track_progress(
     auth: crate::auth::middleware::AuthUser,
     State(state): State<AppState>,
@@ -2705,6 +2845,9 @@ async fn upsert_track_progress(
 
 // ── Playlist handlers ─────────────────────────────────────────────────────
 
+/// GET /api/v1/music/playlists — every playlist the caller can see.
+#[utoipa::path(get, path = "/playlists", tag = "music", security(("bearer" = [])),
+    responses((status = 200, body = Vec<PlaylistResponse>)))]
 async fn list_playlists(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2722,6 +2865,10 @@ async fn list_playlists(
     Ok(Json(responses))
 }
 
+/// POST /api/v1/music/playlists — create a playlist, optionally with its tracks.
+#[utoipa::path(post, path = "/playlists", tag = "music", security(("bearer" = [])),
+    request_body = CreatePlaylistRequest,
+    responses((status = 201, body = PlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn create_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2771,6 +2918,8 @@ async fn create_playlist(
 /// Stars were reachable only through the Subsonic API until the web's player
 /// got a heart; "Forgotten favourites" reads them, so without a way to set
 /// them in our own clients it could never find anything.
+#[utoipa::path(get, path = "/starred", tag = "music", security(("bearer" = [])),
+    responses((status = 200, description = "Track ids", body = Vec<String>)))]
 async fn list_starred_tracks(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2782,6 +2931,9 @@ async fn list_starred_tracks(
 }
 
 /// PUT /api/v1/music/tracks/{id}/star — star a song the caller can play. Idempotent.
+#[utoipa::path(put, path = "/tracks/{id}/star", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 204, description = "Starred"), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn star_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2798,6 +2950,9 @@ async fn star_track(
 }
 
 /// DELETE /api/v1/music/tracks/{id}/star — idempotent.
+#[utoipa::path(delete, path = "/tracks/{id}/star", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 204, description = "Unstarred")))]
 async fn unstar_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2809,7 +2964,7 @@ async fn unstar_track(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PlaylistAudienceEntry {
     pub user_id: String,
     pub display_name: String,
@@ -2822,6 +2977,9 @@ pub struct PlaylistAudienceEntry {
 
 /// GET /api/v1/music/playlists/{id}/audience — the owner asks which family members
 /// can play their playlist. Everyone but the owner; all `false` while it is private.
+#[utoipa::path(get, path = "/playlists/{id}/audience", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 200, body = Vec<PlaylistAudienceEntry>), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn playlist_audience(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2860,7 +3018,7 @@ async fn playlist_audience(
     ))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SharePlaylistRequest {
     /// `live` — the chosen members play the owner's playlist and see every change;
     /// `copy` — each of them gets a playlist of their own with the same songs.
@@ -2868,7 +3026,7 @@ pub struct SharePlaylistRequest {
     pub user_ids: Vec<Uuid>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SharePlaylistResponse {
     /// The owner's private songs that were shared with the chosen members so they can play them.
     pub shared_tracks: usize,
@@ -2887,6 +3045,10 @@ pub struct SharePlaylistResponse {
 ///
 /// `live` with nobody chosen makes the playlist private again. Family admins see anything
 /// shared with the family whatever is chosen, which the audience reports as `locked`.
+#[utoipa::path(put, path = "/playlists/{id}/share", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body = SharePlaylistRequest,
+    responses((status = 200, body = SharePlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn share_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3067,6 +3229,9 @@ const MAX_PLAYLIST_CREATE_TRACKS: usize = 1000;
 
 /// PUT /api/v1/music/playlists/{id}/keep — the owner keeps a generated playlist.
 /// 404 for a playlist that is not theirs or was not generated.
+#[utoipa::path(put, path = "/playlists/{id}/keep", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 204, description = "Kept"), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn keep_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3082,6 +3247,10 @@ async fn keep_playlist(
     }
 }
 
+/// GET /api/v1/music/playlists/{id} — one playlist the caller can see.
+#[utoipa::path(get, path = "/playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 200, body = PlaylistResponse), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn get_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3098,6 +3267,10 @@ async fn get_playlist(
 }
 
 /// PUT /api/v1/music/playlists/:id/visibility — owner only.
+#[utoipa::path(put, path = "/playlists/{id}/visibility", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body = SetVisibilityRequest,
+    responses((status = 204, description = "Changed"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn set_playlist_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3122,6 +3295,11 @@ async fn set_playlist_visibility(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// PUT /api/v1/music/playlists/{id} — rename a playlist or change its description. Owner only.
+#[utoipa::path(put, path = "/playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body = UpdatePlaylistRequest,
+    responses((status = 200, body = PlaylistResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn update_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3159,6 +3337,9 @@ async fn update_playlist(
 }
 
 /// Moves the playlist to the trash (30 days).
+#[utoipa::path(delete, path = "/playlists/{id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 204, description = "Moved to the trash"), (status = 403, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn delete_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3169,6 +3350,10 @@ async fn delete_playlist(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// GET /api/v1/music/playlists/{id}/tracks — the playlist's entries in order, skipping tracks the caller may not play.
+#[utoipa::path(get, path = "/playlists/{id}/tracks", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 200, body = Vec<PlaylistTrackResponse>), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn list_playlist_tracks(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3203,6 +3388,11 @@ async fn list_playlist_tracks(
     Ok(Json(result))
 }
 
+/// POST /api/v1/music/playlists/{id}/tracks — append a track the caller can play. Owner only.
+#[utoipa::path(post, path = "/playlists/{id}/tracks", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body = AddTrackToPlaylistRequest,
+    responses((status = 201, description = "Added"), (status = 400, description = "Bad or unknown track id", body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn add_to_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3233,6 +3423,10 @@ async fn add_to_playlist(
     Ok(StatusCode::CREATED)
 }
 
+/// DELETE /api/v1/music/playlists/{id}/tracks/{entry_id} — remove one entry. Owner only.
+#[utoipa::path(delete, path = "/playlists/{id}/tracks/{entry_id}", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id"), ("entry_id" = Uuid, Path, description = "Playlist entry id")),
+    responses((status = 204, description = "Removed"), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn remove_from_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3250,6 +3444,11 @@ async fn remove_from_playlist(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// PUT /api/v1/music/playlists/{id}/tracks/reorder — set the order of the playlist's entries. Owner only.
+#[utoipa::path(put, path = "/playlists/{id}/tracks/reorder", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body = ReorderPlaylistRequest,
+    responses((status = 204, description = "Reordered"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn reorder_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3275,6 +3474,10 @@ async fn reorder_playlist(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// GET /api/v1/music/playlists/{id}/cover — the playlist's cover, or the first of its tracks' covers.
+#[utoipa::path(get, path = "/playlists/{id}/cover", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    responses((status = 200, description = "The image bytes", content_type = "image/*"), (status = 404, description = "No playlist, or neither it nor its tracks have a cover", body = crate::http::openapi::ErrorBody)))]
 async fn get_playlist_cover(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -3314,6 +3517,11 @@ async fn get_playlist_cover(
     Ok(([(header::CONTENT_TYPE, row.1)], Body::from(bytes)).into_response())
 }
 
+/// POST /api/v1/music/playlists/{id}/upload-cover — set the playlist's own cover. Owner only.
+#[utoipa::path(post, path = "/playlists/{id}/upload-cover", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Playlist id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `cover` (the image file)"),
+    responses((status = 201, description = "Stored"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn upload_playlist_cover(
     family: FamilyContext,
     State(state): State<AppState>,
