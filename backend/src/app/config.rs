@@ -295,21 +295,66 @@ pub struct MetadataConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct MailConfig {
-    /// JMAP server base URL, e.g. `https://mail.example.com`.
-    pub jmap_base_url: String,
-    pub jmap_user: String,
-    pub jmap_password: String,
-    /// Envelope + header From address. The hosted own.audio instance reuses
-    /// `hello@own.audio` (the same address the waitlist already sends
-    /// from) rather than minting a dedicated alias.
+    /// SMTP submission server, e.g. `smtp.example.com`. When set, mail goes
+    /// out over SMTP and the JMAP fields are ignored.
+    #[serde(default)]
+    pub smtp_host: Option<String>,
+    /// Unset or blank ⇒ 465 for `tls`, 587 for `starttls`, 25 for `none`.
+    /// Read as text: compose passes an unset variable as `""`.
+    #[serde(default, deserialize_with = "blank_as_none")]
+    pub smtp_port: Option<u16>,
+    #[serde(default)]
+    pub smtp_user: Option<String>,
+    #[serde(default)]
+    pub smtp_password: Option<String>,
+    /// `tls` (implicit TLS, the default), `starttls`, or `none` for a relay on
+    /// a private network. Credentials are never sent without TLS.
+    #[serde(default)]
+    pub smtp_security: Option<String>,
+    /// JMAP server base URL, e.g. `https://mail.example.com` (the hosted
+    /// edition's mailer until it moves to SMTP).
+    #[serde(default)]
+    pub jmap_base_url: Option<String>,
+    #[serde(default)]
+    pub jmap_user: Option<String>,
+    #[serde(default)]
+    pub jmap_password: Option<String>,
+    /// Envelope + header From address. Most providers only accept the
+    /// address of the mailbox you authenticate as.
     pub from_address: String,
     /// Display name on the From header, e.g. `own.audio`.
     #[serde(default = "default_mail_from_name")]
     pub from_name: String,
 }
 
+fn blank_as_none<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u16>, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Port {
+        Number(u16),
+        Text(String),
+    }
+    match Option::<Port>::deserialize(d)? {
+        None => Ok(None),
+        Some(Port::Number(n)) => Ok(Some(n)),
+        Some(Port::Text(t)) if t.trim().is_empty() => Ok(None),
+        Some(Port::Text(t)) => t.trim().parse().map(Some).map_err(serde::de::Error::custom),
+    }
+}
+
+impl MailConfig {
+    /// `Some` and not blank: compose files pass unset variables as `""`.
+    pub fn smtp_host(&self) -> Option<&str> {
+        self.smtp_host.as_deref().map(str::trim).filter(|h| !h.is_empty())
+    }
+
+    pub fn jmap_base_url(&self) -> Option<&str> {
+        self.jmap_base_url.as_deref().map(str::trim).filter(|u| !u.is_empty())
+    }
+}
+
 fn default_mail_from_name() -> String {
-    "audio2".to_string()
+    "own.audio".to_string()
 }
 
 /// Microsoft sign-in through the `common` authority, so both work/school and

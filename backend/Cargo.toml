@@ -48,6 +48,7 @@ argon2 = "0.5"
 jsonwebtoken = "9"
 
 # HTTP client
+lettre = { version = "0.11", default-features = false, features = ["builder", "hostname", "smtp-transport", "tokio1", "tokio1-rustls", "rustls-native-certs", "ring"] }
 reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-native-roots", "json", "stream"] }
 
 # Object storage (S3-compatible: Garage, MinIO, AWS)
