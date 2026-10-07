@@ -45,6 +45,7 @@ impl Modify for Security {
         description = "The contract every own.audio client speaks. Additive within v1: see docs/API_COMPATIBILITY.md.",
         license(name = "AGPL-3.0-or-later", identifier = "AGPL-3.0-or-later"),
     ),
+    servers((url = "/", description = "This server")),
     components(schemas(ErrorBody)),
     modifiers(&Security),
 )]
@@ -67,11 +68,25 @@ pub fn document() -> utoipa::openapi::OpenApi {
         .split_for_parts();
     api.info.version = format!("{API_VERSION}.{API_REVISION}");
     for item in api.paths.paths.values_mut() {
-        for op in [&mut item.get, &mut item.put, &mut item.post, &mut item.delete, &mut item.patch, &mut item.head]
-            .into_iter()
-            .flatten()
-        {
+        let mut seen = std::collections::HashSet::new();
+        for (method, op) in [
+            ("get", &mut item.get),
+            ("put", &mut item.put),
+            ("post", &mut item.post),
+            ("delete", &mut item.delete),
+            ("patch", &mut item.patch),
+            ("head", &mut item.head),
+        ] {
+            let Some(op) = op else { continue };
             tidy(op);
+            // One handler serving several methods (`/media`) gets one id per method.
+            if let Some(id) = op.operation_id.as_mut() {
+                if !seen.insert(id.clone()) {
+                    *id = format!("{id}_{method}");
+                }
+            }
+            // Say "no sign-in" explicitly rather than leaving it unstated.
+            op.security.get_or_insert_with(|| vec![utoipa::openapi::security::SecurityRequirement::default()]);
         }
     }
     api

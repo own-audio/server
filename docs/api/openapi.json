@@ -9,6 +9,12 @@
     },
     "version": "1.4"
   },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This server"
+    }
+  ],
   "paths": {
     "/api/v1/admin/families": {
       "get": {
@@ -3139,7 +3145,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/device/poll": {
@@ -3211,7 +3220,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/device/start": {
@@ -3253,7 +3265,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/device/{user_code}": {
@@ -3464,7 +3479,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/google": {
@@ -3546,7 +3564,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/login": {
@@ -3598,7 +3619,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/logout": {
@@ -3745,7 +3769,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/password": {
@@ -3816,7 +3843,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/refresh": {
@@ -3868,7 +3898,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/register": {
@@ -3909,7 +3942,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/registration-status": {
@@ -3931,7 +3967,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/auth/sessions": {
@@ -6042,7 +6081,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/join/{code}/claim": {
@@ -6105,7 +6147,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/library/changes": {
@@ -6386,7 +6431,10 @@
           "416": {
             "description": "Range outside the file"
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       },
       "put": {
         "tags": [
@@ -6394,7 +6442,7 @@
         ],
         "summary": "A media file behind a server-signed link (local storage, library folders, or S3 in proxy mode)",
         "description": "A media file behind a server-signed link (local storage, library folders,\nor S3 in proxy mode). Clients get these links from the stream and upload\nendpoints and treat them as opaque; the signature is the authorisation.",
-        "operationId": "media_media",
+        "operationId": "media_media_put",
         "parameters": [
           {
             "name": "k",
@@ -6444,7 +6492,10 @@
           "416": {
             "description": "Range outside the file"
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       },
       "head": {
         "tags": [
@@ -6452,7 +6503,7 @@
         ],
         "summary": "A media file behind a server-signed link (local storage, library folders, or S3 in proxy mode)",
         "description": "A media file behind a server-signed link (local storage, library folders,\nor S3 in proxy mode). Clients get these links from the stream and upload\nendpoints and treat them as opaque; the signature is the authorisation.",
-        "operationId": "media_media",
+        "operationId": "media_media_head",
         "parameters": [
           {
             "name": "k",
@@ -6502,7 +6553,10 @@
           "416": {
             "description": "Range outside the file"
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/music/albums": {
@@ -7864,7 +7918,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/music/smart-playlists/resolve": {
@@ -10962,7 +11019,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/podcasts/{id}/episodes/{ep_id}/stream": {
@@ -11070,7 +11130,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/podcasts/{id}/refresh": {
@@ -11391,7 +11454,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/setup/complete": {
@@ -11443,7 +11509,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/setup/status": {
@@ -11475,7 +11544,10 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {}
+        ]
       }
     },
     "/api/v1/stats/family": {
