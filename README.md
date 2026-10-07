@@ -98,7 +98,8 @@ docker compose up -d            # PostgreSQL 16 and the server; media on a local
 
 Then open `http://localhost:8080` and create the first admin. The image is
 `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker Hub);
-amd64 and arm64. [INSTALL.md](INSTALL.md) has the details.
+amd64 and arm64. [INSTALL.md](INSTALL.md) has the details, and
+[docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md) the Raspberry Pi version.
 
 ## Clients
 

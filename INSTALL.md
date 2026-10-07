@@ -7,7 +7,8 @@
 ## What you need
 
 - A Linux host (amd64 or arm64) with Docker and Docker Compose v2. A Raspberry
-  Pi 4, a NAS that runs containers, or a small VPS all work.
+  Pi 3 or newer with a 64-bit OS ([docs/RASPBERRY_PI.md](docs/RASPBERRY_PI.md)),
+  a NAS that runs containers, or a small VPS all work.
 - PostgreSQL 16 or newer. The compose file brings its own; point
   `DATABASE_URL` at an existing one if you prefer.
 - Somewhere to keep the audio. By default it is a volume on the same host

@@ -8,6 +8,8 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- `docs/RASPBERRY_PI.md`: the server on a Raspberry Pi 3 or newer (64-bit
+  OS, a USB disk, library folders, local storage, a Cloudflare Tunnel).
 - `conformance/tools/scale_catalog.py`: fills a test database with a
   generated catalog (600,000 tracks and 1,000 books in about half a minute)
   and measures memory and latency of the browse calls. Results in
