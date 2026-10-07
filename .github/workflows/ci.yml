@@ -19,7 +19,7 @@ jobs:
     name: no secrets in the tree
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       # The gitleaks GitHub Action wants a paid licence for organisation repos;
       # the binary itself is MIT and does the same job.
@@ -32,7 +32,7 @@ jobs:
     name: server (check, clippy, test, licences)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Same version as rust-toolchain.toml and backend/Dockerfile — bump all three together.
       - uses: dtolnay/rust-toolchain@1.97
         with: { components: clippy }
@@ -53,8 +53,8 @@ jobs:
     name: web console (i18n, lint, test, build)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
       - run: npm ci
         working-directory: i18n
@@ -76,10 +76,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [server, console]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: Build the server image (layer cache shared across runs)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: backend/Dockerfile
@@ -99,8 +99,8 @@ jobs:
           curl -fs -X POST http://localhost:8080/api/v1/setup/complete -H 'Content-Type: application/json' \
             -d '{"email":"admin@example.com","password":"CiAdmin123!","display_name":"CI"}'
       - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!' --report conformance-report.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
-        with: { name: conformance-report, path: conformance-report.json }
+        with: { name: conformance-report, path: conformance-report.json, if-no-files-found: ignore }
       - if: failure()
         run: docker compose logs server | tail -200

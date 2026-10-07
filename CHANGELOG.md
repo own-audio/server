@@ -13,6 +13,11 @@ semver. Each release states the **API contract revision** it serves
   index, so GHCR and Docker Hub show a description, the source and the licence.
 
 ### Changed
+- CI and release workflows use the Node 24 majors of every action
+  (checkout v7, setup-node v7, upload-artifact v7, download-artifact v8,
+  Docker's login v4, setup-buildx v4, build-push v7, metadata v6), which
+  clears GitHub's Node 20 deprecation warnings. A cancelled conformance run no
+  longer warns about a missing report.
 - README and INSTALL: both architectures are pulled, the demo's content is
   described as it is now, and features still being built (library folders,
   local storage, SMTP mail, music identify, podcast discovery) are marked as
