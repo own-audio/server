@@ -51,6 +51,20 @@ Contract revision 4.
   readable by it.
 
 ### Fixed
+- Subsonic album and artist ids are found by a key read (`subsonic_ids`,
+  migration 0091) instead of aggregating the whole catalog per request:
+  `getAlbum`, `getArtist`, `getMusicDirectory`, `getCoverArt` for album and
+  artist tiles, stars and ratings, album and artist info. An id the server
+  has not handed out yet costs one pass, which records every id at once;
+  one pass at a time, so an album grid's fifty covers do not start fifty.
+  `getCoverArt` tries playlist and podcast ids first, which never needed it.
+- `GET /library/changes` (a full sync is every track) and
+  `GET /sync/tree/ids` stream their lists instead of building them in
+  memory; same responses.
+- Reading a track's tags, its lyrics and the audio analysis stream the file
+  to disk instead of holding it whole (a FLAC is 100–300 MB).
+- The checksum and audio-analysis backfills enqueue the next batch as soon as
+  the previous one has drained, instead of 200 items an hour.
 - Web console on iPhone and iPad: the volume slider did nothing, because
   Safari there ignores a page's volume (only the hardware buttons change it).
   The slider is hidden where the browser cannot set volume, and mute now uses

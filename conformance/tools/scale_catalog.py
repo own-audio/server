@@ -13,7 +13,7 @@ library: it inserts thousands of fake tracks and books into the admin's family.
 
 Without --tracks it only measures (a catalog created earlier stays).
 """
-import argparse, json, os, subprocess, sys, time, urllib.parse, urllib.request
+import argparse, json, os, subprocess, sys, time, urllib.error, urllib.parse, urllib.request
 
 UA = "own-audio-scale/1.0"
 
@@ -130,6 +130,8 @@ def main():
         ("GET /audiobooks", "/api/v1/audiobooks"),
         ("GET /library/search?q=Track 1234", "/api/v1/library/search?" + urllib.parse.urlencode({"q": "Track 1234"})),
         ("GET /library/continue", "/api/v1/library/continue"),
+        ("GET /library/changes (full sync)", "/api/v1/library/changes"),
+        ("GET /sync/tree/ids", "/api/v1/sync/tree/ids"),
     ]
     for label, path in probes:
         try:
@@ -156,6 +158,38 @@ def main():
         except Exception as e:  # noqa: BLE001
             results["calls"][label] = {"error": str(e)}
             print(f"{label:40} ERROR {e}")
+
+    # Lookups by id: the first one may have to learn the catalog's ids, the
+    # rest should be key reads. A client's album grid asks for many covers.
+    try:
+        listed = json.loads(call(f"/rest/getAlbumList2.view?{sub}&type=newest&size=50")[0])
+        albums = listed["subsonic-response"]["albumList2"]["album"]
+        lookups = [("Subsonic getAlbum (first lookup)", "getAlbum", albums[0]["id"]),
+                   ("Subsonic getAlbum (another)", "getAlbum", albums[1]["id"]),
+                   ("Subsonic getArtist", "getArtist", albums[2]["artistId"])]
+        lookups += [(f"Subsonic getCoverArt album {i}", "getCoverArt", al["id"]) for i, al in enumerate(albums[3:23])]
+        cover_secs = []
+        for label, method, ident in lookups:
+            if method == "getCoverArt":
+                # Generated rows have no pictures, so a 404 is the expected answer;
+                # the time to find that out is what counts.
+                start = time.time()
+                try:
+                    call(f"/rest/{method}.view?{sub}&id={ident}")
+                except urllib.error.HTTPError:
+                    pass
+                cover_secs.append(time.time() - start)
+                continue
+            with Peak(a) as p:
+                raw, secs = call(f"/rest/{method}.view?{sub}&id={ident}")
+            results["calls"][label] = {"seconds": round(secs, 3), "bytes": len(raw), "peak_rss_mib": p.peak}
+            print(f"{label:40} {secs:7.3f} s  {len(raw) / 1048576:8.1f} MB  peak {p.peak} MiB")
+        if cover_secs:
+            avg = sum(cover_secs) / len(cover_secs)
+            results["calls"]["Subsonic getCoverArt (20 albums, mean)"] = {"seconds": round(avg, 3)}
+            print(f"{'Subsonic getCoverArt (20 albums, mean)':40} {avg:7.3f} s")
+    except Exception as e:  # noqa: BLE001
+        print(f"lookups by id: ERROR {e}")
 
     results["after_rss_mib"] = rss_mib(a)
     print(f"server after: {results['after_rss_mib']} MiB")

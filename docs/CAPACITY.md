@@ -58,25 +58,28 @@ The rule above is **not true of today's code**. A read-only audit of
 Estimates are for 600k tracks, about 50k albums and 1.2M media objects; none
 was measured yet.
 
-1. **Subsonic albums and artists** (`subsonic/browsing.rs`, `db/subsonic.rs`).
+1. **Subsonic albums and artists** (lookups by id fixed 2026-10-07: a key
+   read through `subsonic_ids`; the list calls still aggregate) (`subsonic/browsing.rs`, `db/subsonic.rs`).
    Album and artist ids are hashes, so every album or artist request
    aggregates the whole catalog to find one: getAlbumList2, getAlbum,
    getArtist, search, stars, and getCoverArt for album tiles (one full
    aggregation per tile, which ties up the connection pool). About 1–3 s each.
    Fix: real album and artist tables keyed by the id; sort, filter and page
    in SQL.
-2. **`GET /music/tracks` is not paginated** (`music/mod.rs`, `db/music.rs`):
+2. **`GET /music/tracks` is not paginated** (fixed in alpha.6: streamed,
+   flat memory) (`music/mod.rs`, `db/music.rs`):
    the whole catalog, lyrics included, about 0.7–1 GB of memory and a 350 MB
    response. Fix: keyset pagination, no lyrics in lists.
-3. **`GET /library/changes` without `since`** (`library/mod.rs`,
+3. **`GET /library/changes` without `since`** (fixed 2026-10-07: streamed) (`library/mod.rs`,
    `db/sync.rs`): every track as JSON, about 1 GB. Fix: page it like
    `/sync/tree`, or retire it for `/sync/tree`.
-4. **File-sync path checks and organise** (`filesync/paths.rs`,
+4. **File-sync path checks and organise** (path checks fixed in alpha.7;
+   organise still one transaction) (`filesync/paths.rs`,
    `filesync/organise.rs`): a prefix check that cannot use an index, so a
    large import costs time quadratic in the library size, and organise runs
    in one long transaction. Fix: compare against the candidate's own
    prefixes with a prefix index, batch and commit in chunks.
-5. **`GET /sync/tree/ids`**: every id in one response, about 100 MB. Fix: page
+5. **`GET /sync/tree/ids`** (fixed 2026-10-07: streamed): every id in one response, about 100 MB. Fix: page
    it.
 6. **Storage reconcile** (manual job): all object keys and the whole bucket
    listing in memory, about 300 MB. Fix: walk the listing page by page.
@@ -87,10 +90,12 @@ was measured yet.
    `%text%` search read every row; the visibility filter defeats index use.
    Fix: expression indexes on the normalised columns, `pg_trgm` for search.
 9. **getStarred**: one query per starred track and a linear album search.
-10. **Background work**: audio analysis and checksum backfill run 200 items
+10. **Background work** (fixed 2026-10-07: the next batch goes in as soon
+    as the previous one drains): audio analysis and checksum backfill run 200 items
     an hour, so a 600k first import would take about four months. Fix:
     throughput sized for a first scan.
-11. **Whole files read into memory** for tag reading, lyrics and analysis
+11. **Whole files read into memory** (fixed 2026-10-07 for tags, lyrics
+    and analysis: streamed to a temporary file) for tag reading, lyrics and analysis
     (`music/mod.rs`, `jobs/worker.rs`); a large FLAC is 100–300 MB, times
     the job concurrency. Fix: stream to a temporary file, as uploads
     already do.
@@ -144,6 +149,25 @@ expression per row per query.
 Memory is flat. What is still above the 300 ms target is mostly the size of
 the answer (every album at once) or the Subsonic id scheme (gap 1 below:
 album and artist ids are hashes, so a lookup still aggregates the catalog).
+
+## Measured: lookups by id, sync lists, after issue #2 (2026-10-07)
+
+Same tool and catalog size (600,000 generated tracks, 1,000 books), the
+image before and after the change, on one database. Server memory is the
+process's peak during the call.
+
+| Call | Before | After |
+|---|---|---|
+| `GET /library/changes`, full sync (192 MB) | 1.9 s, **peak 1,889 MiB** | 2.0 s, **peak 21 MiB** |
+| `GET /sync/tree/ids` (63 MB) | 0.3 s, **peak 1,565 MiB** | 0.8 s, **peak 21 MiB** |
+| Subsonic `getAlbum` | 0.44 s | 0.011 s (the first after an upgrade 1.3 s, once) |
+| Subsonic `getArtist` | 1.0 s | 0.011 s |
+| Subsonic `getCoverArt`, an album tile | 0.40 s | 0.003 s |
+| Subsonic `getArtists` | 0.71 s | 0.28 s |
+| Server after the run | 1,561 MiB | 56 MiB |
+
+The id table holds 120,000 rows for this catalog (100,000 albums, 20,000
+artists) for the one user who browsed it.
 
 ## How we will know
 
