@@ -9,14 +9,14 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, utoipa::ToSchema)]
 pub struct HoldingKey {
     pub kind: String,
     pub id: Uuid,
 }
 
 /// `PUT /sync/holdings` body: the device's whole set, or a change to it.
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct HoldingsUpdate {
     #[serde(default)]
     pub items: Option<Vec<HoldingKey>>,
@@ -26,7 +26,7 @@ pub struct HoldingsUpdate {
     pub removed: Vec<HoldingKey>,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct HoldingDevice {
     pub chain_id: Uuid,
     pub device_name: Option<String>,
@@ -36,7 +36,7 @@ pub struct HoldingDevice {
     pub current: bool,
 }
 
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Holding {
     pub kind: String,
     pub id: Uuid,

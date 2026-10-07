@@ -16,14 +16,16 @@ use sqlx::{PgPool, Postgres, Transaction};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, PartialEq, Eq, utoipa::ToSchema)]
 #[serde(rename_all = "snake_case")]
+#[schema(as = OrganiseKind)]
 pub enum What {
     Music,
     Audiobook,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[schema(as = OrganiseRequest)]
 pub struct Request {
     pub kind: What,
     /// True: list what would move, change nothing.
@@ -34,7 +36,8 @@ pub struct Request {
     pub ids: Option<Vec<Uuid>>,
 }
 
-#[derive(Debug, Serialize, PartialEq)]
+#[derive(Debug, Serialize, PartialEq, utoipa::ToSchema)]
+#[schema(as = OrganiseMove)]
 pub struct Move {
     /// `music_track` or `audiobook`.
     pub kind: &'static str,

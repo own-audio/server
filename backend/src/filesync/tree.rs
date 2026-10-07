@@ -37,7 +37,7 @@ const COMPANION_VISIBLE: &str =
 
 // ── Wire format ───────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct TreeResponse {
     /// The caller, named as the family knows them — the name of their own
     /// `Family/<Me>` folder (§2 item 17).
@@ -51,8 +51,9 @@ pub struct TreeResponse {
     pub removed: Vec<Removed>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct TreeItem {
+    /// `audiobook`, `music_track`, `podcast_episode` or `companion_file`.
     pub kind: &'static str,
     pub id: Uuid,
     pub updated_at: DateTime<Utc>,
@@ -74,13 +75,14 @@ pub struct TreeItem {
     pub album: Option<Album>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = TreeOwner)]
 pub struct Owner {
     pub id: Uuid,
     pub display_name: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct TreeFile {
     pub id: Uuid,
     pub relative_path: String,
@@ -89,20 +91,23 @@ pub struct TreeFile {
     pub sha256: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = TreeShow)]
 pub struct Show {
     pub id: Uuid,
     pub title: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = TreeAlbum)]
 pub struct Album {
     pub title: Option<String>,
     pub album_artist: Option<String>,
     pub release_group: Option<String>,
 }
 
-#[derive(Serialize, Debug, PartialEq)]
+#[derive(Serialize, Debug, PartialEq, utoipa::ToSchema)]
+#[schema(as = TreeRemoved)]
 pub struct Removed {
     pub kind: &'static str,
     pub id: Uuid,
@@ -635,7 +640,7 @@ fn bind_viewer<'q, O>(
 
 // ── Reconciliation ids (§5.4) ─────────────────────────────────────────────
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct TreeId {
     pub kind: String,
     pub id: Uuid,

@@ -24,35 +24,45 @@ use crate::auth::middleware::AuthUser;
 use crate::families::FamilyContext;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::get;
-use axum::{Json, Router};
+use axum::Json;
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/tree", get(get_tree))
-        .route("/tree/ids", get(get_tree_ids))
-        .route("/shortcuts", get(list_shortcuts).post(add_shortcut))
-        .route("/shortcuts/{id}", axum::routing::delete(remove_shortcut))
-        .route("/holdings", get(get_holdings).put(put_holdings))
-        .route("/files", axum::routing::post(companion::create))
-        .route("/files/{id}", axum::routing::delete(companion::delete))
-        .route("/files/{id}/stream", get(companion::stream))
-        .route("/files/{id}/visibility", axum::routing::put(companion::set_visibility))
-        .route("/files/{id}/use-as-cover", axum::routing::post(companion::use_as_cover))
-        .route("/paths/organise", axum::routing::post(organise_paths))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(get_tree))
+        .routes(routes!(get_tree_ids))
+        .routes(routes!(list_shortcuts, add_shortcut))
+        .routes(routes!(remove_shortcut))
+        .routes(routes!(get_holdings, put_holdings))
+        .routes(routes!(companion::create))
+        .routes(routes!(companion::delete))
+        .routes(routes!(companion::stream))
+        .routes(routes!(companion::set_visibility))
+        .routes(routes!(companion::use_as_cover))
+        .routes(routes!(organise_paths))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 struct TreeQuery {
+    /// The previous page's `cursor`; omitted for a full snapshot.
     #[serde(default)]
     cursor: Option<String>,
+    /// Items per page, 1–2000, default 500.
     #[serde(default)]
     limit: Option<i64>,
 }
 
 /// GET /api/v1/sync/tree?cursor=&limit=
+///
+/// One page of the caller's own.audio folder: what changed since the cursor.
+#[utoipa::path(get, path = "/tree", tag = "sync", security(("bearer" = [])),
+    params(TreeQuery),
+    responses((status = 200, body = tree::TreeResponse),
+        (status = 400, description = "Invalid cursor: start again without one", body = crate::http::openapi::ErrorBody)))]
 async fn get_tree(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -71,6 +81,10 @@ async fn get_tree(
 }
 
 /// GET /api/v1/sync/tree/ids
+///
+/// Every item in the caller's tree, id only, for the periodic full check.
+#[utoipa::path(get, path = "/tree/ids", tag = "sync", security(("bearer" = [])),
+    responses((status = 200, body = Vec<tree::TreeId>, description = "Streamed JSON array")))]
 async fn get_tree_ids(family: FamilyContext, State(state): State<AppState>) -> axum::response::Response {
     use axum::response::IntoResponse;
     let (tx, rx) = tokio::sync::mpsc::channel(1024);
@@ -80,6 +94,10 @@ async fn get_tree_ids(family: FamilyContext, State(state): State<AppState>) -> a
 }
 
 /// GET /api/v1/sync/shortcuts
+///
+/// The family items the caller has chosen to show in their folder.
+#[utoipa::path(get, path = "/shortcuts", tag = "sync", security(("bearer" = [])),
+    responses((status = 200, body = Vec<shortcuts::Shortcut>)))]
 async fn list_shortcuts(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -88,6 +106,12 @@ async fn list_shortcuts(
 }
 
 /// POST /api/v1/sync/shortcuts — 201 when new, 200 when it already existed.
+#[utoipa::path(post, path = "/shortcuts", tag = "sync", security(("bearer" = [])),
+    request_body = shortcuts::NewShortcut,
+    responses((status = 201, body = shortcuts::Shortcut, description = "Added"),
+        (status = 200, body = shortcuts::Shortcut, description = "Already there"),
+        (status = 400, body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such member or item visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn add_shortcut(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -103,6 +127,9 @@ async fn add_shortcut(
 
 /// POST /api/v1/sync/paths/organise — `{kind: "music"|"audiobook", preview, ids?}`: the
 /// caller's own items moved to their default paths; with `preview` nothing changes.
+#[utoipa::path(post, path = "/paths/organise", tag = "sync", security(("bearer" = [])),
+    request_body = organise::Request,
+    responses((status = 200, body = Vec<organise::Move>)))]
 async fn organise_paths(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -112,6 +139,12 @@ async fn organise_paths(
 }
 
 /// DELETE /api/v1/sync/shortcuts/{id}
+///
+/// Stop showing a family item in the caller's folder.
+#[utoipa::path(delete, path = "/shortcuts/{id}", tag = "sync", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Shortcut id")),
+    responses((status = 204, description = "Removed"),
+        (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn remove_shortcut(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -124,15 +157,20 @@ async fn remove_shortcut(
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 struct HoldingsQuery {
+    /// `audiobook`, `music_track`, `podcast_episode` or `companion_file`; with `id`.
     #[serde(default)]
     kind: Option<String>,
+    /// With `kind`.
     #[serde(default)]
     id: Option<Uuid>,
 }
 
-#[derive(Serialize)]
+/// With `kind` and `id`: the devices holding that item. Without: what the
+/// calling device holds.
+#[derive(Serialize, ToSchema)]
 #[serde(untagged)]
 enum HoldingsResponse {
     Devices(Vec<holdings::HoldingDevice>),
@@ -141,6 +179,10 @@ enum HoldingsResponse {
 
 /// GET /api/v1/sync/holdings?kind=&id= — the caller's devices holding that
 /// item. Without a query: what the calling device has reported.
+#[utoipa::path(get, path = "/holdings", tag = "sync", security(("bearer" = [])),
+    params(HoldingsQuery),
+    responses((status = 200, body = HoldingsResponse),
+        (status = 400, description = "Unknown kind, only one of kind and id, or a session without a device", body = crate::http::openapi::ErrorBody)))]
 async fn get_holdings(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -172,6 +214,10 @@ async fn get_holdings(
 
 /// PUT /api/v1/sync/holdings — `{items}` replaces the calling device's set,
 /// `{added, removed}` changes it.
+#[utoipa::path(put, path = "/holdings", tag = "sync", security(("bearer" = [])),
+    request_body = holdings::HoldingsUpdate,
+    responses((status = 204, description = "Saved"),
+        (status = 400, description = "Invalid item, or a session without a device", body = crate::http::openapi::ErrorBody)))]
 async fn put_holdings(
     auth: AuthUser,
     State(state): State<AppState>,

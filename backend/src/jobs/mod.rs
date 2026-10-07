@@ -7,16 +7,16 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::extract::{Path, State};
-use axum::routing::get;
 use axum::Json;
 use serde::Serialize;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct JobResponse {
     pub id: String,
     pub job_type: String,
@@ -35,15 +35,20 @@ pub struct JobResponse {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_jobs))
-        .route("/{id}", get(get_job))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_jobs))
+        .routes(routes!(get_job))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/jobs/  — admin only
+///
+/// The 50 most recent background jobs.
+#[utoipa::path(get, path = "/", tag = "jobs", security(("bearer" = [])),
+    responses((status = 200, body = Vec<JobResponse>),
+        (status = 401, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_jobs(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -60,6 +65,12 @@ async fn list_jobs(
 }
 
 /// GET /api/v1/jobs/:id  — admin only
+///
+/// One background job.
+#[utoipa::path(get, path = "/{id}", tag = "jobs", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Job id")),
+    responses((status = 200, body = JobResponse),
+        (status = 401, description = "Not an instance admin, or no such job", body = crate::http::openapi::ErrorBody)))]
 async fn get_job(
     auth: AuthUser,
     State(state): State<AppState>,

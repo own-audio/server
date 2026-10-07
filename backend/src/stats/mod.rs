@@ -8,17 +8,18 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::db;
 use crate::families::FamilyContext;
-use axum::Router;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{get, put};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct StatsQuery {
     /// `7d`, `30d`, `365d`, or `all`. Defaults to `30d`.
     #[serde(default)]
@@ -30,7 +31,7 @@ pub struct StatsQuery {
     pub tz_offset_minutes: Option<i32>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StatsResponse {
     pub range: String,
     pub total_seconds: i64,
@@ -45,21 +46,21 @@ pub struct StatsResponse {
     pub completed_items: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct KindTotalResponse {
     pub media_kind: String,
     pub seconds: i64,
     pub sessions: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DayTotalResponse {
     /// `YYYY-MM-DD` in the requested timezone.
     pub day: String,
     pub seconds: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DayKindTotalResponse {
     /// `YYYY-MM-DD` in the requested timezone.
     pub day: String,
@@ -67,7 +68,7 @@ pub struct DayKindTotalResponse {
     pub seconds: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TopItemResponse {
     pub media_kind: String,
     pub item_id: String,
@@ -77,7 +78,7 @@ pub struct TopItemResponse {
     pub sessions: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct HistoryEntry {
     pub id: String,
     pub media_kind: String,
@@ -92,8 +93,10 @@ pub struct HistoryEntry {
     pub source: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct HistoryQuery {
+    /// 1–200, default 50.
     #[serde(default = "default_history_limit")]
     pub limit: i64,
     #[serde(default)]
@@ -104,7 +107,7 @@ fn default_history_limit() -> i64 {
     50
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FamilyStatsEntry {
     pub user_id: String,
     pub display_name: String,
@@ -118,7 +121,7 @@ pub struct FamilyStatsEntry {
     pub hidden: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetStatsVisibilityRequest {
     /// `private` or `family_admin`.
     pub stats_visibility: String,
@@ -126,18 +129,24 @@ pub struct SetStatsVisibilityRequest {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/me", get(my_stats))
-        .route("/me/history", get(my_history))
-        .route("/me/visibility", put(set_my_stats_visibility))
-        .route("/family", get(family_stats))
-        .route("/family/members/{user_id}/visibility", put(set_member_stats_visibility))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(my_stats))
+        .routes(routes!(my_history))
+        .routes(routes!(set_my_stats_visibility))
+        .routes(routes!(family_stats))
+        .routes(routes!(set_member_stats_visibility))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/stats/me?range=30d&tz_offset_minutes=60
+///
+/// The caller's own listening statistics for a range.
+#[utoipa::path(get, path = "/me", tag = "stats", security(("bearer" = [])),
+    params(StatsQuery),
+    responses((status = 200, body = StatsResponse),
+        (status = 400, description = "Unknown range or timezone offset out of bounds", body = crate::http::openapi::ErrorBody)))]
 async fn my_stats(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -152,6 +161,9 @@ async fn my_stats(
 }
 
 /// GET /api/v1/stats/me/history — the raw session log, newest first.
+#[utoipa::path(get, path = "/me/history", tag = "stats", security(("bearer" = [])),
+    params(HistoryQuery),
+    responses((status = 200, body = Vec<HistoryEntry>)))]
 async fn my_history(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -186,6 +198,10 @@ async fn my_history(
 
 /// PUT /api/v1/stats/me/visibility — a member decides whether their family
 /// admin may see their statistics.
+#[utoipa::path(put, path = "/me/visibility", tag = "stats", security(("bearer" = [])),
+    request_body = SetStatsVisibilityRequest,
+    responses((status = 204, description = "Saved"),
+        (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody)))]
 async fn set_my_stats_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -206,6 +222,13 @@ async fn set_my_stats_visibility(
 /// already carries a `deny_all` policy, i.e. an account they manage. Adults
 /// with unrestricted access control their own visibility, so a parent cannot
 /// silently start watching another adult.
+#[utoipa::path(put, path = "/family/members/{user_id}/visibility", tag = "stats", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The family member")),
+    request_body = SetStatsVisibilityRequest,
+    responses((status = 204, description = "Saved"),
+        (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Not a member of the caller's family", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not a family admin, or the member is not restricted", body = crate::http::openapi::ErrorBody)))]
 async fn set_member_stats_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -237,6 +260,11 @@ async fn set_member_stats_visibility(
 /// GET /api/v1/stats/family — per-member roll-up for family admins.
 /// Members who keep their stats private appear with `hidden: true` and no
 /// figures, so the UI can show the roster without leaking totals.
+#[utoipa::path(get, path = "/family", tag = "stats", security(("bearer" = [])),
+    params(StatsQuery),
+    responses((status = 200, body = Vec<FamilyStatsEntry>),
+        (status = 400, description = "Unknown range or timezone offset out of bounds", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn family_stats(
     family: FamilyContext,
     State(state): State<AppState>,

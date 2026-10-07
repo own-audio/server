@@ -19,11 +19,11 @@ use crate::auth::error::AuthError;
 use crate::db;
 use crate::families::FamilyContext;
 use crate::storage::ObjectStore;
-use axum::Router;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
-use axum::routing::post;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 /// How long a presigned PUT stays valid. Long enough for a slow phone on a
@@ -35,13 +35,13 @@ const UPLOAD_URL_EXPIRY_SECS: u64 = 6 * 3600;
 /// would lift this; nothing in the product needs it yet.
 const MAX_UPLOAD_BYTES: i64 = 5 * 1024 * 1024 * 1024;
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/presign", post(presign))
-        .route("/complete", post(complete))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(presign))
+        .routes(routes!(complete))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PresignRequest {
     /// What the object will be used for — decides the key prefix. One of
     /// `audiobook_file`, `audiobook_cover`, `music_track`, `music_cover`,
@@ -55,7 +55,7 @@ pub struct PresignRequest {
     pub size_bytes: Option<i64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PresignResponse {
     pub object_key: String,
     pub url: String,
@@ -67,12 +67,14 @@ pub struct PresignResponse {
     pub expires_in_secs: u64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = UploadCompleteRequest)]
 pub struct CompleteRequest {
     pub object_key: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = UploadCompleteResponse)]
 pub struct CompleteResponse {
     pub media_object_id: String,
     pub object_key: String,
@@ -81,6 +83,12 @@ pub struct CompleteResponse {
 }
 
 /// POST /api/v1/uploads/presign
+///
+/// A presigned `PUT` URL for uploading one file straight to object storage.
+#[utoipa::path(post, path = "/presign", tag = "uploads", security(("bearer" = [])),
+    request_body = PresignRequest,
+    responses((status = 200, body = PresignResponse),
+        (status = 400, description = "Missing content type, bad size or unknown kind", body = crate::http::openapi::ErrorBody)))]
 async fn presign(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -145,6 +153,14 @@ async fn presign(
 }
 
 /// POST /api/v1/uploads/complete
+///
+/// Register an object uploaded with a presigned URL; size and content type
+/// are read back from storage.
+#[utoipa::path(post, path = "/complete", tag = "uploads", security(("bearer" = [])),
+    request_body = CompleteRequest,
+    responses((status = 201, body = CompleteResponse),
+        (status = 400, description = "Nothing was uploaded under that key", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The key is outside the caller's family", body = crate::http::openapi::ErrorBody)))]
 async fn complete(
     family: FamilyContext,
     State(state): State<AppState>,

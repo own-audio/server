@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow, utoipa::ToSchema)]
 pub struct Shortcut {
     pub id: Uuid,
     pub member_id: Uuid,
@@ -33,7 +33,7 @@ pub struct Shortcut {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
 pub struct NewShortcut {
     /// Optional with a container: the book's, show's or album's owner is found here.
     #[serde(default)]
@@ -43,7 +43,8 @@ pub struct NewShortcut {
     pub container: Option<Container>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, utoipa::ToSchema)]
+#[schema(as = ShortcutContainer)]
 pub struct Container {
     /// `book`, `album` or `show`.
     pub kind: String,

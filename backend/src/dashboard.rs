@@ -7,14 +7,14 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::extract::State;
 use axum::response::Json;
-use axum::routing::get;
 use serde::Serialize;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
-pub fn router() -> Router<AppState> {
-    Router::new().route("/", get(get_dashboard))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(get_dashboard))
 }
 
 fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
@@ -25,7 +25,7 @@ fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct WindowCounts {
     pub d1: i64,
     pub d7: i64,
@@ -38,7 +38,7 @@ impl From<(i64, i64, i64)> for WindowCounts {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StreamingWindow {
     pub seconds: i64,
     pub sessions: i64,
@@ -51,21 +51,21 @@ impl From<(i64, i64, i64)> for StreamingWindow {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StreamingWindows {
     pub d1: StreamingWindow,
     pub d7: StreamingWindow,
     pub d30: StreamingWindow,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DashboardStorage {
     pub audio_bytes: i64,
     pub other_bytes: i64,
     pub total_bytes: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DashboardResponse {
     pub users_total: i64,
     pub families_total: i64,
@@ -78,6 +78,9 @@ pub struct DashboardResponse {
 }
 
 /// GET /api/v1/admin/stats — instance-admin only.
+#[utoipa::path(get, path = "/", tag = "admin", security(("bearer" = [])),
+    responses((status = 200, body = DashboardResponse),
+        (status = 401, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn get_dashboard(
     auth: AuthUser,
     State(state): State<AppState>,

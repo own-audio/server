@@ -33,26 +33,26 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
         .nest("/auth", crate::auth::router(limits).into())
         .nest("/users", crate::users::router().into())
         .nest("/family", crate::families::router().into())
-        .nest("/trash", crate::trash::router().into())
-        .nest("/sync", crate::filesync::router().into())
+        .nest("/trash", crate::trash::router())
+        .nest("/sync", crate::filesync::router())
         // Instance-admin only, cross-family — every family on the server,
         // not the caller's own. See families::admin's own doc comment.
         .nest("/admin/families", crate::families::admin::router().into())
         // Cross-domain Home dashboard — counts and activity for the whole
         // server. See dashboard's own doc comment.
-        .nest("/admin/stats", crate::dashboard::router().into())
+        .nest("/admin/stats", crate::dashboard::router())
         // Public — the QR/link landing page and account-claim flow. No
         // FamilyContext/AuthUser extractor on these handlers, matching
         // /auth/register and /auth/login's own unauthenticated routes.
         .nest("/join", crate::families::join_router(limits).into())
-        .nest("/library", crate::library::router().into())
+        .nest("/library", crate::library::router())
         .nest("/podcasts", crate::podcasts::router().into())
         .nest("/audiobooks", crate::audiobooks::router().into())
         .nest("/music", crate::music::router().into())
         .nest("/playback", crate::playback::router().into())
-        .nest("/jobs", crate::jobs::router().into())
-        .nest("/uploads", crate::uploads::router().into())
-        .nest("/stats", crate::stats::router().into())
+        .nest("/jobs", crate::jobs::router())
+        .nest("/uploads", crate::uploads::router())
+        .nest("/stats", crate::stats::router())
         .nest("/devices", crate::devices::router())
 }
 

@@ -6,11 +6,12 @@
 //! purging. The purge job lives in `jobs::worker` and calls [`purge`].
 use axum::extract::{Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::routing::{delete, get, post};
-use axum::{Json, Router};
+use axum::Json;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use crate::app::AppState;
@@ -27,13 +28,13 @@ use sqlx::PgPool;
 /// batch.
 pub const BATCH_HEADER: &str = "x-trash-batch";
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_trash))
-        .route("/empty", post(empty_trash))
-        .route("/batches/{batch}/restore", post(restore_batch))
-        .route("/{kind}/{id}/restore", post(restore_one))
-        .route("/{kind}/{id}", delete(purge_one))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_trash))
+        .routes(routes!(empty_trash))
+        .routes(routes!(restore_batch))
+        .routes(routes!(restore_one))
+        .routes(routes!(purge_one))
 }
 
 fn batch_from(headers: &HeaderMap) -> Uuid {
@@ -178,19 +179,23 @@ pub async fn delete_orphans(pool: &PgPool, storage: &ObjectStore, objects: &[Uui
 
 // ── Listing ───────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 struct ListQuery {
+    /// `mine` (the default) or `family`; `family` needs a family admin.
     scope: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = TrashPerson)]
 struct Person {
     id: Uuid,
     display_name: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct TrashItemResponse {
+    /// `audiobook`, `music_track`, `playlist`, `podcast_episode` or `companion_file`.
     kind: &'static str,
     id: Uuid,
     title: String,
@@ -245,6 +250,13 @@ fn scope_from(family: &FamilyContext, q: &ListQuery) -> Result<Scope, AuthError>
 }
 
 /// GET /api/v1/trash?scope=mine|family
+///
+/// What is in the trash: the caller's own items, or the whole family's.
+#[utoipa::path(get, path = "/", tag = "trash", security(("bearer" = [])),
+    params(ListQuery),
+    responses((status = 200, body = Vec<TrashItemResponse>),
+        (status = 400, description = "Unknown scope", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "`family` scope without being a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_trash(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -261,7 +273,8 @@ async fn list_trash(
 
 // ── Restoring ─────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = TrashRestoreResponse)]
 struct RestoreResponse {
     restored: usize,
     charged_micro: i64,
@@ -339,6 +352,13 @@ async fn managed_trashed(state: &AppState, family: &FamilyContext, kind: Kind, i
 }
 
 /// POST /api/v1/trash/{kind}/{id}/restore
+///
+/// Restore one item, charging its days in the trash to the owner's family.
+#[utoipa::path(post, path = "/{kind}/{id}/restore", tag = "trash", security(("bearer" = [])),
+    params(("kind" = String, Path, description = "`audiobook`, `music_track`, `playlist`, `podcast_episode` or `companion_file`"), ("id" = Uuid, Path, description = "Item id")),
+    responses((status = 200, body = RestoreResponse),
+        (status = 400, description = "Unknown kind", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "Not in the trash, or not the caller's to restore", body = crate::http::openapi::ErrorBody)))]
 async fn restore_one(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -351,6 +371,10 @@ async fn restore_one(
 
 /// POST /api/v1/trash/batches/{batch}/restore — everything deleted together,
 /// as far as the caller may restore it.
+#[utoipa::path(post, path = "/batches/{batch}/restore", tag = "trash", security(("bearer" = [])),
+    params(("batch" = Uuid, Path, description = "The `x-trash-batch` id the items were deleted with")),
+    responses((status = 200, body = RestoreResponse),
+        (status = 404, description = "Nothing in the batch the caller may restore", body = crate::http::openapi::ErrorBody)))]
 async fn restore_batch(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -374,6 +398,11 @@ async fn restore_batch(
 // ── Deleting for good ─────────────────────────────────────────────────────
 
 /// DELETE /api/v1/trash/{kind}/{id} — delete forever, now.
+#[utoipa::path(delete, path = "/{kind}/{id}", tag = "trash", security(("bearer" = [])),
+    params(("kind" = String, Path, description = "`audiobook`, `music_track`, `playlist`, `podcast_episode` or `companion_file`"), ("id" = Uuid, Path, description = "Item id")),
+    responses((status = 204, description = "Deleted for good"),
+        (status = 400, description = "Unknown kind", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "Not in the trash, or not the caller's to delete", body = crate::http::openapi::ErrorBody)))]
 async fn purge_one(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -387,12 +416,20 @@ async fn purge_one(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = TrashEmptyResponse)]
 struct EmptyResponse {
     purged: usize,
 }
 
 /// POST /api/v1/trash/empty?scope=mine|family
+///
+/// Delete for good everything in the trash the caller may manage.
+#[utoipa::path(post, path = "/empty", tag = "trash", security(("bearer" = [])),
+    params(ListQuery),
+    responses((status = 200, body = EmptyResponse),
+        (status = 400, description = "Unknown scope", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "`family` scope without being a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn empty_trash(
     family: FamilyContext,
     State(state): State<AppState>,

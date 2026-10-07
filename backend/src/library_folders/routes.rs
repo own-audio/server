@@ -7,12 +7,13 @@ use crate::auth::error::AuthError;
 use crate::families::FamilyContext;
 use axum::extract::State;
 use axum::http::StatusCode;
-use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::Json;
 use serde::Serialize;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-#[derive(Serialize, sqlx::FromRow)]
+#[derive(Serialize, sqlx::FromRow, ToSchema)]
 pub struct FolderStatus {
     id: Uuid,
     path: String,
@@ -26,17 +27,21 @@ pub struct FolderStatus {
     files_missing: i64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FoldersResponse {
     scanning: bool,
     files_scanned: u64,
     folders: Vec<FolderStatus>,
 }
 
-pub fn router() -> Router<AppState> {
-    Router::new().route("/", get(list)).route("/scan", post(scan))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new().routes(routes!(list)).routes(routes!(scan))
 }
 
+/// The family's configured library folders and how their last scan went.
+#[utoipa::path(get, path = "/", tag = "library", security(("bearer" = [])),
+    responses((status = 200, body = FoldersResponse),
+        (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn list(family: FamilyContext, State(state): State<AppState>) -> Result<Json<FoldersResponse>, AuthError> {
     if !family.is_family_admin() {
         return Err(AuthError::Forbidden);
@@ -57,6 +62,10 @@ async fn list(family: FamilyContext, State(state): State<AppState>) -> Result<Js
     Ok(Json(FoldersResponse { scanning, files_scanned, folders }))
 }
 
+/// Start a scan of the library folders now.
+#[utoipa::path(post, path = "/scan", tag = "library", security(("bearer" = [])),
+    responses((status = 202, description = "Scan requested"),
+        (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn scan(family: FamilyContext) -> Result<StatusCode, AuthError> {
     if !family.is_family_admin() {
         return Err(AuthError::Forbidden);

@@ -24,7 +24,7 @@ const MAX_LYRICS_BYTES: i64 = 1024 * 1024;
 /// File names that say "I am the cover", compared without extension.
 const COVER_NAMES: &[&str] = &["cover", "folder", "front"];
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
 pub struct NewCompanion {
     /// Key from `/uploads/presign` (kind `companion_file`), already PUT.
     pub object_key: String,
@@ -35,7 +35,7 @@ pub struct NewCompanion {
     pub visibility: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
 pub struct CompanionResponse {
     pub id: Uuid,
     /// As asked, or with ` (2)` when the owner already has that path.
@@ -48,6 +48,15 @@ pub struct CompanionResponse {
 }
 
 /// POST /api/v1/sync/files
+///
+/// Register an image, booklet, lyrics file or cue sheet uploaded with
+/// `/uploads/presign` (kind `companion_file`) at its place next to the audio.
+#[utoipa::path(post, path = "/files", tag = "sync", security(("bearer" = [])),
+    request_body = NewCompanion,
+    responses((status = 201, body = CompanionResponse),
+        (status = 400, description = "Bad path, not a companion file type, bad visibility, or nothing uploaded", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The key is outside the caller's family", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "The caller may not upload", body = crate::http::openapi::ErrorBody)))]
 pub async fn create(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -123,13 +132,18 @@ async fn find_visible(pool: &PgPool, family: &FamilyContext, id: Uuid) -> Result
     .ok_or(AuthError::ItemNotFound)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = CompanionStreamResponse)]
 pub struct StreamResponse {
     pub url: String,
     pub expires_in_secs: u64,
 }
 
 /// GET /api/v1/sync/files/{id}/stream — a presigned `GET` (honours `Range`).
+#[utoipa::path(get, path = "/files/{id}/stream", tag = "sync", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Companion file id")),
+    responses((status = 200, body = StreamResponse),
+        (status = 404, body = crate::http::openapi::ErrorBody)))]
 pub async fn stream(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -140,12 +154,20 @@ pub async fn stream(
     Ok(Json(StreamResponse { url, expires_in_secs: STREAM_EXPIRY_SECS }))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::ToSchema)]
+#[schema(as = CompanionVisibility)]
 pub struct SetVisibility {
+    /// `private` or `family`.
     pub visibility: String,
 }
 
 /// PUT /api/v1/sync/files/{id}/visibility — the owner shares or unshares it.
+#[utoipa::path(put, path = "/files/{id}/visibility", tag = "sync", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Companion file id")),
+    request_body = SetVisibility,
+    responses((status = 204, description = "Saved"),
+        (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "Not the caller's file", body = crate::http::openapi::ErrorBody)))]
 pub async fn set_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -171,6 +193,12 @@ pub async fn set_visibility(
 }
 
 /// DELETE /api/v1/sync/files/{id} — to the trash, like every delete.
+#[utoipa::path(delete, path = "/files/{id}", tag = "sync", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Companion file id"),
+        ("x-trash-batch" = Option<Uuid>, Header, description = "Groups everything deleted in one gesture for restoring together")),
+    responses((status = 204, description = "Moved to the trash"),
+        (status = 403, description = "Visible to the caller but not theirs to delete", body = crate::http::openapi::ErrorBody),
+        (status = 404, body = crate::http::openapi::ErrorBody)))]
 pub async fn delete(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -181,7 +209,8 @@ pub async fn delete(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, utoipa::ToSchema)]
+#[schema(as = CompanionCoverResponse)]
 pub struct CoverResponse {
     pub book: Option<Uuid>,
     pub tracks: u64,
@@ -191,6 +220,11 @@ pub struct CoverResponse {
 /// the cover of the book whose folder it is in, and of every track in its
 /// folder, replacing what they had (§2 item 16: when a folder has several
 /// images, the user chooses).
+#[utoipa::path(post, path = "/files/{id}/use-as-cover", tag = "sync", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Companion file id")),
+    responses((status = 200, body = CoverResponse, description = "`book`: the book that got the cover, if any; `tracks`: how many tracks did"),
+        (status = 400, description = "Not an image", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "Not the caller's file", body = crate::http::openapi::ErrorBody)))]
 pub async fn use_as_cover(
     family: FamilyContext,
     State(state): State<AppState>,

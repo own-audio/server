@@ -3,16 +3,16 @@
 use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::families::FamilyContext;
-use axum::Router;
 use axum::extract::{Query, State};
-use axum::routing::get;
 use axum::Json;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(tag = "kind")]
 pub enum ContinueItem {
     Episode {
@@ -48,9 +48,11 @@ pub enum ContinueItem {
     },
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct SearchQuery {
     pub q: String,
+    /// At most 50.
     #[serde(default = "default_limit")]
     pub limit: i64,
 }
@@ -59,7 +61,7 @@ fn default_limit() -> i64 {
     20
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(tag = "kind")]
 pub enum SearchResult {
     Feed {
@@ -90,18 +92,19 @@ pub enum SearchResult {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/continue", get(continue_listening))
-        .route("/search", get(search))
-        .route("/private", get(private_library))
-        .route("/changes", get(changes))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(continue_listening))
+        .routes(routes!(search))
+        .routes(routes!(private_library))
+        .routes(routes!(changes))
         .nest("/folders", crate::library_folders::routes::router())
 }
 
 // ── Delta sync ────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct ChangesQuery {
     /// RFC3339 timestamp from the previous sync's `now`. Omitted ⇒ a full
     /// snapshot, which is what a first run wants.
@@ -109,7 +112,7 @@ pub struct ChangesQuery {
     pub since: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ChangesResponse {
     /// Echo of the requested cursor (null on a full sync).
     pub since: Option<String>,
@@ -125,7 +128,7 @@ pub struct ChangesResponse {
     // `tracks` follows, streamed: a full sync is the whole catalog.
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DeletedItem {
     pub media_kind: String,
     pub item_id: String,
@@ -148,6 +151,16 @@ fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, AuthError> {
 /// One request that returns everything a cached client needs to catch up:
 /// changed content of every kind plus tombstones for deletions. Built for
 /// mobile, where re-fetching whole lists over cellular is the thing to avoid.
+#[utoipa::path(get, path = "/changes", tag = "library", security(("bearer" = [])),
+    params(ChangesQuery),
+    responses((status = 200, body = ChangesResponse,
+        description = "Streamed. After `deleted` the object has a `tracks` array: one object per changed \
+            song with `id`, `album_artist`, `title`, `artist`, `album`, `track_number`, `disc_number`, \
+            `duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`. `audiobooks` items have \
+            `id`, `title`, `author`, `narrator`, `total_duration_secs`, `visibility`, `is_owner`, \
+            `owner_id`, `updated_at`; `podcasts` items `id`, `title`, `author`, `feed_url`, `visibility`, \
+            `is_owner`, `owner_id`, `updated_at`."),
+        (status = 400, description = "`since` is not an RFC3339 timestamp", body = crate::http::openapi::ErrorBody)))]
 async fn changes(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -255,7 +268,7 @@ async fn changes(
 }
 
 /// One private item, in the caller's "Soukromé" folder.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PrivateItem {
     pub kind: String,
     pub id: String,
@@ -274,6 +287,8 @@ pub struct PrivateItem {
 /// Everything the caller owns that is NOT shared with their family — the
 /// backing list for a "Soukromé" section. Always scoped to the caller: there
 /// is no way to read anyone else's private folder, not even as family admin.
+#[utoipa::path(get, path = "/private", tag = "library", security(("bearer" = [])),
+    responses((status = 200, body = Vec<PrivateItem>)))]
 async fn private_library(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -347,6 +362,8 @@ async fn private_library(
 
 /// GET /api/v1/library/continue
 /// Returns the 20 most recently played (not completed) items across all content types.
+#[utoipa::path(get, path = "/continue", tag = "library", security(("bearer" = [])),
+    responses((status = 200, body = Vec<ContinueItem>)))]
 async fn continue_listening(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -504,6 +521,9 @@ async fn continue_listening(
 
 /// GET /api/v1/library/search?q=…&limit=20
 /// Simple case-insensitive search across feeds, episodes, and audiobooks.
+#[utoipa::path(get, path = "/search", tag = "library", security(("bearer" = [])),
+    params(SearchQuery),
+    responses((status = 200, body = Vec<SearchResult>)))]
 async fn search(
     family: FamilyContext,
     State(state): State<AppState>,
