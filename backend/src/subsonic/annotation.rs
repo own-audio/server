@@ -10,7 +10,7 @@ use crate::db;
 use crate::subsonic::auth::SubsonicAuthUser;
 use crate::subsonic::extract::SubsonicQuery;
 use crate::subsonic::envelope::{self, SubsonicErrorCode};
-use crate::subsonic::ids;
+use crate::subsonic::resolve;
 use axum::extract::State;
 use axum::response::Response;
 use serde::Deserialize;
@@ -89,22 +89,17 @@ async fn apply_stars(
     }
 
     if !params.album_id.is_empty() {
-        let albums = match db::subsonic::list_distinct_albums(state.db(), auth.viewer()).await {
-            Ok(rows) => rows,
-            Err(_) => return err(auth, SubsonicErrorCode::Generic),
-        };
         for raw in &params.album_id {
             let Ok(target) = raw.parse::<Uuid>() else { continue };
-            let Some(row) = albums
-                .iter()
-                .find(|a| ids::album_id(auth.user_id, &a.artist, &a.album) == target)
-            else {
-                continue;
+            let (artist, album) = match resolve::resolve(state.db(), auth.viewer(), target).await {
+                Ok(Some(resolve::Named::Album { artist, album })) => (artist, album),
+                Ok(_) => continue,
+                Err(_) => return err(auth, SubsonicErrorCode::Generic),
             };
             let result = if starred {
-                db::music::star_group(state.db(), auth.user_id, "album", &row.artist, &row.album).await
+                db::music::star_group(state.db(), auth.user_id, "album", &artist, &album).await
             } else {
-                db::music::unstar_group(state.db(), auth.user_id, "album", &row.artist, &row.album).await
+                db::music::unstar_group(state.db(), auth.user_id, "album", &artist, &album).await
             };
             if result.is_err() {
                 return err(auth, SubsonicErrorCode::Generic);
@@ -113,22 +108,17 @@ async fn apply_stars(
     }
 
     if !params.artist_id.is_empty() {
-        let artists = match db::subsonic::list_distinct_artists(state.db(), auth.viewer()).await {
-            Ok(rows) => rows,
-            Err(_) => return err(auth, SubsonicErrorCode::Generic),
-        };
         for raw in &params.artist_id {
             let Ok(target) = raw.parse::<Uuid>() else { continue };
-            let Some(row) = artists
-                .iter()
-                .find(|a| ids::artist_id(auth.user_id, &a.artist) == target)
-            else {
-                continue;
+            let artist = match resolve::resolve(state.db(), auth.viewer(), target).await {
+                Ok(Some(resolve::Named::Artist(artist))) => artist,
+                Ok(_) => continue,
+                Err(_) => return err(auth, SubsonicErrorCode::Generic),
             };
             let result = if starred {
-                db::music::star_group(state.db(), auth.user_id, "artist", &row.artist, "").await
+                db::music::star_group(state.db(), auth.user_id, "artist", &artist, "").await
             } else {
-                db::music::unstar_group(state.db(), auth.user_id, "artist", &row.artist, "").await
+                db::music::unstar_group(state.db(), auth.user_id, "artist", &artist, "").await
             };
             if result.is_err() {
                 return err(auth, SubsonicErrorCode::Generic);
@@ -198,27 +188,11 @@ async fn resolve_group(
     state: &AppState,
     target: Uuid,
 ) -> Result<Option<(&'static str, String, String)>, ()> {
-    let albums = db::subsonic::list_distinct_albums(state.db(), auth.viewer())
-        .await
-        .map_err(|_| ())?;
-    if let Some(row) = albums
-        .iter()
-        .find(|a| ids::album_id(auth.user_id, &a.artist, &a.album) == target)
-    {
-        return Ok(Some(("album", row.artist.clone(), row.album.clone())));
-    }
-
-    let artists = db::subsonic::list_distinct_artists(state.db(), auth.viewer())
-        .await
-        .map_err(|_| ())?;
-    if let Some(row) = artists
-        .iter()
-        .find(|a| ids::artist_id(auth.user_id, &a.artist) == target)
-    {
-        return Ok(Some(("artist", row.artist.clone(), String::new())));
-    }
-
-    Ok(None)
+    Ok(match resolve::resolve(state.db(), auth.viewer(), target).await.map_err(|_| ())? {
+        Some(resolve::Named::Album { artist, album }) => Some(("album", artist, album)),
+        Some(resolve::Named::Artist(artist)) => Some(("artist", artist, String::new())),
+        None => None,
+    })
 }
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────

@@ -147,6 +147,84 @@ pub async fn list_distinct_albums(pool: &PgPool, viewer: Viewer) -> anyhow::Resu
         .context("db: list distinct albums")
 }
 
+const ARTIST_EXPR: &str = "COALESCE(NULLIF(trim(t.artist), ''), 'Unknown Artist')";
+const ALBUM_EXPR: &str = "COALESCE(NULLIF(trim(t.album), ''), 'Unknown Album')";
+
+/// One album as [`list_distinct_albums`] would list it, found by its names
+/// through `music_tracks_subsonic_group_idx`.
+pub async fn find_album(pool: &PgPool, viewer: Viewer, artist: &str, album: &str) -> anyhow::Result<Option<AlbumRow>> {
+    let sql = format!(
+        "SELECT {ARTIST_EXPR} AS artist, {ALBUM_EXPR} AS album,
+                COUNT(*) AS song_count,
+                SUM(t.duration_secs)::bigint AS duration_secs,
+                (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
+                MIN(t.created_at) AS created_at
+         FROM music_tracks t
+         WHERE {VISIBLE} AND {ARTIST_EXPR} = $5 AND {ALBUM_EXPR} = $6
+         GROUP BY 1, 2"
+    );
+    bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
+        .bind(artist)
+        .bind(album)
+        .fetch_optional(pool)
+        .await
+        .context("db: find album")
+}
+
+/// An artist's albums, newest first, as [`list_distinct_albums`] lists them.
+pub async fn list_artist_albums(pool: &PgPool, viewer: Viewer, artist: &str) -> anyhow::Result<Vec<AlbumRow>> {
+    let sql = format!(
+        "SELECT {ARTIST_EXPR} AS artist, {ALBUM_EXPR} AS album,
+                COUNT(*) AS song_count,
+                SUM(t.duration_secs)::bigint AS duration_secs,
+                (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
+                MIN(t.created_at) AS created_at
+         FROM music_tracks t
+         WHERE {VISIBLE} AND {ARTIST_EXPR} = $5
+         GROUP BY 1, 2
+         ORDER BY MIN(t.created_at) DESC"
+    );
+    bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
+        .bind(artist)
+        .fetch_all(pool)
+        .await
+        .context("db: list artist albums")
+}
+
+/// The names a Subsonic album or artist id stands for, if this viewer has
+/// been handed it before (`subsonic::resolve`). `album` is `None` for an artist.
+pub async fn cached_names(pool: &PgPool, user_id: Uuid, id: Uuid) -> anyhow::Result<Option<(String, Option<String>)>> {
+    sqlx::query_as::<_, (String, Option<String>)>("SELECT artist, album FROM subsonic_ids WHERE user_id = $1 AND id = $2")
+        .bind(user_id)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: cached subsonic id")
+}
+
+/// Remember ids and their names; already known ones are left alone.
+pub async fn remember_names(
+    pool: &PgPool,
+    user_id: Uuid,
+    ids: &[Uuid],
+    artists: &[String],
+    albums: &[Option<String>],
+) -> anyhow::Result<()> {
+    sqlx::query(
+        "INSERT INTO subsonic_ids (user_id, id, artist, album)
+         SELECT $1, * FROM unnest($2::uuid[], $3::text[], $4::text[])
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(user_id)
+    .bind(ids)
+    .bind(artists)
+    .bind(albums)
+    .execute(pool)
+    .await
+    .context("db: remember subsonic ids")?;
+    Ok(())
+}
+
 /// Fetch many tracks by id at once, applying the same visibility rule as
 /// every other listing here.
 ///

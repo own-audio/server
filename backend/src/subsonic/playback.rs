@@ -8,7 +8,7 @@ use crate::subsonic::auth::SubsonicAuthUser;
 use crate::subsonic::browsing::{SongContext, song_json};
 use crate::subsonic::extract::SubsonicQuery;
 use crate::subsonic::envelope::{self, SubsonicErrorCode};
-use crate::subsonic::ids;
+use crate::subsonic::resolve;
 use axum::body::Body;
 use axum::extract::State;
 use axum::http::{StatusCode, header};
@@ -252,33 +252,12 @@ async fn resolve_cover_object(
         return Ok(track.cover_object_id);
     }
 
-    // 2. A synthetic album id.
-    let albums = db::subsonic::list_distinct_albums(state.db(), viewer).await?;
-    if let Some(album) = albums.iter().find(|a| ids::album_id(user_id, &a.artist, &a.album) == id) {
-        return db::subsonic::representative_cover(state.db(), viewer, &album.artist, Some(&album.album)).await;
-    }
-
-    // 3. A synthetic artist id. The artist's own photo when there is one,
-    //    falling back to a representative album cover — an artist tile showing
-    //    one of their sleeves is a better answer than an empty frame.
-    //
-    //    Commons-sourced photos carry an attribution requirement, which
-    //    `getArtistInfo2` satisfies by returning the credit in `biography`;
-    //    clients render both on the same screen.
-    let artists = db::subsonic::list_distinct_artists(state.db(), viewer).await?;
-    if let Some(artist) = artists.iter().find(|a| ids::artist_id(user_id, &a.artist) == id) {
-        if let Some(image) = db::music::find_artist_image_object(state.db(), user_id, &artist.artist).await? {
-            return Ok(Some(image));
-        }
-        return db::subsonic::representative_cover(state.db(), viewer, &artist.artist, None).await;
-    }
-
-    // 4. A playlist id.
+    // 2. A playlist id.
     if let Some(playlist) = db::music::find_playlist(state.db(), id, viewer).await? {
         return Ok(playlist.cover_object_id);
     }
 
-    // 5. A podcast feed, or an episode — an episode falls back to its
+    // 3. A podcast feed, or an episode — an episode falls back to its
     //    channel's artwork, which is what a listener expects against an
     //    episode that ships none of its own.
     if let Some(feed) = db::podcasts::find_feed(state.db(), id, viewer).await? {
@@ -288,6 +267,26 @@ async fn resolve_cover_object(
         if let Some(feed) = db::podcasts::find_feed(state.db(), episode.feed_id, viewer).await? {
             return Ok(episode.image_object_id.or(feed.image_object_id));
         }
+    }
+
+    // 4. A synthetic album or artist id. Last, because resolving one that is
+    //    not known yet costs a pass over the whole catalog.
+    match resolve::resolve(state.db(), viewer, id).await? {
+        Some(resolve::Named::Album { artist, album }) => {
+            return db::subsonic::representative_cover(state.db(), viewer, &artist, Some(&album)).await;
+        }
+        //    An artist: their own photo when there is one, falling back to a
+        //    representative album cover — an artist tile showing one of their
+        //    sleeves is a better answer than an empty frame. Commons-sourced
+        //    photos carry an attribution requirement, which `getArtistInfo2`
+        //    satisfies by returning the credit in `biography`.
+        Some(resolve::Named::Artist(artist)) => {
+            if let Some(image) = db::music::find_artist_image_object(state.db(), user_id, &artist).await? {
+                return Ok(Some(image));
+            }
+            return db::subsonic::representative_cover(state.db(), viewer, &artist, None).await;
+        }
+        None => {}
     }
 
     Ok(None)

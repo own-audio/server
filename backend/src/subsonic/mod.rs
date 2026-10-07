@@ -20,6 +20,7 @@ pub mod ids;
 pub mod lists;
 pub mod playback;
 pub mod playlists;
+pub mod resolve;
 pub mod podcasts;
 pub mod system;
 
