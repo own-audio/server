@@ -7,13 +7,13 @@ use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
 use crate::families::FamilyContext;
-use axum::Router;
 use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, Json, Multipart, Path, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, patch, post};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use std::path::Path as StdPath;
 use uuid::Uuid;
 
@@ -24,7 +24,7 @@ const MAX_AVATAR_BYTES: usize = 5 * 1024 * 1024;
 
 // ── DTOs ─────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct UserResponse {
     pub id: String,
     pub email: String,
@@ -45,14 +45,14 @@ pub struct UserResponse {
     pub created_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateUserRequest {
     pub display_name: Option<String>,
     pub role: Option<String>,
     pub is_active: Option<bool>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateSelfRequest {
     pub display_name: Option<String>,
     /// Deliberately only on `/users/me`, and deliberately absent from
@@ -67,13 +67,13 @@ pub struct UpdateSelfRequest {
     pub discovery_languages: Option<Vec<String>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SubsonicKeyResponse {
     pub username: String,
     pub api_key: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AdminUserResponse {
     pub id: String,
     pub email: String,
@@ -87,26 +87,21 @@ pub struct AdminUserResponse {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_users))
-        .route("/me", get(get_self))
-        .route("/me", patch(update_self))
-        .route("/me", delete(delete_self))
-        .route("/me/subsonic-key", get(get_subsonic_key))
-        .route("/me/subsonic-key/regenerate", post(regenerate_subsonic_key))
-        .route(
-            "/me/avatar",
-            post(upload_avatar).layer(DefaultBodyLimit::max(AVATAR_BODY_LIMIT_BYTES)),
-        )
-        .route("/me/avatar", delete(delete_avatar))
-        .route("/{id}", get(get_user))
-        .route("/{id}", patch(update_user))
-        .route("/{id}", delete(admin_delete_user))
-        .route("/{id}/revoke-sessions", post(admin_revoke_sessions))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_users))
+        .routes(routes!(get_self, update_self, delete_self))
+        .routes(routes!(get_subsonic_key))
+        .routes(routes!(regenerate_subsonic_key))
+        .routes(crate::http::openapi::map(routes!(upload_avatar), |m| {
+            m.layer(DefaultBodyLimit::max(AVATAR_BODY_LIMIT_BYTES))
+        }))
+        .routes(routes!(delete_avatar))
+        .routes(routes!(get_user, update_user, admin_delete_user))
+        .routes(routes!(admin_revoke_sessions))
         // Family-scoped, not the "self or global admin" rule `GET /{id}` uses above — a
         // profile picture is exactly the kind of thing fellow family members should see.
-        .route("/{id}/avatar", get(get_avatar))
+        .routes(routes!(get_avatar))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
@@ -114,6 +109,8 @@ pub fn router() -> Router<AppState> {
 /// GET /api/v1/users/  — admin only. Includes each user's family (name
 /// visible to an instance admin only here — nowhere a family_admin can see
 /// another family's name).
+#[utoipa::path(get, path = "/", tag = "users", security(("bearer" = [])),
+    responses((status = 200, body = Vec<AdminUserResponse>), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn list_users(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -141,6 +138,11 @@ async fn list_users(
 }
 
 /// GET /api/v1/users/:id
+#[utoipa::path(get, path = "/{id}", tag = "users", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "User id")),
+    responses(
+        (status = 200, body = UserResponse),
+        (status = 401, description = "Invalid access token, someone else's account asked for by a non-admin, or no such account", body = crate::http::openapi::ErrorBody)))]
 async fn get_user(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -160,6 +162,10 @@ async fn get_user(
 }
 
 /// PATCH /api/v1/users/:id  — admin only
+#[utoipa::path(patch, path = "/{id}", tag = "users", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "User id")),
+    request_body = UpdateUserRequest,
+    responses((status = 204, description = "Updated; deactivating also signs the account out everywhere"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn update_user(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -214,6 +220,8 @@ async fn update_user(
 }
 
 /// GET /api/v1/users/me — get own profile
+#[utoipa::path(get, path = "/me", tag = "users", security(("bearer" = [])),
+    responses((status = 200, body = UserResponse), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn get_self(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -226,6 +234,12 @@ async fn get_self(
 }
 
 /// PATCH /api/v1/users/me — update own profile (display_name only)
+#[utoipa::path(patch, path = "/me", tag = "users", security(("bearer" = [])),
+    request_body = UpdateSelfRequest,
+    responses(
+        (status = 204, description = "Updated"),
+        (status = 400, description = "Empty display name, or more than 20 discovery languages", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn update_self(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -269,6 +283,8 @@ async fn update_self(
 
 /// GET /api/v1/users/me/subsonic-key — fetch (creating if needed) the
 /// caller's OpenSubsonic API key, used to configure external music clients.
+#[utoipa::path(get, path = "/me/subsonic-key", tag = "users", security(("bearer" = [])),
+    responses((status = 200, body = SubsonicKeyResponse), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn get_subsonic_key(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -287,6 +303,8 @@ async fn get_subsonic_key(
 
 /// POST /api/v1/users/me/subsonic-key/regenerate — rotate the caller's
 /// OpenSubsonic API key, invalidating any previously configured client.
+#[utoipa::path(post, path = "/me/subsonic-key/regenerate", tag = "users", security(("bearer" = [])),
+    responses((status = 200, body = SubsonicKeyResponse), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn regenerate_subsonic_key(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -305,6 +323,13 @@ async fn regenerate_subsonic_key(
 
 /// POST /api/v1/users/me/avatar — set the caller's own profile picture. Self-serve only:
 /// there is no "set someone else's avatar" admin action, matching how a real photo works.
+#[utoipa::path(post, path = "/me/avatar", tag = "users", security(("bearer" = [])),
+    request_body(content_type = "multipart/form-data", description = "fields: `avatar` (an image file, at most 5 MB)"),
+    responses(
+        (status = 204, description = "Set"),
+        (status = 400, description = "Missing `avatar` field, not an image, or too large", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
+        (status = 413, description = "Request body over 6 MB")))]
 async fn upload_avatar(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -384,6 +409,8 @@ async fn upload_avatar(
 /// DELETE /api/v1/users/me/avatar — remove the caller's own profile picture. The stored object
 /// is left in place (same as every other cover-replace path in this API); nothing here scans
 /// for orphaned `media_objects` rows.
+#[utoipa::path(delete, path = "/me/avatar", tag = "users", security(("bearer" = [])),
+    responses((status = 204, description = "Removed"), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn delete_avatar(auth: AuthUser, State(state): State<AppState>) -> Result<StatusCode, AuthError> {
     db::users::set_avatar(state.db(), auth.user_id, None)
         .await
@@ -394,6 +421,12 @@ async fn delete_avatar(auth: AuthUser, State(state): State<AppState>) -> Result<
 /// GET /api/v1/users/:id/avatar — streams the raw image. Visible to the user themselves or any
 /// fellow member of their family; unlike `GET /users/:id`, an instance admin gets no special
 /// case here (they'd need to actually share a family to see it, same as anyone else).
+#[utoipa::path(get, path = "/{id}/avatar", tag = "users", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "User id")),
+    responses(
+        (status = 200, description = "The image", content_type = "image/*"),
+        (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No avatar, or not the caller or a fellow family member", body = crate::http::openapi::ErrorBody)))]
 async fn get_avatar(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -428,6 +461,11 @@ fn avatar_extension(file_name: &str) -> Option<&str> {
 }
 
 /// DELETE /api/v1/users/me — delete own account
+#[utoipa::path(delete, path = "/me", tag = "users", security(("bearer" = [])),
+    responses(
+        (status = 204, description = "The account and everything it owns are deleted"),
+        (status = 400, description = "The caller is the last admin", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn delete_self(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -449,6 +487,12 @@ async fn delete_self(
 }
 
 /// DELETE /api/v1/users/:id — admin only: hard-delete user and all their data
+#[utoipa::path(delete, path = "/{id}", tag = "users", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "User id")),
+    responses(
+        (status = 204, description = "The account and everything it owns are deleted"),
+        (status = 400, description = "The id is the caller's own; use `DELETE /users/me`", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn admin_delete_user(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -507,6 +551,9 @@ async fn delete_account(state: &AppState, user_id: Uuid) -> Result<(), AuthError
 }
 
 /// POST /api/v1/users/:id/revoke-sessions — admin only: force-logout user
+#[utoipa::path(post, path = "/{id}/revoke-sessions", tag = "users", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "User id")),
+    responses((status = 204, description = "Every session and device of the account is signed out"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn admin_revoke_sessions(
     auth: AuthUser,
     State(state): State<AppState>,

@@ -29,9 +29,9 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
         .routes(crate::http::openapi::map(routes!(crate::http::media::media), |m| {
             m.layer(axum::extract::DefaultBodyLimit::disable())
         }))
-        .nest("/setup", crate::setup::router(limits).into())
-        .nest("/auth", crate::auth::router(limits).into())
-        .nest("/users", crate::users::router().into())
+        .nest("/setup", crate::setup::router(limits))
+        .nest("/auth", crate::auth::router(limits))
+        .nest("/users", crate::users::router())
         .nest("/family", crate::families::router().into())
         .nest("/trash", crate::trash::router())
         .nest("/sync", crate::filesync::router())

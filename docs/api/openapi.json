@@ -46,6 +46,1026 @@
         ]
       }
     },
+    "/api/v1/auth/admin-create-user": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Admin-only endpoint to create a user account directly (bypasses registration_open flag)",
+        "operationId": "auth_admin_create_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminCreateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email, password under 8 characters, empty display name, or email in use",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Caller is not an admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/apple": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: `{ \"identity_token\": \"...\", \"full_name\"?: \"...\" }`",
+        "description": "Body: `{ \"identity_token\": \"...\", \"full_name\"?: \"...\" }`. `501` while\nSign in with Apple is unconfigured. See docs/sso-payments-plan.md.",
+        "operationId": "auth_apple_sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in to an existing or newly linked account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A new account was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The provider token did not verify, or the account is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An account with this email exists and the provider did not verify the address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "This provider is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/device/poll": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Public",
+        "description": "public. The TV asks whether it has been let in yet.",
+        "operationId": "auth_poll",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PollRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Approved: the device is signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Not signed in (yet): `authorization_pending`, `slow_down`, `denied` or `expired`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown device code (answered `expired`)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The approving account no longer exists or is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/device/start": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Public",
+        "description": "public. The TV asks for a code to show.",
+        "operationId": "auth_start",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StartResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/device/{user_code}": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authenticated",
+        "description": "authenticated. What the approver is being asked to let in.",
+        "operationId": "auth_describe",
+        "parameters": [
+          {
+            "name": "user_code",
+            "in": "path",
+            "description": "The code shown on the TV; case, hyphens and look-alike characters are forgiven",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceRequestInfo"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The code is unknown, expired or already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/device/{user_code}/approve": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authenticated",
+        "description": "authenticated. The TV is signed in as *this*\naccount, which is why no password is involved: possession of a signed-in session is the proof.",
+        "operationId": "auth_approve",
+        "parameters": [
+          {
+            "name": "user_code",
+            "in": "path",
+            "description": "The code shown on the TV; case, hyphens and look-alike characters are forgiven",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Approved; the device's next poll signs it in"
+          },
+          "400": {
+            "description": "The code is unknown, expired or already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/device/{user_code}/deny": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Authenticated",
+        "operationId": "auth_deny",
+        "parameters": [
+          {
+            "name": "user_code",
+            "in": "path",
+            "description": "The code shown on the TV; case, hyphens and look-alike characters are forgiven",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Denied"
+          },
+          "400": {
+            "description": "The code is unknown, expired or already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/fork": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: { \"refresh_token\": \"...\", \"device_name\": \"...\", \"device_kind\": \"...\" }",
+        "description": "Body: { \"refresh_token\": \"...\", \"device_name\": \"...\", \"device_kind\": \"...\" }\n\nA second, independent session for the same account, for a helper that\nruns apart from the app that signed in — the Mac's Finder extension\n(docs/file-sync-plan.md §7.1). Both then refresh on their own; sharing one\nchain would have them present each other's rotated tokens, which reads as\ntheft and revokes it. The presented token is checked like a refresh but not\nrotated. Holding a refresh token already means holding the account, so this\ngrants nothing new; the new device shows in the session list and can be\nsigned out on its own.",
+        "operationId": "auth_fork",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Tokens for a new, independent device session",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown, expired or already-used refresh token, or inactive account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/google": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: either `{ \"id_token\": \"...\" }` (a client SDK already holds a token) or `{ \"code\", \"code_verifier\", \"redirect_uri\" }` (the Mac app's native loopback+PKCE flow — the backend exchanges the code with Google, which is the only place `desktop_client_secret` is ever used)",
+        "description": "Body: either `{ \"id_token\": \"...\" }` (a client SDK already holds a token)\nor `{ \"code\", \"code_verifier\", \"redirect_uri\" }` (the Mac app's native\nloopback+PKCE flow — the backend exchanges the code with Google, which is\nthe only place `desktop_client_secret` is ever used).\n`501` while Google sign-in is unconfigured. See docs/sso-payments-plan.md.",
+        "operationId": "auth_google_sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in to an existing or newly linked account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A new account was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The provider token did not verify, or the account is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An account with this email exists and the provider did not verify the address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "This provider is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: { \"email\": \"...\", \"password\": \"...\" } Returns: { \"token\": \"<JWT>\", \"user\": { ",
+        "description": "Body: { \"email\": \"...\", \"password\": \"...\" }\nReturns: { \"token\": \"<JWT>\", \"user\": { ... } }",
+        "operationId": "auth_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown account, inactive account or wrong password — deliberately not told apart",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Header: Authorization: Bearer <token> Signs out this device: revokes the session and, when the token belongs to a refresh chain, the whole chain (so the refresh token dies too)",
+        "operationId": "auth_logout",
+        "responses": {
+          "204": {
+            "description": "Signed out"
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/me": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Header: Authorization: Bearer <token>",
+        "operationId": "auth_me",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/microsoft": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The same shape as [`google_sign_in`] and for the same reason: the client runs loopback + PKCE, gets a `code`, and posts it here because the client secret lives on this side",
+        "description": "The same shape as [`google_sign_in`] and for the same reason: the client runs\nloopback + PKCE, gets a `code`, and posts it here because the client secret\nlives on this side. Only the verification differs — see\n[`oidc::verify_microsoft_id_token`], whose issuer check cannot be a constant.",
+        "operationId": "auth_microsoft_sign_in",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in to an existing or newly linked account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "A new account was created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The provider token did not verify, or the account is inactive",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "An account with this email exists and the provider did not verify the address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "501": {
+            "description": "This provider is not configured",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/password": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: { \"current_password\": \"...\", \"new_password\": \"...\" } Requires authentication",
+        "operationId": "auth_change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Changed; every other session and device is signed out"
+          },
+          "400": {
+            "description": "New password under 8 characters, or current password incorrect",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token, or the account has no password",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/providers": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Public — no auth required",
+        "description": "Public — no auth required. Tells clients which sign-in methods are live\nso SSO buttons can be shown/hidden without a client rebuild when a\nprovider is configured later. See docs/sso-payments-plan.md.",
+        "operationId": "auth_providers",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvidersResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/refresh": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: { \"refresh_token\": \"...\" } Rotates the refresh token and returns a fresh access JWT",
+        "description": "Body: { \"refresh_token\": \"...\" }\nRotates the refresh token and returns a fresh access JWT. Presenting an\nalready-rotated token is treated as theft: the whole chain is revoked.",
+        "operationId": "auth_refresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A new access token and the next refresh token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unknown, expired or already-used refresh token (reuse revokes the device's chain), or inactive account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Body: { \"email\": \"...\", \"password\": \"...\", \"display_name\": \"...\" }",
+        "operationId": "auth_register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Account created and signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid email, password under 8 characters, empty display name, email taken, invalid invite, or registration closed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/registration-status": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Public — no auth required",
+        "description": "Public — no auth required. Returns whether self-registration is enabled.",
+        "operationId": "auth_registration_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationStatusResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/sessions": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The caller's signed-in devices",
+        "operationId": "auth_list_sessions",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceSessionResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/sessions/{chain_id}": {
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Sign out one device",
+        "operationId": "auth_delete_session",
+        "parameters": [
+          {
+            "name": "chain_id",
+            "in": "path",
+            "description": "The device's `chain_id` from `GET /auth/sessions`",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Signed out (also when the chain was unknown)"
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/devices/notifications": {
       "get": {
         "tags": [
@@ -721,6 +1741,90 @@
               "application/json": {
                 "schema": {
                   "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/complete": {
+      "post": {
+        "tags": [
+          "setup"
+        ],
+        "summary": "Public, no auth required",
+        "description": "public, no auth required.\n\nCreates the first admin user. Only works when no users exist.\nReturns a JWT token so the user is auto-logged-in.",
+        "operationId": "setup_complete_setup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Admin created and signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Setup already complete, or invalid email, password (under 8 characters) or display name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/setup/status": {
+      "get": {
+        "tags": [
+          "setup"
+        ],
+        "summary": "Public, no auth required",
+        "description": "public, no auth required.\n\nReturns whether initial setup is complete (at least one user exists)\nand system health checks.",
+        "operationId": "setup_setup_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupStatusResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -2061,6 +3165,556 @@
           }
         ]
       }
+    },
+    "/api/v1/users": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Admin only",
+        "description": "admin only. Includes each user's family (name\nvisible to an instance admin only here — nowhere a family_admin can see\nanother family's name).",
+        "operationId": "users_list_users",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminUserResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token, or the caller is not an admin (answered 401, not 403)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Get own profile",
+        "operationId": "users_get_self",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Delete own account",
+        "operationId": "users_delete_self",
+        "responses": {
+          "204": {
+            "description": "The account and everything it owns are deleted"
+          },
+          "400": {
+            "description": "The caller is the last admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Update own profile (display_name only)",
+        "operationId": "users_update_self",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSelfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          },
+          "400": {
+            "description": "Empty display name, or more than 20 discovery languages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/avatar": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Set the caller's own profile picture",
+        "description": "set the caller's own profile picture. Self-serve only:\nthere is no \"set someone else's avatar\" admin action, matching how a real photo works.",
+        "operationId": "users_upload_avatar",
+        "requestBody": {
+          "description": "fields: `avatar` (an image file, at most 5 MB)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Set"
+          },
+          "400": {
+            "description": "Missing `avatar` field, not an image, or too large",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request body over 6 MB"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Remove the caller's own profile picture",
+        "description": "remove the caller's own profile picture. The stored object\nis left in place (same as every other cover-replace path in this API); nothing here scans\nfor orphaned `media_objects` rows.",
+        "operationId": "users_delete_avatar",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/subsonic-key": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Fetch (creating if needed) the caller's OpenSubsonic API key, used to configure external music clients",
+        "operationId": "users_get_subsonic_key",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubsonicKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/me/subsonic-key/regenerate": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Rotate the caller's OpenSubsonic API key, invalidating any previously configured client",
+        "operationId": "users_regenerate_subsonic_key",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubsonicKeyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "operationId": "users_get_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token, someone else's account asked for by a non-admin, or no such account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Admin only: hard-delete user and all their data",
+        "operationId": "users_admin_delete_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The account and everything it owns are deleted"
+          },
+          "400": {
+            "description": "The id is the caller's own; use `DELETE /users/me`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid access token, or the caller is not an admin (answered 401, not 403)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Admin only",
+        "operationId": "users_update_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated; deactivating also signs the account out everywhere"
+          },
+          "401": {
+            "description": "Invalid access token, or the caller is not an admin (answered 401, not 403)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}/avatar": {
+      "get": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Streams the raw image",
+        "description": "streams the raw image. Visible to the user themselves or any\nfellow member of their family; unlike `GET /users/:id`, an instance admin gets no special\ncase here (they'd need to actually share a family to see it, same as anyone else).",
+        "operationId": "users_get_avatar",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No avatar, or not the caller or a fellow family member",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/users/{id}/revoke-sessions": {
+      "post": {
+        "tags": [
+          "users"
+        ],
+        "summary": "Admin only: force-logout user",
+        "operationId": "users_admin_revoke_sessions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "User id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Every session and device of the account is signed out"
+          },
+          "401": {
+            "description": "Invalid access token, or the caller is not an admin (answered 401, not 403)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2090,6 +3744,140 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          }
+        }
+      },
+      "AdminCreateUserRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminUserResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "role",
+          "is_active",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "family_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "family_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AppleProviderInfo": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "web_client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Services ID for Sign in with Apple JS; `None` until configured."
+          }
+        }
+      },
+      "AppleSignInRequest": {
+        "type": "object",
+        "required": [
+          "identity_token"
+        ],
+        "properties": {
+          "identity_token": {
+            "type": "string"
+          },
+          "full_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The user's name, sent by the client only on their first-ever\nauthorization (Apple's own privacy rule, not ours) — `None` on every\nlater sign-in."
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invite_code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ChangePasswordRequest": {
+        "type": "object",
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string"
           }
         }
       },
@@ -2214,6 +4002,25 @@
           "visibility": {
             "type": "string",
             "description": "`private` or `family`."
+          }
+        }
+      },
+      "CompleteSetupRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
           }
         }
       },
@@ -2499,6 +4306,71 @@
           }
         }
       },
+      "DeviceRequestInfo": {
+        "type": "object",
+        "required": [
+          "user_code",
+          "device_kind",
+          "expires_at"
+        ],
+        "properties": {
+          "user_code": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          }
+        }
+      },
+      "DeviceSessionResponse": {
+        "type": "object",
+        "required": [
+          "chain_id",
+          "device_kind",
+          "signed_in_at",
+          "expires_at",
+          "current"
+        ],
+        "properties": {
+          "chain_id": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": "string"
+          },
+          "signed_in_at": {
+            "type": "string"
+          },
+          "last_used_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "current": {
+            "type": "boolean",
+            "description": "True when this is the device making the request."
+          }
+        }
+      },
       "ErrorBody": {
         "type": "object",
         "description": "Every error answer: a status code and this body.",
@@ -2635,6 +4507,103 @@
             "items": {
               "$ref": "#/components/schemas/FolderStatus"
             }
+          }
+        }
+      },
+      "ForkRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "GoogleProviderInfo": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "desktop_client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The OAuth client ID native clients use for the loopback+PKCE flow.\n`null` while Google sign-in is unconfigured."
+          },
+          "web_client_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The web console's client id, `null` while Google sign-in is off."
+          }
+        }
+      },
+      "GoogleSignInRequest": {
+        "type": "object",
+        "properties": {
+          "id_token": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One-shot ID token from a client SDK that already completed the OAuth\ndance itself. Mutually exclusive with `code` — provide exactly one."
+          },
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Authorization code from the native loopback+PKCE flow (the Mac app's\npath). Requires `code_verifier` and `redirect_uri`."
+          },
+          "code_verifier": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redirect_uri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "invite_code": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -2879,6 +4848,73 @@
           }
         }
       },
+      "LoginRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional device label shown in the session list (\"Anna's iPhone\")."
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One of `web|ios|android|other`; anything else is coerced to `other`."
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "required": [
+          "token",
+          "refresh_token",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "refresh_token": {
+            "type": "string",
+            "description": "Long-lived, single-use rotating token for `POST /auth/refresh`."
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserInfo"
+          }
+        }
+      },
+      "MicrosoftProviderInfo": {
+        "type": "object",
+        "description": "Shaped like [`GoogleProviderInfo`]: the desktop client id is all a native\nclient needs, because this side holds the secret and does the exchange.",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "desktop_client_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "NewCompanion": {
         "type": "object",
         "required": [
@@ -3030,6 +5066,29 @@
           }
         }
       },
+      "PendingResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "`authorization_pending` | `slow_down` | `denied` | `expired`, as in RFC 8628."
+          }
+        }
+      },
+      "PollRequest": {
+        "type": "object",
+        "required": [
+          "device_code"
+        ],
+        "properties": {
+          "device_code": {
+            "type": "string"
+          }
+        }
+      },
       "PresignRequest": {
         "type": "object",
         "required": [
@@ -3129,6 +5188,29 @@
           }
         }
       },
+      "ProvidersResponse": {
+        "type": "object",
+        "required": [
+          "local",
+          "google",
+          "apple",
+          "microsoft"
+        ],
+        "properties": {
+          "local": {
+            "type": "boolean"
+          },
+          "google": {
+            "$ref": "#/components/schemas/GoogleProviderInfo"
+          },
+          "apple": {
+            "$ref": "#/components/schemas/AppleProviderInfo"
+          },
+          "microsoft": {
+            "$ref": "#/components/schemas/MicrosoftProviderInfo"
+          }
+        }
+      },
       "PushTokenResponse": {
         "type": "object",
         "required": [
@@ -3159,6 +5241,43 @@
           }
         }
       },
+      "RefreshRequest": {
+        "type": "object",
+        "required": [
+          "refresh_token"
+        ],
+        "properties": {
+          "refresh_token": {
+            "type": "string"
+          }
+        }
+      },
+      "RegisterRequest": {
+        "type": "object",
+        "required": [
+          "email",
+          "password",
+          "display_name"
+        ],
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "invite_code": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A family invite code. Presenting a valid one authorizes registration\neven when open self-registration is disabled, and joins the new\naccount to the inviting family."
+          }
+        }
+      },
       "RegisterTokenRequest": {
         "type": "object",
         "required": [
@@ -3178,6 +5297,17 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "RegistrationStatusResponse": {
+        "type": "object",
+        "required": [
+          "registration_open"
+        ],
+        "properties": {
+          "registration_open": {
+            "type": "boolean"
           }
         }
       },
@@ -3331,6 +5461,23 @@
           }
         }
       },
+      "SetupStatusResponse": {
+        "type": "object",
+        "required": [
+          "setup_complete",
+          "checks"
+        ],
+        "properties": {
+          "setup_complete": {
+            "type": "boolean",
+            "description": "`true` once an admin user has been created."
+          },
+          "checks": {
+            "$ref": "#/components/schemas/SystemChecks",
+            "description": "System health checks."
+          }
+        }
+      },
       "Shortcut": {
         "type": "object",
         "required": [
@@ -3444,6 +5591,55 @@
           }
         }
       },
+      "StartRequest": {
+        "type": "object",
+        "properties": {
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "StartResponse": {
+        "type": "object",
+        "required": [
+          "device_code",
+          "user_code",
+          "verification_url",
+          "expires_in",
+          "interval"
+        ],
+        "properties": {
+          "device_code": {
+            "type": "string",
+            "description": "The polling credential. Never shown to anyone; only its hash is stored."
+          },
+          "user_code": {
+            "type": "string",
+            "description": "The short code shown on the TV and typed by the approver."
+          },
+          "verification_url": {
+            "type": "string",
+            "description": "Where to approve it — shown under the code, and what the QR encodes. Empty when the\nserver has no `base_url` configured."
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "interval": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "StatsResponse": {
         "type": "object",
         "required": [
@@ -3539,6 +5735,43 @@
           },
           "d30": {
             "$ref": "#/components/schemas/StreamingWindow"
+          }
+        }
+      },
+      "SubsonicKeyResponse": {
+        "type": "object",
+        "required": [
+          "username",
+          "api_key"
+        ],
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "api_key": {
+            "type": "string"
+          }
+        }
+      },
+      "SystemChecks": {
+        "type": "object",
+        "required": [
+          "database",
+          "storage",
+          "storage_backend"
+        ],
+        "properties": {
+          "database": {
+            "type": "boolean",
+            "description": "The configured database is connected and migrations have run."
+          },
+          "storage": {
+            "type": "boolean",
+            "description": "Storage backend is accessible."
+          },
+          "storage_backend": {
+            "type": "string",
+            "description": "Which storage backend is configured."
           }
         }
       },
@@ -3929,6 +6162,57 @@
           }
         }
       },
+      "UpdateSelfRequest": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recommendations_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Deliberately only on `/users/me`, and deliberately absent from\n`UpdateUserRequest`: an admin can deactivate an account or change its\nrole, but cannot decide for someone else that their listening may be\nused to suggest things."
+          },
+          "discovery_languages": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Which languages podcast discovery should answer in. Sent whole, not\nadded to one at a time: it is a list the user edits, and a PATCH that\nappends has no way to express \"remove the last one\". `[]` means every\nlanguage, which is the state everyone starts in."
+          }
+        }
+      },
+      "UpdateUserRequest": {
+        "type": "object",
+        "properties": {
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_active": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        }
+      },
       "UploadCompleteRequest": {
         "type": "object",
         "required": [
@@ -3961,6 +6245,93 @@
           "size_bytes": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "UserInfo": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "role",
+          "recommendations_enabled",
+          "discovery_languages"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "recommendations_enabled": {
+            "type": "boolean",
+            "description": "False until the user turns recommendations on. Carried on every\nauth response so a client knows before it renders anything —\nfetching `/users/me` separately would mean a frame where the app\ndoes not yet know whether it may look at listening history."
+          },
+          "discovery_languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Base subtags (`en`, `cs`) podcast discovery answers in; empty means\nevery language. Carried on sign-in so a client can show the setting\nwithout a second call."
+          }
+        }
+      },
+      "UserResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "role",
+          "is_active",
+          "recommendations_enabled",
+          "discovery_languages",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`/api/v1/users/{id}/avatar` when set, else `null` — same relative-URL\nconvention every other cover URL in this API uses."
+          },
+          "recommendations_enabled": {
+            "type": "boolean",
+            "description": "False until the user switches it on. Clients must compute and show\nnothing listening-derived while this is false — not compute it and\nhide it. There is no server-side derived state either way, which is\nwhat makes the switch honest rather than cosmetic."
+          },
+          "discovery_languages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Base subtags (`en`, `cs`). Empty means discovery answers in every\nlanguage — see migration 0063."
+          },
+          "created_at": {
+            "type": "string"
           }
         }
       },

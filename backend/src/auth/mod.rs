@@ -13,11 +13,12 @@ use crate::auth::middleware::AuthUser;
 use crate::auth::session::{SessionClaims, sign};
 use crate::db;
 use crate::users::models::User;
-use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
+use axum::routing::get;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
@@ -26,7 +27,7 @@ use argon2::password_hash::rand_core::RngCore;
 
 // ── Public API types ──────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
@@ -38,7 +39,7 @@ pub struct LoginRequest {
     pub device_kind: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RegisterRequest {
     pub email: String,
     pub password: String,
@@ -50,7 +51,7 @@ pub struct RegisterRequest {
     pub invite_code: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct GoogleSignInRequest {
     /// One-shot ID token from a client SDK that already completed the OAuth
     /// dance itself. Mutually exclusive with `code` — provide exactly one.
@@ -72,7 +73,7 @@ pub struct GoogleSignInRequest {
     pub invite_code: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AppleSignInRequest {
     pub identity_token: String,
     /// The user's name, sent by the client only on their first-ever
@@ -88,13 +89,13 @@ pub struct AppleSignInRequest {
     pub invite_code: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ChangePasswordRequest {
     pub current_password: String,
     pub new_password: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub token: String,
     /// Long-lived, single-use rotating token for `POST /auth/refresh`.
@@ -102,12 +103,12 @@ pub struct LoginResponse {
     pub user: UserInfo,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RefreshRequest {
     pub refresh_token: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DeviceSessionResponse {
     pub chain_id: String,
     pub device_name: Option<String>,
@@ -119,7 +120,7 @@ pub struct DeviceSessionResponse {
     pub current: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct UserInfo {
     pub id: String,
     pub email: String,
@@ -136,12 +137,12 @@ pub struct UserInfo {
     pub discovery_languages: Vec<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RegistrationStatusResponse {
     pub registration_open: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ProvidersResponse {
     pub local: bool,
     pub google: GoogleProviderInfo,
@@ -151,13 +152,13 @@ pub struct ProvidersResponse {
 
 /// Shaped like [`GoogleProviderInfo`]: the desktop client id is all a native
 /// client needs, because this side holds the secret and does the exchange.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct MicrosoftProviderInfo {
     pub enabled: bool,
     pub desktop_client_id: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct GoogleProviderInfo {
     pub enabled: bool,
     /// The OAuth client ID native clients use for the loopback+PKCE flow.
@@ -167,14 +168,14 @@ pub struct GoogleProviderInfo {
     pub web_client_id: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AppleProviderInfo {
     pub enabled: bool,
     /// Services ID for Sign in with Apple JS; `None` until configured.
     pub web_client_id: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AdminCreateUserRequest {
     pub email: String,
     pub password: String,
@@ -189,29 +190,30 @@ fn default_role() -> String {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router(limits: &crate::http::rate_limit::Limiters) -> Router<AppState> {
-    Router::new()
-        .route("/login", limits.login.apply(post(login)))
-        .route("/register", post(register))
-        .route("/registration-status", get(registration_status))
-        .route("/providers", get(providers))
-        .route("/google", post(google_sign_in))
-        .route("/microsoft", post(microsoft_sign_in))
-        .route("/apple", post(apple_sign_in))
-        .route("/refresh", limits.refresh.apply(post(refresh)))
-        .route("/fork", post(fork))
-        .route("/logout", post(logout))
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
+    use crate::http::openapi::map;
+    OpenApiRouter::new()
+        .routes(map(routes!(login), |m| limits.login.apply(m)))
+        .routes(routes!(register))
+        .routes(routes!(registration_status))
+        .routes(routes!(providers))
+        .routes(routes!(google_sign_in))
+        .routes(routes!(microsoft_sign_in))
+        .routes(routes!(apple_sign_in))
+        .routes(map(routes!(refresh), |m| limits.refresh.apply(m)))
+        .routes(routes!(fork))
+        .routes(routes!(logout))
         // Signing in on a TV: the device asks for a code, someone signed in approves it.
-        .route("/device/start", limits.device.apply(post(device::start)))
-        .route("/device/poll", limits.device.apply(post(device::poll)))
-        .route("/device/{user_code}", limits.device.apply(get(device::describe)))
-        .route("/device/{user_code}/approve", post(device::approve))
-        .route("/device/{user_code}/deny", post(device::deny))
-        .route("/me", get(me))
-        .route("/password", post(change_password))
-        .route("/sessions", get(list_sessions))
-        .route("/sessions/{chain_id}", delete(delete_session))
-        .route("/admin-create-user", post(admin_create_user))
+        .routes(map(routes!(device::start), |m| limits.device.apply(m)))
+        .routes(map(routes!(device::poll), |m| limits.device.apply(m)))
+        .routes(map(routes!(device::describe), |m| limits.device.apply(m)))
+        .routes(routes!(device::approve))
+        .routes(routes!(device::deny))
+        .routes(routes!(me))
+        .routes(routes!(change_password))
+        .routes(routes!(list_sessions))
+        .routes(routes!(delete_session))
+        .routes(routes!(admin_create_user))
         // OIDC stubs — implemented later
         .route("/google/redirect", get(|| async { "TODO: Google OIDC redirect" }))
         .route("/google/callback", get(|| async { "TODO: Google OIDC callback" }))
@@ -224,6 +226,12 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> Router<AppState> {
 /// POST /api/v1/auth/login
 /// Body: { "email": "...", "password": "..." }
 /// Returns: { "token": "<JWT>", "user": { ... } }
+#[utoipa::path(post, path = "/login", tag = "auth",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, body = LoginResponse),
+        (status = 401, description = "Unknown account, inactive account or wrong password — deliberately not told apart", body = crate::http::openapi::ErrorBody),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
@@ -361,6 +369,12 @@ pub(crate) fn login_response(issued: IssuedTokens, user: User) -> LoginResponse 
 /// Body: { "refresh_token": "..." }
 /// Rotates the refresh token and returns a fresh access JWT. Presenting an
 /// already-rotated token is treated as theft: the whole chain is revoked.
+#[utoipa::path(post, path = "/refresh", tag = "auth",
+    request_body = RefreshRequest,
+    responses(
+        (status = 200, description = "A new access token and the next refresh token", body = LoginResponse),
+        (status = 401, description = "Unknown, expired or already-used refresh token (reuse revokes the device's chain), or inactive account", body = crate::http::openapi::ErrorBody),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn refresh(
     State(state): State<AppState>,
     Json(body): Json<RefreshRequest>,
@@ -426,7 +440,7 @@ async fn refresh(
     Ok(Json(login_response(issued, user)))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ForkRequest {
     pub refresh_token: String,
     #[serde(default)]
@@ -446,6 +460,11 @@ pub struct ForkRequest {
 /// rotated. Holding a refresh token already means holding the account, so this
 /// grants nothing new; the new device shows in the session list and can be
 /// signed out on its own.
+#[utoipa::path(post, path = "/fork", tag = "auth",
+    request_body = ForkRequest,
+    responses(
+        (status = 200, description = "Tokens for a new, independent device session", body = LoginResponse),
+        (status = 401, description = "Unknown, expired or already-used refresh token, or inactive account", body = crate::http::openapi::ErrorBody)))]
 async fn fork(
     State(state): State<AppState>,
     Json(body): Json<ForkRequest>,
@@ -477,6 +496,8 @@ async fn fork(
 }
 
 /// GET /api/v1/auth/sessions — the caller's signed-in devices.
+#[utoipa::path(get, path = "/sessions", tag = "auth", security(("bearer" = [])),
+    responses((status = 200, body = Vec<DeviceSessionResponse>), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn list_sessions(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -502,6 +523,9 @@ async fn list_sessions(
 }
 
 /// DELETE /api/v1/auth/sessions/{chain_id} — sign out one device.
+#[utoipa::path(delete, path = "/sessions/{chain_id}", tag = "auth", security(("bearer" = [])),
+    params(("chain_id" = Uuid, Path, description = "The device's `chain_id` from `GET /auth/sessions`")),
+    responses((status = 204, description = "Signed out (also when the chain was unknown)"), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn delete_session(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -517,6 +541,8 @@ async fn delete_session(
 /// Header: Authorization: Bearer <token>
 /// Signs out this device: revokes the session and, when the token belongs to
 /// a refresh chain, the whole chain (so the refresh token dies too).
+#[utoipa::path(post, path = "/logout", tag = "auth", security(("bearer" = [])),
+    responses((status = 204, description = "Signed out"), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn logout(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -530,6 +556,8 @@ async fn logout(
 
 /// GET /api/v1/auth/me
 /// Header: Authorization: Bearer <token>
+#[utoipa::path(get, path = "/me", tag = "auth", security(("bearer" = [])),
+    responses((status = 200, body = UserInfo), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 async fn me(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -551,6 +579,8 @@ async fn me(
 
 /// GET /api/v1/auth/registration-status
 /// Public — no auth required. Returns whether self-registration is enabled.
+#[utoipa::path(get, path = "/registration-status", tag = "auth",
+    responses((status = 200, body = RegistrationStatusResponse)))]
 async fn registration_status(
     State(state): State<AppState>,
 ) -> Json<RegistrationStatusResponse> {
@@ -563,6 +593,8 @@ async fn registration_status(
 /// Public — no auth required. Tells clients which sign-in methods are live
 /// so SSO buttons can be shown/hidden without a client rebuild when a
 /// provider is configured later. See docs/sso-payments-plan.md.
+#[utoipa::path(get, path = "/providers", tag = "auth",
+    responses((status = 200, body = ProvidersResponse)))]
 async fn providers(State(state): State<AppState>) -> Json<ProvidersResponse> {
     Json(providers_response(&state.config().auth))
 }
@@ -602,6 +634,11 @@ pub(crate) fn providers_response(auth: &crate::app::AuthConfig) -> ProvidersResp
 
 /// POST /api/v1/auth/register
 /// Body: { "email": "...", "password": "...", "display_name": "..." }
+#[utoipa::path(post, path = "/register", tag = "auth",
+    request_body = RegisterRequest,
+    responses(
+        (status = 201, description = "Account created and signed in", body = LoginResponse),
+        (status = 400, description = "Invalid email, password under 8 characters, empty display name, email taken, invalid invite, or registration closed", body = crate::http::openapi::ErrorBody)))]
 async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
@@ -670,6 +707,15 @@ async fn register(
 /// loopback+PKCE flow — the backend exchanges the code with Google, which is
 /// the only place `desktop_client_secret` is ever used).
 /// `501` while Google sign-in is unconfigured. See docs/sso-payments-plan.md.
+#[utoipa::path(post, path = "/google", tag = "auth",
+    request_body = GoogleSignInRequest,
+    responses(
+        (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
+        (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
+        (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
+        (status = 501, description = "This provider is not configured", body = crate::http::openapi::ErrorBody)))]
 async fn google_sign_in(
     State(state): State<AppState>,
     Json(body): Json<GoogleSignInRequest>,
@@ -724,6 +770,15 @@ async fn google_sign_in(
 /// loopback + PKCE, gets a `code`, and posts it here because the client secret
 /// lives on this side. Only the verification differs — see
 /// [`oidc::verify_microsoft_id_token`], whose issuer check cannot be a constant.
+#[utoipa::path(post, path = "/microsoft", tag = "auth",
+    request_body = GoogleSignInRequest,
+    responses(
+        (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
+        (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
+        (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
+        (status = 501, description = "This provider is not configured", body = crate::http::openapi::ErrorBody)))]
 async fn microsoft_sign_in(
     State(state): State<AppState>,
     Json(body): Json<GoogleSignInRequest>,
@@ -775,6 +830,15 @@ async fn microsoft_sign_in(
 /// POST /api/v1/auth/apple
 /// Body: `{ "identity_token": "...", "full_name"?: "..." }`. `501` while
 /// Sign in with Apple is unconfigured. See docs/sso-payments-plan.md.
+#[utoipa::path(post, path = "/apple", tag = "auth",
+    request_body = AppleSignInRequest,
+    responses(
+        (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
+        (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
+        (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
+        (status = 501, description = "This provider is not configured", body = crate::http::openapi::ErrorBody)))]
 async fn apple_sign_in(
     State(state): State<AppState>,
     Json(body): Json<AppleSignInRequest>,
@@ -955,6 +1019,12 @@ fn is_loopback_redirect(uri: &str) -> bool {
 /// POST /api/v1/auth/password
 /// Body: { "current_password": "...", "new_password": "..." }
 /// Requires authentication.
+#[utoipa::path(post, path = "/password", tag = "auth", security(("bearer" = [])),
+    request_body = ChangePasswordRequest,
+    responses(
+        (status = 204, description = "Changed; every other session and device is signed out"),
+        (status = 400, description = "New password under 8 characters, or current password incorrect", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Invalid access token, or the account has no password", body = crate::http::openapi::ErrorBody)))]
 async fn change_password(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -1007,6 +1077,13 @@ async fn change_password(
 
 /// POST /api/v1/auth/admin-create-user
 /// Admin-only endpoint to create a user account directly (bypasses registration_open flag).
+#[utoipa::path(post, path = "/admin-create-user", tag = "auth", security(("bearer" = [])),
+    request_body = AdminCreateUserRequest,
+    responses(
+        (status = 201, body = UserInfo),
+        (status = 400, description = "Invalid email, password under 8 characters, empty display name, or email in use", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Caller is not an admin", body = crate::http::openapi::ErrorBody)))]
 async fn admin_create_user(
     auth: AuthUser,
     State(state): State<AppState>,

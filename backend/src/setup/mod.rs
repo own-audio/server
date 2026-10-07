@@ -3,26 +3,26 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::LoginResponse;
 use crate::db;
-use axum::Router;
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
-use axum::routing::{get, post};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 
 use argon2::password_hash::{PasswordHasher, SaltString, rand_core::OsRng};
 use argon2::Argon2;
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router(limits: &crate::http::rate_limit::Limiters) -> Router<AppState> {
-    Router::new()
-        .route("/status", get(setup_status))
-        .route("/complete", limits.setup.apply(post(complete_setup)))
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(setup_status))
+        .routes(crate::http::openapi::map(routes!(complete_setup), |m| limits.setup.apply(m)))
 }
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SetupStatusResponse {
     /// `true` once an admin user has been created.
     pub setup_complete: bool,
@@ -30,7 +30,7 @@ pub struct SetupStatusResponse {
     pub checks: SystemChecks,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SystemChecks {
     /// The configured database is connected and migrations have run.
     pub database: bool,
@@ -40,7 +40,7 @@ pub struct SystemChecks {
     pub storage_backend: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CompleteSetupRequest {
     pub email: String,
     pub password: String,
@@ -53,6 +53,8 @@ pub struct CompleteSetupRequest {
 ///
 /// Returns whether initial setup is complete (at least one user exists)
 /// and system health checks.
+#[utoipa::path(get, path = "/status", tag = "setup",
+    responses((status = 200, body = SetupStatusResponse), (status = 500, body = crate::http::openapi::ErrorBody)))]
 async fn setup_status(
     State(state): State<AppState>,
 ) -> Result<Json<SetupStatusResponse>, AuthError> {
@@ -87,6 +89,12 @@ async fn setup_status(
 ///
 /// Creates the first admin user. Only works when no users exist.
 /// Returns a JWT token so the user is auto-logged-in.
+#[utoipa::path(post, path = "/complete", tag = "setup",
+    request_body = CompleteSetupRequest,
+    responses(
+        (status = 201, description = "Admin created and signed in", body = crate::auth::LoginResponse),
+        (status = 400, description = "Setup already complete, or invalid email, password (under 8 characters) or display name", body = crate::http::openapi::ErrorBody),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn complete_setup(
     State(state): State<AppState>,
     Json(body): Json<CompleteSetupRequest>,

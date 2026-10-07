@@ -18,6 +18,7 @@ use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 
 /// Ten minutes: long enough to fetch a phone from the next room, short enough that a code left
 /// on screen stops being useful.
@@ -32,7 +33,7 @@ const CODE_LENGTH: usize = 8;
 /// A hyphen in the middle, so eight characters read as two chunks.
 const CODE_GROUP: usize = 4;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct StartRequest {
     #[serde(default)]
     pub device_name: Option<String>,
@@ -40,7 +41,7 @@ pub struct StartRequest {
     pub device_kind: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StartResponse {
     /// The polling credential. Never shown to anyone; only its hash is stored.
     pub device_code: String,
@@ -53,18 +54,18 @@ pub struct StartResponse {
     pub interval: i64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PollRequest {
     pub device_code: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PendingResponse {
     /// `authorization_pending` | `slow_down` | `denied` | `expired`, as in RFC 8628.
     pub status: &'static str,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DeviceRequestInfo {
     pub user_code: String,
     pub device_name: Option<String>,
@@ -160,6 +161,9 @@ pub fn poll_outcome(
 }
 
 /// POST /api/v1/auth/device/start — public. The TV asks for a code to show.
+#[utoipa::path(post, path = "/device/start", tag = "auth",
+    request_body = StartRequest,
+    responses((status = 201, body = StartResponse), (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 pub async fn start(
     State(state): State<AppState>,
     Json(body): Json<StartRequest>,
@@ -199,6 +203,14 @@ pub async fn start(
 }
 
 /// POST /api/v1/auth/device/poll — public. The TV asks whether it has been let in yet.
+#[utoipa::path(post, path = "/device/poll", tag = "auth",
+    request_body = PollRequest,
+    responses(
+        (status = 200, description = "Approved: the device is signed in", body = crate::auth::LoginResponse),
+        (status = 202, description = "Not signed in (yet): `authorization_pending`, `slow_down`, `denied` or `expired`", body = PendingResponse),
+        (status = 400, description = "Unknown device code (answered `expired`)", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "The approving account no longer exists or is inactive", body = crate::http::openapi::ErrorBody),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 pub async fn poll(
     State(state): State<AppState>,
     Json(body): Json<PollRequest>,
@@ -260,6 +272,9 @@ pub async fn poll(
 }
 
 /// GET /api/v1/auth/device/{user_code} — authenticated. What the approver is being asked to let in.
+#[utoipa::path(get, path = "/device/{user_code}", tag = "auth", security(("bearer" = [])),
+    params(("user_code" = String, Path, description = "The code shown on the TV; case, hyphens and look-alike characters are forgiven")),
+    responses((status = 200, body = DeviceRequestInfo), (status = 400, description = "The code is unknown, expired or already used", body = crate::http::openapi::ErrorBody), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody), (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 pub async fn describe(
     _auth: AuthUser,
     State(state): State<AppState>,
@@ -280,6 +295,9 @@ pub async fn describe(
 
 /// POST /api/v1/auth/device/{user_code}/approve — authenticated. The TV is signed in as *this*
 /// account, which is why no password is involved: possession of a signed-in session is the proof.
+#[utoipa::path(post, path = "/device/{user_code}/approve", tag = "auth", security(("bearer" = [])),
+    params(("user_code" = String, Path, description = "The code shown on the TV; case, hyphens and look-alike characters are forgiven")),
+    responses((status = 204, description = "Approved; the device's next poll signs it in"), (status = 400, description = "The code is unknown, expired or already used", body = crate::http::openapi::ErrorBody), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 pub async fn approve(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -289,6 +307,9 @@ pub async fn approve(
 }
 
 /// POST /api/v1/auth/device/{user_code}/deny — authenticated.
+#[utoipa::path(post, path = "/device/{user_code}/deny", tag = "auth", security(("bearer" = [])),
+    params(("user_code" = String, Path, description = "The code shown on the TV; case, hyphens and look-alike characters are forgiven")),
+    responses((status = 204, description = "Denied"), (status = 400, description = "The code is unknown, expired or already used", body = crate::http::openapi::ErrorBody), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
 pub async fn deny(
     auth: AuthUser,
     State(state): State<AppState>,
