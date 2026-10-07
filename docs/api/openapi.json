@@ -3859,6 +3859,1991 @@
         }
       }
     },
+    "/api/v1/playback/bookmarks": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "All of the caller's bookmarks",
+        "operationId": "playback_list_bookmarks",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookmarkResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Create a text bookmark",
+        "operationId": "playback_create_bookmark_handler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookmarkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookmarkResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/bookmarks/{id}": {
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Update a bookmark label",
+        "operationId": "playback_update_bookmark_handler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Bookmark id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookmarkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Deletes one of the caller's bookmarks",
+        "operationId": "playback_delete_bookmark",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Bookmark id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/books/progress": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Every book this user has started, in one request — what a shelf needs to mark the finished ones and show how far into the rest they are",
+        "description": "Every book this user has started, in one request — what a shelf needs to mark the finished\nones and show how far into the rest they are. `GET /audiobooks` deliberately stays metadata\nonly; progress is per-listener, and the book list is shared across a family.",
+        "operationId": "playback_list_book_progress",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookProgressSummary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/books/{book_id}/bookmarks": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "List bookmarks for a specific book",
+        "operationId": "playback_list_book_bookmarks",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Audiobook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookmarkResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/books/{book_id}/progress": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "The caller's position in one audiobook",
+        "operationId": "playback_get_book_progress",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Audiobook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`file_id` is set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackProgressResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no progress on this book",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Saves the caller's position in one audiobook; `file_id` is required",
+        "operationId": "playback_upsert_book_progress",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Audiobook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaybackUpsertProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackProgressResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "No `file_id` in the body",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "\"start over\": no position or file survives, so the next play begins at file one, position zero",
+        "operationId": "playback_reset_book_progress",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Audiobook id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Reset"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/episodes/progress/bulk": {
+      "post": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Mark many episodes played or unplayed in one request",
+        "operationId": "playback_bulk_episode_progress",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkEpisodeProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "More than 1000 episode ids",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/episodes/{episode_id}/progress": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "The caller's position in one podcast episode",
+        "operationId": "playback_get_episode_progress",
+        "parameters": [
+          {
+            "name": "episode_id",
+            "in": "path",
+            "description": "Podcast episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackProgressResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no progress on this episode",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Saves the caller's position in one podcast episode",
+        "operationId": "playback_upsert_episode_progress",
+        "parameters": [
+          {
+            "name": "episode_id",
+            "in": "path",
+            "description": "Podcast episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaybackUpsertProgressRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/queue": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "The caller's cross-device play queue",
+        "description": "the caller's cross-device play queue.\nAn empty queue is returned rather than 404, so clients need no special case.",
+        "operationId": "playback_get_queue",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Replace the queue wholesale",
+        "description": "replace the queue wholesale.\n\nLast write wins. A queue is small and always edited as a unit, so merging\nconcurrent edits would invent an order neither device asked for; the\nreturned `updated_at` lets a client notice it was overtaken.",
+        "operationId": "playback_put_queue",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutQueueRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueueResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "More than 1000 items, or an unknown media_kind",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/sessions": {
+      "post": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Batched so a device that was offline, backgrounded, or in Doze can flush everything it accumulated in a single request",
+        "operationId": "playback_report_sessions",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportSessionsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReportSessionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "More than 500 sessions, an unknown media_kind, ended_at before started_at, or negative seconds_listened",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/settings": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "The caller's playback settings, created with defaults on first read",
+        "operationId": "playback_get_settings",
+        "responses": {
+          "200": {
+            "description": "`playback_speed`, `skip_intro_secs`, `skip_outro_secs`, `ab_skip_forward_secs`, `ab_skip_backward_secs`, `ab_playback_speed`, `updated_at`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/settings/audiobook-defaults": {
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Sets the audiobook player's skip intervals and speed",
+        "operationId": "playback_update_audiobook_defaults",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAudiobookDefaultsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "`ab_skip_forward_secs`, `ab_skip_backward_secs`, `ab_playback_speed`, as stored after clamping (skips 1–120 s, speed 0.5–3.0)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/playback/settings/eq": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "This device's saved curve, or flat/off defaults if it has never saved one",
+        "operationId": "playback_get_eq_settings_handler",
+        "parameters": [
+          {
+            "name": "device_kind",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EqSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Upserts this device's curve",
+        "description": "upserts this device's curve. Gains are\nclamped server-side (never trust the client), matching the pattern\n`update_audiobook_defaults` already uses for its own ranges.",
+        "operationId": "playback_update_eq_settings_handler",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEqSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The stored curve; gains clamped to ±12 dB",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EqSettingsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "The feeds the caller can see: their own and those shared with the family",
+        "operationId": "podcasts_list_feeds",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FeedResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/discover/browse": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Feeds the household already follows are filtered out here for the same reason as in `similar_feeds` — and because a discovery screen that keeps offering you what you already subscribe to reads as broken",
+        "operationId": "podcasts_discover_browse",
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "language",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Up to 25 feeds, without those the household already follows",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PodcastSearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No category",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metadata service not configured or unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/discover/categories": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "The catalogue's categories, with how many feeds sit in each",
+        "operationId": "podcasts_discover_categories",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PodcastCategoryCount"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metadata service not configured or unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/discover/preview": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "The newest episodes of a show, for deciding whether to follow it",
+        "description": "The newest episodes of a show, for deciding whether to follow it. The feed\nis fetched and parsed on the spot and **nothing is stored** — subscribing is\nstill what puts a show in the library.\n\nThe work is the same as subscribing minus the writes, so a very large feed\ntakes as long here as it does there; callers need a waiting state.",
+        "operationId": "podcasts_discover_preview_episodes",
+        "parameters": [
+          {
+            "name": "feed_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Newest first; `limit` is clamped to 1–50",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PreviewEpisode"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No feed_url",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The feed could not be fetched or parsed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/discover/similar": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "The same answer as `/{id}/similar`, for a show nobody here follows yet — which is exactly when \"more like this\" is worth asking",
+        "description": "The same answer as `/{id}/similar`, for a show nobody here follows yet —\nwhich is exactly when \"more like this\" is worth asking. The feed is looked\nup in the catalogue by its URL, since a show that is not subscribed has no\nid of ours to name it by.",
+        "operationId": "podcasts_discover_similar",
+        "parameters": [
+          {
+            "name": "feed_url",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty when the catalogue does not know this feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PodcastSearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No feed_url",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metadata service not configured or unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/search": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Answered from the self-hosted Podcast Index catalogue",
+        "description": "Answered from the self-hosted Podcast Index catalogue. Until 2026-08-29\nthis proxied `apollo.rss.com`, which meant every search anyone typed left\nthe machine — a privacy cost the product's own copy leaves no room for, and\na dependency that returned 500s for a spell when the upstream started\nrejecting requests with no User-Agent.\n\n**There is deliberately no fallback to that host.** A fallback fires\nprecisely when the metadata service is down and nobody is watching, which\nis the worst possible moment to quietly resume shipping search terms to a\nthird party. An unreachable catalogue is an error.",
+        "operationId": "podcasts_search_podcasts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PodcastSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PodcastSearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Query shorter than 2 characters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metadata service not configured or unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/subscribe": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Subscribes to an RSS feed or a YouTube channel URL; an existing subscription is returned as-is",
+        "operationId": "podcasts_subscribe",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Already subscribed: the existing feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Subscribed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad visibility",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The feed or channel could not be fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/unplayed-counts": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "One number per show: how much of it is still waiting",
+        "description": "One number per show: how much of it is still waiting. Per listener, which is why it is not\nfolded into `GET /podcasts` — that list is the household's, this is yours.",
+        "operationId": "podcasts_unplayed_counts",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UnplayedCount"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "One feed",
+        "operationId": "podcasts_get_feed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Unsubscribes; only the feed's owner can",
+        "operationId": "podcasts_unsubscribe",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unsubscribed"
+          },
+          "404": {
+            "description": "No such feed owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/auto-store": {
+      "put": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "`{\"enabled\": true}` makes the server store every episode published from now on, whether or not any device is running; paid feeds whose links expire are the reason (§5.6)",
+        "description": "`{\"enabled\": true}` makes the server\nstore every episode published from now on, whether or not any device is\nrunning; paid feeds whose links expire are the reason (§5.6). No backlog.\nThe show's subscriber, or a family admin when it is shared with the family.",
+        "operationId": "podcasts_set_auto_store",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAutoStoreRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Neither the subscriber nor a family admin of a shared feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/episodes": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "A page of the feed's episodes, with the caller's progress on each",
+        "operationId": "podcasts_list_episodes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "Only episodes whose title or description holds this (any case, any accents).",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EpisodeResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/episodes/{ep_id}/download": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Fetches the episode audio from its RSS enclosure URL, stores it in S3, and marks the episode as local",
+        "description": "Fetches the episode audio from its RSS enclosure URL, stores it in S3,\nand marks the episode as local. Returns the updated episode.",
+        "operationId": "podcasts_download_episode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "path",
+            "description": "Episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The episode, now stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed or episode, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The audio could not be fetched or stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Moves the household's stored copy of one episode to the trash for 30 days (docs/file-sync-plan.md §5.1)",
+        "description": "Moves the household's stored copy of one episode to the trash for 30 days\n(docs/file-sync-plan.md §5.1). The episode itself stays — it is still\nlisted, still has its description, and `POST …/download` fetches it again.\nOnly `has_local` goes back to false.\n\n**Owner or family admin, unlike the `POST` above.** Anyone who can see a\nshared feed may fetch an episode into storage, because that only adds;\ndeleting takes something away from everyone else in the household.\n\nThe client calls this when someone declines an episode — see the podcast\napp's \"Not Interested\". A failure there is not worth surfacing (the episode\nis hidden either way), which is why this returns the updated episode rather\nthan an error the app would have to explain.",
+        "operationId": "podcasts_delete_episode_download",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "path",
+            "description": "Episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The episode, no longer stored",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Visible, but the caller is neither the owner nor a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed or episode, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/episodes/{ep_id}/image": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Proxies the episode cover from S3",
+        "description": "Proxies the episode cover from S3.\nNo auth required — episode artwork is public content; UUID acts as capability token.\n\nSame lazy-fetch-on-first-view shape as `get_feed_image` above, for the same reason.",
+        "operationId": "podcasts_get_episode_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "path",
+            "description": "Episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The episode art",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "No such episode, or it has no artwork",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/podcasts/{id}/episodes/{ep_id}/stream": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Returns a short-lived presigned URL for streaming the downloaded episode",
+        "operationId": "podcasts_stream_episode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "path",
+            "description": "Episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A presigned URL, valid for `expires_in_secs`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed or episode, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`episode_not_downloaded`: the episode is not stored on the server",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/image": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Proxies the podcast cover from S3 so the browser never hits an external CDN",
+        "description": "Proxies the podcast cover from S3 so the browser never hits an external CDN.\nNo auth required — podcast artwork is public content; UUID acts as capability token.\n\nSubscribing/refreshing no longer fetch artwork eagerly (see `ingest_episodes_inner`'s doc\ncomment) — this is where that deferred fetch actually happens, once, on whichever request\nis first to ask for it. Every request after that hits the fast, already-cached path above.",
+        "operationId": "podcasts_get_feed_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cover art",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "No such feed, or it has no artwork",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/podcasts/{id}/refresh": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Re-fetch feed and sync new episodes",
+        "operationId": "podcasts_refresh_feed",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Refreshed"
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The feed could not be fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/similar": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Shows like this one",
+        "description": "shows like this one.\n\nThe catalogue answers \"what is like this feed\" knowing nothing about who\nasked. **The one step that needs to know what the household already has —\nfiltering those out — happens here, in the household's own backend, and\nnever leaves it.** That split is the whole privacy design; see\ndocs/podcast-recommendations-plan.md §0.\n\nA feed with no `catalog_id` returns an empty list rather than an error:\nthe catalogue is a weekly snapshot and simply may not know a new show.",
+        "operationId": "podcasts_similar_feeds",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Empty when the catalogue does not know this feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PodcastSearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Metadata service not configured or unreachable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/store-all": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Stores the back catalogue on the server (all of it, or the newest `latest` episodes): an `episode_download` job per episode not stored yet, so a paid feed stays in the family's library after the subscription ends",
+        "description": "stores the back catalogue on the server (all of it,\nor the newest `latest` episodes): an\n`episode_download` job per episode not stored yet, so a paid feed stays in the family's\nlibrary after the subscription ends. Same permission as auto-store. An episode queued once\nis not queued again, and one whose copy was deleted is not stored again.",
+        "operationId": "podcasts_store_all",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StoreAllRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Episodes queued, or that would be for a preview",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoreAllResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Neither the subscriber nor a family admin of a shared feed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/sync-images": {
+      "post": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Downloads & stores channel artwork + every episode's artwork (deduped by URL hash)",
+        "description": "Downloads & stores channel artwork + every episode's artwork (deduped by URL hash).\nSafe to call multiple times — already-stored images are skipped.",
+        "operationId": "podcasts_sync_images",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/podcasts/{id}/visibility": {
+      "put": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "Owner only",
+        "operationId": "podcasts_set_feed_visibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVisibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "visibility is not `private` or `family`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/server": {
       "get": {
         "tags": [
@@ -6269,6 +8254,126 @@
           }
         }
       },
+      "BookProgressSummary": {
+        "type": "object",
+        "required": [
+          "book_id",
+          "position_secs",
+          "file_id",
+          "file_position_secs",
+          "completed",
+          "updated_at"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "string"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double",
+            "description": "Counted across the whole book, so a client can divide it by the book's total duration."
+          },
+          "file_id": {
+            "type": "string",
+            "description": "Which file the position below is in — what resuming has to seek to."
+          },
+          "file_position_secs": {
+            "type": "number",
+            "format": "double",
+            "description": "The raw stored position inside `file_id`, which is what `PUT .../progress` writes and\nwhat a player seeks to. `position_secs` is the same moment measured from the start of\nthe book; a client that only syncs the shelf has no file list to convert between them."
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Whoever wrote last wins. A device holding an unsent position of its own compares against\nthis before letting the server's value replace it."
+          }
+        }
+      },
+      "BookmarkResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "position_secs",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "episode_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "book_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "audio_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
+      "BulkEpisodeProgressRequest": {
+        "type": "object",
+        "required": [
+          "episode_ids",
+          "completed"
+        ],
+        "properties": {
+          "episode_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "Mark them played (true) or unplayed (false)."
+          }
+        }
+      },
+      "BulkResponse": {
+        "type": "object",
+        "required": [
+          "updated"
+        ],
+        "properties": {
+          "updated": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "required": [
@@ -6654,6 +8759,45 @@
           }
         ]
       },
+      "CreateBookmarkRequest": {
+        "type": "object",
+        "required": [
+          "position_secs"
+        ],
+        "properties": {
+          "book_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "episode_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "file_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "CreateInviteRequest": {
         "type": "object",
         "properties": {
@@ -6914,6 +9058,165 @@
           }
         }
       },
+      "EpisodeResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "feed_id",
+          "guid",
+          "title",
+          "has_local",
+          "completed",
+          "has_transcript"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "feed_id": {
+            "type": "string"
+          },
+          "guid": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "episode_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "audio_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Resolved image URL: S3 proxy path when downloaded, else raw RSS URL."
+          },
+          "has_local": {
+            "type": "boolean",
+            "description": "True when the audio file has been downloaded into the object store."
+          },
+          "progress_secs": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Saved playback position in seconds (null = never played)."
+          },
+          "completed": {
+            "type": "boolean",
+            "description": "True when the user has listened to the whole episode."
+          },
+          "size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "From `media_objects`, `null` when `has_local` is false or the checksum job hasn't\ncaught up yet (mirror-plan B-2)."
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_transcript": {
+            "type": "boolean",
+            "description": "True when the feed published a `<podcast:transcript>` for this episode — the gate for\ndocs/podcast-translation-plan.md's translation feature (no speech-to-text, ever; a\nmissing transcript means the feature simply isn't offered for this episode)."
+          }
+        }
+      },
+      "EqSettingsResponseDto": {
+        "type": "object",
+        "required": [
+          "device_kind",
+          "enabled",
+          "preamp_db",
+          "band1_db",
+          "band2_db",
+          "band3_db",
+          "band4_db",
+          "band5_db",
+          "band6_db",
+          "updated_at"
+        ],
+        "properties": {
+          "device_kind": {
+            "type": "string"
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "preamp_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band1_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band2_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band3_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band4_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band5_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band6_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "preset_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string"
+          }
+        }
+      },
       "ErrorBody": {
         "type": "object",
         "description": "Every error answer: a status code and this body.",
@@ -7019,6 +9322,105 @@
           "hidden": {
             "type": "boolean",
             "description": "True when this member has not shared their statistics."
+          }
+        }
+      },
+      "FeedResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "feed_url",
+          "source_type",
+          "title",
+          "visibility",
+          "is_owner",
+          "owner_id",
+          "categories",
+          "auto_store",
+          "has_transcripts"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "feed_url": {
+            "type": "string"
+          },
+          "source_type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_refreshed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family` — which folder this feed lives in."
+          },
+          "is_owner": {
+            "type": "boolean",
+            "description": "False for family-shared feeds owned by someone else."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Whose it is — for acting on a family member's item (a family shortcut)."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Podcast Index categories, lowercased, or the feed's own iTunes\ncategories when the catalogue does not know it. Empty is normal — a\nfeed subscribed while the metadata service was unreachable has none\nuntil the backfill job reaches it, and clients must render fine\nwithout them."
+          },
+          "language_base": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`language` folded to its subtag. Clients grouping or filtering by\nlanguage must use this, not `language`, which is whatever the\npublisher wrote."
+          },
+          "auto_store": {
+            "type": "boolean",
+            "description": "The server stores each new episode by itself, so the family keeps it\neven if the feed later drops it (docs/file-sync-plan.md §5.6)."
+          },
+          "has_transcripts": {
+            "type": "boolean",
+            "description": "At least one episode publishes a transcript, so it can be translated.\nFilled in by the list and the single-feed read only; false elsewhere."
           }
         }
       },
@@ -7918,6 +10320,167 @@
           }
         }
       },
+      "PlaybackProgressResponse": {
+        "type": "object",
+        "required": [
+          "media_id",
+          "position_secs",
+          "completed",
+          "updated_at"
+        ],
+        "properties": {
+          "media_id": {
+            "type": "string"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Only set for audiobook progress."
+          }
+        }
+      },
+      "PlaybackUpsertProgressRequest": {
+        "type": "object",
+        "required": [
+          "position_secs"
+        ],
+        "properties": {
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "completed": {
+            "type": "boolean"
+          },
+          "file_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "For audiobook progress: which file is playing."
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`web`, `ios`, `android`, … — recorded on any session derived from\nthis save, so stats can break down by platform."
+          }
+        }
+      },
+      "PodcastCategoryCount": {
+        "type": "object",
+        "description": "One catalogue category and how many feeds sit in it.",
+        "required": [
+          "category",
+          "feed_count",
+          "active_count"
+        ],
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "feed_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "active_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Feeds in this category that published within the last year. This is the\nnumber worth showing a user — `feed_count` is mostly abandoned shows."
+          }
+        }
+      },
+      "PodcastSearchRequest": {
+        "type": "object",
+        "required": [
+          "q"
+        ],
+        "properties": {
+          "q": {
+            "type": "string"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Language subtag (`en`, not `en-US`). Optional, and unset means no\nfilter.\n\nDeliberately not defaulted to the household's own languages, which is\nwhat this was first sketched as. The catalogue's search takes one\nlanguage, households are not reliably monolingual, and a guessed filter\nhides results with no visible explanation — the user sees an empty\nsearch box, not a filter they can turn off. The client knows whether it\nhas a \"search all languages\" affordance to offer; the server does not,\nso the server does not guess."
+          }
+        }
+      },
+      "PodcastSearchResult": {
+        "type": "object",
+        "required": [
+          "title",
+          "feed_url"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "feed_url": {
+            "type": "string"
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "episode_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Added 2026-08-29. Additive on the wire — older clients ignore it."
+          }
+        }
+      },
       "PolicyEntry": {
         "type": "object",
         "required": [
@@ -8000,6 +10563,41 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          }
+        }
+      },
+      "PreviewEpisode": {
+        "type": "object",
+        "required": [
+          "guid",
+          "title"
+        ],
+        "properties": {
+          "guid": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time"
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -8134,6 +10732,106 @@
           }
         }
       },
+      "PutQueueRequest": {
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            }
+          },
+          "current_index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`web`, `ios`, `android`, … — echoed back so another device can show\n\"playing on your phone\"."
+          },
+          "device_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional human-readable device name (e.g. \"Kornel's Pixel\"), free-form\nand unvalidated — distinguishes two devices of the same `device_kind`\non one account. Never send a raw model id here; omit instead."
+          }
+        }
+      },
+      "QueueItem": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "item_id"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "part_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid"
+          }
+        }
+      },
+      "QueueResponse": {
+        "type": "object",
+        "required": [
+          "items",
+          "current_index",
+          "position_secs",
+          "updated_at"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueueItem"
+            }
+          },
+          "current_index": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "position_secs": {
+            "type": "number",
+            "format": "double"
+          },
+          "updated_by_device": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_by_device_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "type": "string",
+            "description": "Echo this back on the next write to detect a concurrent change."
+          }
+        }
+      },
       "RefreshRequest": {
         "type": "object",
         "required": [
@@ -8228,6 +10926,39 @@
               "format": "uuid"
             },
             "description": "Items this member may not play regardless of their default policy."
+          }
+        }
+      },
+      "ReportSessionsRequest": {
+        "type": "object",
+        "required": [
+          "sessions"
+        ],
+        "properties": {
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SessionReport"
+            }
+          }
+        }
+      },
+      "ReportSessionsResponse": {
+        "type": "object",
+        "required": [
+          "recorded",
+          "received"
+        ],
+        "properties": {
+          "recorded": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Rows actually stored; duplicates from a retry are silently skipped.",
+            "minimum": 0
+          },
+          "received": {
+            "type": "integer",
+            "minimum": 0
           }
         }
       },
@@ -8369,6 +11100,75 @@
           }
         ]
       },
+      "SessionReport": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "item_id",
+          "started_at",
+          "ended_at",
+          "seconds_listened"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string",
+            "description": "`audiobook`, `podcast`, or `music`."
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "part_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Audiobook file or podcast episode, when known."
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "ended_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seconds_listened": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Audio actually consumed, which differs from the wall-clock span when\nthe listener paused or played at a non-1.0 speed."
+          },
+          "playback_speed": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`web`, `ios`, `android`, or `other`."
+          },
+          "client_session_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Client-generated idempotency key. **Send one.** Android WorkManager\nand iOS background tasks both retry on failure, and this is what stops\na retried batch from counting twice."
+          },
+          "ended_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why playback stopped: `completed`, `skipped`, `stopped` or `replaced`.\n\nSend the fact, not a judgement — how much an early skip counts against\na track is derived here from `seconds_listened`, so that curve can be\nretuned without an app update. Omit it when genuinely unknown; a wrong\nvalue teaches the preference model something false, a missing one only\ncosts a little signal."
+          }
+        }
+      },
       "SetAudienceRequest": {
         "type": "object",
         "required": [
@@ -8386,6 +11186,17 @@
         }
       },
       "SetAudioAnalysisRequest": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetAutoStoreRequest": {
         "type": "object",
         "required": [
           "enabled"
@@ -8422,6 +11233,18 @@
           "stats_visibility": {
             "type": "string",
             "description": "`private` or `family_admin`."
+          }
+        }
+      },
+      "SetVisibilityRequest": {
+        "type": "object",
+        "required": [
+          "visibility"
+        ],
+        "properties": {
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family`."
           }
         }
       },
@@ -8661,6 +11484,59 @@
           }
         }
       },
+      "StoreAllRequest": {
+        "type": "object",
+        "properties": {
+          "preview": {
+            "type": "boolean",
+            "description": "True: say how many episodes and roughly how many bytes, queue nothing."
+          },
+          "latest": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Only the newest this many episodes not stored yet; all of them when absent."
+          }
+        }
+      },
+      "StoreAllResponse": {
+        "type": "object",
+        "required": [
+          "episodes",
+          "estimated_bytes"
+        ],
+        "properties": {
+          "episodes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Episodes queued — or, for a preview, that would be."
+          },
+          "estimated_bytes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "A rough size from the episodes' durations at 128 kbit/s; feeds rarely state sizes."
+          }
+        }
+      },
+      "StreamResponse": {
+        "type": "object",
+        "required": [
+          "url",
+          "expires_in_secs"
+        ],
+        "properties": {
+          "url": {
+            "type": "string"
+          },
+          "expires_in_secs": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
       "StreamingWindow": {
         "type": "object",
         "required": [
@@ -8699,6 +11575,24 @@
           },
           "d30": {
             "$ref": "#/components/schemas/StreamingWindow"
+          }
+        }
+      },
+      "SubscribeRequest": {
+        "type": "object",
+        "required": [
+          "feed_url"
+        ],
+        "properties": {
+          "feed_url": {
+            "type": "string"
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`private` (default) or `family`."
           }
         }
       },
@@ -9123,6 +12017,113 @@
           },
           "title": {
             "type": "string"
+          }
+        }
+      },
+      "UnplayedCount": {
+        "type": "object",
+        "required": [
+          "feed_id",
+          "unplayed"
+        ],
+        "properties": {
+          "feed_id": {
+            "type": "string"
+          },
+          "unplayed": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "UpdateAudiobookDefaultsRequest": {
+        "type": "object",
+        "required": [
+          "ab_skip_forward_secs",
+          "ab_skip_backward_secs",
+          "ab_playback_speed"
+        ],
+        "properties": {
+          "ab_skip_forward_secs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ab_skip_backward_secs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "ab_playback_speed": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "UpdateBookmarkRequest": {
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateEqSettingsRequest": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "preamp_db",
+          "band1_db",
+          "band2_db",
+          "band3_db",
+          "band4_db",
+          "band5_db",
+          "band6_db"
+        ],
+        "properties": {
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "preamp_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band1_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band2_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band3_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band4_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band5_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "band6_db": {
+            "type": "number",
+            "format": "double"
+          },
+          "preset_name": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

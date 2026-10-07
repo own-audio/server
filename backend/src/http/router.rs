@@ -46,10 +46,10 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
         // /auth/register and /auth/login's own unauthenticated routes.
         .nest("/join", crate::families::join_router(limits))
         .nest("/library", crate::library::router())
-        .nest("/podcasts", crate::podcasts::router().into())
+        .nest("/podcasts", crate::podcasts::router())
         .nest("/audiobooks", crate::audiobooks::router().into())
         .nest("/music", crate::music::router().into())
-        .nest("/playback", crate::playback::router().into())
+        .nest("/playback", crate::playback::router())
         .nest("/jobs", crate::jobs::router())
         .nest("/uploads", crate::uploads::router())
         .nest("/stats", crate::stats::router())

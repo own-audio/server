@@ -6,16 +6,17 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post, put};
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ─────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
+#[schema(as = PlaybackUpsertProgressRequest)]
 pub struct UpsertProgressRequest {
     pub position_secs: f64,
     #[serde(default)]
@@ -28,7 +29,8 @@ pub struct UpsertProgressRequest {
     pub device_kind: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
+#[schema(as = PlaybackProgressResponse)]
 pub struct ProgressResponse {
     pub media_id: String,
     pub position_secs: f64,
@@ -39,7 +41,7 @@ pub struct ProgressResponse {
     pub file_id: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BookmarkResponse {
     pub id: String,
     pub episode_id: Option<String>,
@@ -53,54 +55,50 @@ pub struct BookmarkResponse {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
         // Episode progress
-        .route("/episodes/{episode_id}/progress", get(get_episode_progress))
-        .route("/episodes/{episode_id}/progress", put(upsert_episode_progress))
+        .routes(routes!(get_episode_progress, upsert_episode_progress))
         // Audiobook progress
-        .route("/books/progress", get(list_book_progress))
-        .route("/books/{book_id}/progress", get(get_book_progress))
-        .route("/books/{book_id}/progress", put(upsert_book_progress))
-        .route("/books/{book_id}/progress", delete(reset_book_progress))
+        .routes(routes!(list_book_progress))
+        .routes(routes!(get_book_progress, upsert_book_progress, reset_book_progress))
         // Bookmarks
-        .route("/bookmarks", get(list_bookmarks))
-        .route("/bookmarks", post(create_bookmark_handler))
-        .route("/bookmarks/{id}", put(update_bookmark_handler))
-        .route("/bookmarks/{id}", delete(delete_bookmark))
+        .routes(routes!(list_bookmarks, create_bookmark_handler))
+        .routes(routes!(update_bookmark_handler, delete_bookmark))
         // Book-specific bookmarks
-        .route("/books/{book_id}/bookmarks", get(list_book_bookmarks))
+        .routes(routes!(list_book_bookmarks))
         // User settings (includes audiobook defaults)
-        .route("/settings", get(get_settings))
-        .route("/settings/audiobook-defaults", put(update_audiobook_defaults))
-        .route("/settings/eq", get(get_eq_settings_handler))
-        .route("/settings/eq", put(update_eq_settings_handler))
+        .routes(routes!(get_settings))
+        .routes(routes!(update_audiobook_defaults))
+        .routes(routes!(get_eq_settings_handler, update_eq_settings_handler))
         // Listening history
-        .route("/sessions", post(report_sessions))
+        .routes(routes!(report_sessions))
         // Cross-device play queue
-        .route("/queue", get(get_queue))
-        .route("/queue", put(put_queue))
+        .routes(routes!(get_queue, put_queue))
         // Bulk operations — multi-select in a mobile UI must not fan out
         // into N round trips over cellular.
-        .route("/episodes/progress/bulk", post(bulk_episode_progress))
+        .routes(routes!(bulk_episode_progress))
 }
 
 // ── Bulk operations ───────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct BulkEpisodeProgressRequest {
     pub episode_ids: Vec<Uuid>,
     /// Mark them played (true) or unplayed (false).
     pub completed: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BulkResponse {
     pub updated: u64,
 }
 
 /// POST /api/v1/playback/episodes/progress/bulk
 /// Mark many episodes played or unplayed in one request.
+#[utoipa::path(post, path = "/episodes/progress/bulk", tag = "playback", security(("bearer" = [])),
+    request_body = BulkEpisodeProgressRequest,
+    responses((status = 200, body = BulkResponse), (status = 400, description = "More than 1000 episode ids", body = crate::http::openapi::ErrorBody)))]
 async fn bulk_episode_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -131,7 +129,7 @@ async fn bulk_episode_progress(
 
 // ── Play queue ────────────────────────────────────────────────────────────
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct QueueItem {
     pub media_kind: String,
     pub item_id: Uuid,
@@ -139,7 +137,7 @@ pub struct QueueItem {
     pub part_id: Option<Uuid>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PutQueueRequest {
     pub items: Vec<QueueItem>,
     #[serde(default)]
@@ -157,7 +155,7 @@ pub struct PutQueueRequest {
     pub device_label: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct QueueResponse {
     pub items: Vec<QueueItem>,
     pub current_index: i32,
@@ -170,6 +168,8 @@ pub struct QueueResponse {
 
 /// GET /api/v1/playback/queue — the caller's cross-device play queue.
 /// An empty queue is returned rather than 404, so clients need no special case.
+#[utoipa::path(get, path = "/queue", tag = "playback", security(("bearer" = [])),
+    responses((status = 200, body = QueueResponse)))]
 async fn get_queue(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -203,6 +203,9 @@ async fn get_queue(
 /// Last write wins. A queue is small and always edited as a unit, so merging
 /// concurrent edits would invent an order neither device asked for; the
 /// returned `updated_at` lets a client notice it was overtaken.
+#[utoipa::path(put, path = "/queue", tag = "playback", security(("bearer" = [])),
+    request_body = PutQueueRequest,
+    responses((status = 200, body = QueueResponse), (status = 400, description = "More than 1000 items, or an unknown media_kind", body = crate::http::openapi::ErrorBody)))]
 async fn put_queue(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -264,12 +267,12 @@ async fn put_queue(
 
 // ── Listening sessions ────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ReportSessionsRequest {
     pub sessions: Vec<SessionReport>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SessionReport {
     /// `audiobook`, `podcast`, or `music`.
     pub media_kind: String,
@@ -303,7 +306,7 @@ pub struct SessionReport {
     pub ended_reason: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ReportSessionsResponse {
     /// Rows actually stored; duplicates from a retry are silently skipped.
     pub recorded: u64,
@@ -314,6 +317,9 @@ pub struct ReportSessionsResponse {
 ///
 /// Batched so a device that was offline, backgrounded, or in Doze can flush
 /// everything it accumulated in a single request.
+#[utoipa::path(post, path = "/sessions", tag = "playback", security(("bearer" = [])),
+    request_body = ReportSessionsRequest,
+    responses((status = 200, body = ReportSessionsResponse), (status = 400, description = "More than 500 sessions, an unknown media_kind, ended_at before started_at, or negative seconds_listened", body = crate::http::openapi::ErrorBody)))]
 async fn report_sessions(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -398,6 +404,10 @@ fn normalize_device_kind(value: Option<&str>) -> String {
 
 // ── Episode progress ──────────────────────────────────────────────────────
 
+/// The caller's position in one podcast episode.
+#[utoipa::path(get, path = "/episodes/{episode_id}/progress", tag = "playback", security(("bearer" = [])),
+    params(("episode_id" = Uuid, Path, description = "Podcast episode id")),
+    responses((status = 200, body = ProgressResponse), (status = 404, description = "The caller has no progress on this episode", body = crate::http::openapi::ErrorBody)))]
 async fn get_episode_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -417,6 +427,11 @@ async fn get_episode_progress(
     }))
 }
 
+/// Saves the caller's position in one podcast episode.
+#[utoipa::path(put, path = "/episodes/{episode_id}/progress", tag = "playback", security(("bearer" = [])),
+    params(("episode_id" = Uuid, Path, description = "Podcast episode id")),
+    request_body = UpsertProgressRequest,
+    responses((status = 200, body = ProgressResponse)))]
 async fn upsert_episode_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -468,7 +483,7 @@ async fn upsert_episode_progress(
 
 // ── Audiobook progress ────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BookProgressSummary {
     pub book_id: String,
     /// Counted across the whole book, so a client can divide it by the book's total duration.
@@ -490,6 +505,8 @@ pub struct BookProgressSummary {
 /// Every book this user has started, in one request — what a shelf needs to mark the finished
 /// ones and show how far into the rest they are. `GET /audiobooks` deliberately stays metadata
 /// only; progress is per-listener, and the book list is shared across a family.
+#[utoipa::path(get, path = "/books/progress", tag = "playback", security(("bearer" = [])),
+    responses((status = 200, body = Vec<BookProgressSummary>)))]
 async fn list_book_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -516,6 +533,10 @@ async fn list_book_progress(
     ))
 }
 
+/// The caller's position in one audiobook.
+#[utoipa::path(get, path = "/books/{book_id}/progress", tag = "playback", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Audiobook id")),
+    responses((status = 200, description = "`file_id` is set", body = ProgressResponse), (status = 404, description = "The caller has no progress on this book", body = crate::http::openapi::ErrorBody)))]
 async fn get_book_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -535,6 +556,11 @@ async fn get_book_progress(
     }))
 }
 
+/// Saves the caller's position in one audiobook; `file_id` is required.
+#[utoipa::path(put, path = "/books/{book_id}/progress", tag = "playback", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Audiobook id")),
+    request_body = UpsertProgressRequest,
+    responses((status = 200, body = ProgressResponse), (status = 500, description = "No `file_id` in the body", body = crate::http::openapi::ErrorBody)))]
 async fn upsert_book_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -585,6 +611,9 @@ async fn upsert_book_progress(
 
 /// DELETE /api/v1/playback/books/:id/progress — "start over": no position or file survives, so
 /// the next play begins at file one, position zero.
+#[utoipa::path(delete, path = "/books/{book_id}/progress", tag = "playback", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Audiobook id")),
+    responses((status = 204, description = "Reset")))]
 async fn reset_book_progress(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -599,6 +628,9 @@ async fn reset_book_progress(
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────
 
+/// All of the caller's bookmarks.
+#[utoipa::path(get, path = "/bookmarks", tag = "playback", security(("bearer" = [])),
+    responses((status = 200, body = Vec<BookmarkResponse>)))]
 async fn list_bookmarks(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -614,6 +646,10 @@ async fn list_bookmarks(
     Ok(Json(responses))
 }
 
+/// Deletes one of the caller's bookmarks.
+#[utoipa::path(delete, path = "/bookmarks/{id}", tag = "playback", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Bookmark id")),
+    responses((status = 204, description = "Deleted")))]
 async fn delete_bookmark(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -627,6 +663,9 @@ async fn delete_bookmark(
 }
 
 /// POST /bookmarks — create a text bookmark.
+#[utoipa::path(post, path = "/bookmarks", tag = "playback", security(("bearer" = [])),
+    request_body = CreateBookmarkRequest,
+    responses((status = 200, body = BookmarkResponse)))]
 async fn create_bookmark_handler(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -648,7 +687,7 @@ async fn create_bookmark_handler(
     Ok(Json(bookmark_to_response(bookmark)))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateBookmarkRequest {
     pub book_id: Option<Uuid>,
     pub episode_id: Option<Uuid>,
@@ -658,6 +697,10 @@ pub struct CreateBookmarkRequest {
 }
 
 /// PUT /bookmarks/{id} — update a bookmark label.
+#[utoipa::path(put, path = "/bookmarks/{id}", tag = "playback", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Bookmark id")),
+    request_body = UpdateBookmarkRequest,
+    responses((status = 204, description = "Updated")))]
 async fn update_bookmark_handler(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -671,12 +714,15 @@ async fn update_bookmark_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct UpdateBookmarkRequest {
     label: Option<String>,
 }
 
 /// GET /books/{book_id}/bookmarks — list bookmarks for a specific book.
+#[utoipa::path(get, path = "/books/{book_id}/bookmarks", tag = "playback", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Audiobook id")),
+    responses((status = 200, body = Vec<BookmarkResponse>)))]
 async fn list_book_bookmarks(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -695,6 +741,9 @@ async fn list_book_bookmarks(
 
 // ── User settings ─────────────────────────────────────────────────────────
 
+/// The caller's playback settings, created with defaults on first read.
+#[utoipa::path(get, path = "/settings", tag = "playback", security(("bearer" = [])),
+    responses((status = 200, description = "`playback_speed`, `skip_intro_secs`, `skip_outro_secs`, `ab_skip_forward_secs`, `ab_skip_backward_secs`, `ab_playback_speed`, `updated_at`", body = Object)))]
 async fn get_settings(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -716,13 +765,17 @@ async fn get_settings(
 
 // ── Audiobook player settings ─────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct UpdateAudiobookDefaultsRequest {
     ab_skip_forward_secs: i32,
     ab_skip_backward_secs: i32,
     ab_playback_speed: f64,
 }
 
+/// Sets the audiobook player's skip intervals and speed.
+#[utoipa::path(put, path = "/settings/audiobook-defaults", tag = "playback", security(("bearer" = [])),
+    request_body = UpdateAudiobookDefaultsRequest,
+    responses((status = 200, description = "`ab_skip_forward_secs`, `ab_skip_backward_secs`, `ab_playback_speed`, as stored after clamping (skips 1–120 s, speed 0.5–3.0)", body = Object)))]
 async fn update_audiobook_defaults(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -757,7 +810,7 @@ fn normalize_eq_device_kind(value: Option<&str>) -> String {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct EqSettingsResponseDto {
     device_kind: String,
     enabled: bool,
@@ -790,13 +843,17 @@ impl From<crate::playback::models::EqSettings> for EqSettingsResponseDto {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 struct EqSettingsQuery {
     device_kind: Option<String>,
 }
 
 /// GET /playback/settings/eq?device_kind=macos — this device's saved curve,
 /// or flat/off defaults if it has never saved one.
+#[utoipa::path(get, path = "/settings/eq", tag = "playback", security(("bearer" = [])),
+    params(EqSettingsQuery),
+    responses((status = 200, body = EqSettingsResponseDto)))]
 async fn get_eq_settings_handler(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -810,7 +867,7 @@ async fn get_eq_settings_handler(
     Ok(Json(settings.into()))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct UpdateEqSettingsRequest {
     device_kind: Option<String>,
     enabled: bool,
@@ -827,6 +884,9 @@ struct UpdateEqSettingsRequest {
 /// PUT /playback/settings/eq — upserts this device's curve. Gains are
 /// clamped server-side (never trust the client), matching the pattern
 /// `update_audiobook_defaults` already uses for its own ranges.
+#[utoipa::path(put, path = "/settings/eq", tag = "playback", security(("bearer" = [])),
+    request_body = UpdateEqSettingsRequest,
+    responses((status = 200, description = "The stored curve; gains clamped to ±12 dB", body = EqSettingsResponseDto)))]
 async fn update_eq_settings_handler(
     auth: AuthUser,
     State(state): State<AppState>,

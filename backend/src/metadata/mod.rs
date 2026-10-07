@@ -56,7 +56,7 @@ pub struct PodcastCatalogEntry {
 }
 
 /// One catalogue category and how many feeds sit in it.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, utoipa::ToSchema)]
 pub struct PodcastCategoryCount {
     pub category: String,
     pub feed_count: i64,

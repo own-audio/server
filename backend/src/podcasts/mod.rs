@@ -9,13 +9,13 @@ use crate::db::access;
 use crate::families::FamilyContext;
 use crate::storage::ObjectStore;
 use crate::youtube;
-use axum::Router;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::{StatusCode, header};
 use axum::response::IntoResponse;
-use axum::routing::{delete, get, post, put};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use sha2::{Digest, Sha256};
 use tracing::info;
 use uuid::Uuid;
@@ -35,7 +35,7 @@ fn outbound_client() -> Result<reqwest::Client, reqwest::Error> {
 
 // ── DTOs ─────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SubscribeRequest {
     pub feed_url: String,
     /// `private` (default) or `family`.
@@ -43,7 +43,7 @@ pub struct SubscribeRequest {
     pub visibility: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct PodcastSearchRequest {
     pub q: String,
     /// Language subtag (`en`, not `en-US`). Optional, and unset means no
@@ -60,7 +60,8 @@ pub struct PodcastSearchRequest {
     pub language: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct EpisodeListQuery {
     #[serde(default = "default_limit")]
     pub limit: i64,
@@ -75,7 +76,7 @@ fn default_limit() -> i64 {
     50
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FeedResponse {
     pub id: String,
     pub feed_url: String,
@@ -111,18 +112,18 @@ pub struct FeedResponse {
     pub has_transcripts: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetAutoStoreRequest {
     pub enabled: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetVisibilityRequest {
     /// `private` or `family`.
     pub visibility: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct EpisodeResponse {
     pub id: String,
     pub feed_id: String,
@@ -151,13 +152,13 @@ pub struct EpisodeResponse {
     pub has_transcript: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StreamResponse {
     pub url: String,
     pub expires_in_secs: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PodcastSearchResult {
     pub title: String,
     pub feed_url: String,
@@ -175,35 +176,37 @@ pub struct PodcastSearchResult {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_feeds))
-        .route("/search", post(search_podcasts))
-        .route("/discover/categories", get(discover_categories))
-        .route("/discover/browse", get(discover_browse))
-        .route("/{id}/similar", get(similar_feeds))
-        .route("/unplayed-counts", get(unplayed_counts))
-        .route("/discover/similar", get(discover_similar))
-        .route("/discover/preview", get(discover_preview_episodes))
-        .route("/subscribe", post(subscribe))
-        .route("/{id}", get(get_feed))
-        .route("/{id}", delete(unsubscribe))
-        .route("/{id}/image", get(get_feed_image))
-        .route("/{id}/episodes", get(list_episodes))
-        .route("/{id}/refresh", post(refresh_feed))
-        .route("/{id}/sync-images", post(sync_images))
-        .route("/{id}/visibility", put(set_feed_visibility))
-        .route("/{id}/auto-store", put(set_auto_store))
-        .route("/{id}/store-all", post(store_all))
-        .route("/{id}/episodes/{ep_id}/download", post(download_episode))
-        .route("/{id}/episodes/{ep_id}/download", delete(delete_episode_download))
-        .route("/{id}/episodes/{ep_id}/stream", get(stream_episode))
-        .route("/{id}/episodes/{ep_id}/image", get(get_episode_image))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_feeds))
+        .routes(routes!(search_podcasts))
+        .routes(routes!(discover_categories))
+        .routes(routes!(discover_browse))
+        .routes(routes!(similar_feeds))
+        .routes(routes!(unplayed_counts))
+        .routes(routes!(discover_similar))
+        .routes(routes!(discover_preview_episodes))
+        .routes(routes!(subscribe))
+        .routes(routes!(get_feed, unsubscribe))
+        .routes(routes!(get_feed_image))
+        .routes(routes!(list_episodes))
+        .routes(routes!(refresh_feed))
+        .routes(routes!(sync_images))
+        .routes(routes!(set_feed_visibility))
+        .routes(routes!(set_auto_store))
+        .routes(routes!(store_all))
+        .routes(routes!(download_episode, delete_episode_download))
+        .routes(routes!(stream_episode))
+        .routes(routes!(get_episode_image))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/podcasts/
+///
+/// The feeds the caller can see: their own and those shared with the family.
+#[utoipa::path(get, path = "/", tag = "podcasts", security(("bearer" = [])),
+    responses((status = 200, body = Vec<FeedResponse>)))]
 async fn list_feeds(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -240,6 +243,9 @@ async fn list_feeds(
 /// precisely when the metadata service is down and nobody is watching, which
 /// is the worst possible moment to quietly resume shipping search terms to a
 /// third party. An unreachable catalogue is an error.
+#[utoipa::path(post, path = "/search", tag = "podcasts", security(("bearer" = [])),
+    request_body = PodcastSearchRequest,
+    responses((status = 200, body = Vec<PodcastSearchResult>), (status = 400, description = "Query shorter than 2 characters", body = crate::http::openapi::ErrorBody), (status = 500, description = "Metadata service not configured or unreachable", body = crate::http::openapi::ErrorBody)))]
 async fn search_podcasts(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -397,6 +403,9 @@ fn metadata_config(state: &AppState) -> Result<&crate::app::config::MetadataConf
 ///
 /// A feed with no `catalog_id` returns an empty list rather than an error:
 /// the catalogue is a weekly snapshot and simply may not know a new show.
+#[utoipa::path(get, path = "/{id}/similar", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 200, description = "Empty when the catalogue does not know this feed", body = Vec<PodcastSearchResult>), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 500, description = "Metadata service not configured or unreachable", body = crate::http::openapi::ErrorBody)))]
 async fn similar_feeds(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -414,7 +423,7 @@ async fn similar_feeds(
     similar_to_catalog_id(&state, &family, catalog_id).await.map(Json)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct UnplayedCount {
     pub feed_id: String,
     pub unplayed: i64,
@@ -424,6 +433,8 @@ pub struct UnplayedCount {
 ///
 /// One number per show: how much of it is still waiting. Per listener, which is why it is not
 /// folded into `GET /podcasts` — that list is the household's, this is yours.
+#[utoipa::path(get, path = "/unplayed-counts", tag = "podcasts", security(("bearer" = [])),
+    responses((status = 200, body = Vec<UnplayedCount>)))]
 async fn unplayed_counts(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -442,7 +453,8 @@ async fn unplayed_counts(
     ))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct FeedUrlQuery {
     pub feed_url: String,
 }
@@ -453,6 +465,9 @@ pub struct FeedUrlQuery {
 /// which is exactly when "more like this" is worth asking. The feed is looked
 /// up in the catalogue by its URL, since a show that is not subscribed has no
 /// id of ours to name it by.
+#[utoipa::path(get, path = "/discover/similar", tag = "podcasts", security(("bearer" = [])),
+    params(FeedUrlQuery),
+    responses((status = 200, description = "Empty when the catalogue does not know this feed", body = Vec<PodcastSearchResult>), (status = 400, description = "No feed_url", body = crate::http::openapi::ErrorBody), (status = 500, description = "Metadata service not configured or unreachable", body = crate::http::openapi::ErrorBody)))]
 async fn discover_similar(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -506,7 +521,8 @@ async fn similar_to_catalog_id(
         .collect())
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct PreviewQuery {
     pub feed_url: String,
     #[serde(default = "default_preview_limit")]
@@ -517,7 +533,7 @@ fn default_preview_limit() -> usize {
     12
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PreviewEpisode {
     pub guid: String,
     pub title: String,
@@ -534,6 +550,9 @@ pub struct PreviewEpisode {
 ///
 /// The work is the same as subscribing minus the writes, so a very large feed
 /// takes as long here as it does there; callers need a waiting state.
+#[utoipa::path(get, path = "/discover/preview", tag = "podcasts", security(("bearer" = [])),
+    params(PreviewQuery),
+    responses((status = 200, description = "Newest first; `limit` is clamped to 1–50", body = Vec<PreviewEpisode>), (status = 400, description = "No feed_url", body = crate::http::openapi::ErrorBody), (status = 404, description = "The feed could not be fetched or parsed", body = crate::http::openapi::ErrorBody)))]
 async fn discover_preview_episodes(
     _family: FamilyContext,
     Query(params): Query<PreviewQuery>,
@@ -587,6 +606,10 @@ fn newest_episodes(channel: &rss::Channel, limit: usize) -> Vec<PreviewEpisode> 
 }
 
 /// GET /api/v1/podcasts/discover/categories
+///
+/// The catalogue's categories, with how many feeds sit in each.
+#[utoipa::path(get, path = "/discover/categories", tag = "podcasts", security(("bearer" = [])),
+    responses((status = 200, body = Vec<crate::metadata::PodcastCategoryCount>), (status = 500, description = "Metadata service not configured or unreachable", body = crate::http::openapi::ErrorBody)))]
 async fn discover_categories(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -599,7 +622,8 @@ async fn discover_categories(
         .map_err(AuthError::Internal)
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct BrowseQuery {
     pub category: String,
     pub language: Option<String>,
@@ -612,6 +636,9 @@ pub struct BrowseQuery {
 /// Feeds the household already follows are filtered out here for the same
 /// reason as in `similar_feeds` — and because a discovery screen that keeps
 /// offering you what you already subscribe to reads as broken.
+#[utoipa::path(get, path = "/discover/browse", tag = "podcasts", security(("bearer" = [])),
+    params(BrowseQuery),
+    responses((status = 200, description = "Up to 25 feeds, without those the household already follows", body = Vec<PodcastSearchResult>), (status = 400, description = "No category", body = crate::http::openapi::ErrorBody), (status = 500, description = "Metadata service not configured or unreachable", body = crate::http::openapi::ErrorBody)))]
 async fn discover_browse(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -663,6 +690,11 @@ async fn discover_browse(
 }
 
 /// POST /api/v1/podcasts/subscribe
+///
+/// Subscribes to an RSS feed or a YouTube channel URL; an existing subscription is returned as-is.
+#[utoipa::path(post, path = "/subscribe", tag = "podcasts", security(("bearer" = [])),
+    request_body = SubscribeRequest,
+    responses((status = 201, description = "Subscribed", body = FeedResponse), (status = 200, description = "Already subscribed: the existing feed", body = FeedResponse), (status = 400, description = "Bad visibility", body = crate::http::openapi::ErrorBody), (status = 500, description = "The feed or channel could not be fetched", body = crate::http::openapi::ErrorBody)))]
 async fn subscribe(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -950,6 +982,11 @@ async fn subscribe_youtube(
 }
 
 /// GET /api/v1/podcasts/:id
+///
+/// One feed.
+#[utoipa::path(get, path = "/{id}", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 200, body = FeedResponse), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn get_feed(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -968,6 +1005,11 @@ async fn get_feed(
 }
 
 /// DELETE /api/v1/podcasts/:id
+///
+/// Unsubscribes; only the feed's owner can.
+#[utoipa::path(delete, path = "/{id}", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 204, description = "Unsubscribed"), (status = 404, description = "No such feed owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn unsubscribe(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -997,6 +1039,11 @@ async fn unsubscribe(
 }
 
 /// GET /api/v1/podcasts/:id/episodes
+///
+/// A page of the feed's episodes, with the caller's progress on each.
+#[utoipa::path(get, path = "/{id}/episodes", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id"), EpisodeListQuery),
+    responses((status = 200, body = Vec<EpisodeResponse>), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn list_episodes(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1039,6 +1086,9 @@ async fn list_episodes(
 }
 
 /// POST /api/v1/podcasts/:id/refresh  — re-fetch feed and sync new episodes
+#[utoipa::path(post, path = "/{id}/refresh", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 204, description = "Refreshed"), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 500, description = "The feed could not be fetched", body = crate::http::openapi::ErrorBody)))]
 async fn refresh_feed(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1240,6 +1290,10 @@ async fn refresh_youtube_feed_inner(
 }
 
 /// PUT /api/v1/podcasts/:id/visibility — owner only.
+#[utoipa::path(put, path = "/{id}/visibility", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    request_body = SetVisibilityRequest,
+    responses((status = 200, body = FeedResponse), (status = 400, description = "visibility is not `private` or `family`", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn set_feed_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1283,6 +1337,10 @@ async fn set_feed_visibility(
 /// store every episode published from now on, whether or not any device is
 /// running; paid feeds whose links expire are the reason (§5.6). No backlog.
 /// The show's subscriber, or a family admin when it is shared with the family.
+#[utoipa::path(put, path = "/{id}/auto-store", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    request_body = SetAutoStoreRequest,
+    responses((status = 200, body = FeedResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn set_auto_store(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1316,7 +1374,7 @@ async fn set_auto_store(
     Ok(Json(feed_to_response(fresh, family.user_id)))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 struct StoreAllRequest {
     /// True: say how many episodes and roughly how many bytes, queue nothing.
     #[serde(default)]
@@ -1326,7 +1384,7 @@ struct StoreAllRequest {
     latest: Option<i64>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 struct StoreAllResponse {
     /// Episodes queued — or, for a preview, that would be.
     episodes: i64,
@@ -1347,6 +1405,10 @@ const UNSTORED: &str = "id IN (SELECT id FROM podcast_episodes
 /// `episode_download` job per episode not stored yet, so a paid feed stays in the family's
 /// library after the subscription ends. Same permission as auto-store. An episode queued once
 /// is not queued again, and one whose copy was deleted is not stored again.
+#[utoipa::path(post, path = "/{id}/store-all", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    request_body = StoreAllRequest,
+    responses((status = 200, description = "Episodes queued, or that would be for a preview", body = StoreAllResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn store_all(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1780,6 +1842,9 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600; // 4 hours
 /// POST /api/v1/podcasts/{id}/episodes/{ep_id}/download
 /// Fetches the episode audio from its RSS enclosure URL, stores it in S3,
 /// and marks the episode as local. Returns the updated episode.
+#[utoipa::path(post, path = "/{id}/episodes/{ep_id}/download", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
+    responses((status = 200, description = "The episode, now stored", body = EpisodeResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 500, description = "The audio could not be fetched or stored", body = crate::http::openapi::ErrorBody)))]
 async fn download_episode(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1834,6 +1899,9 @@ async fn download_episode(
 /// app's "Not Interested". A failure there is not worth surfacing (the episode
 /// is hidden either way), which is why this returns the updated episode rather
 /// than an error the app would have to explain.
+#[utoipa::path(delete, path = "/{id}/episodes/{ep_id}/download", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
+    responses((status = 200, description = "The episode, no longer stored", body = EpisodeResponse), (status = 403, description = "Visible, but the caller is neither the owner nor a family admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn delete_episode_download(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1970,6 +2038,9 @@ pub(crate) async fn fetch_and_store_episode_audio(
 
 /// GET /api/v1/podcasts/{id}/episodes/{ep_id}/stream
 /// Returns a short-lived presigned URL for streaming the downloaded episode.
+#[utoipa::path(get, path = "/{id}/episodes/{ep_id}/stream", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
+    responses((status = 200, description = "A presigned URL, valid for `expires_in_secs`", body = StreamResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`episode_not_downloaded`: the episode is not stored on the server", body = crate::http::openapi::ErrorBody)))]
 async fn stream_episode(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2019,6 +2090,9 @@ async fn stream_episode(
 /// POST /api/v1/podcasts/{id}/sync-images
 /// Downloads & stores channel artwork + every episode's artwork (deduped by URL hash).
 /// Safe to call multiple times — already-stored images are skipped.
+#[utoipa::path(post, path = "/{id}/sync-images", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 200, body = FeedResponse), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn sync_images(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -2111,6 +2185,9 @@ async fn sync_images(
 /// Subscribing/refreshing no longer fetch artwork eagerly (see `ingest_episodes_inner`'s doc
 /// comment) — this is where that deferred fetch actually happens, once, on whichever request
 /// is first to ask for it. Every request after that hits the fast, already-cached path above.
+#[utoipa::path(get, path = "/{id}/image", tag = "podcasts",
+    params(("id" = Uuid, Path, description = "Feed id")),
+    responses((status = 200, description = "The cover art", content_type = "image/*"), (status = 404, description = "No such feed, or it has no artwork", body = crate::http::openapi::ErrorBody)))]
 async fn get_feed_image(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
@@ -2182,6 +2259,9 @@ async fn get_feed_image(
 /// No auth required — episode artwork is public content; UUID acts as capability token.
 ///
 /// Same lazy-fetch-on-first-view shape as `get_feed_image` above, for the same reason.
+#[utoipa::path(get, path = "/{id}/episodes/{ep_id}/image", tag = "podcasts",
+    params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
+    responses((status = 200, description = "The episode art", content_type = "image/*"), (status = 404, description = "No such episode, or it has no artwork", body = crate::http::openapi::ErrorBody)))]
 async fn get_episode_image(
     State(state): State<AppState>,
     Path((feed_id, ep_id)): Path<(Uuid, Uuid)>,
