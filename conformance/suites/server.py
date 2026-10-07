@@ -46,6 +46,21 @@ def run(ctx):
         ctx.check("features.auth agrees with /auth/providers",
                   all(auth.get(p) == bool((ctx.providers.get(p) or {}).get("enabled")) for p in ("google", "apple", "microsoft")))
 
+    if ctx.discovery and (ctx.server.get("api") or {}).get("revision", 0) >= 3:
+        tracks = ctx.call("GET", "/api/v1/music/tracks?limit=5", ctx.admin_token)
+        tracks = tracks if isinstance(tracks, list) else (tracks or {}).get("items", [])
+        books = ctx.call("GET", "/api/v1/audiobooks", ctx.admin_token)
+        books = books if isinstance(books, list) else (books or {}).get("items", [])
+        items = tracks + books
+        ctx.check("revision 3: tracks and books say where they come from",
+                  all(i.get("source") in ("upload", "folder") and isinstance(i.get("read_only"), bool) for i in items),
+                  f"{len(items)} items")
+        folders = ctx.call("GET", "/api/v1/library/folders", ctx.admin_token)
+        ctx.check("revision 3: GET /library/folders lists folders and the scan state",
+                  isinstance(folders.get("folders"), list) and isinstance(folders.get("scanning"), bool))
+        ctx.check("library_folders flag matches the folder list",
+                  ctx.feature("library_folders") == bool(folders.get("folders")))
+
     # Error conventions hold on every server, discovery or not.
     body = ctx.call("GET", "/api/v1/definitely-not-a-route", ctx.admin_token, expect=(404,), raw=True)
     ctx.check("unknown route is 404 not_found", b'"not_found"' in body, body[:80].decode(errors="replace"))

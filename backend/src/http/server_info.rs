@@ -17,7 +17,9 @@ pub const API_VERSION: u32 = 1;
 /// enum value or `features` key) — the one number a client may compare.
 /// 1: this endpoint, `GET /family/storage`, the `feature_unavailable` 501.
 /// 2: `demo` in this endpoint's response.
-pub const API_REVISION: u32 = 2;
+/// 3: `source` and `read_only` on tracks and books; `GET /library/folders`,
+///    `POST /library/folders/scan`; stream URLs may be server media links.
+pub const API_REVISION: u32 = 3;
 
 pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     let cfg = state.config();

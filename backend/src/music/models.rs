@@ -41,6 +41,10 @@ pub struct MusicTrack {
     /// From `media_objects`, joined only by `list_tracks`/`find_track` (mirror-plan B-2).
     /// `#[sqlx(default)]` so every other `TRACK_COLS`-based query — playlists, genre listing,
     /// Subsonic — keeps working unjoined, with these correctly `None` rather than an error.
+    /// `upload` or `folder` (a read-only library folder). Absent from a few
+    /// hand-written column lists, hence the default.
+    #[sqlx(default)]
+    pub source: Option<String>,
     #[sqlx(default)]
     pub size_bytes: Option<i64>,
     #[sqlx(default)]

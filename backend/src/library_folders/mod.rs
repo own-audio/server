@@ -566,6 +566,10 @@ async fn scan_book_dir(
                     .execute(&mut *tx)
                     .await?;
             }
+            sqlx::query("UPDATE audiobook_books_all SET source = 'folder' WHERE id = $1")
+                .bind(book.id)
+                .execute(&mut *tx)
+                .await?;
             (book.id, 0)
         }
     };

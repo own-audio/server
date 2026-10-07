@@ -200,6 +200,9 @@ pub struct TrackResponse {
     /// Nullable — the `media_checksum` job fills this in asynchronously after upload
     /// (mirror-plan B-2).
     pub sha256: Option<String>,
+    /// `upload` or `folder`; a folder track's file is read-only (API revision 3).
+    pub source: String,
+    pub read_only: bool,
 }
 
 #[derive(Deserialize)]
@@ -1210,6 +1213,10 @@ pub(crate) async fn create_folder_track(
             db::music::update_track_cover(state.db(), track.id, family.user_id, media).await?;
         }
     }
+    sqlx::query("UPDATE music_tracks_all SET source = 'folder' WHERE id = $1")
+        .bind(track.id)
+        .execute(state.db())
+        .await?;
     crate::filesync::paths::ensure_track(state.db(), track.id).await?;
     Ok(track.id)
 }
@@ -3339,6 +3346,8 @@ fn track_to_response(t: models::MusicTrack, viewer_id: Uuid) -> TrackResponse {
         owner_id: t.user_id.to_string(),
         created_at: t.created_at.to_rfc3339(),
         updated_at: t.updated_at.to_rfc3339(),
+        read_only: t.source.as_deref() == Some("folder"),
+        source: t.source.unwrap_or_else(|| "upload".to_string()),
         size_bytes: t.size_bytes,
         sha256: t.sha256,
     }

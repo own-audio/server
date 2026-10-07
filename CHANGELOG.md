@@ -8,6 +8,10 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- API contract revision 3: tracks and books carry `source` (`upload` or
+  `folder`) and `read_only`; `GET /library/folders` and
+  `POST /library/folders/scan`; stream URLs may point at the server's own
+  `/api/v1/media` route. The conformance suite checks them.
 - **Read-only library folders** (issue #1): `LIBRARY__MUSIC`,
   `LIBRARY__AUDIOBOOKS` or `LIBRARY__FOLDERS` point the server at existing
   collections, mounted read-only and indexed in place. Music by tags (and a

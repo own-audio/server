@@ -24,6 +24,9 @@ pub struct AudiobookBook {
     pub published_year: Option<i32>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// `upload` or `folder` (a read-only library folder).
+    #[sqlx(default)]
+    pub source: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]

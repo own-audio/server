@@ -183,6 +183,9 @@ pub struct BookResponse {
     pub owner_id: String,
     pub created_at: String,
     pub updated_at: String,
+    /// `upload` or `folder`; a folder book's files are read-only (API revision 3).
+    pub source: String,
+    pub read_only: bool,
 }
 
 #[derive(Deserialize)]
@@ -1497,6 +1500,8 @@ fn book_to_response(b: models::AudiobookBook, viewer_id: Uuid) -> BookResponse {
         owner_id: b.user_id.to_string(),
         created_at: b.created_at.to_rfc3339(),
         updated_at: b.updated_at.to_rfc3339(),
+        read_only: b.source.as_deref() == Some("folder"),
+        source: b.source.unwrap_or_else(|| "upload".to_string()),
     }
 }
 

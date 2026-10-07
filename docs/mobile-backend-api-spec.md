@@ -427,6 +427,12 @@ included, together with the storage objects that leaves unreferenced.
 | GET | `/library/continue` | Up to 20 most-recent, in-progress (not completed) items across podcasts + audiobooks, merged and sorted by `updated_at`. Feeds a mobile "Continue Listening" home row. |
 | GET | `/library/search?q=&limit=` | Case-insensitive search across podcast feeds, episodes, audiobooks, **and music tracks**. Results are tagged by `kind` and scoped to what the caller may play. |
 | GET | `/library/private` | The caller's private (never-shared) items — see §4b. |
+| GET | `/library/folders` | Family admins. Read-only library folders (`LIBRARY__*`) and their last scan: `{scanning, files_scanned, folders: [{id, path, kind, visibility, scan_started_at, scan_finished_at, scan_error, files_seen, files_added, files_missing}]}`. Revision 3. |
+| POST | `/library/folders/scan` | Family admins. Scan the folders now; `202`. Subsonic `startScan` does the same. Revision 3. |
+
+Tracks and books carry `source` (`upload` or `folder`) and `read_only`
+(revision 3). A `read_only` item comes from a library folder: its file cannot
+be edited or deleted on disk; deleting the item hides it from the library.
 
 ## 5. Podcasts
 
@@ -940,12 +946,18 @@ Not useful for an end-user mobile client beyond an admin diagnostics screen.
 
 Every stream/download endpoint (`music/tracks/{id}/stream`,
 `audiobooks/{id}/files/{file_id}/stream`, `podcasts/{id}/episodes/{ep_id}/stream`)
-returns `{ "url": "<presigned S3 URL>", "expires_in_secs": 14400 }` rather
-than proxying bytes itself. Implications for a mobile client:
+returns `{ "url": "<opaque URL>", "expires_in_secs": 14400 }`. The URL is
+either a presigned link to the S3 store, or (local storage, read-only library
+folders, or S3 with `STORAGE__PROXY`) a link to the server's own
+`GET /api/v1/media?k=…&e=…&s=…`, signed by the server. Clients must treat it
+as opaque: follow it, never build or parse it. Implications for a mobile
+client:
 
-- **No range-request negotiation through the backend** — seeking behavior,
-  byte-range support, etc. are whatever Garage/S3 provides on the presigned
-  URL, not something audio2 controls.
+- **Range requests work either way** — the store's own on a presigned link,
+  the server's on a media link (`206` with `Content-Range`, `416` past the
+  end, suffix ranges). Seeking needs nothing special.
+- A media link needs no `Authorization` header; its signature is the
+  authorisation, exactly like a presigned URL.
 - URLs expire after 4 hours; a long-running background download or a paused
   multi-hour audiobook session needs to **re-request the stream endpoint**
   to get a fresh URL, not just retry the same one.

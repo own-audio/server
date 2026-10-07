@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub(crate) const BOOK_COLS: &str =
     "id, user_id, family_id, title, author, narrator, description, cover_object_id,
      total_duration_secs, source_url, google_books_volume_id, isbn, publisher,
-     published_year, created_at, updated_at";
+     published_year, created_at, updated_at, source";
 
 /// Bind the four leading parameters every [`VISIBLE`] query expects.
 macro_rules! bind_viewer {

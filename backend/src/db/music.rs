@@ -11,7 +11,7 @@ pub(crate) const TRACK_COLS: &str =
      duration_secs, cover_object_id, audio_object_id,
      musicbrainz_recording_id, musicbrainz_release_id, musicbrainz_artist_id,
      album_artist, is_compilation, musicbrainz_release_group_id,
-     lyrics, created_at, updated_at, disc_number, disc_total";
+     lyrics, created_at, updated_at, disc_number, disc_total, source";
 
 /// Same columns as `TRACK_COLS`, `t.`-qualified plus the `media_objects` join columns —
 /// `TRACK_COLS` itself can't be reused here: it's also spliced into an `INSERT ... RETURNING`
@@ -22,7 +22,7 @@ pub(crate) const TRACK_COLS_WITH_CHECKSUM: &str =
      t.duration_secs, t.cover_object_id, t.audio_object_id,
      t.musicbrainz_recording_id, t.musicbrainz_release_id, t.musicbrainz_artist_id,
      t.album_artist, t.is_compilation, t.musicbrainz_release_group_id,
-     t.lyrics, t.created_at, t.updated_at, t.disc_number, t.disc_total, mo.size_bytes, mo.sha256";
+     t.lyrics, t.created_at, t.updated_at, t.disc_number, t.disc_total, t.source, mo.size_bytes, mo.sha256";
 
 /// Record which disc a track is on, as read from its file; marks it read either way.
 pub async fn set_disc<'e, E: sqlx::PgExecutor<'e>>(
