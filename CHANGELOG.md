@@ -16,6 +16,7 @@ Contract revision 4.
   No password is sent over a connection that is not encrypted. The JMAP
   sender stays for the hosted edition until its configuration moves over.
 - `features.one_family` in `GET /api/v1/server` (revision 4).
+- `SECURITY.md`, `CONTRIBUTING.md` and `docs/EDITIONS.md`.
 - Nightly database backups: a `backup` service in the compose file dumps
   PostgreSQL at 03:00 UTC into `./backups`, keeping 7 daily and 4 weekly
   dumps (`BACKUP_DIR`, `BACKUP_HOUR`). It uses the database's own image, so
@@ -28,6 +29,9 @@ Contract revision 4.
   the suite passing afterwards. `UPGRADING.md` explains when it is needed.
 
 ### Changed
+- The server refuses to start with an empty, placeholder (`CHANGE_ME`) or
+  shorter than 16 characters `SESSION_SECRET`, which signs every sign-in and
+  media link; under 32 characters it logs a warning.
 - `features.mail` is `true` only when a mail server is actually set, not
   when the variables exist but are blank.
 - One install is one family. The first admin founds it; every later account

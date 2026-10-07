@@ -74,7 +74,8 @@ it offers.
 | Local storage | yes | — |
 | Read-only library folders | yes | — |
 | Sign-in providers | optional, you configure | yes |
-| SMTP mail, music identify | coming, optional | yes |
+| SMTP mail | optional | yes |
+| Music identify | coming, optional | yes |
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |
 | Storage billing, payments | — | yes |
 
@@ -117,8 +118,9 @@ not merged, for the reasons in [docs/LICENSING.md](docs/LICENSING.md).
 Releases happen when they are ready. There is no SLA and no roadmap promise
 beyond what the plan says.
 
-Security problems: please report them privately, see `SECURITY.md` once it
-exists; until then, e-mail contact@own.audio.
+Security problems: please report them privately, see [SECURITY.md](SECURITY.md).
+How to report a bug or work on the code: [CONTRIBUTING.md](CONTRIBUTING.md).
+What the hosted edition adds: [docs/EDITIONS.md](docs/EDITIONS.md).
 
 ## Licence
 
