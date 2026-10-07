@@ -19,8 +19,14 @@ pub const API_VERSION: u32 = 1;
 /// 2: `demo` in this endpoint's response.
 /// 3: `source` and `read_only` on tracks and books; `GET /library/folders`,
 ///    `POST /library/folders/scan`; stream URLs may be server media links.
+/// 4: `features.one_family`.
 pub const API_REVISION: u32 = 4;
 
+/// What this server is and offers: edition, version, contract revision and
+/// `features`. Clients read it once after `GET /setup/status`; a 404 means a
+/// server older than revision 1 (docs/API_COMPATIBILITY.md §3).
+#[utoipa::path(get, path = "/server", tag = "server",
+    responses((status = 200, description = "`name`, `edition`, `version`, `api` {version, revision}, `features`, `deprecations`, optional `demo`", body = Object)))]
 pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     let cfg = state.config();
     let providers = crate::auth::providers_response(&cfg.auth);

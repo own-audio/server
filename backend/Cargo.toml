@@ -67,6 +67,8 @@ config = { version = "0.14", features = ["toml"] }
 dotenvy = "0.15"
 
 # Utilities
+utoipa = { version = "5", features = ["axum_extras", "uuid", "chrono", "preserve_order"] }
+utoipa-axum = "0.2"
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
 chrono = { version = "0.4", default-features = false, features = ["serde", "clock"] }
 thiserror = "2"

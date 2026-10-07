@@ -2,6 +2,7 @@
 pub mod handlers;
 pub mod json_stream;
 pub mod multipart;
+pub mod openapi;
 pub mod router;
 pub mod media;
 pub mod rate_limit;

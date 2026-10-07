@@ -1,0 +1,532 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "own.audio server API",
+    "description": "The contract every own.audio client speaks. Additive within v1: see docs/API_COMPATIBILITY.md.",
+    "license": {
+      "name": "AGPL-3.0-or-later",
+      "identifier": "AGPL-3.0-or-later"
+    },
+    "version": "1.4"
+  },
+  "paths": {
+    "/api/v1/devices/notifications": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "The polling fallback for push",
+        "description": "The polling fallback for push. Safe to call on every app resume; entries\nstay until acknowledged, so nothing is lost if the app is killed first.",
+        "operationId": "devices_list_notifications",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "1–200.",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/devices/notifications/ack": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Mark notifications handled so they stop coming back on the next poll",
+        "operationId": "devices_ack_notifications",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AckRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AckResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/devices/push-token": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Call on every app start: tokens rotate on both platforms, and re-registering also refreshes `last_seen_at`",
+        "description": "Call on every app start: tokens rotate on both platforms, and\nre-registering also refreshes `last_seen_at`. Re-registering a token that\nbelonged to another account moves it, so passing a device on does not keep\ndelivering the previous owner's notifications.",
+        "operationId": "devices_register_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Registered"
+          },
+          "400": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Call on sign-out so the device stops receiving notifications for an account that is no longer signed in",
+        "operationId": "devices_delete_token",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteTokenRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Removed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/devices/push-tokens": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "The caller's registered devices",
+        "operationId": "devices_list_tokens",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PushTokenResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/media": {
+      "get": {
+        "tags": [
+          "media"
+        ],
+        "summary": "A media file behind a server-signed link (local storage, library folders, or S3 in proxy mode)",
+        "description": "A media file behind a server-signed link (local storage, library folders,\nor S3 in proxy mode). Clients get these links from the stream and upload\nendpoints and treat them as opaque; the signature is the authorisation.",
+        "operationId": "media_media",
+        "parameters": [
+          {
+            "name": "k",
+            "in": "query",
+            "description": "Object key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "e",
+            "in": "query",
+            "description": "Expiry, Unix seconds.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "s",
+            "in": "query",
+            "description": "Signature over method, key and expiry.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "206": {
+            "description": "A byte range (`Range` request header)"
+          },
+          "403": {
+            "description": "Bad or expired signature"
+          },
+          "404": {
+            "description": "No such file"
+          },
+          "416": {
+            "description": "Range outside the file"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "media"
+        ],
+        "summary": "A media file behind a server-signed link (local storage, library folders, or S3 in proxy mode)",
+        "description": "A media file behind a server-signed link (local storage, library folders,\nor S3 in proxy mode). Clients get these links from the stream and upload\nendpoints and treat them as opaque; the signature is the authorisation.",
+        "operationId": "media_media",
+        "parameters": [
+          {
+            "name": "k",
+            "in": "query",
+            "description": "Object key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "e",
+            "in": "query",
+            "description": "Expiry, Unix seconds.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "s",
+            "in": "query",
+            "description": "Signature over method, key and expiry.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "206": {
+            "description": "A byte range (`Range` request header)"
+          },
+          "403": {
+            "description": "Bad or expired signature"
+          },
+          "404": {
+            "description": "No such file"
+          },
+          "416": {
+            "description": "Range outside the file"
+          }
+        }
+      },
+      "head": {
+        "tags": [
+          "media"
+        ],
+        "summary": "A media file behind a server-signed link (local storage, library folders, or S3 in proxy mode)",
+        "description": "A media file behind a server-signed link (local storage, library folders,\nor S3 in proxy mode). Clients get these links from the stream and upload\nendpoints and treat them as opaque; the signature is the authorisation.",
+        "operationId": "media_media",
+        "parameters": [
+          {
+            "name": "k",
+            "in": "query",
+            "description": "Object key.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "e",
+            "in": "query",
+            "description": "Expiry, Unix seconds.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "s",
+            "in": "query",
+            "description": "Signature over method, key and expiry.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The file",
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "206": {
+            "description": "A byte range (`Range` request header)"
+          },
+          "403": {
+            "description": "Bad or expired signature"
+          },
+          "404": {
+            "description": "No such file"
+          },
+          "416": {
+            "description": "Range outside the file"
+          }
+        }
+      }
+    },
+    "/api/v1/server": {
+      "get": {
+        "tags": [
+          "server"
+        ],
+        "summary": "What this server is and offers: edition, version, contract revision and `features`",
+        "description": "What this server is and offers: edition, version, contract revision and\n`features`. Clients read it once after `GET /setup/status`; a 404 means a\nserver older than revision 1 (docs/API_COMPATIBILITY.md §3).",
+        "operationId": "server_server_info",
+        "responses": {
+          "200": {
+            "description": "`name`, `edition`, `version`, `api` {version, revision}, `features`, `deprecations`, optional `demo`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AckRequest": {
+        "type": "object",
+        "required": [
+          "ids"
+        ],
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        }
+      },
+      "AckResponse": {
+        "type": "object",
+        "required": [
+          "acknowledged"
+        ],
+        "properties": {
+          "acknowledged": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "DeleteTokenRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "description": "Every error answer: a status code and this body.",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "What went wrong, in English; not meant to be matched on."
+          }
+        }
+      },
+      "NotificationResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "body": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "data": {},
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
+      "PushTokenResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "platform",
+          "last_seen_at",
+          "token_suffix"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "platform": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_seen_at": {
+            "type": "string"
+          },
+          "token_suffix": {
+            "type": "string",
+            "description": "Only the tail is echoed back; the full token is a delivery credential."
+          }
+        }
+      },
+      "RegisterTokenRequest": {
+        "type": "object",
+        "required": [
+          "platform",
+          "token"
+        ],
+        "properties": {
+          "platform": {
+            "type": "string",
+            "description": "`apns` (iOS) or `fcm` (Android)."
+          },
+          "token": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "The access token from `POST /auth/login` or `POST /auth/refresh`."
+      }
+    }
+  }
+}

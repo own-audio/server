@@ -9,16 +9,16 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::extract::{Json, Query, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct RegisterTokenRequest {
     /// `apns` (iOS) or `fcm` (Android).
     pub platform: String,
@@ -27,12 +27,12 @@ pub struct RegisterTokenRequest {
     pub device_name: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct DeleteTokenRequest {
     pub token: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PushTokenResponse {
     pub id: String,
     pub platform: String,
@@ -42,7 +42,7 @@ pub struct PushTokenResponse {
     pub token_suffix: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct NotificationResponse {
     pub id: String,
     pub kind: String,
@@ -52,8 +52,10 @@ pub struct NotificationResponse {
     pub created_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct NotificationsQuery {
+    /// 1–200.
     #[serde(default = "default_limit")]
     pub limit: i64,
 }
@@ -62,25 +64,24 @@ fn default_limit() -> i64 {
     50
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AckRequest {
     pub ids: Vec<Uuid>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AckResponse {
     pub acknowledged: u64,
 }
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/push-token", post(register_token))
-        .route("/push-token", delete(delete_token))
-        .route("/push-tokens", get(list_tokens))
-        .route("/notifications", get(list_notifications))
-        .route("/notifications/ack", post(ack_notifications))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(register_token, delete_token))
+        .routes(routes!(list_tokens))
+        .routes(routes!(list_notifications))
+        .routes(routes!(ack_notifications))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
@@ -91,6 +92,9 @@ pub fn router() -> Router<AppState> {
 /// re-registering also refreshes `last_seen_at`. Re-registering a token that
 /// belonged to another account moves it, so passing a device on does not keep
 /// delivering the previous owner's notifications.
+#[utoipa::path(post, path = "/push-token", tag = "devices", security(("bearer" = [])),
+    request_body = RegisterTokenRequest,
+    responses((status = 204, description = "Registered"), (status = 400, body = crate::http::openapi::ErrorBody)))]
 async fn register_token(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -126,6 +130,9 @@ async fn register_token(
 
 /// DELETE /api/v1/devices/push-token — call on sign-out so the device stops
 /// receiving notifications for an account that is no longer signed in.
+#[utoipa::path(delete, path = "/push-token", tag = "devices", security(("bearer" = [])),
+    request_body = DeleteTokenRequest,
+    responses((status = 204, description = "Removed")))]
 async fn delete_token(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -138,6 +145,9 @@ async fn delete_token(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// The caller's registered devices.
+#[utoipa::path(get, path = "/push-tokens", tag = "devices", security(("bearer" = [])),
+    responses((status = 200, body = Vec<PushTokenResponse>)))]
 async fn list_tokens(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -167,6 +177,9 @@ async fn list_tokens(
 ///
 /// The polling fallback for push. Safe to call on every app resume; entries
 /// stay until acknowledged, so nothing is lost if the app is killed first.
+#[utoipa::path(get, path = "/notifications", tag = "devices", security(("bearer" = [])),
+    params(NotificationsQuery),
+    responses((status = 200, body = Vec<NotificationResponse>)))]
 async fn list_notifications(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -195,6 +208,9 @@ async fn list_notifications(
 
 /// POST /api/v1/devices/notifications/ack — mark notifications handled so
 /// they stop coming back on the next poll.
+#[utoipa::path(post, path = "/notifications/ack", tag = "devices", security(("bearer" = [])),
+    request_body = AckRequest,
+    responses((status = 200, body = AckResponse)))]
 async fn ack_notifications(
     auth: AuthUser,
     State(state): State<AppState>,

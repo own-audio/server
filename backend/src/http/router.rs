@@ -2,6 +2,7 @@
 use crate::app::AppState;
 use crate::http::handlers;
 use axum::Router;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use axum::routing::get;
 use tower_http::compression::CompressionLayer;
 use tower_http::cors::CorsLayer;
@@ -14,41 +15,44 @@ use tower_http::trace::TraceLayer;
 /// merge additional routes before calling [`finalize`].
 pub fn api_routes(config: &crate::app::AppConfig) -> Router<AppState> {
     let limits = crate::http::rate_limit::Limiters::from_config(&config.server.rate_limit);
-    Router::new()
-        .route("/server", get(crate::http::server_info::server_info))
+    api_router(&limits).into()
+}
+
+/// The same routes with their OpenAPI description (`http::openapi`). A route
+/// registered through `routes!` is documented by construction; one added with
+/// plain `.route` is not, and `openapi_covers_every_route` lists it.
+pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(crate::http::server_info::server_info))
         // Signed links instead of presigned store URLs: local storage, or S3
         // behind STORAGE__PROXY. The signature is the authorisation.
-        .route(
-            "/media",
-            get(crate::http::media::media)
-                .head(crate::http::media::media)
-                .put(crate::http::media::media)
-                .layer(axum::extract::DefaultBodyLimit::disable()),
-        )
-        .nest("/setup", crate::setup::router(&limits))
-        .nest("/auth", crate::auth::router(&limits))
-        .nest("/users", crate::users::router())
-        .nest("/family", crate::families::router())
-        .nest("/trash", crate::trash::router())
-        .nest("/sync", crate::filesync::router())
+        .routes(crate::http::openapi::map(routes!(crate::http::media::media), |m| {
+            m.layer(axum::extract::DefaultBodyLimit::disable())
+        }))
+        .nest("/setup", crate::setup::router(limits).into())
+        .nest("/auth", crate::auth::router(limits).into())
+        .nest("/users", crate::users::router().into())
+        .nest("/family", crate::families::router().into())
+        .nest("/trash", crate::trash::router().into())
+        .nest("/sync", crate::filesync::router().into())
         // Instance-admin only, cross-family — every family on the server,
         // not the caller's own. See families::admin's own doc comment.
-        .nest("/admin/families", crate::families::admin::router())
+        .nest("/admin/families", crate::families::admin::router().into())
         // Cross-domain Home dashboard — counts and activity for the whole
         // server. See dashboard's own doc comment.
-        .nest("/admin/stats", crate::dashboard::router())
+        .nest("/admin/stats", crate::dashboard::router().into())
         // Public — the QR/link landing page and account-claim flow. No
         // FamilyContext/AuthUser extractor on these handlers, matching
         // /auth/register and /auth/login's own unauthenticated routes.
-        .nest("/join", crate::families::join_router(&limits))
-        .nest("/library", crate::library::router())
-        .nest("/podcasts", crate::podcasts::router())
-        .nest("/audiobooks", crate::audiobooks::router())
-        .nest("/music", crate::music::router())
-        .nest("/playback", crate::playback::router())
-        .nest("/jobs", crate::jobs::router())
-        .nest("/uploads", crate::uploads::router())
-        .nest("/stats", crate::stats::router())
+        .nest("/join", crate::families::join_router(limits).into())
+        .nest("/library", crate::library::router().into())
+        .nest("/podcasts", crate::podcasts::router().into())
+        .nest("/audiobooks", crate::audiobooks::router().into())
+        .nest("/music", crate::music::router().into())
+        .nest("/playback", crate::playback::router().into())
+        .nest("/jobs", crate::jobs::router().into())
+        .nest("/uploads", crate::uploads::router().into())
+        .nest("/stats", crate::stats::router().into())
         .nest("/devices", crate::devices::router())
 }
 

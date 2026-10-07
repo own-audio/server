@@ -17,10 +17,14 @@ use futures_util::StreamExt;
 use serde::Deserialize;
 use tokio::io::AsyncWriteExt;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
 pub struct MediaQuery {
+    /// Object key.
     k: String,
+    /// Expiry, Unix seconds.
     e: i64,
+    /// Signature over method, key and expiry.
     s: String,
 }
 
@@ -49,6 +53,16 @@ fn parse_range(value: &str, total_hint: Option<u64>) -> Option<(u64, Option<u64>
     Some((start, end))
 }
 
+/// A media file behind a server-signed link (local storage, library folders,
+/// or S3 in proxy mode). Clients get these links from the stream and upload
+/// endpoints and treat them as opaque; the signature is the authorisation.
+#[utoipa::path(method(get, head, put), path = "/media", tag = "media", params(MediaQuery),
+    responses(
+        (status = 200, description = "The file", content_type = "application/octet-stream"),
+        (status = 206, description = "A byte range (`Range` request header)"),
+        (status = 403, description = "Bad or expired signature"),
+        (status = 404, description = "No such file"),
+        (status = 416, description = "Range outside the file")))]
 pub async fn media(
     State(state): State<AppState>,
     method: Method,
