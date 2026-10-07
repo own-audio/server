@@ -263,17 +263,17 @@ export default function Sidebar({ forceExpanded = false }: { forceExpanded?: boo
           </MenuTrigger>
           <MenuContent align="start" side="top" className="w-56">
             <MenuItem icon={<Settings />} onSelect={() => navigate("/settings")}>
-              Settings
+              {t("shell.account.settings")}
             </MenuItem>
             <MenuItem icon={<PlayCircle />} onSelect={() => navigate("/settings/playback")}>
-              Playback
+              {t("shell.account.playback")}
             </MenuItem>
             <MenuItem icon={<Keyboard />} onSelect={() => openShortcuts(true)}>
-              Keyboard shortcuts
+              {t("shell.account.shortcuts")}
             </MenuItem>
             <MenuSeparator />
             <MenuItem icon={<LogOut />} onSelect={signOut}>
-              Sign out
+              {t("common.action.signOut")}
             </MenuItem>
           </MenuContent>
         </Menu>

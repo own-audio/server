@@ -328,6 +328,8 @@ export interface MessageParams {
   "common.duration.underMinuteShort": undefined;
   "common.error.appleSignIn": undefined;
   "common.error.generic": undefined;
+  "common.error.googleNoToken": undefined;
+  "common.error.googleSignIn": undefined;
   "common.kind.audiobooks": undefined;
   "common.kind.music": undefined;
   "common.kind.podcasts": undefined;
@@ -1369,6 +1371,9 @@ export interface MessageParams {
   "setup.step.firstAccount": undefined;
   "setup.step.ready": undefined;
   "setup.step.server": undefined;
+  "shell.account.playback": undefined;
+  "shell.account.settings": undefined;
+  "shell.account.shortcuts": undefined;
   "shell.continue.failed": undefined;
   "shell.continue.failedHint": undefined;
   "shell.continue.here": undefined;

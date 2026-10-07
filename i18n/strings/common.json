@@ -226,6 +226,14 @@
     "en": "Could not sign in with Apple.",
     "cs": "Přihlášení přes Apple se nezdařilo."
   },
+  "common.error.googleSignIn": {
+    "en": "Could not sign in with Google.",
+    "cs": "Přihlášení přes Google se nezdařilo."
+  },
+  "common.error.googleNoToken": {
+    "en": "Google did not return a sign-in token.",
+    "cs": "Google nevrátil přihlašovací token."
+  },
   "common.badge.family": {
     "en": "Shared with the family",
     "cs": "Sdíleno s rodinou"

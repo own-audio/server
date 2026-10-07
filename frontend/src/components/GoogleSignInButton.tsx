@@ -4,7 +4,7 @@ import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
 import { loginWithGoogle, type AuthProviders } from "../api/auth";
 import type { LoginResponse } from "../api/types";
 import { useTheme, resolvedTheme } from "../lib/theme";
-import { useI18n } from "../i18n";
+import { t, useI18n } from "../i18n";
 
 interface Props {
   providers: AuthProviders | undefined;
@@ -60,7 +60,7 @@ export default function GoogleSignInButton({ providers, onSignedIn, onError }: P
               onSuccess={async (credentialResponse) => {
                 const idToken = credentialResponse.credential;
                 if (!idToken) {
-                  onError("Google did not return a sign-in token.");
+                  onError(t("common.error.googleNoToken"));
                   return;
                 }
                 try {
@@ -71,11 +71,11 @@ export default function GoogleSignInButton({ providers, onSignedIn, onError }: P
                   // rather than something to retry.
                   onError(
                     (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
-                      "Could not sign in with Google.",
+                      t("common.error.googleSignIn"),
                   );
                 }
               }}
-              onError={() => onError("Could not sign in with Google.")}
+              onError={() => onError(t("common.error.googleSignIn"))}
             />
           )}
         </div>

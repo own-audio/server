@@ -78,7 +78,7 @@ export function NewGroupDialog({ mode, onClose }: { mode: "collections" | "serie
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t("common.action.cancel")}
             </Button>
             <Button onClick={() => create.mutate()} loading={create.isPending} disabled={!name.trim()}>
               {t("audiobooks.organize.create")}
@@ -135,10 +135,10 @@ export function RenameDialog({
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t("common.action.cancel")}
             </Button>
             <Button onClick={() => save.mutate()} loading={save.isPending} disabled={!name.trim()}>
-              Save
+              {t("common.action.save")}
             </Button>
           </>
         }

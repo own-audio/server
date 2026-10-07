@@ -1,6 +1,6 @@
 # Installing the own.audio server
 
-> Pre-release (`1.0.0-alpha.2`). The published image is
+> Pre-release (`1.0.0-alpha.3`). The published image is
 > `ghcr.io/own-audio/server`, amd64 only for now; on arm64 build from source
 > with `docker compose build server`.
 

@@ -65,6 +65,21 @@
     "en": "Account",
     "cs": "Účet"
   },
+  "shell.account.settings": {
+    "en": "Settings",
+    "cs": "Nastavení",
+    "note": "Account menu at the bottom of the sidebar: opens the settings page."
+  },
+  "shell.account.playback": {
+    "en": "Playback",
+    "cs": "Přehrávání",
+    "note": "Account menu: opens the playback settings."
+  },
+  "shell.account.shortcuts": {
+    "en": "Keyboard shortcuts",
+    "cs": "Klávesové zkratky",
+    "note": "Account menu: opens the list of keyboard shortcuts."
+  },
   "shell.sidebar.expand": {
     "en": "Expand sidebar",
     "cs": "Rozbalit postranní panel"

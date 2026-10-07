@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.3] - 2026-10-07
+
+Contract revision 2 (unchanged).
+
+### Fixed
+- The web console's account menu and a few dialogs and sign-in errors stayed in English when the console was set to Czech; they are translated now.
+
 ## [1.0.0-alpha.2] - 2026-10-07
 
 Contract revision 2.
