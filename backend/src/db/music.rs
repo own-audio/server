@@ -200,6 +200,30 @@ pub async fn find_track(
         .context("db: find music track")
 }
 
+/// [`find_track`] for many ids in one query, keyed by id; ids the viewer may
+/// not see are simply absent. The caller puts them in its own order.
+pub async fn find_tracks(
+    pool: &PgPool,
+    ids: &[Uuid],
+    viewer: Viewer,
+) -> anyhow::Result<std::collections::HashMap<Uuid, MusicTrack>> {
+    if ids.is_empty() {
+        return Ok(Default::default());
+    }
+    let sql = format!(
+        "SELECT {TRACK_COLS_WITH_CHECKSUM}
+         FROM music_tracks t
+         JOIN media_objects mo ON mo.id = t.audio_object_id
+         WHERE t.id = ANY($5) AND {VISIBLE}"
+    );
+    let rows = bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer, MUSIC)
+        .bind(ids)
+        .fetch_all(pool)
+        .await
+        .context("db: find music tracks")?;
+    Ok(rows.into_iter().map(|t| (t.id, t)).collect())
+}
+
 /// Owner-scoped lookup for mutations.
 pub async fn find_track_owned(
     pool: &PgPool,
@@ -1961,12 +1985,16 @@ pub async fn list_random_tracks(
         ""
     };
     let limit_param = if genre.is_some() { "$6" } else { "$5" };
+    // The shuffle picks ids only; whole rows (lyrics included) are read for
+    // the few chosen, not sorted for the whole catalogue.
     let sql = format!(
         "SELECT {TRACK_COLS}
          FROM music_tracks t
-         WHERE {VISIBLE} {genre_clause}
-         ORDER BY random()
-         LIMIT {limit_param}"
+         WHERE t.id IN (
+             SELECT t.id FROM music_tracks t
+             WHERE {VISIBLE} {genre_clause}
+             ORDER BY random()
+             LIMIT {limit_param})"
     );
 
     let query = bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer, MUSIC);

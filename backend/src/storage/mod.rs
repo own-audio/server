@@ -333,19 +333,11 @@ impl ObjectStore {
         Ok(())
     }
 
-    /// Every object in the bucket, as `(key, last_modified_epoch_secs)`.
-    ///
-    /// Paginated to exhaustion: `list_objects_v2` caps a page at 1000 keys and
-    /// signals more with a continuation token, so stopping at the first page
-    /// would quietly under-report a bucket of any real size — and a
-    /// reconciliation that thinks the bucket is smaller than it is would draw
-    /// exactly the wrong conclusion about what is missing.
-    ///
-    /// The timestamp is the caller's only safety net: an object uploaded
-    /// through a presigned PUT has no database row until `from-uploads`
-    /// attaches it, so "not in the database" cannot mean "safe to delete"
-    /// without also meaning "and old enough that no upload is still running".
-    pub async fn list_all(&self) -> anyhow::Result<Vec<(String, i64)>> {
+    /// One page of the store's listing: `(key, modified unix secs)` pairs and
+    /// the token for the next page, `None` at the end. S3 pages hold up to
+    /// 1,000 keys; local storage answers in one page (its own uploads only,
+    /// library folders are not in it).
+    pub async fn list_page(&self, token: Option<String>) -> anyhow::Result<(Vec<(String, i64)>, Option<String>)> {
         if let Some(root) = &self.local {
             let mut out = Vec::new();
             let mut dirs = vec![root.clone()];
@@ -373,28 +365,19 @@ impl ObjectStore {
                     }
                 }
             }
-            return Ok(out);
+            return Ok((out, None));
         }
-        let mut out = Vec::new();
-        let mut token: Option<String> = None;
-        loop {
-            let mut req = self.client.list_objects_v2().bucket(&self.bucket);
-            if let Some(t) = token {
-                req = req.continuation_token(t);
-            }
-            let page = req.send().await.context("object store list failed")?;
-            for obj in page.contents() {
-                if let Some(key) = obj.key() {
-                    let modified = obj.last_modified().map(|t| t.secs()).unwrap_or(0);
-                    out.push((key.to_string(), modified));
-                }
-            }
-            match page.next_continuation_token() {
-                Some(t) => token = Some(t.to_string()),
-                None => break,
-            }
+        let mut req = self.client.list_objects_v2().bucket(&self.bucket);
+        if let Some(t) = token {
+            req = req.continuation_token(t);
         }
-        Ok(out)
+        let page = req.send().await.context("object store list failed")?;
+        let out = page
+            .contents()
+            .iter()
+            .filter_map(|obj| Some((obj.key()?.to_string(), obj.last_modified().map(|t| t.secs()).unwrap_or(0))))
+            .collect();
+        Ok((out, page.next_continuation_token().map(str::to_string)))
     }
 
     /// Generate a presigned GET URL valid for `expires_in_secs` seconds,

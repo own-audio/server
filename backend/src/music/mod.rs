@@ -2632,13 +2632,13 @@ async fn resolve(
 
     // One lookup for the whole result, then reordered in memory: the sequence
     // is the point, and an ORDER BY cannot express it.
+    let mut found = db::music::find_tracks(state.db(), &ids, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?;
     let mut tracks = Vec::with_capacity(ids.len());
     let mut total_secs: i64 = 0;
     for id in &ids {
-        if let Some(t) = db::music::find_track(state.db(), *id, family.viewer())
-            .await
-            .map_err(AuthError::Internal)?
-        {
+        if let Some(t) = found.remove(id) {
             total_secs += t.duration_secs.unwrap_or(0) as i64;
             tracks.push(track_to_response(t, family.user_id));
         }
@@ -3364,12 +3364,14 @@ async fn list_playlist_tracks(
     // Entries the viewer may not play are skipped rather than erroring: a
     // shared playlist can legitimately reference tracks a restricted member
     // is not granted.
+    let ids: Vec<Uuid> = entries.iter().map(|e| e.track_id).collect();
+    let found = db::music::find_tracks(state.db(), &ids, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?;
     let mut result = Vec::with_capacity(entries.len());
     for entry in entries {
-        let track = db::music::find_track(state.db(), entry.track_id, family.viewer())
-            .await
-            .map_err(AuthError::Internal)?;
-        if let Some(track) = track {
+        // Cloned, not taken: a playlist may hold the same track twice.
+        if let Some(track) = found.get(&entry.track_id).cloned() {
             result.push(PlaylistTrackResponse {
                 entry_id: entry.id.to_string(),
                 position: entry.position,

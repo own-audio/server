@@ -886,48 +886,61 @@ async fn execute_storage_reconcile(
         .and_then(|v| v.as_bool())
         .unwrap_or(true);
 
-    let known = crate::db::media::all_object_keys(pool).await?;
-    if known.is_empty() {
+    if !crate::db::media::any_media_object(pool).await? {
         anyhow::bail!("media_objects is empty; refusing to reconcile the whole bucket against nothing");
     }
 
     let cutoff = chrono::Utc::now().timestamp() - older_than_days * 86_400;
-    let objects = storage.list_all().await?;
 
+    let mut listed = 0usize;
     let mut unknown = 0usize;
     let mut too_recent = 0usize;
     let mut deleted = 0usize;
     let mut failed = 0usize;
-    for (key, modified) in &objects {
-        if known.contains(key) {
-            continue;
-        }
-        unknown += 1;
-        if *modified > cutoff {
-            // Very likely an upload still in progress.
-            too_recent += 1;
-            continue;
-        }
-        if deleted + failed >= limit {
-            continue;
-        }
-        if dry_run {
-            info!(%key, "storage reconcile (dry run): would delete");
-            deleted += 1;
-            continue;
-        }
-        match storage.delete(key).await {
-            Ok(()) => deleted += 1,
-            Err(e) => {
-                warn!(%key, error = %e, "storage reconcile: delete failed");
-                failed += 1;
+    // A page of the listing at a time, checked against the database in one
+    // query: a 600,000-track library held both lists whole (~300 MB).
+    let mut token = None;
+    loop {
+        let (page, next) = storage.list_page(token).await?;
+        listed += page.len();
+        let page_keys: Vec<String> = page.iter().map(|(k, _)| k.clone()).collect();
+        let known = crate::db::media::known_object_keys(pool, &page_keys).await?;
+        for (key, modified) in &page {
+            if known.contains(key) {
+                continue;
             }
+            unknown += 1;
+            if *modified > cutoff {
+                // Very likely an upload still in progress.
+                too_recent += 1;
+                continue;
+            }
+            if deleted + failed >= limit {
+                continue;
+            }
+            if dry_run {
+                info!(%key, "storage reconcile (dry run): would delete");
+                deleted += 1;
+                continue;
+            }
+            match storage.delete(key).await {
+                Ok(()) => deleted += 1,
+                Err(e) => {
+                    warn!(%key, error = %e, "storage reconcile: delete failed");
+                    failed += 1;
+                }
+            }
+        }
+
+        match next {
+            Some(t) => token = Some(t),
+            None => break,
         }
     }
 
     info!(
-        bucket_objects = objects.len(),
-        known = known.len(),
+        bucket_objects = listed,
+        known = listed - unknown,
         unknown,
         too_recent,
         deleted,

@@ -233,12 +233,22 @@ pub async fn delete_object_row(pool: &PgPool, id: Uuid) -> anyhow::Result<()> {
 
 /// Every object key the database knows about, for reconciling against the
 /// bucket. Returned as a set because the caller tests membership per key.
-pub async fn all_object_keys(pool: &PgPool) -> anyhow::Result<std::collections::HashSet<String>> {
-    let rows: Vec<(String,)> = sqlx::query_as("SELECT object_key FROM media_objects")
+/// Which of `keys` a media object records — asked a page of the store's
+/// listing at a time, so neither side is ever held whole.
+pub async fn known_object_keys(pool: &PgPool, keys: &[String]) -> anyhow::Result<std::collections::HashSet<String>> {
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT object_key FROM media_objects WHERE object_key = ANY($1)")
+        .bind(keys)
         .fetch_all(pool)
         .await
-        .context("db: list all media object keys")?;
+        .context("db: known media object keys")?;
     Ok(rows.into_iter().map(|(k,)| k).collect())
+}
+
+pub async fn any_media_object(pool: &PgPool) -> anyhow::Result<bool> {
+    sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM media_objects)")
+        .fetch_one(pool)
+        .await
+        .context("db: any media object")
 }
 
 #[cfg(test)]

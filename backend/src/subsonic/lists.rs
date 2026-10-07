@@ -153,33 +153,27 @@ async fn starred_payload(auth: &SubsonicAuthUser, state: &AppState, id3: bool) -
         .await
         .map_err(|_| ())?;
 
-    let mut tracks = Vec::new();
-    for (track_id, _) in &starred_tracks {
-        // Re-checked rather than trusted: a star can outlive the viewer's
-        // access to the track it points at.
-        if let Ok(Some(track)) = db::music::find_track(state.db(), *track_id, auth.viewer()).await {
-            tracks.push(track);
-        }
-    }
+    // One query, visibility re-checked rather than trusted: a star can
+    // outlive the viewer's access to the track it points at. Kept in the
+    // order they were starred.
+    let track_ids: Vec<uuid::Uuid> = starred_tracks.iter().map(|(id, _)| *id).collect();
+    let mut found: std::collections::HashMap<uuid::Uuid, _> = db::subsonic::tracks_by_ids(state.db(), auth.viewer(), &track_ids)
+        .await
+        .map_err(|_| ())?
+        .into_iter()
+        .map(|t| (t.id, t))
+        .collect();
+    let tracks: Vec<_> = track_ids.iter().filter_map(|id| found.remove(id)).collect();
     let ctx = SongContext::load(state.db(), auth.user_id, &tracks).await;
     let songs: Vec<Value> = tracks.iter().map(|t| song_json(t, &ctx)).collect();
-
-    let albums = db::subsonic::list_distinct_albums(state.db(), auth.viewer())
-        .await
-        .map_err(|_| ())?;
-    let artists = db::subsonic::list_distinct_artists(state.db(), auth.viewer())
-        .await
-        .map_err(|_| ())?;
 
     let mut album_json = Vec::new();
     let mut artist_json = Vec::new();
     for (kind, artist_name, album_name, created) in &groups {
         match kind.as_str() {
             "album" => {
-                if let Some(row) = albums
-                    .iter()
-                    .find(|a| &a.artist == artist_name && &a.album == album_name)
-                {
+                // By name through the grouping index, one starred album at a time.
+                if let Ok(Some(row)) = db::subsonic::find_album(state.db(), auth.viewer(), artist_name, album_name).await {
                     let id = ids::album_id(auth.user_id, &row.artist, &row.album);
                     album_json.push(json!({
                         "id": id.to_string(),
@@ -198,11 +192,14 @@ async fn starred_payload(auth: &SubsonicAuthUser, state: &AppState, id3: bool) -
                 }
             }
             "artist" => {
-                if let Some(row) = artists.iter().find(|a| &a.artist == artist_name) {
+                let albums = db::subsonic::list_artist_albums(state.db(), auth.viewer(), artist_name)
+                    .await
+                    .map_err(|_| ())?;
+                if let Some(first) = albums.first() {
                     artist_json.push(json!({
-                        "id": ids::artist_id(auth.user_id, &row.artist).to_string(),
-                        "name": row.artist,
-                        "albumCount": row.album_count,
+                        "id": ids::artist_id(auth.user_id, &first.artist).to_string(),
+                        "name": first.artist,
+                        "albumCount": albums.len(),
                         "starred": created.to_rfc3339(),
                     }));
                 }

@@ -24,6 +24,14 @@ Contract revision 5.
   `features.podcast_discovery`.
 
 ### Fixed
+- Subsonic `getStarred`: the starred tracks in one query instead of one
+  each, starred albums and artists through the grouping index instead of two
+  passes over the catalogue.
+- A smart playlist's tracks and a playlist's tracks are read in one query,
+  not one per track. `getRandomSongs` shuffles ids only and reads whole rows
+  for the few it picks.
+- Storage reconcile pages through the store's listing and checks each page
+  against the database, instead of holding every key of both in memory.
 - The web console offers podcast categories and similar shows only when the
   server has them, and search only when it can answer; before, a server
   without the metadata service showed them and answered with errors.

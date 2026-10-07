@@ -81,15 +81,16 @@ was measured yet.
    prefixes with a prefix index, batch and commit in chunks.
 5. **`GET /sync/tree/ids`** (fixed 2026-10-07: streamed): every id in one response, about 100 MB. Fix: page
    it.
-6. **Storage reconcile** (manual job): all object keys and the whole bucket
+6. **Storage reconcile** (fixed 2026-10-08: paged) (manual job): all object keys and the whole bucket
    listing in memory, about 300 MB. Fix: walk the listing page by page.
-7. **Smart playlists and random songs**: `ORDER BY random()` over the
+7. **Smart playlists and random songs** (fixed 2026-10-08: one batched
+   fetch; random songs shuffle ids only): `ORDER BY random()` over the
    catalog, then one query per result track. Fix: sampled selection, one
    batched fetch.
 8. **No indexes for browsing**: artist, album, genre and title lookups and
    `%text%` search read every row; the visibility filter defeats index use.
    Fix: expression indexes on the normalised columns, `pg_trgm` for search.
-9. **getStarred**: one query per starred track and a linear album search.
+9. **getStarred** (fixed 2026-10-08): one query per starred track and a linear album search.
 10. **Background work** (fixed 2026-10-07: the next batch goes in as soon
     as the previous one drains): audio analysis and checksum backfill run 200 items
     an hour, so a 600k first import would take about four months. Fix:
