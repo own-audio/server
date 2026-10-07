@@ -12,3 +12,4 @@ frontend/src/i18n/generated/*.bak
 .docker-certs/*.crt
 .docker-certs/*.pem
 backend/ui/
+/backups/

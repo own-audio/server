@@ -5,8 +5,9 @@
 services:
   postgres:
     # The major version is pinned on purpose: a new major needs a dump and
-    # restore (UPGRADING.md), so it must never change by accident.
-    image: postgres:16-alpine
+    # restore (scripts/pg-upgrade.sh, UPGRADING.md), so it never changes by
+    # accident. That script is what sets POSTGRES_MAJOR and PGDATA_DIR.
+    image: postgres:${POSTGRES_MAJOR:-16}-alpine
     # Sized for one family (docs/RAM_USAGE.md); raise shared_buffers for a very
     # large catalog. The server's pool is 10 (DATABASE_MAX_CONNECTIONS).
     command: >
@@ -20,7 +21,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-ownaudio}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-ownaudio}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      PGDATA: ${PGDATA_DIR:-/var/lib/postgresql/data/pgdata}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,6 +29,26 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  # A dump of the database every night at BACKUP_HOUR (UTC) into BACKUP_DIR,
+  # the last 7 days and 4 weeks kept. Same image as the database, so the dump
+  # tool always matches it. Restoring: BACKUP.md.
+  backup:
+    image: postgres:${POSTGRES_MAJOR:-16}-alpine
+    entrypoint: ["/bin/sh", "/db-backup.sh", "loop"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-ownaudio}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-ownaudio}
+      BACKUP_HOUR: ${BACKUP_HOUR:-3}
+    volumes:
+      - ./scripts/db-backup.sh:/db-backup.sh:ro
+      - ${BACKUP_DIR:-./backups}:/backups
     restart: unless-stopped
 
   # Object store for uploads. Any S3-compatible store works; RustFS is the one
@@ -95,6 +116,18 @@ services:
       # Accounts are created by the admin or by family invite; open sign-up is off.
       AUTH__REGISTRATION_OPEN: "false"
       RUST_LOG: ${RUST_LOG:-audio2=info,tower_http=warn}
+      # The server runs as this user and group, not root. It must be able to
+      # read your library folders; its own storage is handed to it at start.
+      # Optional mail for invites (SMTP submission, see INSTALL.md).
+      MAIL__SMTP_HOST: ${SMTP_HOST:-}
+      MAIL__SMTP_PORT: ${SMTP_PORT:-}
+      MAIL__SMTP_SECURITY: ${SMTP_SECURITY:-}
+      MAIL__SMTP_USER: ${SMTP_USER:-}
+      MAIL__SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL__FROM_ADDRESS: ${MAIL_FROM:-}
+      MAIL__FROM_NAME: ${MAIL_FROM_NAME:-own.audio}
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
     volumes:
       - media_data:/data/media
     ports:
