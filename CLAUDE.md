@@ -340,7 +340,9 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-07)
 
-`v1.0.0-alpha.4` schedules the hourly `stats_rollup` (smart playlists'
+`v1.0.0-alpha.5` fixes audiobook progress in the console (in-file positions, as
+the API defines), names format errors in the player, answers 409 for an
+undownloaded episode, and loads console pages on demand. `v1.0.0-alpha.4` schedules the hourly `stats_rollup` (smart playlists'
 play counts; nothing enqueued it before). `v1.0.0-alpha.3` translates the console's account menu and a few dialogs;
 `v1.0.0-alpha.2` (contract revision 2) adds the optional `demo` sign-in
 shown on the console's sign-in screen and the version under the form; the

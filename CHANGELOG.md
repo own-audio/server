@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.5] - 2026-10-07
+
+Contract revision 2 (unchanged).
+
 ### Added
 - `docs/CAPACITY.md`: who the server is for — one family, with no limit on
   its members,
