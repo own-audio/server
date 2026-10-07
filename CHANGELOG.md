@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Plan: everything ships together as 1.1.0; a Raspberry Pi 3 demo with local
+  storage only, published through a Cloudflare Tunnel.
+- Plan, Phase 6 item 4, and scope decision 14: PostgreSQL stays the only
+  database, and before 1.0 the server makes it painless — family-sized
+  settings by default, nightly automatic backups with a tested restore, and
+  a one-command PostgreSQL major upgrade.
+- `docs/RAM_USAGE.md`: why Navidrome and Audiobookshelf cannot be measured on
+  PostgreSQL (both are SQLite-only, checked in their repositories).
+
 ### Changed
 - The image sets `MALLOC_ARENA_MAX=2`, `MALLOC_MMAP_THRESHOLD_=131072` and
   `MALLOC_TRIM_THRESHOLD_=131072`: the server's peak under the test suite
@@ -17,16 +27,6 @@ semver. Each release states the **API contract revision** it serves
 - The server's database pool is 10 connections by default and configurable
   with `DATABASE_MAX_CONNECTIONS` (it was a fixed 20). A busy deployment —
   the hosted edition — should set it explicitly.
-
-### Added
-- Plan: everything ships together as 1.1.0; a Raspberry Pi 3 demo with local
-  storage only, published through a Cloudflare Tunnel.
-- Plan, Phase 6 item 4, and scope decision 14: PostgreSQL stays the only
-  database, and before 1.0 the server makes it painless — family-sized
-  settings by default, nightly automatic backups with a tested restore, and
-  a one-command PostgreSQL major upgrade.
-- `docs/RAM_USAGE.md`: why Navidrome and Audiobookshelf cannot be measured on
-  PostgreSQL (both are SQLite-only, checked in their repositories).
 
 ## [1.0.0-alpha.5] - 2026-10-07
 
