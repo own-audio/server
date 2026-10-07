@@ -93,6 +93,44 @@ Caveats, so nobody quotes this wrongly:
   (Audiobookshelf keeps its library in memory); so do we today, through the
   unpaginated paths listed in [CAPACITY.md](CAPACITY.md).
 
+## Is it fair to compare a PostgreSQL stack with SQLite servers?
+
+Partly. It depends on the question being asked.
+
+- **"How efficient is the server's own code?"** Comparing processes is fair
+  in direction, as the table above does. A SQLite server's figure already
+  contains its database engine and SQLite's page cache; ours does not, so it
+  flatters us.
+- **"How much RAM does the machine need?"** Only the whole stack is fair:
+  every container the install cannot run without. For us that is the server
+  and PostgreSQL. RustFS is not part of it: it is one optional store, and
+  plain local storage or an existing S3 store replace it.
+- **Like for like.** Our one server replaces two: a household that wants
+  music and audiobooks runs Navidrome *and* Audiobookshelf. The fair
+  comparison is our server plus PostgreSQL against both of theirs together:
+  about 150–180 MiB for the two of them in the measurements above, against
+  28 MiB plus PostgreSQL for us.
+
+Measurement traps that make either side look better than it is:
+
+- Summing `VmRSS` over PostgreSQL's processes counts its shared buffers once
+  per connection. Use the container's cgroup memory (what `docker stats`
+  shows, which already leaves out reclaimable file cache) or PSS instead.
+- Both SQLite and PostgreSQL read data through the kernel's page cache. That
+  memory is real but reclaimable and appears in no process's RSS, on either
+  side; it is not a reason to prefer one database.
+- PostgreSQL's memory is mostly configuration. Stock settings reserve 128 MB
+  of shared buffers for any database size; a family install can run with 16–
+  32 MB, and idle connections cost a few MB each, so a pool of 5–10 instead
+  of 20 matters.
+- Same catalog, same requests, same warm-up for every server; idle and peak
+  both reported.
+
+So the target in [CAPACITY.md](CAPACITY.md) is meant as **whole stack against
+Navidrome and Audiobookshelf together**, measured as container memory with
+the same catalog and load. That run has not been done yet; it needs the tuned
+PostgreSQL settings first.
+
 ## What the tuned settings cost
 
 Nothing functional: the server does exactly the same work, and nothing is

@@ -19,8 +19,10 @@ the hosted service at own.audio is for.
   only reads (read-only library folders,
   [issue #1](https://github.com/own-audio/server/issues/1)).
 - **Footprint:** smaller than Navidrome and Audiobookshelf, the two servers
-  such a household would otherwise run side by side. See
-  [RAM_USAGE.md](RAM_USAGE.md) for where we stand.
+  such a household would otherwise run side by side. Measured as the whole
+  stack (our server plus PostgreSQL) against the two of them together, as
+  container memory with the same catalog and load. See
+  [RAM_USAGE.md](RAM_USAGE.md) for why and for where we stand.
 
 ## What scales with what
 

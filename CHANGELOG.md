@@ -16,7 +16,9 @@ semver. Each release states the **API contract revision** it serves
 - `docs/RAM_USAGE.md`: the memory investigation. The server needs about
   20 MiB at rest; the 270 MiB seen after a burst is glibc keeping freed
   memory, and three `MALLOC_*` settings bring the peak to 28 MiB. Includes a
-  comparison with Navidrome and Audiobookshelf.
+  comparison with Navidrome and Audiobookshelf, what the settings cost, and
+  how to compare a PostgreSQL stack with SQLite servers fairly (whole stack
+  against both of them together).
 - Scope decisions 11–13 (one family per install, catalog size, footprint
   goal) and a "Scale and footprint" section in the implementation plan.
 - README: who the server is for.
