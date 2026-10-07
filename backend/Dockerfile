@@ -57,9 +57,13 @@ ENV CARGO_INCREMENTAL=1
 # every dependency in release mode on every deploy.
 COPY Cargo.toml Cargo.lock* ./
 COPY backend ./backend
+# COPY keeps the files' times; with target/ cached between builds, a file
+# edited before the previous build finished looked older than that build and
+# was skipped. Touching our own sources rebuilds this crate only.
 RUN --mount=type=cache,target=/usr/local/cargo/registry,sharing=locked \
     --mount=type=cache,target=/usr/local/cargo/git,sharing=locked \
     --mount=type=cache,target=/build/target,sharing=locked \
+    find backend/src -type f -exec touch {} + && \
     cargo build --release -p audio2 && cp target/release/audio2 /build/audio2
 
 # ── Stage 3: runtime ─────────────────────────────────────
@@ -104,5 +108,7 @@ COPY --from=frontend-builder /build/ui-dist                     /app/ui/dist
 
 EXPOSE 8080
 
-ENTRYPOINT ["/app/audio2"]
+# Started as root only to hand /data/media to PUID:PGID, then dropped to them.
+COPY backend/docker-entrypoint.sh /app/docker-entrypoint.sh
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
 
