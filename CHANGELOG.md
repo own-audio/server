@@ -7,10 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.7] - 2026-10-07
+
+Contract revision 3 (unchanged).
+
 ### Added
 - `conformance/tools/loadtest.py`: N listeners browsing, streaming with
   ranges and reporting progress at once; `--heavy` adds the catalog-wide
   calls on every loop.
+
+### Changed
+- Media files stream in 64 KiB reads instead of 4 KiB, a sixteenth of the
+  trips through Tokio's blocking pool.
+- `conformance/tools/loadtest.py` streams from the address under test (media
+  links carry the public address) and shares one sign-in across listeners.
 
 ### Fixed
 - `GET /music/tracks` (streamed since 1.0.0-alpha.6) broke for every client

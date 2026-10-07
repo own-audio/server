@@ -340,7 +340,9 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-07)
 
-`v1.0.0-alpha.6` (contract revision 3) adds local storage, the server's media
+`v1.0.0-alpha.7` fixes the streamed track list under gzip (browsers got an
+empty response), path claims without indexes (first scans slowed per file)
+and reads media in 64 KiB. `v1.0.0-alpha.6` (contract revision 3) adds local storage, the server's media
 route (`/api/v1/media`, also for S3 behind firewalls), read-only library
 folders, allocator settings and family-sized PostgreSQL, the streamed track
 list, inline visibility and stored grouping keys (scale test: docs/CAPACITY.md).

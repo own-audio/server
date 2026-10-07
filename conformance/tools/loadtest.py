@@ -57,8 +57,12 @@ def main():
         d = json.loads(raw)
         return d if isinstance(d, list) else d.get("items", [])
 
+    # One sign-in shared by all listeners: the per-IP login limit (30 a minute)
+    # is not what this measures.
+    shared_token = json.loads(req("/api/v1/auth/login", body={"email": a.email, "password": a.password})[0])["token"]
+
     def listener(n):
-        token = json.loads(req("/api/v1/auth/login", body={"email": a.email, "password": a.password})[0])["token"]
+        token = shared_token
         tracks = items(req("/api/v1/music/tracks", token)[0])
         books = items(req("/api/v1/audiobooks", token)[0])
         deadline = time.time() + a.seconds
@@ -85,6 +89,11 @@ def main():
                     kind, item_id, part = "audiobook", b["id"], f["id"]
                 record("stream link", s)
                 url = json.loads(url_raw)["url"]
+                # Media links carry the server's public address; stream from the
+                # address under test instead, or a LAN test would measure the
+                # internet connection (the link is signed over its path only).
+                u, bu = urllib.parse.urlsplit(url), urllib.parse.urlsplit(base)
+                url = urllib.parse.urlunsplit((bu.scheme, bu.netloc, u.path, u.query, ""))
                 # A player buffers the first megabytes, then a seek somewhere in the middle.
                 size = None
                 for start in (0, 262144, 524288, 1048576, None):

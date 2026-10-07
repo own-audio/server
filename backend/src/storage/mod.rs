@@ -66,6 +66,12 @@ pub fn is_folder_key(key: &str) -> bool {
     key.starts_with(FOLDER_PREFIX)
 }
 
+/// Read size for streamed media. The default (4 KiB) makes every read of a
+/// local file its own trip through Tokio's blocking pool; 64 KiB cuts those
+/// sixteen-fold and stays below glibc's mmap threshold
+/// (`MALLOC_MMAP_THRESHOLD_`, 128 KiB), so the buffers are reused.
+const STREAM_CHUNK: usize = 64 * 1024;
+
 /// An object opened for streaming, possibly a byte range of it.
 pub struct OpenedObject {
     pub total: u64,
@@ -523,14 +529,14 @@ impl ObjectStore {
             use tokio::io::{AsyncReadExt, AsyncSeekExt};
             let mut file = tokio::fs::File::open(path?).await.context("open object")?;
             file.seek(std::io::SeekFrom::Start(start)).await.context("seek object")?;
-            axum::body::Body::from_stream(tokio_util::io::ReaderStream::new(file.take(len)))
+            axum::body::Body::from_stream(tokio_util::io::ReaderStream::with_capacity(file.take(len), STREAM_CHUNK))
         } else {
             let mut req = self.client.get_object().bucket(&self.bucket).key(key);
             if range.is_some() {
                 req = req.range(format!("bytes={start}-{end}"));
             }
             let output = req.send().await.context("object store get failed")?;
-            axum::body::Body::from_stream(tokio_util::io::ReaderStream::new(output.body.into_async_read()))
+            axum::body::Body::from_stream(tokio_util::io::ReaderStream::with_capacity(output.body.into_async_read(), STREAM_CHUNK))
         };
         Ok(Some(OpenedObject { total, start, end, content_type, body }))
     }
