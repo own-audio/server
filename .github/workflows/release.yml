@@ -106,10 +106,17 @@ jobs:
             type=raw,value=latest,enable=${{ !contains(github.event.inputs.ref || github.ref_name, '-') }}
       - name: Create the multi-arch manifests
         working-directory: /tmp/digests
+        # The metadata JSON goes through the environment, never pasted into the
+        # script: it carries the repository description, and an apostrophe in
+        # that broke the quoting and created no tag at all (v1.0.0-alpha.4).
+        env:
+          META: ${{ steps.meta.outputs.json }}
         run: |
-          set -e
-          for image in $(echo '${{ steps.meta.outputs.json }}' | jq -r '.tags[] | split(":")[0]' | sort -u); do
-            tags=$(echo '${{ steps.meta.outputs.json }}' | jq -r --arg img "$image" '.tags[] | select(startswith($img + ":")) | "-t " + .' | tr '\n' ' ')
+          set -euo pipefail
+          images=$(jq -r '.tags[] | split(":")[0]' <<<"$META" | sort -u)
+          test -n "$images"
+          for image in $images; do
+            tags=$(jq -r --arg img "$image" '.tags[] | select(startswith($img + ":")) | "-t " + .' <<<"$META" | tr '\n' ' ')
             # Index annotations: GHCR shows the description on a multi-arch package only from these.
             docker buildx imagetools create $tags \
               --annotation "index:org.opencontainers.image.description=Self-hosted server for a family's audiobooks, podcasts and music. AGPL-3.0." \

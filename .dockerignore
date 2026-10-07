@@ -1,0 +1,13 @@
+# Only what backend/Dockerfile copies matters. Local build output, installed
+# packages (a Mac's node_modules would land on top of the Linux ones `npm ci`
+# installs) and local secrets stay out of the build context.
+.git
+target
+**/node_modules
+backend/ui/dist
+.env
+**/.env
+**/.env.*
+!**/.env.example
+docs
+conformance

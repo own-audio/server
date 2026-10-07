@@ -230,6 +230,17 @@ pub async fn delete_object_row(pool: &PgPool, id: Uuid) -> anyhow::Result<()> {
     Ok(())
 }
 
+
+/// Every object key the database knows about, for reconciling against the
+/// bucket. Returned as a set because the caller tests membership per key.
+pub async fn all_object_keys(pool: &PgPool) -> anyhow::Result<std::collections::HashSet<String>> {
+    let rows: Vec<(String,)> = sqlx::query_as("SELECT object_key FROM media_objects")
+        .fetch_all(pool)
+        .await
+        .context("db: list all media object keys")?;
+    Ok(rows.into_iter().map(|(k,)| k).collect())
+}
+
 #[cfg(test)]
 mod sweep_tests {
     /// The guard that matters: an empty referrer list must refuse, not sweep.
@@ -264,7 +275,7 @@ mod sweep_tests {
     /// without editing a list here.
     #[test]
     fn union_covers_every_referring_column() {
-        let refs = vec![
+        let refs = [
             ("music_tracks".to_string(), "audio_object_id".to_string()),
             ("music_tracks".to_string(), "cover_object_id".to_string()),
             ("users".to_string(), "avatar_object_id".to_string()),
@@ -278,14 +289,4 @@ mod sweep_tests {
         assert!(union.contains("SELECT audio_object_id AS id FROM music_tracks"));
         assert!(union.contains("SELECT avatar_object_id AS id FROM users"));
     }
-}
-
-/// Every object key the database knows about, for reconciling against the
-/// bucket. Returned as a set because the caller tests membership per key.
-pub async fn all_object_keys(pool: &PgPool) -> anyhow::Result<std::collections::HashSet<String>> {
-    let rows: Vec<(String,)> = sqlx::query_as("SELECT object_key FROM media_objects")
-        .fetch_all(pool)
-        .await
-        .context("db: list all media object keys")?;
-    Ok(rows.into_iter().map(|(k,)| k).collect())
 }

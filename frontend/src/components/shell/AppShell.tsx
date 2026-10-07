@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { Menu as MenuIcon, Search, X } from "lucide-react";
 import Sidebar from "./Sidebar";
@@ -94,7 +94,9 @@ export default function AppShell() {
               </Tooltip>
             </header>
             <main id="main" className="min-h-0 min-w-0 flex-1">
-              <Outlet />
+              <Suspense fallback={null}>
+                <Outlet />
+              </Suspense>
             </main>
           </div>
         </div>

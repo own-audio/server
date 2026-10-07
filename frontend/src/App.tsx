@@ -5,28 +5,30 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import FeatureGate from "./components/FeatureGate";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/auth/AuthPage";
-import SetupWizard from "./pages/setup/SetupWizard";
-import HomePage from "./pages/home/HomePage";
-import PodcastsPage from "./pages/podcasts/PodcastsPage";
-import AudiobooksPage from "./pages/audiobooks/AudiobooksPage";
-import { OrganizeRedirect } from "./pages/audiobooks/Organize";
-import MusicPage from "./pages/music/MusicPage";
 import SectionTheme from "./components/shell/SectionTheme";
-import DuplicatesPage from "./pages/music/MusicTools";
-import SettingsPage from "./pages/settings/SettingsPage";
-import PlaybackSettingsPage from "./pages/settings/PlaybackSettingsPage";
-import PrivatePage from "./pages/library/PrivatePage";
-import StatsPage from "./pages/stats/StatsPage";
-import FamilyPage from "./pages/family/FamilyPage";
-import BillingPage from "./pages/billing/BillingPage";
-import TrashPage from "./pages/trash/TrashPage";
-import JoinPage from "./pages/join/JoinPage";
-import LinkPage from "./pages/link/LinkPage";
-import PlayPage from "./pages/play/PlayPage";
-import TranslatePage from "./pages/podcasts/TranslatePage";
-import GenerateWizardPage from "./pages/generate/GenerateWizardPage";
-import GenerationStatusPage from "./pages/generate/GenerationStatusPage";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
+import { lazyPage } from "./lib/lazyPage";
+
+const SetupWizard = lazyPage(() => import("./pages/setup/SetupWizard"));
+const HomePage = lazyPage(() => import("./pages/home/HomePage"));
+const PodcastsPage = lazyPage(() => import("./pages/podcasts/PodcastsPage"));
+const AudiobooksPage = lazyPage(() => import("./pages/audiobooks/AudiobooksPage"));
+const OrganizeRedirect = lazyPage(() => import("./pages/audiobooks/Organize").then((m) => ({ default: m.OrganizeRedirect })));
+const MusicPage = lazyPage(() => import("./pages/music/MusicPage"));
+const DuplicatesPage = lazyPage(() => import("./pages/music/MusicTools"));
+const SettingsPage = lazyPage(() => import("./pages/settings/SettingsPage"));
+const PlaybackSettingsPage = lazyPage(() => import("./pages/settings/PlaybackSettingsPage"));
+const PrivatePage = lazyPage(() => import("./pages/library/PrivatePage"));
+const StatsPage = lazyPage(() => import("./pages/stats/StatsPage"));
+const FamilyPage = lazyPage(() => import("./pages/family/FamilyPage"));
+const BillingPage = lazyPage(() => import("./pages/billing/BillingPage"));
+const TrashPage = lazyPage(() => import("./pages/trash/TrashPage"));
+const JoinPage = lazyPage(() => import("./pages/join/JoinPage"));
+const LinkPage = lazyPage(() => import("./pages/link/LinkPage"));
+const PlayPage = lazyPage(() => import("./pages/play/PlayPage"));
+const TranslatePage = lazyPage(() => import("./pages/podcasts/TranslatePage"));
+const GenerateWizardPage = lazyPage(() => import("./pages/generate/GenerateWizardPage"));
+const GenerationStatusPage = lazyPage(() => import("./pages/generate/GenerationStatusPage"));
 
 interface AppProps {
   /** Additional route elements to render inside the protected layout */
@@ -39,6 +41,8 @@ interface AppProps {
 export default function App({ extraRoutes }: AppProps = {}) {
   return (
     <BrowserRouter>
+      {/* Pages outside the shell; pages inside it suspend within AppShell, so the sidebar stays put. */}
+      <Suspense fallback={null}>
       <Routes>
         <Route path="/auth/login" element={<AuthPage />} />
         <Route path="/setup" element={<SetupWizard />} />
@@ -116,6 +120,7 @@ export default function App({ extraRoutes }: AppProps = {}) {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      </Suspense>
     </BrowserRouter>
   );
 }

@@ -7,12 +7,30 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+- The release workflow pasted the image metadata into a shell string; once
+  the repository description contained an apostrophe, `v1.0.0-alpha.4` built
+  both images but created no tag. The metadata now goes through the
+  environment, and the step fails when it tags nothing.
+
 ### Added
 - A Docker Hub overview (`DOCKERHUB.md`), published by its own workflow
   whenever it changes; OCI labels on the image and annotations on the multi-arch
   index, so GHCR and Docker Hub show a description, the source and the licence.
 
 ### Changed
+- The web console loads each page on demand instead of as one 1.2 MB
+  script: the sign-in screen needs three small files, and the build no longer
+  warns about oversized chunks. A tab left open across a deploy reloads once
+  if a page it asks for is gone.
+- `npm audit fix` in the console: axios, react-router, vite, postcss and
+  their dependencies moved to patched versions within their majors; the audit
+  reports nothing now.
+- CI runs clippy on tests too (`--all-targets`); the two lints it found in a
+  test module are fixed.
+- A `.dockerignore` keeps `target/`, `node_modules/` and local `.env` files
+  out of the image build context; local builds no longer copy a Mac's
+  `node_modules` over the Linux ones.
 - CI and release workflows use the Node 24 majors of every action
   (checkout v7, setup-node v7, upload-artifact v7, download-artifact v8,
   Docker's login v4, setup-buildx v4, build-push v7, metadata v6), which

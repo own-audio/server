@@ -40,7 +40,7 @@ jobs:
         with: { workspaces: backend }
       - run: cargo check
         working-directory: backend
-      - run: cargo clippy -- -D warnings
+      - run: cargo clippy --all-targets -- -D warnings
         working-directory: backend
       - run: cargo test
         working-directory: backend
