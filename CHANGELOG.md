@@ -14,6 +14,8 @@ semver. Each release states the **API contract revision** it serves
   environment, and the step fails when it tags nothing.
 
 ### Added
+- `brand/github-avatar-512.png` and `brand/github-social-preview.png` for
+  the GitHub organisation and the repository's link preview.
 - A Docker Hub overview (`DOCKERHUB.md`), published by its own workflow
   whenever it changes; OCI labels on the image and annotations on the multi-arch
   index, so GHCR and Docker Hub show a description, the source and the licence.
