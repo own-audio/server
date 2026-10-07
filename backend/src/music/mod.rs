@@ -713,19 +713,40 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600;
 
 // ── Track handlers ────────────────────────────────────────────────────────
 
-async fn list_tracks(
-    family: FamilyContext,
-    State(state): State<AppState>,
-) -> Result<Json<Vec<TrackResponse>>, AuthError> {
-    let tracks = db::music::list_tracks(state.db(), family.viewer())
-        .await
-        .map_err(AuthError::Internal)?;
-    Ok(Json(
-        tracks
-            .into_iter()
-            .map(|t| track_to_response(t, family.user_id))
-            .collect(),
-    ))
+/// The whole list, as before, but streamed: rows go out as PostgreSQL returns
+/// them, so the server holds a few hundred tracks at a time whatever the
+/// catalog's size (docs/CAPACITY.md, issue #2). Same JSON array as ever.
+async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let (tx, rx) = tokio::sync::mpsc::channel(256);
+    tokio::spawn(db::music::send_tracks(state.db().clone(), family.viewer(), tx));
+    let viewer_id = family.user_id;
+    // (receiver, nothing sent yet, finished)
+    let body = futures_util::stream::unfold((rx, true, false), move |(mut rx, first, done)| async move {
+        if done {
+            return None;
+        }
+        match rx.recv().await {
+            Some(Ok(track)) => {
+                let mut buf = if first { b"[".to_vec() } else { b",".to_vec() };
+                if let Err(e) = serde_json::to_writer(&mut buf, &track_to_response(track, viewer_id)) {
+                    return Some((Err(std::io::Error::other(e)), (rx, first, true)));
+                }
+                Some((Ok(bytes::Bytes::from(buf)), (rx, false, false)))
+            }
+            Some(Err(e)) => {
+                // The status is already sent; cutting the body short is the only signal left.
+                tracing::warn!(error = %format!("{e:#}"), "track list: stream failed");
+                Some((Err(std::io::Error::other(e.to_string())), (rx, first, true)))
+            }
+            None => Some((Ok(bytes::Bytes::from_static(if first { b"[]" } else { b"]" })), (rx, first, true))),
+        }
+    });
+    (
+        [(axum::http::header::CONTENT_TYPE, "application/json")],
+        axum::body::Body::from_stream(body),
+    )
+        .into_response()
 }
 
 /// GET /api/v1/music/duplicates — DEDUPLICATION_PLAN.md P3. Exact-duplicate (`sha256`-matched)

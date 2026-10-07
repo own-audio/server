@@ -167,6 +167,27 @@ pub async fn list_tracks(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<Mu
         .context("db: list music tracks")
 }
 
+/// `list_tracks`, row by row: sends each track as PostgreSQL returns it, so a
+/// caller can stream the list out without holding the catalog in memory
+/// (docs/CAPACITY.md). Stops at the first error, or when the receiver is gone.
+pub async fn send_tracks(pool: PgPool, viewer: Viewer, out: tokio::sync::mpsc::Sender<anyhow::Result<MusicTrack>>) {
+    use futures_util::StreamExt;
+    let sql = format!(
+        "SELECT {TRACK_COLS_WITH_CHECKSUM}
+         FROM music_tracks t
+         JOIN media_objects mo ON mo.id = t.audio_object_id
+         WHERE {VISIBLE} ORDER BY t.title"
+    );
+    let mut rows = bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer, MUSIC).fetch(&pool);
+    while let Some(row) = rows.next().await {
+        let row = row.context("db: list music tracks");
+        let failed = row.is_err();
+        if out.send(row).await.is_err() || failed {
+            break;
+        }
+    }
+}
+
 pub async fn find_track(
     pool: &PgPool,
     id: Uuid,

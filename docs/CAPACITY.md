@@ -103,6 +103,29 @@ playlists are small enough at 1,000 books to stay unpaginated.
 The work is tracked in [issue #2](https://github.com/own-audio/server/issues/2) and planned in
 [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) ("Scale and footprint").
 
+## Measured: 600,000 tracks and 1,000 books (2026-10-07)
+
+`conformance/tools/scale_catalog.py` on the compose stack (Apple-silicon Mac,
+local storage), generated rows, no audio. Server process memory (`VmRSS`);
+idle 20 MiB with the catalog loaded.
+
+| Call | Before (alpha.5 + allocator settings) | After streaming the track list |
+|---|---|---|
+| `GET /music/tracks`, the whole list (309 MB of JSON) | 3.0 s, **peak 805 MiB** | 3.2 s, **peak 23 MiB** |
+| `GET /music/albums` | 2.0 s, peak 271 MiB | 2.0 s, peak 29 MiB |
+| `GET /music/artists` | 2.5 s | 2.6 s |
+| `GET /music/genres` | 1.1 s | 1.1 s |
+| `GET /audiobooks` (1,000 books) | 0.01 s | 0.01 s |
+| `GET /library/search` | 0.27 s | 0.28 s |
+| Subsonic `getAlbumList2` (50 newest) | 1.7 s | 1.7 s |
+| Subsonic `getArtists` | 2.6 s | 2.6 s, peak 66 MiB |
+| Subsonic `search3` | 3.6 s | 3.6 s, peak 73 MiB |
+| Server after the run | 308 MiB | 73 MiB |
+
+Memory is now flat for the largest response. Latency is not yet: the album,
+artist, genre and Subsonic calls aggregate the whole catalog on every request
+(gaps 1 and 8 below) — the target is under 300 ms.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

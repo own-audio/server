@@ -8,6 +8,10 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- `conformance/tools/scale_catalog.py`: fills a test database with a
+  generated catalog (600,000 tracks and 1,000 books in about half a minute)
+  and measures memory and latency of the browse calls. Results in
+  `docs/CAPACITY.md`.
 - Library folders: a file whose tags change is read again on the next scan;
   a moved or renamed file (same size and time, nothing left at the old path)
   keeps its item, so progress, stars and playlists stay.
@@ -48,6 +52,9 @@ semver. Each release states the **API contract revision** it serves
   PostgreSQL (both are SQLite-only, checked in their repositories).
 
 ### Changed
+- `GET /music/tracks` streams the list from the database instead of
+  building it in memory: at 600,000 tracks the server peaks at 23 MiB instead
+  of 805 MiB. Same JSON array, no client change.
 - The image sets `MALLOC_ARENA_MAX=2`, `MALLOC_MMAP_THRESHOLD_=131072` and
   `MALLOC_TRIM_THRESHOLD_=131072`: the server's peak under the test suite
   falls from 272 MiB to 27 MiB at the same speed.
