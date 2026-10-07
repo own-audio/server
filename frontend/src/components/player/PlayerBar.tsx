@@ -199,7 +199,9 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       } else if (track.kind === "music") {
         saveTrackProgress(track.trackId, position, completed).catch(() => {});
       } else {
-        saveBookProgress(track.bookId, track.fileId, track.bookPositionOffsetSecs + position, completed).catch(() => {});
+        // The position inside the playing file, as the API defines it; the
+        // server adds the file offsets itself for book-wide figures.
+        saveBookProgress(track.bookId, track.fileId, position, completed).catch(() => {});
       }
     },
     [track]

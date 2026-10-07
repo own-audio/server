@@ -53,6 +53,12 @@ semver. Each release states the **API contract revision** it serves
   development.
 
 ### Fixed
+- The web console saved audiobook progress as a position in the whole book,
+  while the API (and the native apps) store the position inside the playing
+  file. A book started in the browser resumed too far in on a phone and showed
+  more than 100 % on the shelf; one started on a phone resumed at the start of
+  its file in the browser. The console now saves and resumes the in-file
+  position, and still reads positions it saved the old way.
 - Streaming a podcast episode that is not downloaded yet answers
   `409 episode_not_downloaded` instead of a `500` that logged an internal
   error.

@@ -19,6 +19,18 @@ export function isCurrentBook(bookId: string) {
 /** `startAt` is a position *within the starting file*, for a handoff where the
  *  other device already told us where it was; otherwise the server's own saved
  *  progress decides. */
+/** Where to resume inside the saved file. The API stores the position within
+ *  that file; until 1.0.0-alpha.5 this console saved a book-wide position
+ *  instead, so a value longer than the file is read the old way. */
+export function fileResumePosition(saved: number, fileOffset: number, fileDuration: number | null | undefined): number {
+  if (fileDuration && saved > fileDuration) {
+    const old = saved - fileOffset;
+    // Neither reading fits the file: start it from the beginning rather than past its end.
+    return fileOffset > 0 && old >= 0 && old <= fileDuration ? old : 0;
+  }
+  return Math.max(0, saved);
+}
+
 export async function playBook(book: AudioBook, startFileId?: string, startAt?: number) {
   const store = usePlayerStore.getState();
   const current = store.track;
@@ -50,7 +62,7 @@ export async function playBook(book: AudioBook, startFileId?: string, startAt?: 
       imageUrl: book.cover_url ?? null,
       streamUrl: urls[i],
       durationSecs: file.duration_secs,
-      resumePosition: isResumeFile && progress ? Math.max(0, progress.position_secs - fileOffset) : 0,
+      resumePosition: isResumeFile && progress ? fileResumePosition(progress.position_secs, fileOffset, file.duration_secs) : 0,
       bookPositionOffsetSecs: fileOffset,
       bookTotalDurationSecs: book.total_duration_secs,
     };
