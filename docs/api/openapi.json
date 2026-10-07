@@ -10,6 +10,308 @@
     "version": "1.4"
   },
   "paths": {
+    "/api/v1/admin/families": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Every family on the server",
+        "description": "every family on the server. No storage\nfigure here: `db::storage_usage::family_storage` is 4 queries per family\n(see its own doc comment), fine for one family on demand, too expensive\nto run for every row of a list. Storage only appears on the detail route.",
+        "operationId": "admin_list_families",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminFamilySummaryResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/families/trash": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Trash size and restore patterns per family",
+        "operationId": "admin_trash_stats",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminTrashStatsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/families/{id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "One family's members, storage, and credit history",
+        "description": "one family's members, storage, and\ncredit history. Same underlying calls as `GET /family/billing`\n(`families::get_billing`), just against a path param instead of the\ncaller's own `FamilyContext.family_id`.",
+        "operationId": "admin_get_family_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The family's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminFamilyDetailResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Only ever deletes an *empty* family (no members)",
+        "description": "only ever deletes an *empty* family\n(no members). This is a cleanup tool for orphaned families (e.g. one left\nbehind by deleting its last member's account directly, see\n`users::admin_delete_user`), not a way to remove a real household —\nthere is deliberately no way to delete a family that still has people in\nit through this route.",
+        "operationId": "admin_delete_family",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The family's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "400": {
+            "description": "Family still has members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/families/{id}/lock": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Instance-admin equivalent of a family_admin blocking every member of their own family (`families::block_member`), for a whole household at once: every account that can currently sign in is deactivated and every existing session/refresh token revoked, so an already-signed-in device is cut off immediately too",
+        "description": "instance-admin equivalent of a\nfamily_admin blocking every member of their own family\n(`families::block_member`), for a whole household at once: every account\nthat can currently sign in is deactivated and every existing\nsession/refresh token revoked, so an already-signed-in device is cut off\nimmediately too. There is no separate \"locked\" flag on `families` — a\nfamily's lock state is just \"none of its members can sign in\", read back\nfrom the same per-member `is_active` the detail view already returns.",
+        "operationId": "admin_lock_family",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The family's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Every member deactivated and signed out"
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/admin/families/{id}/unlock": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Reactivate every locked member",
+        "description": "reactivate every locked member.\nThey still need to sign in again, same as `families::unblock_member`.",
+        "operationId": "admin_unlock_family",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The family's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Every member reactivated"
+          },
+          "401": {
+            "description": "Not signed in, or not an instance admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/admin/stats": {
       "get": {
         "tags": [
@@ -1240,6 +1542,1721 @@
         ]
       }
     },
+    "/api/v1/family": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "The caller's family, members, and own role",
+        "operationId": "family_get_family",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Rename the family (family_admin only)",
+        "operationId": "family_update_family",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFamilyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Renamed"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/avatar": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Any family member (not just admins) can view it",
+        "operationId": "family_get_family_avatar",
+        "responses": {
+          "200": {
+            "description": "The image",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No family photo set",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Set the family's own photo (family_admin only, same gate as renaming)",
+        "description": "set the family's own photo (family_admin only, same gate as\nrenaming). Distinct from a member's personal avatar (`crate::users::upload_avatar`); this one\nis shared, shown at the top of every member's Family tab.",
+        "operationId": "family_upload_family_avatar",
+        "requestBody": {
+          "description": "fields: `avatar` (an image file, under 5 MB)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Remove the family photo (family_admin only)",
+        "description": "remove the family photo (family_admin only). Stored object is\nleft in place, same as every other cover-replace path in this API.",
+        "operationId": "family_delete_family_avatar",
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/content-reports": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "The admin's moderation queue",
+        "operationId": "family_list_content_reports",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContentReportResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Any member, including one who may not upload",
+        "description": "any member, including one who may not\nupload. Reporting is the counterweight to a family library nobody outside\nthe household moderates, so it must not be a privilege.",
+        "operationId": "family_create_content_report",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Reported"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/content-reports/{id}/resolve": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Close a report in the moderation queue (family_admin only)",
+        "operationId": "family_resolve_content_report",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The report's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Resolved"
+          },
+          "401": {
+            "description": "Not signed in, or no such open report",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/content/{kind}/{item_id}/audience": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Who in the family can currently play this item",
+        "description": "who in the family\ncan currently play this item. Drives the \"who can listen\" widget.",
+        "operationId": "family_content_audience",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "`audiobook`, `podcast` or `music`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "description": "The item's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudienceEntry"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown kind",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Say who may hear one item (family_admin only)",
+        "description": "say who may hear one item\n(family_admin only).\n\nThe other direction from `PUT /members/{id}/grants`, over the same `content_grants` rows: that\none answers \"what may this person reach\", this one answers \"who may reach this\". An admin\nlooking at a book thinks the second way, and had no way to say it.\n\nOwners and family admins are filtered out rather than rejected. `audio2_can_access` gives them\naccess unconditionally, so a request that leaves one out is not refused — it just cannot take\naway what the rule grants, and the response says so by still reporting them as listeners.",
+        "operationId": "family_set_content_audience",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "`audiobook`, `podcast` or `music`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "description": "The item's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAudienceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The audience as it now resolves",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AudienceEntry"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/content/{kind}/{item_id}/request-access": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "A member who cannot hear a family-shared item asks the family's admins to change that, rather than the item just staying invisible with no way to act on it",
+        "description": "A member who cannot hear a family-shared item asks the family's admins to change that, rather\nthan the item just staying invisible with no way to act on it. Notifies every admin — a family\nhas no single \"owner of permissions\", and a request only one admin happens to see is not much\nbetter than no request feature.\n\nNo de-duplication: a second tap sends a second notification. Acceptable for a household-sized\nfamily and simpler than a request log; the client disables the button once it succeeds so a\ndouble-click is the only realistic repeat, not a real gap.",
+        "operationId": "family_request_content_access",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "path",
+            "description": "`audiobook`, `podcast` or `music`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "description": "The item's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The family admins were notified"
+          },
+          "400": {
+            "description": "Unknown kind",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such item shared with this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/invites": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Pending invites (family_admin only)",
+        "operationId": "family_list_invites",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/InviteResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Create an `email` or `link` invite (family_admin only)",
+        "description": "create an `email` or `link` invite\n(family_admin only). `email` invites are mailed immediately when the\nserver has mail configured (`crate::mail`) and work for registration\neven on instances where open registration is disabled; `link` invites\nare always `member`-role (decision D3 — a shareable code must never be\nable to grant admin) and may be redeemed by up to `max_uses` accounts.",
+        "operationId": "family_create_invite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/invites/accept": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Join the inviting family",
+        "description": "join the inviting family.\nRequires an authenticated account whose email matches the invite.",
+        "operationId": "family_accept_invite",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FamilyResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Code not valid, used, expired, or issued to another address",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/invites/{id}": {
+      "delete": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Revoke a pending invite",
+        "operationId": "family_delete_invite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The invite's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Revoked"
+          },
+          "401": {
+            "description": "Not signed in, or no such invite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/invites/{id}/regenerate": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Mint a fresh code and TTL for a pending invite, invalidating the old one (family_admin only)",
+        "description": "mint a fresh code and TTL\nfor a pending invite, invalidating the old one (family_admin only). Used\nfor \"resend\"/\"show QR again\" without changing what the invite grants.",
+        "operationId": "family_regenerate_invite",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The invite's id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invite already used",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such invite",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Everyone in the caller's family",
+        "operationId": "family_list_members",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MemberResponse"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/provision": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Create an account for a member with no mailbox of their own (a kid, a grandparent) and hand back a `claim` invite so they can set their own password (family_admin only)",
+        "description": "create an account for a member\nwith no mailbox of their own (a kid, a grandparent) and hand back a\n`claim` invite so they can set their own password (family_admin only).\nThe account has no auth identity until claimed — see `pending` on\n`MemberResponse`.",
+        "operationId": "family_provision_member",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProvisionMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProvisionMemberResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}": {
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Change role and/or label (family_admin only)",
+        "operationId": "family_update_member",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateMemberRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Updated"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Remove a member, or leave the family when removing yourself",
+        "description": "remove a member, or leave the\nfamily when removing yourself. The removed user lands in a fresh personal\nfamily so they keep working as a solo account.",
+        "operationId": "family_remove_member",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed, or left"
+          },
+          "400": {
+            "description": "Would remove the last family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin, removing someone else",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The server has one family: block or delete the account instead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/access": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "A member's effective restrictions (family_admin only)",
+        "operationId": "family_get_member_access",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberAccessResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/avatar": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Set a fellow member's profile picture on their behalf (family_admin only)",
+        "description": "set a fellow member's profile picture on\ntheir behalf (family_admin only). Distinct from `crate::users::upload_avatar`\n(`POST /users/me/avatar`, self-serve): this is the one admin-managed exception, for a member\nwith no easy way to set their own (e.g. a kid's provisioned account, or just a parent doing it\nfor them) — same `users.avatar_object_id` column and storage key shape either way.",
+        "operationId": "family_upload_member_avatar",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `avatar` (an image file, under 5 MB)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Remove a fellow member's photo (family_admin only)",
+        "description": "remove a fellow member's photo\n(family_admin only). Stored object left in place, same as every other cover-replace path.",
+        "operationId": "family_delete_member_avatar",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/block": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Deactivate a fellow member's account (family_admin only): they can no longer log in, and every existing session/refresh token is revoked immediately, so an already-signed-in device is cut off too — not just \"can't sign back in\"",
+        "description": "deactivate a fellow member's account\n(family_admin only): they can no longer log in, and every existing session/refresh token is\nrevoked immediately, so an already-signed-in device is cut off too — not just \"can't sign\nback in\". Distinct from `remove_member`: this doesn't touch family membership or shared\ncontent, it only stops the account from being usable. Scoped to the caller's own family via\n`require_member` — a family_admin still can't touch a user outside their family, unlike the\ninstance-wide `PATCH /users/{id}` this reuses `is_active` from.",
+        "operationId": "family_block_member",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Blocked"
+          },
+          "400": {
+            "description": "Blocking yourself",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/grants": {
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Replace a member's item-level overrides for one media kind (family_admin only)",
+        "description": "replace a member's\nitem-level overrides for one media kind (family_admin only).\n\nBulk replace rather than per-item edits: the admin UI is a checkbox list,\nand replacing wholesale keeps it consistent with what was on screen.",
+        "operationId": "family_replace_member_grants",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReplaceGrantsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/policy": {
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Set a member's default for one media kind (family_admin only)",
+        "operationId": "family_set_member_policy",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPolicyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "description": "Invalid request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/members/{user_id}/unblock": {
+      "post": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Reactivate a member's account (family_admin only)",
+        "description": "reactivate a member's account\n(family_admin only). They still need to sign in again — this doesn't restore any session that\n`block_member` revoked.",
+        "operationId": "family_unblock_member",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "description": "The member's user id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unblocked"
+          },
+          "401": {
+            "description": "Not signed in, or no such member in this family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/settings/audio-analysis": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Whether library audio analysis is on, and how far it has got",
+        "operationId": "family_get_audio_analysis",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioAnalysisResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Turn library audio analysis on or off (family_admin only)",
+        "description": "turn library audio analysis\non or off (family_admin only).\n\nEnabling queues the family's unmeasured library, most-played first.\nDisabling stops new work and **keeps every measurement already taken** —\ndeleting them would mean re-fetching the library if the user changed their\nmind, which is the one expensive thing in this feature.",
+        "operationId": "family_set_audio_analysis",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetAudioAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AudioAnalysisResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/storage": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "What the family's library occupies, per media kind",
+        "description": "what the family's library occupies, per\nmedia kind. Any member. The core's half of what `/family/billing` shows\nin the hosted edition; a client that only needs bytes asks here.",
+        "operationId": "family_get_family_storage",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BillingStorage"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/jobs": {
       "get": {
         "tags": [
@@ -1327,6 +3344,122 @@
             "bearer": []
           }
         ]
+      }
+    },
+    "/api/v1/join/{code}": {
+      "get": {
+        "tags": [
+          "join"
+        ],
+        "summary": "Public preview for the QR/link landing page",
+        "description": "public preview for the QR/link landing page.\nUnknown codes are a plain 404; known-but-dead codes report their status\nonly — family name and inviter are revealed to valid-code holders alone\n(decision D6).",
+        "operationId": "join_join_preview",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "description": "The invite code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinPreviewResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unknown code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/join/{code}/claim": {
+      "post": {
+        "tags": [
+          "join"
+        ],
+        "summary": "Set a password on a pre-provisioned account and sign in",
+        "description": "set a password on a pre-provisioned\naccount and sign in. `claim` kind only; possession of the code is the\nsole credential, same as every other invite kind.",
+        "operationId": "join_claim_provisioned_account",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "description": "The claim code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimInviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Claimed and signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Password too short, or the code is not a valid, unused claim code",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/library/changes": {
@@ -3719,6 +5852,17 @@
   },
   "components": {
     "schemas": {
+      "AcceptInviteRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
       "AckRequest": {
         "type": "object",
         "required": [
@@ -3766,6 +5910,163 @@
           },
           "role": {
             "type": "string"
+          }
+        }
+      },
+      "AdminFamilyDetailResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "members",
+          "storage",
+          "balance_micro",
+          "last_charge",
+          "entries"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminFamilyMemberResponse"
+            }
+          },
+          "storage": {
+            "$ref": "#/components/schemas/BillingStorage"
+          },
+          "balance_micro": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_charge": {},
+          "entries": {}
+        }
+      },
+      "AdminFamilyMemberResponse": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "role",
+          "is_active",
+          "joined_at"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "joined_at": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminFamilySummaryResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "member_count",
+          "balance_micro",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "member_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "balance_micro": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
+      "AdminTrashStatsResponse": {
+        "type": "object",
+        "required": [
+          "family_id",
+          "family_name",
+          "trashed_items",
+          "trashed_bytes",
+          "restores_30d",
+          "restored_bytes_30d",
+          "max_restores_one_item_30d",
+          "flagged"
+        ],
+        "properties": {
+          "family_id": {
+            "type": "string"
+          },
+          "family_name": {
+            "type": "string"
+          },
+          "trashed_items": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "trashed_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "restores_30d": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "restored_bytes_30d": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "max_restores_one_item_30d": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "library_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "flagged": {
+            "type": "boolean",
+            "description": "A pattern worth a look: more restored in 30 days than the whole\nlibrary holds, or one item restored more than three times. Restores\nalready pay for their days in the trash (docs/file-sync-plan.md §2\nitem 12), so this is for noticing, not for blocking."
           }
         }
       },
@@ -3866,6 +6167,108 @@
           }
         }
       },
+      "AudienceEntry": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "display_name",
+          "can_listen",
+          "locked"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "can_listen": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "True when access cannot be taken away: the item's owner, or a family admin. A client\nshould show the state and no control, rather than a control that silently does nothing."
+          }
+        }
+      },
+      "AudioAnalysisResponse": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "measured",
+          "total",
+          "running"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "enabled_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "measured": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tracks measured at the current extractor version."
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Tracks in this family's library worth measuring."
+          },
+          "running": {
+            "type": "boolean",
+            "description": "True while there is queued work — what a client shows a bar for."
+          }
+        }
+      },
+      "BillingStorage": {
+        "type": "object",
+        "required": [
+          "total_bytes",
+          "audiobooks_bytes",
+          "podcasts_bytes",
+          "music_bytes",
+          "other_bytes",
+          "unsized_objects"
+        ],
+        "properties": {
+          "total_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "audiobooks_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "podcasts_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "music_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "other_bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unsized_objects": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Referenced objects with no recorded size — counted as zero bytes, so a\nnon-zero value here means `total_bytes` is an undercount."
+          }
+        }
+      },
       "ChangePasswordRequest": {
         "type": "object",
         "required": [
@@ -3920,6 +6323,44 @@
               "$ref": "#/components/schemas/DeletedItem"
             },
             "description": "Items removed since `since`, so the client can purge its cache."
+          }
+        }
+      },
+      "ClaimInviteRequest": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ClaimPreview": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "login_email"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "login_email": {
+            "type": "string"
           }
         }
       },
@@ -4020,6 +6461,46 @@
             "type": "string"
           },
           "display_name": {
+            "type": "string"
+          }
+        }
+      },
+      "ContentReportResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "media_kind",
+          "item_id",
+          "reason",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reporter_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`null` when the reporter has since been deleted — the report stands."
+          },
+          "media_kind": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
             "type": "string"
           }
         }
@@ -4172,6 +6653,68 @@
             }
           }
         ]
+      },
+      "CreateInviteRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`email` (default) or `link`. `claim` invites are created only via\n`POST /family/members/provision`, never directly."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Required when `kind = \"email\"`; ignored otherwise."
+          },
+          "role": {
+            "type": "string"
+          },
+          "max_uses": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "`link` kind only: how many separate accounts may redeem this code\n(1–20, default 1). A fridge QR wants more than one."
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Admin-facing note (\"fridge QR\"); never shown to the invitee."
+          }
+        }
+      },
+      "CreateReportRequest": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "item_id",
+          "reason"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string",
+            "description": "`audiobook` | `podcast` | `music`."
+          },
+          "item_id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "reason": {
+            "type": "string",
+            "description": "`offensive` | `inaccurate` | `not_for_children` | `other`."
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "DashboardResponse": {
         "type": "object",
@@ -4381,6 +6924,58 @@
           "error": {
             "type": "string",
             "description": "What went wrong, in English; not meant to be matched on."
+          }
+        }
+      },
+      "FamilyResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "my_role",
+          "my_user_id",
+          "my_can_upload",
+          "my_can_generate",
+          "members",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "my_role": {
+            "type": "string",
+            "description": "The calling user's role in this family."
+          },
+          "my_user_id": {
+            "type": "string",
+            "description": "The calling user's own id — lets clients find \"myself\" in `members`\nwithout threading a separate profile fetch through just for that\n(e.g. a \"Leave family\" button targeting `DELETE /members/{my_user_id}`)."
+          },
+          "my_can_upload": {
+            "type": "boolean",
+            "description": "The caller's own permissions, so a client need not locate itself in\n`members` to decide whether to show an upload affordance."
+          },
+          "my_can_generate": {
+            "type": "boolean"
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`/api/v1/family/avatar` when the family has set a photo, else `null`.\nfamily_admin-managed, like the name — see `families::upload_avatar`."
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MemberResponse"
+            }
+          },
+          "created_at": {
+            "type": "string"
           }
         }
       },
@@ -4607,6 +7202,25 @@
           }
         }
       },
+      "GrantEntry": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "item_id",
+          "effect"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string"
+          },
+          "item_id": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          }
+        }
+      },
       "HistoryEntry": {
         "type": "object",
         "required": [
@@ -4774,6 +7388,75 @@
           }
         }
       },
+      "InviteResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "code",
+          "role",
+          "max_uses",
+          "use_count",
+          "created_at",
+          "expires_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`email` | `link` | `claim`."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "type": "string",
+            "description": "The bearer code the invitee redeems. Deliver it out-of-band."
+          },
+          "role": {
+            "type": "string"
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "max_uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "use_count": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "join_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`{base_url}/join/{code}` when `server.base_url` is configured, else\n`null` — clients fall back to building it from their connected origin."
+          },
+          "member_user_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`kind: \"claim\"` only — the provisioned account this code activates, so\na client can match a pending `MemberResponse` back to its invite (to\nre-show the code / offer \"regenerate\") without a second lookup."
+          }
+        }
+      },
       "JobResponse": {
         "type": "object",
         "required": [
@@ -4824,6 +7507,73 @@
           },
           "created_at": {
             "type": "string"
+          }
+        }
+      },
+      "JoinPreviewResponse": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "`valid` | `expired` | `exhausted`. Unknown codes are a plain 404\ninstead — see decision D6 on what dead codes may reveal."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "family_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "inviter_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "member_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "expires_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "uses_left": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "claim": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ClaimPreview",
+                "description": "`kind = \"claim\"` only: who this code signs the claimant in as."
+              }
+            ]
           }
         }
       },
@@ -4894,6 +7644,96 @@
           },
           "user": {
             "$ref": "#/components/schemas/UserInfo"
+          }
+        }
+      },
+      "MemberAccessResponse": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "policies",
+          "grants"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "policies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolicyEntry"
+            },
+            "description": "Per-kind default: `allow_all` (the implicit default) or `deny_all`."
+          },
+          "grants": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GrantEntry"
+            },
+            "description": "Item-level overrides on top of the defaults."
+          }
+        }
+      },
+      "MemberResponse": {
+        "type": "object",
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "role",
+          "is_active",
+          "pending",
+          "joined_at",
+          "age_bracket",
+          "can_upload",
+          "can_generate"
+        ],
+        "properties": {
+          "user_id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Optional in-family label (\"Dad\"); falls back to display_name in UIs."
+          },
+          "role": {
+            "type": "string"
+          },
+          "is_active": {
+            "type": "boolean"
+          },
+          "pending": {
+            "type": "boolean",
+            "description": "True for a provisioned account nobody has claimed yet."
+          },
+          "avatar_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`/api/v1/users/{user_id}/avatar` when the member has set one, else\n`null`. A relative path, same convention as every other cover URL in\nthis API (e.g. `audiobooks::book_to_response`'s `cover_url`)."
+          },
+          "joined_at": {
+            "type": "string"
+          },
+          "age_bracket": {
+            "type": "string",
+            "description": "`adult` | `teen` | `child`. Admin-set; see docs/family-permissions-plan.md."
+          },
+          "can_upload": {
+            "type": "boolean"
+          },
+          "can_generate": {
+            "type": "boolean"
           }
         }
       },
@@ -5078,6 +7918,21 @@
           }
         }
       },
+      "PolicyEntry": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "policy"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string"
+          },
+          "policy": {
+            "type": "string"
+          }
+        }
+      },
       "PollRequest": {
         "type": "object",
         "required": [
@@ -5211,6 +8066,44 @@
           }
         }
       },
+      "ProvisionMemberRequest": {
+        "type": "object",
+        "required": [
+          "display_name",
+          "login_email"
+        ],
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "login_email": {
+            "type": "string",
+            "description": "An email-shaped login identifier the admin picks for a member with no\nreal mailbox (e.g. `lena@maraz.family`). Stored in `users.email` and\nused to sign in; no mail is ever sent to it."
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProvisionMemberResponse": {
+        "type": "object",
+        "required": [
+          "member",
+          "invite"
+        ],
+        "properties": {
+          "member": {
+            "$ref": "#/components/schemas/MemberResponse"
+          },
+          "invite": {
+            "$ref": "#/components/schemas/InviteResponse",
+            "description": "A `claim` invite for the new account — show its QR/link/code so the\nmember can set their own password."
+          }
+        }
+      },
       "PushTokenResponse": {
         "type": "object",
         "required": [
@@ -5308,6 +8201,33 @@
         "properties": {
           "registration_open": {
             "type": "boolean"
+          }
+        }
+      },
+      "ReplaceGrantsRequest": {
+        "type": "object",
+        "required": [
+          "media_kind"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string"
+          },
+          "allow": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Items this member may play regardless of their default policy."
+          },
+          "deny": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Items this member may not play regardless of their default policy."
           }
         }
       },
@@ -5448,6 +8368,50 @@
             }
           }
         ]
+      },
+      "SetAudienceRequest": {
+        "type": "object",
+        "required": [
+          "can_listen"
+        ],
+        "properties": {
+          "can_listen": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "Who may hear this item, by user id. Anyone left out is denied.\n\nThe whole audience, not a delta: an admin editing this list is looking at all of it, and a\npatch shape would make two admins on two screens silently overwrite each other field by\nfield instead of last-write-wins on something they could both see."
+          }
+        }
+      },
+      "SetAudioAnalysisRequest": {
+        "type": "object",
+        "required": [
+          "enabled"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SetPolicyRequest": {
+        "type": "object",
+        "required": [
+          "media_kind",
+          "policy"
+        ],
+        "properties": {
+          "media_kind": {
+            "type": "string",
+            "description": "`audiobook`, `podcast`, or `music`."
+          },
+          "policy": {
+            "type": "string",
+            "description": "`allow_all` or `deny_all`."
+          }
+        }
       },
       "SetStatsVisibilityRequest": {
         "type": "object",
@@ -6159,6 +9123,54 @@
           },
           "title": {
             "type": "string"
+          }
+        }
+      },
+      "UpdateFamilyRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateMemberRequest": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "age_bracket": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`adult` | `teen` | `child`."
+          },
+          "can_upload": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "can_generate": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "display_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Present-but-null clears the label."
           }
         }
       },

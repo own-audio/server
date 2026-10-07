@@ -13,14 +13,14 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, Json, Multipart, Path, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post, put};
 use serde::{Deserialize, Serialize};
 use std::path::Path as StdPath;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 use argon2::password_hash::rand_core::{OsRng, RngCore};
@@ -49,7 +49,7 @@ const MAX_MEMBER_AVATAR_BYTES: usize = 5 * 1024 * 1024;
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FamilyResponse {
     pub id: String,
     pub name: String,
@@ -70,7 +70,7 @@ pub struct FamilyResponse {
     pub created_at: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct MemberResponse {
     pub user_id: String,
     pub email: String,
@@ -92,7 +92,7 @@ pub struct MemberResponse {
     pub can_generate: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateReportRequest {
     /// `audiobook` | `podcast` | `music`.
     pub media_kind: String,
@@ -102,7 +102,7 @@ pub struct CreateReportRequest {
     pub note: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ContentReportResponse {
     pub id: String,
     /// `null` when the reporter has since been deleted — the report stands.
@@ -114,12 +114,12 @@ pub struct ContentReportResponse {
     pub created_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateFamilyRequest {
     pub name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateMemberRequest {
     pub role: Option<String>,
     /// `adult` | `teen` | `child`.
@@ -131,7 +131,7 @@ pub struct UpdateMemberRequest {
     pub display_label: Option<Option<String>>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateInviteRequest {
     /// `email` (default) or `link`. `claim` invites are created only via
     /// `POST /family/members/provision`, never directly.
@@ -148,7 +148,7 @@ pub struct CreateInviteRequest {
     pub label: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct InviteResponse {
     pub id: String,
     /// `email` | `link` | `claim`.
@@ -171,12 +171,12 @@ pub struct InviteResponse {
     pub member_user_id: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AcceptInviteRequest {
     pub code: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ProvisionMemberRequest {
     pub display_name: String,
     /// An email-shaped login identifier the admin picks for a member with no
@@ -187,7 +187,7 @@ pub struct ProvisionMemberRequest {
     pub display_label: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ProvisionMemberResponse {
     pub member: MemberResponse,
     /// A `claim` invite for the new account — show its QR/link/code so the
@@ -195,10 +195,11 @@ pub struct ProvisionMemberResponse {
     pub invite: InviteResponse,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct JoinPreviewResponse {
     /// `valid` | `expired` | `exhausted`. Unknown codes are a plain 404
     /// instead — see decision D6 on what dead codes may reveal.
+    #[schema(value_type = String)]
     pub status: &'static str,
     pub kind: Option<String>,
     pub family_name: Option<String>,
@@ -211,13 +212,13 @@ pub struct JoinPreviewResponse {
     pub claim: Option<ClaimPreview>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ClaimPreview {
     pub display_name: String,
     pub login_email: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ClaimInviteRequest {
     pub password: String,
     #[serde(default)]
@@ -246,60 +247,53 @@ where
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(get_family))
-        .route("/", put(update_family))
-        .route("/storage", get(get_family_storage))
-        .route(
-            "/avatar",
-            post(upload_family_avatar).layer(DefaultBodyLimit::max(FAMILY_AVATAR_BODY_LIMIT_BYTES)),
-        )
-        .route("/avatar", delete(delete_family_avatar))
-        .route("/avatar", get(get_family_avatar))
-        .route("/settings/audio-analysis", get(get_audio_analysis))
-        .route("/settings/audio-analysis", put(set_audio_analysis))
-        .route("/members", get(list_members))
-        .route("/members/provision", post(provision_member))
-        .route("/members/{user_id}", put(update_member))
-        .route("/members/{user_id}", delete(remove_member))
-        .route("/members/{user_id}/block", post(block_member))
-        .route("/members/{user_id}/unblock", post(unblock_member))
-        .route(
-            "/members/{user_id}/avatar",
-            post(upload_member_avatar).layer(DefaultBodyLimit::max(MEMBER_AVATAR_BODY_LIMIT_BYTES)),
-        )
-        .route("/members/{user_id}/avatar", delete(delete_member_avatar))
-        .route("/invites", get(list_invites))
-        .route("/invites", post(create_invite))
-        .route("/invites/{id}", delete(delete_invite))
-        .route("/invites/{id}/regenerate", post(regenerate_invite))
-        .route("/invites/accept", post(accept_invite))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(get_family, update_family))
+        .routes(routes!(get_family_storage))
+        .routes(crate::http::openapi::map(routes!(upload_family_avatar), |m| {
+            m.layer(DefaultBodyLimit::max(FAMILY_AVATAR_BODY_LIMIT_BYTES))
+        }))
+        .routes(routes!(delete_family_avatar, get_family_avatar))
+        .routes(routes!(get_audio_analysis, set_audio_analysis))
+        .routes(routes!(list_members))
+        .routes(routes!(provision_member))
+        .routes(routes!(update_member, remove_member))
+        .routes(routes!(block_member))
+        .routes(routes!(unblock_member))
+        .routes(crate::http::openapi::map(routes!(upload_member_avatar), |m| {
+            m.layer(DefaultBodyLimit::max(MEMBER_AVATAR_BODY_LIMIT_BYTES))
+        }))
+        .routes(routes!(delete_member_avatar))
+        .routes(routes!(list_invites, create_invite))
+        .routes(routes!(delete_invite))
+        .routes(routes!(regenerate_invite))
+        .routes(routes!(accept_invite))
         // Parental controls over shared content
-        .route("/members/{user_id}/access", get(get_member_access))
-        .route("/members/{user_id}/policy", put(set_member_policy))
-        .route("/members/{user_id}/grants", put(replace_member_grants))
-        .route("/content/{kind}/{item_id}/audience", get(content_audience))
-        .route("/content/{kind}/{item_id}/audience", put(set_content_audience))
-        .route("/content/{kind}/{item_id}/request-access", post(request_content_access))
+        .routes(routes!(get_member_access))
+        .routes(routes!(set_member_policy))
+        .routes(routes!(replace_member_grants))
+        .routes(routes!(content_audience, set_content_audience))
+        .routes(routes!(request_content_access))
         // Content reports — required in-app by Play for AI output and for
         // content shared between accounts; see audio2-android-book/PLAY_COMPLIANCE.md.
-        .route("/content-reports", post(create_content_report))
-        .route("/content-reports", get(list_content_reports))
-        .route("/content-reports/{id}/resolve", post(resolve_content_report))
+        .routes(routes!(create_content_report, list_content_reports))
+        .routes(routes!(resolve_content_report))
 }
 
 /// Public join router — nested at `/api/v1/join`, no auth required. The
 /// bearer code is the credential; see decision D6 on what dead codes reveal.
-pub fn join_router(limits: &crate::http::rate_limit::Limiters) -> Router<AppState> {
-    Router::new()
-        .route("/{code}", limits.join.apply(get(join_preview)))
-        .route("/{code}/claim", limits.join.apply(post(claim_provisioned_account)))
+pub fn join_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(crate::http::openapi::map(routes!(join_preview), |m| limits.join.apply(m)))
+        .routes(crate::http::openapi::map(routes!(claim_provisioned_account), |m| limits.join.apply(m)))
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/family — the caller's family, members, and own role.
+#[utoipa::path(get, path = "/", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = FamilyResponse), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn get_family(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -327,6 +321,9 @@ async fn get_family(
 }
 
 /// PUT /api/v1/family — rename the family (family_admin only).
+#[utoipa::path(put, path = "/", tag = "family", security(("bearer" = [])),
+    request_body = UpdateFamilyRequest,
+    responses((status = 204, description = "Renamed"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn update_family(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -349,6 +346,9 @@ async fn update_family(
 /// POST /api/v1/family/avatar — set the family's own photo (family_admin only, same gate as
 /// renaming). Distinct from a member's personal avatar (`crate::users::upload_avatar`); this one
 /// is shared, shown at the top of every member's Family tab.
+#[utoipa::path(post, path = "/avatar", tag = "family", security(("bearer" = [])),
+    request_body(content_type = "multipart/form-data", description = "fields: `avatar` (an image file, under 5 MB)"),
+    responses((status = 204, description = "Saved"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn upload_family_avatar(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -426,6 +426,8 @@ async fn upload_family_avatar(
 
 /// DELETE /api/v1/family/avatar — remove the family photo (family_admin only). Stored object is
 /// left in place, same as every other cover-replace path in this API.
+#[utoipa::path(delete, path = "/avatar", tag = "family", security(("bearer" = [])),
+    responses((status = 204, description = "Removed"), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn delete_family_avatar(family: FamilyContext, State(state): State<AppState>) -> Result<StatusCode, AuthError> {
     family.require_family_admin()?;
     db::families::set_avatar(state.db(), family.family_id, None)
@@ -435,6 +437,8 @@ async fn delete_family_avatar(family: FamilyContext, State(state): State<AppStat
 }
 
 /// GET /api/v1/family/avatar — any family member (not just admins) can view it.
+#[utoipa::path(get, path = "/avatar", tag = "family", security(("bearer" = [])),
+    responses((status = 200, description = "The image", content_type = "image/*"), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 404, description = "No family photo set", body = crate::http::openapi::ErrorBody)))]
 async fn get_family_avatar(family: FamilyContext, State(state): State<AppState>) -> Result<Response, AuthError> {
     let (object_key, content_type) = db::families::find_avatar(state.db(), family.family_id)
         .await
@@ -453,14 +457,13 @@ fn family_avatar_extension(file_name: &str) -> Option<&str> {
         .filter(|ext| !ext.is_empty())
 }
 
-/// GET /api/v1/family/members
 // ── Library audio analysis opt-in ─────────────────────────────────────────
 //
 // Measuring a library means fetching every object back out of storage and
 // decoding it. It happens because someone asked, not by default. See
 // docs/music-signals-and-smart-playlists-plan.md §3.4 and migration 0073.
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AudioAnalysisResponse {
     pub enabled: bool,
     pub enabled_at: Option<String>,
@@ -472,12 +475,15 @@ pub struct AudioAnalysisResponse {
     pub running: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetAudioAnalysisRequest {
     pub enabled: bool,
 }
 
-/// GET /family/settings/audio-analysis
+/// GET /api/v1/family/settings/audio-analysis — whether library audio
+/// analysis is on, and how far it has got.
+#[utoipa::path(get, path = "/settings/audio-analysis", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = AudioAnalysisResponse), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn get_audio_analysis(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -485,12 +491,16 @@ async fn get_audio_analysis(
     audio_analysis_status(&state, &family).await.map(Json)
 }
 
-/// PUT /family/settings/audio-analysis
+/// PUT /api/v1/family/settings/audio-analysis — turn library audio analysis
+/// on or off (family_admin only).
 ///
 /// Enabling queues the family's unmeasured library, most-played first.
 /// Disabling stops new work and **keeps every measurement already taken** —
 /// deleting them would mean re-fetching the library if the user changed their
 /// mind, which is the one expensive thing in this feature.
+#[utoipa::path(put, path = "/settings/audio-analysis", tag = "family", security(("bearer" = [])),
+    request_body = SetAudioAnalysisRequest,
+    responses((status = 200, body = AudioAnalysisResponse), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn set_audio_analysis(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -554,6 +564,9 @@ async fn audio_analysis_status(
     })
 }
 
+/// GET /api/v1/family/members — everyone in the caller's family.
+#[utoipa::path(get, path = "/members", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = Vec<MemberResponse>), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn list_members(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -565,9 +578,12 @@ async fn list_members(
     Ok(Json(members.into_iter().map(member_to_response).collect()))
 }
 
-/// `POST /family/content-reports` — any member, including one who may not
+/// POST /api/v1/family/content-reports — any member, including one who may not
 /// upload. Reporting is the counterweight to a family library nobody outside
 /// the household moderates, so it must not be a privilege.
+#[utoipa::path(post, path = "/content-reports", tag = "family", security(("bearer" = [])),
+    request_body = CreateReportRequest,
+    responses((status = 201, description = "Reported"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn create_content_report(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -605,7 +621,9 @@ async fn create_content_report(
     Ok(StatusCode::CREATED)
 }
 
-/// `GET /family/content-reports` — the admin's moderation queue.
+/// GET /api/v1/family/content-reports — the admin's moderation queue.
+#[utoipa::path(get, path = "/content-reports", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = Vec<ContentReportResponse>), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_content_reports(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -630,6 +648,10 @@ async fn list_content_reports(
     ))
 }
 
+/// Close a report in the moderation queue (family_admin only).
+#[utoipa::path(post, path = "/content-reports/{id}/resolve", tag = "family", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The report's id")),
+    responses((status = 204, description = "Resolved"), (status = 401, description = "Not signed in, or no such open report", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn resolve_content_report(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -691,6 +713,10 @@ fn resolve_member_permissions(
 
 /// PUT /api/v1/family/members/{user_id} — change role and/or label
 /// (family_admin only).
+#[utoipa::path(put, path = "/members/{user_id}", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    request_body = UpdateMemberRequest,
+    responses((status = 204, description = "Updated"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn update_member(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -793,6 +819,9 @@ async fn update_member(
 /// DELETE /api/v1/family/members/{user_id} — remove a member, or leave the
 /// family when removing yourself. The removed user lands in a fresh personal
 /// family so they keep working as a solo account.
+#[utoipa::path(delete, path = "/members/{user_id}", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    responses((status = 204, description = "Removed, or left"), (status = 400, description = "Would remove the last family admin", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin, removing someone else", body = crate::http::openapi::ErrorBody), (status = 409, description = "The server has one family: block or delete the account instead", body = crate::http::openapi::ErrorBody)))]
 async fn remove_member(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -869,6 +898,9 @@ async fn remove_member(
 /// content, it only stops the account from being usable. Scoped to the caller's own family via
 /// `require_member` — a family_admin still can't touch a user outside their family, unlike the
 /// instance-wide `PATCH /users/{id}` this reuses `is_active` from.
+#[utoipa::path(post, path = "/members/{user_id}/block", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    responses((status = 204, description = "Blocked"), (status = 400, description = "Blocking yourself", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn block_member(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -897,6 +929,9 @@ async fn block_member(
 /// POST /api/v1/family/members/{user_id}/unblock — reactivate a member's account
 /// (family_admin only). They still need to sign in again — this doesn't restore any session that
 /// `block_member` revoked.
+#[utoipa::path(post, path = "/members/{user_id}/unblock", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    responses((status = 204, description = "Unblocked"), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn unblock_member(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -917,6 +952,10 @@ async fn unblock_member(
 /// (`POST /users/me/avatar`, self-serve): this is the one admin-managed exception, for a member
 /// with no easy way to set their own (e.g. a kid's provisioned account, or just a parent doing it
 /// for them) — same `users.avatar_object_id` column and storage key shape either way.
+#[utoipa::path(post, path = "/members/{user_id}/avatar", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `avatar` (an image file, under 5 MB)"),
+    responses((status = 204, description = "Saved"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn upload_member_avatar(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -994,6 +1033,9 @@ async fn upload_member_avatar(
 
 /// DELETE /api/v1/family/members/{user_id}/avatar — remove a fellow member's photo
 /// (family_admin only). Stored object left in place, same as every other cover-replace path.
+#[utoipa::path(delete, path = "/members/{user_id}/avatar", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    responses((status = 204, description = "Removed"), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn delete_member_avatar(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1012,6 +1054,9 @@ async fn delete_member_avatar(
 /// `claim` invite so they can set their own password (family_admin only).
 /// The account has no auth identity until claimed — see `pending` on
 /// `MemberResponse`.
+#[utoipa::path(post, path = "/members/provision", tag = "family", security(("bearer" = [])),
+    request_body = ProvisionMemberRequest,
+    responses((status = 201, body = ProvisionMemberResponse), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn provision_member(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1090,6 +1135,8 @@ async fn provision_member(
 }
 
 /// GET /api/v1/family/invites — pending invites (family_admin only).
+#[utoipa::path(get, path = "/invites", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = Vec<InviteResponse>), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_invites(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1109,6 +1156,9 @@ async fn list_invites(
 /// even on instances where open registration is disabled; `link` invites
 /// are always `member`-role (decision D3 — a shareable code must never be
 /// able to grant admin) and may be redeemed by up to `max_uses` accounts.
+#[utoipa::path(post, path = "/invites", tag = "family", security(("bearer" = [])),
+    request_body = CreateInviteRequest,
+    responses((status = 201, body = InviteResponse), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn create_invite(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1177,6 +1227,9 @@ async fn create_invite(
 }
 
 /// DELETE /api/v1/family/invites/{id} — revoke a pending invite.
+#[utoipa::path(delete, path = "/invites/{id}", tag = "family", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The invite's id")),
+    responses((status = 204, description = "Revoked"), (status = 401, description = "Not signed in, or no such invite", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn delete_invite(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1197,6 +1250,9 @@ async fn delete_invite(
 /// POST /api/v1/family/invites/{id}/regenerate — mint a fresh code and TTL
 /// for a pending invite, invalidating the old one (family_admin only). Used
 /// for "resend"/"show QR again" without changing what the invite grants.
+#[utoipa::path(post, path = "/invites/{id}/regenerate", tag = "family", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The invite's id")),
+    responses((status = 200, body = InviteResponse), (status = 400, description = "Invite already used", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such invite", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn regenerate_invite(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1235,6 +1291,9 @@ async fn regenerate_invite(
 
 /// POST /api/v1/family/invites/accept — join the inviting family.
 /// Requires an authenticated account whose email matches the invite.
+#[utoipa::path(post, path = "/invites/accept", tag = "family", security(("bearer" = [])),
+    request_body = AcceptInviteRequest,
+    responses((status = 200, body = FamilyResponse), (status = 400, description = "Code not valid, used, expired, or issued to another address", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn accept_invite(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -1302,7 +1361,7 @@ async fn accept_invite(
 // These govern **shared** content only. Nothing here can reach into another
 // member's private folder — `audio2_can_access` stops at the owner check.
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct MemberAccessResponse {
     pub user_id: String,
     /// Per-kind default: `allow_all` (the implicit default) or `deny_all`.
@@ -1311,20 +1370,20 @@ pub struct MemberAccessResponse {
     pub grants: Vec<GrantEntry>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PolicyEntry {
     pub media_kind: String,
     pub policy: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct GrantEntry {
     pub media_kind: String,
     pub item_id: String,
     pub effect: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetPolicyRequest {
     /// `audiobook`, `podcast`, or `music`.
     pub media_kind: String,
@@ -1332,7 +1391,7 @@ pub struct SetPolicyRequest {
     pub policy: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ReplaceGrantsRequest {
     pub media_kind: String,
     /// Items this member may play regardless of their default policy.
@@ -1343,7 +1402,7 @@ pub struct ReplaceGrantsRequest {
     pub deny: Vec<Uuid>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetAudienceRequest {
     /// Who may hear this item, by user id. Anyone left out is denied.
     ///
@@ -1353,7 +1412,7 @@ pub struct SetAudienceRequest {
     pub can_listen: Vec<Uuid>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AudienceEntry {
     pub user_id: String,
     pub display_name: String,
@@ -1366,6 +1425,9 @@ pub struct AudienceEntry {
 
 /// GET /api/v1/family/members/{user_id}/access — a member's effective
 /// restrictions (family_admin only).
+#[utoipa::path(get, path = "/members/{user_id}/access", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    responses((status = 200, body = MemberAccessResponse), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn get_member_access(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1403,6 +1465,10 @@ async fn get_member_access(
 
 /// PUT /api/v1/family/members/{user_id}/policy — set a member's default for
 /// one media kind (family_admin only).
+#[utoipa::path(put, path = "/members/{user_id}/policy", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    request_body = SetPolicyRequest,
+    responses((status = 204, description = "Saved"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn set_member_policy(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1442,6 +1508,10 @@ async fn set_member_policy(
 ///
 /// Bulk replace rather than per-item edits: the admin UI is a checkbox list,
 /// and replacing wholesale keeps it consistent with what was on screen.
+#[utoipa::path(put, path = "/members/{user_id}/grants", tag = "family", security(("bearer" = [])),
+    params(("user_id" = Uuid, Path, description = "The member's user id")),
+    request_body = ReplaceGrantsRequest,
+    responses((status = 204, description = "Saved"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn replace_member_grants(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1481,6 +1551,9 @@ async fn replace_member_grants(
 
 /// GET /api/v1/family/content/{kind}/{item_id}/audience — who in the family
 /// can currently play this item. Drives the "who can listen" widget.
+#[utoipa::path(get, path = "/content/{kind}/{item_id}/audience", tag = "family", security(("bearer" = [])),
+    params(("kind" = String, Path, description = "`audiobook`, `podcast` or `music`"), ("item_id" = Uuid, Path, description = "The item's id")),
+    responses((status = 200, body = Vec<AudienceEntry>), (status = 400, description = "Unknown kind", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn content_audience(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1528,6 +1601,10 @@ async fn content_audience(
 /// Owners and family admins are filtered out rather than rejected. `audio2_can_access` gives them
 /// access unconditionally, so a request that leaves one out is not refused — it just cannot take
 /// away what the rule grants, and the response says so by still reporting them as listeners.
+#[utoipa::path(put, path = "/content/{kind}/{item_id}/audience", tag = "family", security(("bearer" = [])),
+    params(("kind" = String, Path, description = "`audiobook`, `podcast` or `music`"), ("item_id" = Uuid, Path, description = "The item's id")),
+    request_body = SetAudienceRequest,
+    responses((status = 200, description = "The audience as it now resolves", body = Vec<AudienceEntry>), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn set_content_audience(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1587,6 +1664,9 @@ async fn set_content_audience(
 /// No de-duplication: a second tap sends a second notification. Acceptable for a household-sized
 /// family and simpler than a request log; the client disables the button once it succeeds so a
 /// double-click is the only realistic repeat, not a real gap.
+#[utoipa::path(post, path = "/content/{kind}/{item_id}/request-access", tag = "family", security(("bearer" = [])),
+    params(("kind" = String, Path, description = "`audiobook`, `podcast` or `music`"), ("item_id" = Uuid, Path, description = "The item's id")),
+    responses((status = 204, description = "The family admins were notified"), (status = 400, description = "Unknown kind", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such item shared with this family", body = crate::http::openapi::ErrorBody)))]
 async fn request_content_access(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1672,6 +1752,8 @@ async fn require_member(
 /// GET /api/v1/family/storage — what the family's library occupies, per
 /// media kind. Any member. The core's half of what `/family/billing` shows
 /// in the hosted edition; a client that only needs bytes asks here.
+#[utoipa::path(get, path = "/storage", tag = "family", security(("bearer" = [])),
+    responses((status = 200, body = BillingStorage), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
 async fn get_family_storage(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1695,7 +1777,7 @@ impl From<db::storage_usage::StorageBreakdown> for BillingStorage {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BillingStorage {
     pub total_bytes: i64,
     pub audiobooks_bytes: i64,
@@ -1713,6 +1795,9 @@ pub struct BillingStorage {
 /// Unknown codes are a plain 404; known-but-dead codes report their status
 /// only — family name and inviter are revealed to valid-code holders alone
 /// (decision D6).
+#[utoipa::path(get, path = "/{code}", tag = "join",
+    params(("code" = String, Path, description = "The invite code")),
+    responses((status = 200, body = JoinPreviewResponse), (status = 404, description = "Unknown code", body = crate::http::openapi::ErrorBody), (status = 429, description = "Rate limited", body = crate::http::openapi::ErrorBody)))]
 async fn join_preview(
     State(state): State<AppState>,
     Path(code): Path<String>,
@@ -1791,6 +1876,10 @@ async fn join_preview(
 /// POST /api/v1/join/{code}/claim — set a password on a pre-provisioned
 /// account and sign in. `claim` kind only; possession of the code is the
 /// sole credential, same as every other invite kind.
+#[utoipa::path(post, path = "/{code}/claim", tag = "join",
+    params(("code" = String, Path, description = "The claim code")),
+    request_body = ClaimInviteRequest,
+    responses((status = 201, description = "Claimed and signed in", body = crate::auth::LoginResponse), (status = 400, description = "Password too short, or the code is not a valid, unused claim code", body = crate::http::openapi::ErrorBody), (status = 429, description = "Rate limited", body = crate::http::openapi::ErrorBody)))]
 async fn claim_provisioned_account(
     State(state): State<AppState>,
     Path(code): Path<String>,

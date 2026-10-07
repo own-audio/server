@@ -11,21 +11,20 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::db;
-use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
 use serde::Serialize;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_families))
-        .route("/trash", get(trash_stats))
-        .route("/{id}", get(get_family_detail))
-        .route("/{id}", delete(delete_family))
-        .route("/{id}/lock", post(lock_family))
-        .route("/{id}/unlock", post(unlock_family))
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_families))
+        .routes(routes!(trash_stats))
+        .routes(routes!(get_family_detail, delete_family))
+        .routes(routes!(lock_family))
+        .routes(routes!(unlock_family))
 }
 
 pub fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
@@ -36,7 +35,7 @@ pub fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AdminFamilySummaryResponse {
     pub id: String,
     pub name: String,
@@ -45,7 +44,7 @@ pub struct AdminFamilySummaryResponse {
     pub created_at: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AdminFamilyMemberResponse {
     pub user_id: String,
     pub email: String,
@@ -56,7 +55,7 @@ pub struct AdminFamilyMemberResponse {
     pub joined_at: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AdminFamilyDetailResponse {
     pub id: String,
     pub name: String,
@@ -72,6 +71,8 @@ pub struct AdminFamilyDetailResponse {
 /// figure here: `db::storage_usage::family_storage` is 4 queries per family
 /// (see its own doc comment), fine for one family on demand, too expensive
 /// to run for every row of a list. Storage only appears on the detail route.
+#[utoipa::path(get, path = "/", tag = "admin", security(("bearer" = [])),
+    responses((status = 200, body = Vec<AdminFamilySummaryResponse>), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_families(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -105,6 +106,9 @@ async fn list_families(
 /// credit history. Same underlying calls as `GET /family/billing`
 /// (`families::get_billing`), just against a path param instead of the
 /// caller's own `FamilyContext.family_id`.
+#[utoipa::path(get, path = "/{id}", tag = "admin", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The family's id")),
+    responses((status = 200, body = AdminFamilyDetailResponse), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn get_family_detail(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -167,6 +171,9 @@ async fn get_family_detail(
 /// `users::admin_delete_user`), not a way to remove a real household —
 /// there is deliberately no way to delete a family that still has people in
 /// it through this route.
+#[utoipa::path(delete, path = "/{id}", tag = "admin", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The family's id")),
+    responses((status = 204, description = "Deleted"), (status = 400, description = "Family still has members", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn delete_family(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -198,6 +205,9 @@ async fn delete_family(
 /// immediately too. There is no separate "locked" flag on `families` — a
 /// family's lock state is just "none of its members can sign in", read back
 /// from the same per-member `is_active` the detail view already returns.
+#[utoipa::path(post, path = "/{id}/lock", tag = "admin", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The family's id")),
+    responses((status = 204, description = "Every member deactivated and signed out"), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn lock_family(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -231,6 +241,9 @@ async fn lock_family(
 
 /// POST /api/v1/admin/families/:id/unlock — reactivate every locked member.
 /// They still need to sign in again, same as `families::unblock_member`.
+#[utoipa::path(post, path = "/{id}/unlock", tag = "admin", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "The family's id")),
+    responses((status = 204, description = "Every member reactivated"), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn unlock_family(
     auth: AuthUser,
     State(state): State<AppState>,
@@ -256,7 +269,7 @@ async fn unlock_family(
     Ok(StatusCode::NO_CONTENT)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AdminTrashStatsResponse {
     pub family_id: String,
     pub family_name: String,
@@ -275,6 +288,8 @@ pub struct AdminTrashStatsResponse {
 
 /// GET /api/v1/admin/families/trash — trash size and restore patterns per
 /// family.
+#[utoipa::path(get, path = "/trash", tag = "admin", security(("bearer" = [])),
+    responses((status = 200, body = Vec<AdminTrashStatsResponse>), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn trash_stats(
     auth: AuthUser,
     State(state): State<AppState>,
