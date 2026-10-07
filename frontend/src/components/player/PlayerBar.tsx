@@ -50,6 +50,7 @@ import { BookmarksPopover, ChaptersPopover, SleepTimerPopover, SpeedPopover, Vol
 import QueuePanel from "./QueuePanel";
 import SeekBar from "./SeekBar";
 import { cn } from "../../lib/cn";
+import { applyVolume } from "../../lib/volume";
 import { t as translate, useT } from "../../i18n";
 
 /** Saves are frequent enough to survive a crash, rare enough not to be chatty. */
@@ -292,14 +293,14 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     // Start now rather than at `canplay`: in the background every moment of
     // silence is one iOS may use to suspend the app (see handleTimeUpdate).
     if (track.resumePosition <= 0) {
-      audio.volume = muted ? 0 : volume;
+      applyVolume(audio, volume, muted);
       audio.playbackRate = speed;
       void audio.play().catch(() => {});
     }
 
     const onCanPlay = () => {
       if (track.resumePosition > 0) audio.currentTime = track.resumePosition;
-      audio.volume = muted ? 0 : volume;
+      applyVolume(audio, volume, muted);
       audio.playbackRate = speed;
       void audio.play().catch(() => {});
       beginSpan(audio.currentTime);
@@ -355,7 +356,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (audio) audio.volume = muted ? 0 : volume;
+    if (audio) applyVolume(audio, volume, muted);
   }, [volume, muted]);
 
   useEffect(() => {

@@ -14,6 +14,7 @@ import { usePlayerStore, SPEED_MAX, SPEED_MIN, type SleepTimer } from "../../sto
 import { Button, IconButton, Input, toast } from "../ui";
 import { cn } from "../../lib/cn";
 import { formatClock } from "../../lib/time";
+import { canSetVolume } from "../../lib/volume";
 import { useSectionStyle } from "../../lib/sectionTheme";
 import { t as translate, useT } from "../../i18n";
 
@@ -41,16 +42,18 @@ export function VolumeControl() {
       <IconButton size="sm" label={muted ? t("player.unmute") : t("player.mute")} onClick={toggleMute}>
         {muted || volume === 0 ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </IconButton>
-      <input
-        type="range"
-        min={0}
-        max={1}
-        step={0.01}
-        value={muted ? 0 : volume}
-        onChange={(e) => setVolume(Number(e.target.value))}
-        className="h-1 w-20 cursor-pointer accent-[var(--accent)]"
-        aria-label={t("player.volume")}
-      />
+      {canSetVolume() && (
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.01}
+          value={muted ? 0 : volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          className="h-1 w-20 cursor-pointer accent-[var(--accent)]"
+          aria-label={t("player.volume")}
+        />
+      )}
     </div>
   );
 }

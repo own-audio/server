@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+- Web console on iPhone and iPad: the volume slider did nothing, because
+  Safari there ignores a page's volume (only the hardware buttons change it).
+  The slider is hidden where the browser cannot set volume, and mute now uses
+  the element's `muted`, which works everywhere.
+
 ## [1.0.0-alpha.7] - 2026-10-07
 
 Contract revision 3 (unchanged).
