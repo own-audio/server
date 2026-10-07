@@ -111,6 +111,18 @@ Partly. It depends on the question being asked.
   about 150–180 MiB for the two of them in the measurements above, against
   28 MiB plus PostgreSQL for us.
 
+Neither of them can run on PostgreSQL, so a same-database comparison is
+not possible (checked in both repositories, 2026-10-07):
+
+- **Navidrome**: `go.mod` has only `mattn/go-sqlite3`; `db/db.go` hard-codes
+  the `sqlite3` dialect and registers SQLite-only functions (a seeded random,
+  natural collation); 138 migrations are written for SQLite.
+- **Audiobookshelf** 2.37.1: Sequelize with `dialect: 'sqlite'` hard-coded in
+  `server/Database.js`, `sqlite3` the only driver. PostgreSQL is requested in
+  issues #2046 (since 2023) and #5018; the maintainer calls it planned but
+  "not at all a priority" and keeps an embedded database so nobody has to set
+  one up.
+
 Measurement traps that make either side look better than it is:
 
 - Summing `VmRSS` over PostgreSQL's processes counts its shared buffers once

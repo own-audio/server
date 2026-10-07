@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- `docs/RAM_USAGE.md`: why Navidrome and Audiobookshelf cannot be measured on
+  PostgreSQL (both are SQLite-only, checked in their repositories).
+
 ## [1.0.0-alpha.5] - 2026-10-07
 
 Contract revision 2 (unchanged).
