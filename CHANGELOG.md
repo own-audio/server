@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+Contract revision 5.
+
 ### Added
 - Identify through the public MusicBrainz API when no metadata service is
   set: track candidates, which album a group of tracks is, and the details
@@ -15,6 +17,16 @@ semver. Each release states the **API contract revision** it serves
   the server (`MUSICBRAINZ__CONTACT`); `MUSICBRAINZ__ENABLED=false` turns it
   off. `features.music_identify` is now `true` on a default install.
   Podcast discovery still needs the metadata service.
+- Podcast search without the metadata service, through Apple's public iTunes
+  Search API: the term goes to Apple, so `ITUNES__ENABLED=false` turns it
+  off. `features.podcast_search` says whether search works (contract
+  revision 5); categories, browse and similar shows stay with
+  `features.podcast_discovery`.
+
+### Fixed
+- The web console offers podcast categories and similar shows only when the
+  server has them, and search only when it can answer; before, a server
+  without the metadata service showed them and answered with errors.
 
 ## [1.0.0-beta.1] - 2026-10-08
 

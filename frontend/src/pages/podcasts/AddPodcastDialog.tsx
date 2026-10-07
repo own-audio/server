@@ -11,6 +11,7 @@ import { apiErrorMessage } from "../../lib/apiError";
 import { Button, Dialog, DialogContent, Input, SearchField, Skeleton, toast } from "../../components/ui";
 import type { PodcastSearchResult } from "../../api/types";
 import { cn } from "../../lib/cn";
+import { useServerFeatures } from "../../lib/features";
 import { stripHtml } from "../../lib/format";
 import { useT } from "../../i18n";
 
@@ -44,11 +45,16 @@ export default function AddPodcastDialog() {
   const followed = new Set(feeds.map((f) => f.feed_url));
 
   const searching = debounced.length >= 2;
+  // Categories and browse need the server's catalogue; search alone may be
+  // Apple's directory. A server older than revision 5 has no
+  // `podcast_search`, and its discovery includes search.
+  const { features } = useServerFeatures();
+  const canSearch = features.podcast_search || features.podcast_discovery;
 
   const { data: results = [], isFetching, isError } = useQuery({
     queryKey: ["podcast-search", debounced],
     queryFn: () => searchPodcasts(debounced),
-    enabled: searching,
+    enabled: searching && canSearch,
     retry: false,
   });
 
@@ -57,7 +63,7 @@ export default function AddPodcastDialog() {
   const { data: categories = [] } = useQuery({
     queryKey: ["podcast-categories"],
     queryFn: listCategories,
-    enabled: !searching,
+    enabled: !searching && features.podcast_discovery,
     staleTime: 60 * 60 * 1000, // the catalogue is reloaded weekly
     retry: false,
   });
@@ -65,7 +71,7 @@ export default function AddPodcastDialog() {
   const { data: browsed = [], isFetching: browsing } = useQuery({
     queryKey: ["podcast-browse", category],
     queryFn: () => browseCategory(category!),
-    enabled: !searching && !!category,
+    enabled: !searching && !!category && features.podcast_discovery,
     retry: false,
   });
 

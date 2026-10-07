@@ -13,6 +13,8 @@ export interface ServerFeatures {
   uploads: { presigned: boolean; multipart_max_bytes: number | null };
   music_identify: boolean;
   podcast_discovery: boolean;
+  /** Revision 5: search works (maybe Apple's directory, without discovery's catalogue). */
+  podcast_search: boolean;
   file_sync: boolean;
   library_folders: boolean;
   subsonic: boolean;
@@ -42,6 +44,7 @@ export const NO_FEATURES: ServerFeatures = {
   uploads: { presigned: true, multipart_max_bytes: null },
   music_identify: false,
   podcast_discovery: false,
+  podcast_search: false,
   file_sync: true,
   library_folders: false,
   subsonic: true,

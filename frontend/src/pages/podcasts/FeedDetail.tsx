@@ -15,6 +15,7 @@ import { MoreMenuTrigger } from "../../components/library/BrowseControls";
 import { ClampedText } from "../../components/library/ClampedText";
 import TranslateEpisodeModal from "./TranslateEpisodeModal";
 import SimilarShowsDialog from "./SimilarShowsDialog";
+import { useServerFeatures } from "../../lib/features";
 import type { PodcastEpisode, PodcastEpisodeTranslation, Visibility } from "../../api/types";
 import { VisibilityField } from "../../components/library/VisibilityField";
 import AudienceList from "../../components/library/AudienceList";
@@ -40,9 +41,12 @@ function SimilarShows({ feedId, feedTitle }: { feedId: string; feedTitle: string
   const [pending, setPending] = useState<string | null>(null);
   const [browsing, setBrowsing] = useState(false);
 
+  // Similar shows come from the server's catalogue; without it, nothing to ask.
+  const discovery = useServerFeatures().features.podcast_discovery;
   const { data: similar = [], isLoading } = useQuery({
     queryKey: ["podcast-similar", feedId],
     queryFn: () => similarFeeds(feedId),
+    enabled: discovery,
     staleTime: 60 * 60 * 1000,
     retry: false,
   });

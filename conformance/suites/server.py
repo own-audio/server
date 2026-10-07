@@ -59,6 +59,12 @@ def run(ctx):
         ctx.check("revision 3: GET /library/folders lists folders and the scan state",
                   isinstance(folders.get("folders"), list) and isinstance(folders.get("scanning"), bool))
 
+    if ctx.discovery and (ctx.server.get("api") or {}).get("revision", 0) >= 5:
+        features = ctx.server.get("features") or {}
+        ctx.check("revision 5: features.podcast_search is a boolean, true wherever discovery is",
+                  isinstance(features.get("podcast_search"), bool)
+                  and (features["podcast_search"] or not features.get("podcast_discovery")))
+
     if ctx.discovery and (ctx.server.get("api") or {}).get("revision", 0) >= 4:
         ctx.check("revision 4: features.one_family is a boolean",
                   isinstance((ctx.server.get("features") or {}).get("one_family"), bool))

@@ -57,14 +57,15 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
 - **Statistics**: listening history per member and a yearly recap.
 - **Nothing phones home.** No telemetry, no update checks, no accounts
   anywhere but on your server. It reaches out only for what you use: the
-  podcast feeds you subscribe to, musicbrainz.org and the Cover Art Archive
-  when you press identify (`MUSICBRAINZ__ENABLED=false` turns that off), and
+  podcast feeds you subscribe to, Apple's podcast directory when you search
+  for a show (`ITUNES__ENABLED=false`), musicbrainz.org and the Cover Art
+  Archive when you press identify (`MUSICBRAINZ__ENABLED=false`), and
   Wikimedia Commons for an artist's photo the first time it is shown.
 
 Optional, off until you configure them: sign-in with Google, Apple or
 Microsoft; book identification through Google Books; invite mail over SMTP.
-Podcast discovery (search by topic, categories, similar shows) needs a
-catalogue this edition does not have yet.
+Podcast search goes to Apple's public directory; categories and similar
+shows need a catalogue this edition does not have yet.
 
 ## Two editions, one API
 

@@ -256,11 +256,31 @@ async fn search_podcasts(
         return Err(AuthError::BadRequest("search query must be at least 2 characters".to_string()));
     }
 
-    let config = state.config().metadata.as_ref().ok_or_else(|| {
-        AuthError::Internal(anyhow::anyhow!(
-            "podcast search needs the metadata service (METADATA__BASE_URL / METADATA__API_KEY)"
-        ))
-    })?;
+    let Some(config) = state.config().metadata.as_ref() else {
+        // Without the catalogue: Apple's public search, unless switched off.
+        if !state.config().itunes.enabled {
+            return Err(AuthError::Internal(anyhow::anyhow!(
+                "podcast search is off: no metadata service (METADATA__BASE_URL) and ITUNES__ENABLED=false"
+            )));
+        }
+        let shows = crate::metadata::itunes::search(query, 25).await.map_err(AuthError::Internal)?;
+        return Ok(Json(
+            shows
+                .into_iter()
+                .map(|s| PodcastSearchResult {
+                    title: s.title,
+                    feed_url: s.feed_url,
+                    link: s.link,
+                    description: None,
+                    author: s.author,
+                    image_url: s.image_url,
+                    language: None,
+                    episode_count: s.episode_count,
+                    categories: s.categories,
+                })
+                .collect(),
+        ));
+    };
 
     let languages = discovery_languages(&state, family.user_id, body.language.as_deref()).await?;
 

@@ -46,6 +46,11 @@ pub struct AppConfig {
     #[serde(default)]
     pub musicbrainz: MusicBrainzConfig,
 
+    /// Podcast search through Apple's iTunes Search API (`ITUNES__ENABLED`)
+    /// when no metadata service is set. On by default; the term goes to Apple.
+    #[serde(default)]
+    pub itunes: ItunesConfig,
+
     /// Read-only library folders (`LIBRARY__*`), indexed in place. Unset ⇒
     /// none; see [`LibraryConfig`].
     pub library: Option<LibraryConfig>,
@@ -310,6 +315,19 @@ pub struct MusicBrainzConfig {
     /// Who to contact about this server's requests, sent in the User-Agent as
     /// MusicBrainz asks: an e-mail address or a URL. Unset ⇒ the project's.
     pub contact: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(default)]
+pub struct ItunesConfig {
+    /// `ITUNES__ENABLED=false`: no podcast search without the metadata service.
+    pub enabled: bool,
+}
+
+impl Default for ItunesConfig {
+    fn default() -> Self {
+        Self { enabled: true }
+    }
 }
 
 impl Default for MusicBrainzConfig {

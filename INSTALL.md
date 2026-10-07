@@ -48,6 +48,7 @@ link or QR code — there is no open sign-up unless you turn it on
 | `AUTH__GOOGLE__*`, `AUTH__APPLE__*`, `AUTH__MICROSOFT__*` | Sign-in providers. Off until you set client ids and `…__ENABLED=true`. | off |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Mail for invites, over SMTP submission: implicit TLS on 465 by default, `SMTP_SECURITY=starttls` for 587, `none` for a relay on your own network (no password is ever sent without TLS). Most providers only accept `MAIL_FROM` = the mailbox you sign in as. Off until set; invites work by link and QR without it. | off |
 | `MUSICBRAINZ__ENABLED`, `MUSICBRAINZ__CONTACT` | Identify music through the public MusicBrainz API, when someone presses identify (never in the background), at most once a second. `false` keeps the server from contacting musicbrainz.org. The contact (an e-mail or URL) goes in the User-Agent, as MusicBrainz asks. | on |
+| `ITUNES__ENABLED` | Podcast search through Apple's public directory, when no metadata service is set. The search term goes to Apple; `false` turns search off. | on |
 | `METADATA__BASE_URL` | A private music-metadata service (the hosted edition's) for identify and podcast discovery; replaces the public MusicBrainz API when set. | unset |
 
 The full list is `backend/src/app/config.rs`; every field reads from the

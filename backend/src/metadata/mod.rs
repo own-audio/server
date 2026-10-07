@@ -9,6 +9,7 @@
 //! (artist/release browsing was dropped as unused).
 pub mod cover_art;
 pub mod google_books;
+pub mod itunes;
 pub mod wikimedia;
 pub mod mirror;
 pub mod musicbrainz;

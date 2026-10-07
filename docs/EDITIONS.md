@@ -16,7 +16,8 @@ paid service. Clients cannot tell the two apart; they read
 | Sign-in with Google, Apple, Microsoft | optional, your own client ids | as the operator enables them |
 | Invite mail | optional, your SMTP server | the operator's mail server |
 | Music identify | yes, through the public MusicBrainz API (one request a second) | yes (a private metadata service) |
-| Podcast discovery: search, categories, similar shows | — | yes (the same service) |
+| Podcast search | yes, through Apple's public directory | yes (its own catalogue) |
+| Podcast categories, similar shows | — | yes (the same service) |
 | Narrate a book, translate a podcast episode | — | yes, paid per use |
 | Storage billing, credit, payments | — | yes |
 

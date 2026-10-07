@@ -20,7 +20,8 @@ pub const API_VERSION: u32 = 1;
 /// 3: `source` and `read_only` on tracks and books; `GET /library/folders`,
 ///    `POST /library/folders/scan`; stream URLs may be server media links.
 /// 4: `features.one_family`.
-pub const API_REVISION: u32 = 4;
+/// 5: `features.podcast_search`.
+pub const API_REVISION: u32 = 5;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -48,6 +49,8 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     // categories, similar shows) needs the metadata service's catalogue.
     features.insert("music_identify".into(), json!(cfg.metadata.is_some() || cfg.musicbrainz.enabled));
     features.insert("podcast_discovery".into(), json!(cfg.metadata.is_some()));
+    // Revision 5: search alone, which Apple's public search can answer.
+    features.insert("podcast_search".into(), json!(cfg.metadata.is_some() || cfg.itunes.enabled));
     features.insert("file_sync".into(), json!(true));
     features.insert(
         "library_folders".into(),

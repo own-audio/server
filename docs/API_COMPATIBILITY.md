@@ -61,6 +61,7 @@ call before it knows anything about the server.
     "translation": false,
     "music_identify": true,
     "podcast_discovery": true,
+    "podcast_search": true,
     "file_sync": true,
     "library_folders": false,
     "subsonic": true,
@@ -85,6 +86,10 @@ Rules:
   everything else `false`, and fall back to probing `GET /auth/providers`.
 - `deprecations` lists endpoints or fields scheduled for removal, each with a
   `sunset` date (§5). Normally empty.
+- `podcast_search` (revision 5): `POST /podcasts/search` works. True with
+  `podcast_discovery`, and also without it when the server searches Apple's
+  public directory instead of its own catalogue; then categories, browse and
+  similar shows stay off.
 - `one_family` (revision 4): the install has one family. Every new account
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each
