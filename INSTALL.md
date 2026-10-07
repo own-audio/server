@@ -13,8 +13,8 @@
 - Somewhere to keep the audio. By default it is a volume on the same host
   (`media_data`), served by the server itself — nothing else to run. An
   S3-compatible store (RustFS is bundled, or any other) is the alternative,
-  see "Storage" below. Indexing folders you already have, read-only, is
-  coming (issue #1).
+  see "Storage" below. Music and audiobooks you already have on a disk or
+  NAS can stay where they are: see "Library folders".
 - A hostname and HTTPS in front of it if anyone connects from outside your
   network. The server speaks plain HTTP on one port; put Caddy, nginx or a
   tunnel in front.
@@ -76,6 +76,40 @@ with local storage.
 
 Switching an existing install from one kind to the other does not move the
 files; start fresh or copy the objects across by their keys.
+
+## Library folders
+
+Point the server at the collections you already have. They are mounted
+read-only and indexed where they are: nothing is copied, moved or written.
+
+```yaml
+services:
+  server:
+    environment:
+      LIBRARY__MUSIC: /music
+      LIBRARY__AUDIOBOOKS: /audiobooks
+    volumes:
+      - /mnt/nas/music:/music:ro
+      - /mnt/nas/audiobooks:/audiobooks:ro
+```
+
+- **Music** is organised by its tags (artist, album, track, cover art); a
+  `cover.jpg` or `folder.jpg` next to the files is used when a file has no
+  picture of its own.
+- **Audiobooks** are a folder per book: `Author/Title/01.mp3, 02.mp3, …`,
+  with `cover.jpg` beside them. The folder's name is the title, its parent's
+  the author; chapters keep the files' order (`2` before `10`).
+- Everything found belongs to the family's first admin and is shared with
+  the family (`LIBRARY__VISIBILITY=private` keeps it to the admin). More
+  folders: `LIBRARY__FOLDERS='[{"path":"/music2","kind":"music"}]'`.
+- The first scan starts when the server starts (and the first admin exists);
+  then every hour (`LIBRARY__SCAN_INTERVAL_SECS`), from the web console, or
+  from any Subsonic app's "rescan". A rescan only reads files whose size or
+  time changed. `GET /api/v1/library/folders` shows each folder's last scan.
+- Removing an item that comes from a folder hides it; the file stays, and
+  the scanner does not bring it back unless the file changes.
+- Files are streamed by the server itself, with seeking, whatever the
+  storage kind.
 
 ## Upgrading
 

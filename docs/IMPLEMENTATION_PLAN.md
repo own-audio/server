@@ -670,7 +670,7 @@ figures from it go into `RAM_USAGE.md` and the README.
 | 1 | done 2026-10-06 — tag `v1.0.0-alpha.1` | snapshot import via a one-time script; SPDX on 280 files; clippy debt paid; `cargo deny` clean; gitleaks clean with `.gitleaks.toml`; `podcast-recommendations-plan.md` left out (private infrastructure details) |
 | 2 | S0–S7 done 2026-10-06: `audio2` depends on `own-audio/server` at `v1.0.0-alpha.1`, its core directories are gone. Left: the Forgejo secret for the private repo, a canary deploy on the new Dockerfile, promote to production |
 | 3 | not started | |
-| 4 | in progress | **B done** (2026-10-07): `/api/v1/media` with server-signed links and ranges, local storage (`STORAGE__KIND=local`, compose default), S3 proxy mode (`STORAGE__PROXY`). Next: A (library folders, issue #1), then D (public metadata) |
+| 4 | in progress | **B done** (2026-10-07): `/api/v1/media` with server-signed links and ranges, local storage (`STORAGE__KIND=local`, compose default), S3 proxy mode (`STORAGE__PROXY`). **A first pass done** (2026-10-07): `LIBRARY__MUSIC/AUDIOBOOKS/FOLDERS`, incremental scanner (size + mtime, one directory at a time), `folder/<id>/<path>` keys served by the media route, read-only (delete hides), admin `GET /library/folders`, `POST /library/folders/scan`, Subsonic `startScan`/`getScanStatus`. Still open for A: `source`/`read_only` fields in responses, changed-file tag refresh, move/rename by checksum, a CI fixture folder. Then D (public metadata) |
 | 5 | not started | clients |
 | 6 | not started | release: GitHub + Docker Hub |
 | 7 | not started | |

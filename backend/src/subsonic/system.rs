@@ -72,22 +72,22 @@ pub async fn get_user(
     )
 }
 
-/// audio2 has no watched folder to scan — music arrives by upload, and is in
-/// the database the moment it exists. Reporting "not scanning" with a real
-/// count is therefore the honest answer, and it satisfies clients that poll
-/// this before showing a library.
+/// Uploads are in the library the moment they exist; read-only library
+/// folders (`crate::library_folders`) are scanned. `scanning` reports that
+/// scan, `count` the tracks the caller can see.
 pub async fn get_scan_status(auth: SubsonicAuthUser, State(state): State<AppState>) -> Response {
     let count = db::music::count_tracks(state.db(), auth.viewer()).await.unwrap_or(0);
+    let (scanning, _) = crate::library_folders::scan_status();
     ok(
         &auth,
-        json!({ "scanStatus": { "scanning": false, "count": count } }),
+        json!({ "scanStatus": { "scanning": scanning, "count": count } }),
     )
 }
 
-/// Accepted and answered rather than rejected: there is nothing to trigger,
-/// but a client offering a "rescan" button should see it succeed and the
-/// library stay as it was, not see an error it will surface as a fault.
+/// Starts a library-folder scan when there are folders; without any it is
+/// still answered, so a client's "rescan" button never shows a fault.
 pub async fn start_scan(auth: SubsonicAuthUser, State(state): State<AppState>) -> Response {
+    crate::library_folders::request_scan();
     get_scan_status(auth, State(state)).await
 }
 

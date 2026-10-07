@@ -25,6 +25,7 @@ pub mod hooks;
 pub mod http;
 pub mod jobs;
 pub mod library;
+pub mod library_folders;
 pub mod mail;
 pub mod metadata;
 pub mod music;

@@ -8,6 +8,15 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- **Read-only library folders** (issue #1): `LIBRARY__MUSIC`,
+  `LIBRARY__AUDIOBOOKS` or `LIBRARY__FOLDERS` point the server at existing
+  collections, mounted read-only and indexed in place. Music by tags (and a
+  `cover.jpg` beside the files), audiobooks as `Author/Title/` folders with
+  chapters in natural order and titles from the tags. The scanner walks one
+  directory at a time and skips files whose size and time are unchanged; it
+  runs at start, hourly, from `POST /api/v1/library/folders/scan` and from
+  Subsonic `startScan`. Removing a folder item hides it and leaves the file.
+  `features.library_folders` is `true` when folders are configured.
 - **Local storage** (`STORAGE__KIND=local`, the compose default): media is
   plain files under `/data/media`, no object store needed. RustFS moved behind
   the compose profile `s3`.

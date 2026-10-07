@@ -1166,6 +1166,54 @@ async fn create_track(
         .ok_or(AuthError::ItemNotFound)
 }
 
+/// A file in a read-only library folder becomes a track (`crate::library_folders`).
+/// Tags are read from the file in place; `sidecar_cover` (a `cover.jpg` next
+/// to it, already a folder key) is used when the file has no picture of its
+/// own. Returns the new track's id.
+#[allow(clippy::too_many_arguments)]
+pub(crate) async fn create_folder_track(
+    state: &AppState,
+    family: &FamilyContext,
+    family_id: Option<Uuid>,
+    file: &StdPath,
+    object_key: &str,
+    content_type: &str,
+    size_bytes: i64,
+    duration_secs: Option<i32>,
+    sidecar_cover: Option<(&str, &str, i64)>,
+) -> anyhow::Result<Uuid> {
+    let file_name = file.file_name().and_then(|n| n.to_str()).unwrap_or("track");
+    let fields = TrackFields {
+        title: None,
+        artist: None,
+        album: None,
+        album_artist: None,
+        genre: None,
+        track_number: None,
+        duration_secs,
+    };
+    let track = create_track(
+        state,
+        family,
+        family_id,
+        fields,
+        file_name,
+        file,
+        AudioSource::Stored { object_key, content_type, size_bytes },
+        None,
+    )
+    .await
+    .map_err(|e| anyhow::anyhow!("create track: {e}"))?;
+    if track.cover_object_id.is_none() {
+        if let Some((key, cover_type, cover_size)) = sidecar_cover {
+            let media = db::media::upsert_object(state.db(), state.storage().bucket(), key, cover_type, Some(cover_size)).await?;
+            db::music::update_track_cover(state.db(), track.id, family.user_id, media).await?;
+        }
+    }
+    crate::filesync::paths::ensure_track(state.db(), track.id).await?;
+    Ok(track.id)
+}
+
 async fn update_track(
     family: FamilyContext,
     State(state): State<AppState>,

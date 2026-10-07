@@ -41,6 +41,10 @@ pub struct AppConfig {
     /// delivery; only the email step no-ops. See `crate::mail`.
     pub mail: Option<MailConfig>,
 
+    /// Read-only library folders (`LIBRARY__*`), indexed in place. Unset ⇒
+    /// none; see [`LibraryConfig`].
+    pub library: Option<LibraryConfig>,
+
     /// Minimum log level for the application.
     #[serde(default = "default_log_level")]
     pub log_level: String,
@@ -189,6 +193,29 @@ pub struct StorageConfig {
     /// Apply a permissive GET/HEAD CORS policy to the bucket at startup.
     #[serde(default = "default_true")]
     pub set_cors: bool,
+}
+
+/// Read-only library folders: music and audiobook collections already on a
+/// disk or NAS share, mounted into the container (`:ro`) and indexed where
+/// they are. Nothing is copied and nothing is written there.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct LibraryConfig {
+    /// `LIBRARY__MUSIC`: one music folder, organised by tags.
+    pub music: Option<String>,
+    /// `LIBRARY__AUDIOBOOKS`: one audiobook folder, a folder per book
+    /// (`Author/Title/*.mp3`, `cover.jpg` beside them).
+    pub audiobooks: Option<String>,
+    /// `LIBRARY__FOLDERS`: more than one, as JSON —
+    /// `[{"path": "/music2", "kind": "music"}, …]`; `kind` is `music` or
+    /// `audiobooks`, an optional `visibility` is `family` (default) or
+    /// `private`.
+    pub folders: Option<String>,
+    /// `LIBRARY__VISIBILITY`: who sees what the folders hold, `family`
+    /// (default) or `private` to the family's admin.
+    pub visibility: Option<String>,
+    /// `LIBRARY__SCAN_INTERVAL_SECS`: how often folders are rescanned. Unset
+    /// ⇒ hourly. A scan skips files whose size and time have not changed.
+    pub scan_interval_secs: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

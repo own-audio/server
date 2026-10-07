@@ -41,7 +41,10 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     features.insert("music_identify".into(), json!(cfg.metadata.is_some()));
     features.insert("podcast_discovery".into(), json!(cfg.metadata.is_some()));
     features.insert("file_sync".into(), json!(true));
-    features.insert("library_folders".into(), json!(false));
+    features.insert(
+        "library_folders".into(),
+        json!(crate::library_folders::configured(cfg).is_ok_and(|f| !f.is_empty())),
+    );
     features.insert("subsonic".into(), json!(true));
     features.insert("mail".into(), json!(cfg.mail.is_some()));
     // The edition's own keys; absent in the open-source edition, so set the

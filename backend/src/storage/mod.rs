@@ -44,9 +44,26 @@ pub struct ObjectStore {
     bucket: String,
     /// `Some` for local storage: objects are files under this folder.
     local: Option<PathBuf>,
-    /// Server-signed links, used instead of presigned URLs for local storage
-    /// and for S3 with `STORAGE__PROXY`.
-    links: Option<MediaLinks>,
+    /// Server-signed links to the media route.
+    links: MediaLinks,
+    /// Use `links` for every object (local storage, or S3 with
+    /// `STORAGE__PROXY`), not only for library-folder files.
+    serve_all: bool,
+    /// Read-only library folders by id: keys `folder/<id>/<relative path>`
+    /// are files under them, whatever the storage kind (`crate::library`).
+    folders: std::sync::Arc<std::sync::RwLock<std::collections::HashMap<uuid::Uuid, PathBuf>>>,
+}
+
+/// The key prefix of files in read-only library folders.
+pub const FOLDER_PREFIX: &str = "folder/";
+
+/// Key of a file in a library folder.
+pub fn folder_key(folder_id: uuid::Uuid, relative: &str) -> String {
+    format!("{FOLDER_PREFIX}{folder_id}/{relative}")
+}
+
+pub fn is_folder_key(key: &str) -> bool {
+    key.starts_with(FOLDER_PREFIX)
 }
 
 /// An object opened for streaming, possibly a byte range of it.
@@ -68,7 +85,37 @@ impl ObjectStore {
     /// The links this store signs, when it signs its own. The media route
     /// verifies requests with them.
     pub fn media_links(&self) -> Option<&MediaLinks> {
-        self.links.as_ref()
+        Some(&self.links)
+    }
+
+    /// Make a library folder's files readable under its keys.
+    pub fn register_folder(&self, id: uuid::Uuid, root: PathBuf) {
+        self.folders.write().expect("folders lock").insert(id, root);
+    }
+
+    /// The file behind a library-folder key, refusing anything that could
+    /// leave the folder.
+    fn folder_file(&self, key: &str) -> anyhow::Result<PathBuf> {
+        let rest = key.strip_prefix(FOLDER_PREFIX).context("not a folder key")?;
+        let (id, rel) = rest.split_once('/').context("invalid folder key")?;
+        let id: uuid::Uuid = id.parse().context("invalid folder key")?;
+        let root = self.folders.read().expect("folders lock").get(&id).cloned().context("library folder not configured")?;
+        let rel = Path::new(rel);
+        let safe = rel.components().all(|c| matches!(c, std::path::Component::Normal(_)));
+        anyhow::ensure!(safe && !rel.as_os_str().is_empty(), "invalid folder key");
+        Ok(root.join(rel))
+    }
+
+    /// The file on this server's disk that holds `key`, when it is one: a
+    /// library-folder file, or any object in local storage. `None` for S3.
+    fn file_for(&self, key: &str) -> Option<anyhow::Result<PathBuf>> {
+        if is_folder_key(key) {
+            Some(self.folder_file(key))
+        } else if self.local.is_some() {
+            Some(self.local_path(key))
+        } else {
+            None
+        }
     }
 
     /// The file behind `key` in local storage. Keys are paths the server
@@ -98,6 +145,7 @@ impl ObjectStore {
 
     /// Store a finished temporary file under `key`.
     pub async fn put_temp(&self, key: &str, temp: tempfile::NamedTempFile, content_type: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(!is_folder_key(key), "library folders are read-only");
         if self.local.is_some() {
             self.persist_local(key, temp).await
         } else {
@@ -123,6 +171,7 @@ impl ObjectStore {
 
     /// Upload bytes to the given object key.
     pub async fn put(&self, key: &str, body: Bytes, content_type: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(!is_folder_key(key), "library folders are read-only");
         if self.local.is_some() {
             let mut temp = self.new_temp()?;
             std::io::Write::write_all(&mut temp, &body).context("write object")?;
@@ -142,6 +191,7 @@ impl ObjectStore {
 
     /// Upload a file from disk without loading the full payload into memory.
     pub async fn put_path(&self, key: &str, path: &Path, content_type: &str) -> anyhow::Result<()> {
+        anyhow::ensure!(!is_folder_key(key), "library folders are read-only");
         if self.local.is_some() {
             let temp = self.new_temp()?;
             tokio::fs::copy(path, temp.path()).await.context("copy into storage")?;
@@ -166,8 +216,8 @@ impl ObjectStore {
 
     /// Download an object and return its bytes.
     pub async fn get(&self, key: &str) -> anyhow::Result<Bytes> {
-        if self.local.is_some() {
-            let data = tokio::fs::read(self.local_path(key)?).await.context("object store get failed")?;
+        if let Some(path) = self.file_for(key) {
+            let data = tokio::fs::read(path?).await.context("object store get failed")?;
             return Ok(Bytes::from(data));
         }
         let output = self
@@ -193,9 +243,9 @@ impl ObjectStore {
     /// file on disk (tags) without holding it in memory — see `sha256_hex`.
     pub async fn download_to_temp(&self, key: &str) -> anyhow::Result<tempfile::NamedTempFile> {
         use tokio::io::AsyncWriteExt;
-        if self.local.is_some() {
+        if let Some(path) = self.file_for(key) {
             let temp = tempfile::NamedTempFile::new().context("create temp file")?;
-            tokio::fs::copy(self.local_path(key)?, temp.path()).await.context("object store get failed")?;
+            tokio::fs::copy(path?, temp.path()).await.context("object store get failed")?;
             return Ok(temp);
         }
         let mut output = self
@@ -222,9 +272,9 @@ impl ObjectStore {
     /// of 50–120 MB audiobooks that way is what pinned the canary at 1.5 GB
     /// RSS and starved the CI build sharing its 4 GB host.
     pub async fn sha256_hex(&self, key: &str) -> anyhow::Result<String> {
-        if self.local.is_some() {
+        if let Some(path) = self.file_for(key) {
             use tokio::io::AsyncReadExt;
-            let mut file = tokio::fs::File::open(self.local_path(key)?).await.context("object store get failed")?;
+            let mut file = tokio::fs::File::open(path?).await.context("object store get failed")?;
             let mut hasher = Sha256::new();
             let mut buf = vec![0u8; 64 * 1024];
             loop {
@@ -254,6 +304,11 @@ impl ObjectStore {
 
     /// Delete an object by key.
     pub async fn delete(&self, key: &str) -> anyhow::Result<()> {
+        // A library-folder file is never touched: removing its item only hides
+        // it (the scanner remembers the file and does not add it again).
+        if is_folder_key(key) {
+            return Ok(());
+        }
         if self.local.is_some() {
             return match tokio::fs::remove_file(self.local_path(key)?).await {
                 Ok(()) => Ok(()),
@@ -341,8 +396,8 @@ impl ObjectStore {
     pub async fn presigned_get(&self, key: &str, expires_in_secs: u64) -> anyhow::Result<String> {
         use aws_sdk_s3::presigning::PresigningConfig;
 
-        if let Some(links) = &self.links {
-            return Ok(links.link("GET", key, expires_in_secs));
+        if self.serve_all || is_folder_key(key) {
+            return Ok(self.links.link("GET", key, expires_in_secs));
         }
 
         let config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))
@@ -374,8 +429,9 @@ impl ObjectStore {
     ) -> anyhow::Result<String> {
         use aws_sdk_s3::presigning::PresigningConfig;
 
-        if let Some(links) = &self.links {
-            return Ok(links.link("PUT", key, expires_in_secs));
+        anyhow::ensure!(!is_folder_key(key), "library folders are read-only");
+        if self.serve_all {
+            return Ok(self.links.link("PUT", key, expires_in_secs));
         }
 
         let config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))
@@ -396,8 +452,8 @@ impl ObjectStore {
 
     /// Size and content type of an object, or `None` when it does not exist.
     pub async fn head_object(&self, key: &str) -> anyhow::Result<Option<(i64, String)>> {
-        if self.local.is_some() {
-            return match tokio::fs::metadata(self.local_path(key)?).await {
+        if let Some(path) = self.file_for(key) {
+            return match tokio::fs::metadata(path?).await {
                 Ok(meta) if meta.is_file() => Ok(Some((meta.len() as i64, guess_content_type(key)))),
                 Ok(_) => Ok(None),
                 Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -463,9 +519,9 @@ impl ObjectStore {
         };
         let len = if total == 0 { 0 } else { end - start + 1 };
 
-        let body = if self.local.is_some() {
+        let body = if let Some(path) = self.file_for(key) {
             use tokio::io::{AsyncReadExt, AsyncSeekExt};
-            let mut file = tokio::fs::File::open(self.local_path(key)?).await.context("open object")?;
+            let mut file = tokio::fs::File::open(path?).await.context("open object")?;
             file.seek(std::io::SeekFrom::Start(start)).await.context("seek object")?;
             axum::body::Body::from_stream(tokio_util::io::ReaderStream::new(file.take(len)))
         } else {
@@ -541,8 +597,10 @@ pub async fn connect(cfg: &StorageConfig, links: MediaLinks) -> anyhow::Result<O
         client,
         presign_client,
         bucket: cfg.bucket.clone(),
-        links: (local.is_some() || cfg.proxy).then_some(links),
+        serve_all: local.is_some() || cfg.proxy,
+        links,
         local,
+        folders: Default::default(),
     };
 
     if let Some(root) = &store.local {

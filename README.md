@@ -47,10 +47,10 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
   MusicBrainz API is coming (Phase 4).
 - **Family**: one server, several people. Private by default, shared when you
   say so; roles, parental controls per member, join by link or QR code.
-- **Your files stay yours**: uploads are plain files on the server's own
-  disk, or in any S3-compatible bucket if you prefer. Coming (Phase 4): point
-  the server at the music and audiobook folders you already have on a disk or
-  NAS, indexed read-only.
+- **Your files stay yours**: point the server at the music and audiobook
+  folders you already have on a disk or NAS; it indexes them read-only and
+  never writes there. Uploads are plain files on the server's own disk, or in
+  any S3-compatible bucket if you prefer.
 - **Playback everywhere**: progress, bookmarks and the play queue sync across
   the web console and the apps; a 30-day trash catches mistakes.
 - **Statistics**: listening history per member and a yearly recap.
@@ -72,7 +72,7 @@ it offers.
 | Run it on your own hardware | yes | — |
 | Audiobooks, podcasts, music, family sharing, web console, OpenSubsonic | yes | yes |
 | Local storage | yes | — |
-| Read-only library folders | coming (Phase 4) | — |
+| Read-only library folders | yes | — |
 | Sign-in providers | optional, you configure | yes |
 | SMTP mail, music identify | coming, optional | yes |
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |

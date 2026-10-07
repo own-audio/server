@@ -2,7 +2,7 @@
 pub mod config;
 pub mod state;
 
-pub use config::{AppConfig, AuthConfig, ServerConfig, StorageConfig};
+pub use config::{AppConfig, AuthConfig, LibraryConfig, ServerConfig, StorageConfig};
 pub use state::AppState;
 
 use crate::db;
@@ -62,6 +62,13 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
 
     // Assemble shared application state
     let state = AppState::new(config.clone(), pool.clone(), object_store.clone(), hooks.clone());
+
+    // Read-only library folders: register them and scan in the background.
+    match crate::library_folders::configured(&config) {
+        Ok(folders) if !folders.is_empty() => crate::library_folders::spawn(state.clone()),
+        Ok(_) => {}
+        Err(e) => tracing::warn!(error = %format!("{e:#}"), "library folders: configuration ignored"),
+    }
 
     // Start background job worker
     jobs::worker::spawn(pool, object_store, config.clone(), hooks);

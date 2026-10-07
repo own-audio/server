@@ -96,6 +96,7 @@ pub fn router() -> Router<AppState> {
         .route("/search", get(search))
         .route("/private", get(private_library))
         .route("/changes", get(changes))
+        .nest("/folders", crate::library_folders::routes::router())
 }
 
 // ── Delta sync ────────────────────────────────────────────────────────────
