@@ -78,7 +78,7 @@ services:
   server:
     # `docker compose pull server` takes the published image (amd64 and arm64);
     # `docker compose build server` builds this checkout instead.
-    image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-alpha.7}
+    image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-beta.1}
     build:
       context: .
       dockerfile: backend/Dockerfile

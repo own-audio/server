@@ -7,7 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-Contract revision 4.
+## [1.0.0-beta.1] - 2026-10-08
+
+Contract revision 4. The first beta: the API contract is executable
+(`docs/api/openapi.json`) and checked against every later release.
 
 ### Added
 - Mail over SMTP submission (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`,
