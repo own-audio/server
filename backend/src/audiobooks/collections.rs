@@ -4,16 +4,16 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::db;
 use crate::families::FamilyContext;
-use axum::Router;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post, put};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct CollectionResponse {
     pub id: String,
     pub name: String,
@@ -25,7 +25,7 @@ pub struct CollectionResponse {
     pub updated_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateCollectionRequest {
     pub name: String,
     pub description: Option<String>,
@@ -33,7 +33,7 @@ pub struct CreateCollectionRequest {
     pub is_public: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateCollectionRequest {
     pub name: String,
     pub description: Option<String>,
@@ -41,7 +41,7 @@ pub struct UpdateCollectionRequest {
     pub is_public: bool,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SeriesResponse {
     pub id: String,
     pub name: String,
@@ -50,66 +50,62 @@ pub struct SeriesResponse {
     pub created_at: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SeriesBookEntry {
     pub book_id: String,
     pub book_title: String,
     pub position: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateSeriesRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateSeriesRequest {
     pub name: String,
     pub description: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddBookToSeriesRequest {
     pub book_id: String,
     pub position: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AddBookRequest {
     pub book_id: String,
 }
 
 // ── Router ──────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
         // Collections
-        .route("/collections", get(list_collections))
-        .route("/collections", post(create_collection))
-        .route("/collections/{id}", get(get_collection))
-        .route("/collections/{id}", put(update_collection))
-        .route("/collections/{id}", delete(delete_collection))
-        .route("/collections/{id}/books", get(list_collection_books))
-        .route("/collections/{id}/books", post(add_book_to_collection))
-        .route("/collections/{id}/books/{book_id}", delete(remove_book_from_collection))
+        .routes(routes!(list_collections, create_collection))
+        .routes(routes!(get_collection, update_collection, delete_collection))
+        .routes(routes!(list_collection_books, add_book_to_collection))
+        .routes(routes!(remove_book_from_collection))
         // Series
-        .route("/series", get(list_series))
-        .route("/series", post(create_series))
-        .route("/series/{id}", get(get_series))
-        .route("/series/{id}", put(update_series))
-        .route("/series/{id}", delete(delete_series))
-        .route("/series/{id}/books", post(add_book_to_series))
-        .route("/series/{id}/books/{book_id}", delete(remove_book_from_series))
+        .routes(routes!(list_series, create_series))
+        .routes(routes!(get_series, update_series, delete_series))
+        .routes(routes!(add_book_to_series))
+        .routes(routes!(remove_book_from_series))
         // Favorites
-        .route("/favorites", get(list_favorites))
-        .route("/favorites/{book_id}", post(add_favorite))
-        .route("/favorites/{book_id}", delete(remove_favorite))
-        .route("/favorites/{book_id}/check", get(check_favorite))
+        .routes(routes!(list_favorites))
+        .routes(routes!(add_favorite, remove_favorite))
+        .routes(routes!(check_favorite))
 }
 
 // ── Collection handlers ─────────────────────────────────────────────────────
 
+/// The caller's collections.
+#[utoipa::path(get, path = "/collections", tag = "collections", security(("bearer" = [])),
+    responses(
+        (status = 200, body = Vec<CollectionResponse>)))]
 async fn list_collections(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -128,6 +124,11 @@ async fn list_collections(
     Ok(Json(responses))
 }
 
+/// Create a collection.
+#[utoipa::path(post, path = "/collections", tag = "collections", security(("bearer" = [])),
+    request_body = CreateCollectionRequest,
+    responses(
+        (status = 201, body = CollectionResponse)))]
 async fn create_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -146,6 +147,12 @@ async fn create_collection(
     Ok((StatusCode::CREATED, Json(resp)))
 }
 
+/// One of the caller's collections.
+#[utoipa::path(get, path = "/collections/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id")),
+    responses(
+        (status = 200, body = CollectionResponse),
+        (status = 404, description = "No such collection of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn get_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -162,6 +169,12 @@ async fn get_collection(
     Ok(Json(resp))
 }
 
+/// Edit a collection's name, description and visibility.
+#[utoipa::path(put, path = "/collections/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id")),
+    request_body = UpdateCollectionRequest,
+    responses(
+        (status = 200, body = CollectionResponse)))]
 async fn update_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -185,6 +198,11 @@ async fn update_collection(
     Ok(Json(resp))
 }
 
+/// Delete a collection; its books are untouched.
+#[utoipa::path(delete, path = "/collections/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id")),
+    responses(
+        (status = 204, description = "Deleted")))]
 async fn delete_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -196,6 +214,12 @@ async fn delete_collection(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// The books in a collection that the caller can see.
+#[utoipa::path(get, path = "/collections/{id}/books", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id")),
+    responses(
+        (status = 200, description = "Books: `id`, `title`, `author`, `narrator`, `cover_url` (presigned, or null), `total_duration_secs`, `created_at`", body = Vec<Object>),
+        (status = 404, description = "No such collection of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn list_collection_books(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -232,6 +256,14 @@ async fn list_collection_books(
     Ok(Json(books))
 }
 
+/// Add a book to a collection.
+#[utoipa::path(post, path = "/collections/{id}/books", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id")),
+    request_body = AddBookRequest,
+    responses(
+        (status = 204, description = "Added"),
+        (status = 400, description = "`book_id` is not a UUID", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such collection of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn add_book_to_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -255,6 +287,12 @@ async fn add_book_to_collection(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Take a book out of a collection.
+#[utoipa::path(delete, path = "/collections/{id}/books/{book_id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Collection id"), ("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 204, description = "Removed"),
+        (status = 404, description = "No such collection of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn remove_book_from_collection(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -273,6 +311,10 @@ async fn remove_book_from_collection(
 
 // ── Series handlers ─────────────────────────────────────────────────────────
 
+/// The caller's series, each with its books in order.
+#[utoipa::path(get, path = "/series", tag = "collections", security(("bearer" = [])),
+    responses(
+        (status = 200, body = Vec<SeriesResponse>)))]
 async fn list_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -289,6 +331,11 @@ async fn list_series(
     Ok(Json(responses))
 }
 
+/// Create a series.
+#[utoipa::path(post, path = "/series", tag = "collections", security(("bearer" = [])),
+    request_body = CreateSeriesRequest,
+    responses(
+        (status = 201, body = SeriesResponse)))]
 async fn create_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -306,6 +353,12 @@ async fn create_series(
     Ok((StatusCode::CREATED, Json(resp)))
 }
 
+/// One of the caller's series.
+#[utoipa::path(get, path = "/series/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Series id")),
+    responses(
+        (status = 200, body = SeriesResponse),
+        (status = 404, description = "No such series of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn get_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -319,6 +372,12 @@ async fn get_series(
     Ok(Json(resp))
 }
 
+/// Edit a series' name and description.
+#[utoipa::path(put, path = "/series/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Series id")),
+    request_body = UpdateSeriesRequest,
+    responses(
+        (status = 200, body = SeriesResponse)))]
 async fn update_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -338,6 +397,11 @@ async fn update_series(
     Ok(Json(resp))
 }
 
+/// Delete a series; its books are untouched.
+#[utoipa::path(delete, path = "/series/{id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Series id")),
+    responses(
+        (status = 204, description = "Deleted")))]
 async fn delete_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -349,6 +413,14 @@ async fn delete_series(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Add a book to a series at a position.
+#[utoipa::path(post, path = "/series/{id}/books", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Series id")),
+    request_body = AddBookToSeriesRequest,
+    responses(
+        (status = 204, description = "Added"),
+        (status = 400, description = "`book_id` is not a UUID", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such series of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn add_book_to_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -371,6 +443,12 @@ async fn add_book_to_series(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Take a book out of a series.
+#[utoipa::path(delete, path = "/series/{id}/books/{book_id}", tag = "collections", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Series id"), ("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 204, description = "Removed"),
+        (status = 404, description = "No such series of the caller's", body = crate::http::openapi::ErrorBody)))]
 async fn remove_book_from_series(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -389,6 +467,10 @@ async fn remove_book_from_series(
 
 // ── Favorites handlers ──────────────────────────────────────────────────────
 
+/// The caller's favourite books that they can still see.
+#[utoipa::path(get, path = "/favorites", tag = "collections", security(("bearer" = [])),
+    responses(
+        (status = 200, description = "Books: `id`, `title`, `author`, `cover_url` (presigned, or null), `total_duration_secs`, `favorited_at`", body = Vec<Object>)))]
 async fn list_favorites(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -417,6 +499,11 @@ async fn list_favorites(
     Ok(Json(books))
 }
 
+/// Mark a book as a favourite.
+#[utoipa::path(post, path = "/favorites/{book_id}", tag = "collections", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 204, description = "Added")))]
 async fn add_favorite(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -428,6 +515,11 @@ async fn add_favorite(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Unmark a favourite book.
+#[utoipa::path(delete, path = "/favorites/{book_id}", tag = "collections", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 204, description = "Removed")))]
 async fn remove_favorite(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -439,6 +531,11 @@ async fn remove_favorite(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Whether a book is one of the caller's favourites.
+#[utoipa::path(get, path = "/favorites/{book_id}/check", tag = "collections", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, description = "`is_favorite` (boolean)", body = Object)))]
 async fn check_favorite(
     family: FamilyContext,
     State(state): State<AppState>,

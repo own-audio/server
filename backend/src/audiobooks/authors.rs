@@ -6,18 +6,18 @@ use crate::auth::error::AuthError;
 use crate::db;
 use crate::families::FamilyContext;
 use crate::metadata::wikimedia;
-use axum::Router;
 use axum::body::Body;
 use axum::extract::{Json, Multipart, Path, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post, put};
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ────────────────────────────────────────────────────────────────────
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AuthorResponse {
     pub id: String,
     pub name: String,
@@ -28,21 +28,21 @@ pub struct AuthorResponse {
     pub created_at: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateAuthorRequest {
     pub name: String,
     pub sort_name: Option<String>,
     pub bio: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateAuthorRequest {
     pub name: String,
     pub sort_name: Option<String>,
     pub bio: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct LinkAuthorRequest {
     pub author_id: String,
     #[serde(default = "default_author_role")]
@@ -53,25 +53,25 @@ fn default_author_role() -> String {
     "author".to_string()
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BookAuthorResponse {
     pub author_id: String,
     pub author_name: String,
     pub role: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct TagResponse {
     pub id: String,
     pub name: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetBookTagsRequest {
     pub tags: Vec<String>, // tag names — will get_or_create
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AuthorImageInfoResponse {
     /// "Wikimedia Commons", or `None` for a picture set by hand.
     pub source: Option<String>,
@@ -84,29 +84,28 @@ pub struct AuthorImageInfoResponse {
 
 // ── Router ──────────────────────────────────────────────────────────────────
 
-pub fn router() -> Router<AppState> {
-    Router::new()
+pub fn router() -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
         // Authors
-        .route("/", get(list_authors))
-        .route("/", post(create_author))
-        .route("/{id}", get(get_author))
-        .route("/{id}", put(update_author))
-        .route("/{id}", delete(delete_author))
-        .route("/{id}/books", get(list_author_books))
-        .route("/{id}/image", get(get_author_image).post(upload_author_image).delete(delete_author_image))
-        .route("/{id}/image-info", get(get_author_image_info))
+        .routes(routes!(list_authors, create_author))
+        .routes(routes!(get_author, update_author, delete_author))
+        .routes(routes!(list_author_books))
+        .routes(routes!(get_author_image, upload_author_image, delete_author_image))
+        .routes(routes!(get_author_image_info))
         // Book author links (nested under /audiobooks/{book_id}/authors)
-        .route("/book/{book_id}", get(list_book_authors))
-        .route("/book/{book_id}", post(link_author_to_book))
-        .route("/book/{book_id}/{author_id}/{role}", delete(unlink_author_from_book))
+        .routes(routes!(list_book_authors, link_author_to_book))
+        .routes(routes!(unlink_author_from_book))
         // Tags
-        .route("/tags", get(list_all_tags))
-        .route("/tags/book/{book_id}", get(list_book_tags))
-        .route("/tags/book/{book_id}", put(set_book_tags))
+        .routes(routes!(list_all_tags))
+        .routes(routes!(list_book_tags, set_book_tags))
 }
 
 // ── Handlers ────────────────────────────────────────────────────────────────
 
+/// Every author on the server.
+#[utoipa::path(get, path = "/", tag = "authors", security(("bearer" = [])),
+    responses(
+        (status = 200, body = Vec<AuthorResponse>)))]
 async fn list_authors(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -125,6 +124,11 @@ async fn list_authors(
     Ok(Json(responses))
 }
 
+/// Create an author.
+#[utoipa::path(post, path = "/", tag = "authors", security(("bearer" = [])),
+    request_body = CreateAuthorRequest,
+    responses(
+        (status = 201, body = AuthorResponse)))]
 async fn create_author(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -143,6 +147,12 @@ async fn create_author(
     Ok((StatusCode::CREATED, Json(resp)))
 }
 
+/// One author.
+#[utoipa::path(get, path = "/{id}", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 200, body = AuthorResponse),
+        (status = 404, description = "No such author", body = crate::http::openapi::ErrorBody)))]
 async fn get_author(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -161,6 +171,12 @@ async fn get_author(
     Ok(Json(resp))
 }
 
+/// Edit an author.
+#[utoipa::path(put, path = "/{id}", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    request_body = UpdateAuthorRequest,
+    responses(
+        (status = 200, body = AuthorResponse)))]
 async fn update_author(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -185,6 +201,11 @@ async fn update_author(
     Ok(Json(resp))
 }
 
+/// Delete an author.
+#[utoipa::path(delete, path = "/{id}", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 204, description = "Deleted")))]
 async fn delete_author(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -196,6 +217,11 @@ async fn delete_author(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// The author's books that the caller can see.
+#[utoipa::path(get, path = "/{id}/books", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 200, description = "Books: `id`, `title`, `author`, `narrator`, `total_duration_secs`, `created_at`", body = Vec<Object>)))]
 async fn list_author_books(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -221,6 +247,11 @@ async fn list_author_books(
     Ok(Json(books))
 }
 
+/// The authors linked to a book, with their roles.
+#[utoipa::path(get, path = "/book/{book_id}", tag = "authors", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, body = Vec<BookAuthorResponse>)))]
 async fn list_book_authors(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -243,6 +274,13 @@ async fn list_book_authors(
     Ok(Json(responses))
 }
 
+/// Link an author to a book in a role.
+#[utoipa::path(post, path = "/book/{book_id}", tag = "authors", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    request_body = LinkAuthorRequest,
+    responses(
+        (status = 204, description = "Linked"),
+        (status = 400, description = "`author_id` is not a UUID", body = crate::http::openapi::ErrorBody)))]
 async fn link_author_to_book(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -260,6 +298,11 @@ async fn link_author_to_book(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Remove an author's role on a book.
+#[utoipa::path(delete, path = "/book/{book_id}/{author_id}/{role}", tag = "authors", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id"), ("author_id" = Uuid, Path, description = "Author id"), ("role" = String, Path, description = "The role to remove, e.g. `author`")),
+    responses(
+        (status = 204, description = "Unlinked")))]
 async fn unlink_author_from_book(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -284,6 +327,11 @@ async fn unlink_author_from_book(
 /// A miss is cached too (see db::authors::MISS_TTL_DAYS): most libraries hold
 /// at least one author no catalogue has heard of, and without a negative
 /// entry every render of the "by author" view would re-ask the network.
+#[utoipa::path(get, path = "/{id}/image", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 200, description = "The photo, with its credit burned in", content_type = "image/*"),
+        (status = 404, description = "No such author, or no usable photo", body = crate::http::openapi::ErrorBody)))]
 async fn get_author_image(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -379,6 +427,11 @@ async fn store_author_image(state: &AppState, author_id: Uuid, image: wikimedia:
 /// picture, and under what licence. Separate from the image itself for the
 /// same reason as music's: an `<img>` never sees response headers, and most
 /// Commons licences require this to be shown, so it is not decoration.
+#[utoipa::path(get, path = "/{id}/image-info", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 200, body = AuthorImageInfoResponse),
+        (status = 404, description = "No photo recorded for this author", body = crate::http::openapi::ErrorBody)))]
 async fn get_author_image_info(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -403,6 +456,13 @@ async fn get_author_image_info(
 /// author, mirroring `upload_cover` for a book. Marked `is_user_set`, which is
 /// what makes it permanent: the automatic lookup skips any author carrying
 /// that flag, so a deliberate choice is never quietly replaced later.
+#[utoipa::path(post, path = "/{id}/image", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `image` (image)"),
+    responses(
+        (status = 201, description = "Stored"),
+        (status = 400, description = "No `image` field, or a malformed upload", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such author", body = crate::http::openapi::ErrorBody)))]
 async fn upload_author_image(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -442,6 +502,10 @@ async fn upload_author_image(
 
 /// DELETE /api/v1/audiobooks/authors/:id/image — forget this author's
 /// picture, user-set or fetched, and let the automatic lookup run again.
+#[utoipa::path(delete, path = "/{id}/image", tag = "authors", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Author id")),
+    responses(
+        (status = 204, description = "Forgotten")))]
 async fn delete_author_image(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -455,6 +519,10 @@ async fn delete_author_image(
 
 // ── Tags ────────────────────────────────────────────────────────────────────
 
+/// Every tag on the server.
+#[utoipa::path(get, path = "/tags", tag = "authors", security(("bearer" = [])),
+    responses(
+        (status = 200, body = Vec<TagResponse>)))]
 async fn list_all_tags(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -472,6 +540,11 @@ async fn list_all_tags(
     ))
 }
 
+/// A book's tags.
+#[utoipa::path(get, path = "/tags/book/{book_id}", tag = "authors", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, body = Vec<TagResponse>)))]
 async fn list_book_tags(
     _family: FamilyContext,
     State(state): State<AppState>,
@@ -490,6 +563,12 @@ async fn list_book_tags(
     ))
 }
 
+/// Replace a book's tags, creating any that do not exist yet.
+#[utoipa::path(put, path = "/tags/book/{book_id}", tag = "authors", security(("bearer" = [])),
+    params(("book_id" = Uuid, Path, description = "Book id")),
+    request_body = SetBookTagsRequest,
+    responses(
+        (status = 200, description = "The book's tags now", body = Vec<TagResponse>)))]
 async fn set_book_tags(
     family: FamilyContext,
     State(state): State<AppState>,

@@ -11,21 +11,21 @@ use crate::db::access;
 use crate::families::FamilyContext;
 use crate::http::multipart::read_text_field;
 use axum::body::Body;
-use axum::Router;
 use axum::extract::{DefaultBodyLimit, Json, Multipart, Path, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{delete, get, post, put};
 use mime_guess::MimeGuess;
 use serde::{Deserialize, Serialize};
 use std::path::{Path as StdPath, PathBuf};
 use tempfile::NamedTempFile;
 use tokio::io::AsyncWriteExt;
+use utoipa::ToSchema;
+use utoipa_axum::{router::OpenApiRouter, routes};
 use uuid::Uuid;
 
 // ── DTOs ──────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct CreateBookRequest {
     pub title: String,
     pub author: Option<String>,
@@ -37,7 +37,7 @@ pub struct CreateBookRequest {
     pub visibility: Option<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateBookRequest {
     pub title: String,
     pub author: Option<String>,
@@ -48,7 +48,7 @@ pub struct UpdateBookRequest {
 /// Body of `POST /audiobooks/{id}/metadata/search`. The book id scopes
 /// visibility only — the query itself is whatever the client sends, because the
 /// books worth identifying are the ones whose stored title and author are wrong.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct IdentifySearchRequest {
     pub title: Option<String>,
     pub author: Option<String>,
@@ -58,7 +58,7 @@ pub struct IdentifySearchRequest {
 /// Body of `POST /audiobooks/{id}/metadata/apply`. Only the volume id crosses
 /// the wire: the server re-fetches the volume rather than trusting a client's
 /// copy of a search result.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ApplyIdentifyRequest {
     pub volume_id: String,
     /// Which parts of the match to actually write. Absent means all of them,
@@ -69,7 +69,7 @@ pub struct ApplyIdentifyRequest {
 
 /// Per-field opt-out. `narrator` is not here because Google Books has none to
 /// give (see `metadata::google_books`).
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct IdentifyFields {
     #[serde(default = "yes")]
     pub title: bool,
@@ -113,7 +113,7 @@ struct UploadManifestEntry {
 
 /// Body of `POST /audiobooks/from-uploads` — the direct-to-storage twin of
 /// the multipart `POST /audiobooks/upload`.
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct FromUploadsRequest {
     pub title: Option<String>,
     pub author: Option<String>,
@@ -134,7 +134,7 @@ pub struct FromUploadsRequest {
     pub files: Vec<FromUploadsFile>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct FromUploadsFile {
     /// Key returned by `/uploads/presign` and already PUT to storage.
     pub object_key: String,
@@ -153,14 +153,14 @@ struct UploadFileRequest {
 }
 
 /// A created book and where it sits in the own.audio folder.
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BookWithPath {
     #[serde(flatten)]
     pub book: BookResponse,
     pub path: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct BookResponse {
     pub id: String,
     pub title: String,
@@ -188,13 +188,13 @@ pub struct BookResponse {
     pub read_only: bool,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct SetVisibilityRequest {
     /// `private` or `family`.
     pub visibility: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct FileResponse {
     pub id: String,
     pub book_id: String,
@@ -209,7 +209,7 @@ pub struct FileResponse {
     pub sha256: Option<String>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ChapterResponse {
     pub id: String,
     pub book_id: String,
@@ -219,7 +219,7 @@ pub struct ChapterResponse {
     pub start_time_secs: f64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct StreamResponse {
     pub url: String,
     pub expires_in_secs: u64,
@@ -234,38 +234,35 @@ struct TempUpload {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct ReorderFilesRequest {
     pub file_ids: Vec<String>,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct UpdateFileRequest {
     pub title: String,
 }
 
-pub fn router() -> Router<AppState> {
-    Router::new()
-        .route("/", get(list_books))
-        .route("/", post(create_book))
-        .route("/upload", post(upload_book).layer(DefaultBodyLimit::disable()))
-        .route("/from-uploads", post(create_book_from_uploads))
-        .route("/{id}/files/from-uploads", post(append_files_from_uploads))
-        .route("/{id}", get(get_book))
-        .route("/{id}", put(update_book))
-        .route("/{id}", delete(delete_book))
-        .route("/{id}/cover", get(get_cover))
-        .route("/{id}/upload-cover", post(upload_cover).layer(DefaultBodyLimit::disable()))
-        .route("/{id}/files", get(list_files))
-        .route("/{id}/upload-file", post(upload_file).layer(DefaultBodyLimit::disable()))
-        .route("/{id}/files/{file_id}", put(update_file_title_handler))
-        .route("/{id}/files/{file_id}", delete(delete_file_handler))
-        .route("/{id}/files/{file_id}/stream", get(stream_file))
-        .route("/{id}/files/reorder", put(reorder_files))
-        .route("/{id}/chapters", get(list_chapters))
-        .route("/{id}/visibility", put(set_book_visibility))
-        .route("/{id}/metadata/search", post(search_book_metadata))
-        .route("/{id}/metadata/apply", post(apply_book_metadata))
+pub fn router() -> OpenApiRouter<AppState> {
+    use crate::http::openapi::map;
+    OpenApiRouter::new()
+        .routes(routes!(list_books, create_book))
+        .routes(map(routes!(upload_book), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(create_book_from_uploads))
+        .routes(routes!(append_files_from_uploads))
+        .routes(routes!(get_book, update_book, delete_book))
+        .routes(routes!(get_cover))
+        .routes(map(routes!(upload_cover), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(list_files))
+        .routes(map(routes!(upload_file), |m| m.layer(DefaultBodyLimit::disable())))
+        .routes(routes!(update_file_title_handler, delete_file_handler))
+        .routes(routes!(stream_file))
+        .routes(routes!(reorder_files))
+        .routes(routes!(list_chapters))
+        .routes(routes!(set_book_visibility))
+        .routes(routes!(search_book_metadata))
+        .routes(routes!(apply_book_metadata))
         // Sub-module routers
         .nest("/authors", authors::router())
         .nest("/organize", collections::router())
@@ -274,6 +271,9 @@ pub fn router() -> Router<AppState> {
 // ── Handlers ──────────────────────────────────────────────────────────────
 
 /// GET /api/v1/audiobooks/
+#[utoipa::path(get, path = "/", tag = "audiobooks", security(("bearer" = [])),
+    responses(
+        (status = 200, body = Vec<BookResponse>)))]
 async fn list_books(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -286,6 +286,11 @@ async fn list_books(
 }
 
 /// POST /api/v1/audiobooks/
+#[utoipa::path(post, path = "/", tag = "audiobooks", security(("bearer" = [])),
+    request_body = CreateBookRequest,
+    responses(
+        (status = 201, body = BookResponse),
+        (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody)))]
 async fn create_book(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -331,6 +336,13 @@ async fn create_book(
     Ok((StatusCode::CREATED, Json(book_to_response(book, family.user_id))))
 }
 
+/// Create a book by uploading its audio files (and optionally a cover) in one multipart request.
+#[utoipa::path(post, path = "/upload", tag = "audiobooks", security(("bearer" = [])),
+    request_body(content_type = "multipart/form-data", description = "fields: `title`, `author`, `narrator`, `description`, `visibility` (`private`/`family`), `manifest` (JSON array of `{relative_path, duration_secs}`, one per file, in send order), `files` (repeated, audio), `cover` (image); all optional except at least one `files`"),
+    responses(
+        (status = 201, body = BookResponse),
+        (status = 400, description = "No audio file, bad manifest or visibility, or a malformed upload", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
 async fn upload_book(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -510,6 +522,13 @@ async fn upload_book(
 /// `/uploads/presign` + `/uploads/complete`. Same result as `/upload`, without
 /// the bytes ever crossing this server — see `crate::uploads` for why that
 /// matters in production.
+#[utoipa::path(post, path = "/from-uploads", tag = "audiobooks", security(("bearer" = [])),
+    request_body = FromUploadsRequest,
+    responses(
+        (status = 201, body = BookWithPath),
+        (status = 400, description = "No files, a bad path, a duplicate relative path, unknown visibility, or a key with nothing uploaded", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "An object key outside the caller's family", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
 async fn create_book_from_uploads(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -667,12 +686,12 @@ async fn create_book_from_uploads(
     Ok((StatusCode::CREATED, Json(BookWithPath { book: book_to_response(fresh, family.user_id), path })))
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, ToSchema)]
 pub struct AppendFilesRequest {
     pub files: Vec<FromUploadsFile>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct AppendedFile {
     pub id: String,
     pub relative_path: String,
@@ -685,6 +704,15 @@ pub struct AppendedFile {
 /// a chapter can be added to a book later. Each file keeps its `relative_path` (required);
 /// the book's play order is then sorted by path again. A file whose path the book already
 /// has is not added twice: a retried upload answers with the existing file.
+#[utoipa::path(post, path = "/{id}/files/from-uploads", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = AppendFilesRequest,
+    responses(
+        (status = 200, description = "Every file sent, new or already present", body = Vec<AppendedFile>),
+        (status = 400, description = "No files, a missing or bad relative_path, or a key with nothing uploaded", body = crate::http::openapi::ErrorBody),
+        (status = 401, description = "An object key outside the caller's family", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn append_files_from_uploads(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -818,6 +846,11 @@ async fn register_uploaded_object(
 }
 
 /// GET /api/v1/audiobooks/:id
+#[utoipa::path(get, path = "/{id}", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, body = BookResponse),
+        (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn get_book(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -831,6 +864,14 @@ async fn get_book(
     Ok(Json(book_to_response(book, family.user_id)))
 }
 
+/// Edit a book's title, author, narrator and description. Owner only.
+#[utoipa::path(put, path = "/{id}", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = UpdateBookRequest,
+    responses(
+        (status = 200, body = BookResponse),
+        (status = 400, description = "Empty title", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn update_book(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -869,6 +910,12 @@ async fn update_book(
 
 /// DELETE /api/v1/audiobooks/:id — moves the book to the trash (30 days).
 /// The owner, or a family admin when it is shared with their family.
+#[utoipa::path(delete, path = "/{id}", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 204, description = "Moved to the trash"),
+        (status = 403, description = "Visible, but the caller may not delete it", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn delete_book(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -880,6 +927,11 @@ async fn delete_book(
 }
 
 /// GET /api/v1/audiobooks/:id/files
+#[utoipa::path(get, path = "/{id}/files", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, body = Vec<FileResponse>),
+        (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn list_files(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -898,6 +950,12 @@ async fn list_files(
     Ok(Json(files.into_iter().map(file_to_response).collect()))
 }
 
+/// A short-lived link to play or download one file of a book.
+#[utoipa::path(get, path = "/{id}/files/{file_id}/stream", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id"), ("file_id" = Uuid, Path, description = "File id")),
+    responses(
+        (status = 200, body = StreamResponse),
+        (status = 404, description = "No such book or file", body = crate::http::openapi::ErrorBody)))]
 async fn stream_file(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -933,6 +991,15 @@ async fn stream_file(
     }))
 }
 
+/// Add or replace one audio file of a book at a given position. Owner only.
+#[utoipa::path(post, path = "/{id}/upload-file", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `position` (1-based; an existing file there is replaced), `relative_path`, `duration_secs`, `file` (audio)"),
+    responses(
+        (status = 201, description = "File stored"),
+        (status = 400, description = "Missing or bad metadata, or no `file` field", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn upload_file(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1041,6 +1108,15 @@ async fn upload_file(
     Ok(StatusCode::CREATED)
 }
 
+/// Replace the book's cover. Owner only.
+#[utoipa::path(post, path = "/{id}/upload-cover", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body(content_type = "multipart/form-data", description = "fields: `cover` (image)"),
+    responses(
+        (status = 201, description = "Cover stored"),
+        (status = 400, description = "No `cover` field, or a malformed upload", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn upload_cover(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1097,6 +1173,13 @@ async fn upload_cover(
 /// The id scopes visibility, nothing more: the search runs on the title and
 /// author in the body, which the client seeds from the book but lets the user
 /// edit first. Anyone who can see the book can search — it writes nothing.
+#[utoipa::path(post, path = "/{id}/metadata/search", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = IdentifySearchRequest,
+    responses(
+        (status = 200, body = Vec<crate::metadata::google_books::BookCandidate>),
+        (status = 400, description = "Neither title nor author, or the Google Books quota is used up", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn search_book_metadata(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1135,6 +1218,14 @@ async fn search_book_metadata(
 /// holding, then writes only the fields the client asked for. The cover is
 /// last and best-effort: the metadata has already been written by then, and a
 /// cover that won't download is not a reason to fail the match.
+#[utoipa::path(post, path = "/{id}/metadata/apply", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = ApplyIdentifyRequest,
+    responses(
+        (status = 200, body = BookResponse),
+        (status = 400, description = "The Google Books quota is used up", body = crate::http::openapi::ErrorBody),
+        (status = 403, description = "`fields.cover` without upload rights", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book the caller may manage", body = crate::http::openapi::ErrorBody)))]
 async fn apply_book_metadata(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1284,6 +1375,11 @@ async fn apply_book_cover(
 }
 
 /// GET /api/v1/audiobooks/:id/chapters
+#[utoipa::path(get, path = "/{id}/chapters", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, body = Vec<ChapterResponse>),
+        (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn list_chapters(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1305,6 +1401,13 @@ async fn list_chapters(
 /// PUT /api/v1/audiobooks/:id/files/:file_id — rename a single file. Only `title` is
 /// editable; position/duration/storage are unaffected, matching `update_book`'s own
 /// "metadata only" shape.
+#[utoipa::path(put, path = "/{id}/files/{file_id}", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id"), ("file_id" = Uuid, Path, description = "File id")),
+    request_body = UpdateFileRequest,
+    responses(
+        (status = 200, body = FileResponse),
+        (status = 400, description = "Empty title", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book or file the caller may manage", body = crate::http::openapi::ErrorBody)))]
 async fn update_file_title_handler(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1344,6 +1447,13 @@ async fn update_file_title_handler(
 /// PUT /api/v1/audiobooks/:id/files/reorder — owner, or a family admin when the book is shared
 /// (same rule as renaming or deleting a file; used to be owner-only, which would have 403'd a
 /// family admin dragging files on a shared book the new web UI now lets them reorder).
+#[utoipa::path(put, path = "/{id}/files/reorder", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = ReorderFilesRequest,
+    responses(
+        (status = 200, description = "The files in their new order", body = Vec<FileResponse>),
+        (status = 400, description = "A file id that is not a UUID", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book the caller may manage", body = crate::http::openapi::ErrorBody)))]
 async fn reorder_files(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1382,6 +1492,11 @@ async fn reorder_files(
 /// DELETE /api/v1/audiobooks/:id/files/:file_id — removes one file from a multi-file book (a
 /// botched or duplicate upload), not the whole book. Owner, or a family admin when the book is
 /// shared — same rule as renaming a file.
+#[utoipa::path(delete, path = "/{id}/files/{file_id}", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id"), ("file_id" = Uuid, Path, description = "File id")),
+    responses(
+        (status = 204, description = "Removed"),
+        (status = 404, description = "No such book the caller may manage", body = crate::http::openapi::ErrorBody)))]
 async fn delete_file_handler(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1409,6 +1524,12 @@ async fn delete_file_handler(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// The book's cover image.
+#[utoipa::path(get, path = "/{id}/cover", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    responses(
+        (status = 200, description = "The cover", content_type = "image/*"),
+        (status = 404, description = "No such book, or it has no cover", body = crate::http::openapi::ErrorBody)))]
 async fn get_cover(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1438,6 +1559,13 @@ async fn get_cover(
 
 /// PUT /api/v1/audiobooks/:id/visibility — move a book between the private
 /// and family folders. Owner only.
+#[utoipa::path(put, path = "/{id}/visibility", tag = "audiobooks", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Book id")),
+    request_body = SetVisibilityRequest,
+    responses(
+        (status = 200, body = BookResponse),
+        (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody),
+        (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
 async fn set_book_visibility(
     family: FamilyContext,
     State(state): State<AppState>,

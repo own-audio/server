@@ -55,7 +55,7 @@ pub struct QuotaExhausted;
 const MAX_RESULTS: u8 = 40;
 
 /// One search hit, already flattened out of Google's `volumeInfo` nesting.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct BookCandidate {
     pub volume_id: String,
     pub title: String,

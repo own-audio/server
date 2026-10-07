@@ -348,6 +348,2647 @@
         ]
       }
     },
+    "/api/v1/audiobooks": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "operationId": "audiobooks_list_books",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "operationId": "audiobooks_create_book",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown visibility",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Every author on the server",
+        "operationId": "authors_list_authors",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AuthorResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Create an author",
+        "operationId": "authors_create_author",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAuthorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/book/{book_id}": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "The authors linked to a book, with their roles",
+        "operationId": "authors_list_book_authors",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookAuthorResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Link an author to a book in a role",
+        "operationId": "authors_link_author_to_book",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkAuthorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Linked"
+          },
+          "400": {
+            "description": "`author_id` is not a UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/book/{book_id}/{author_id}/{role}": {
+      "delete": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Remove an author's role on a book",
+        "operationId": "authors_unlink_author_from_book",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "author_id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "role",
+            "in": "path",
+            "description": "The role to remove, e.g. `author`",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Unlinked"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/tags": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Every tag on the server",
+        "operationId": "authors_list_all_tags",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/tags/book/{book_id}": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "A book's tags",
+        "operationId": "authors_list_book_tags",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Replace a book's tags, creating any that do not exist yet",
+        "operationId": "authors_set_book_tags",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetBookTagsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The book's tags now",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TagResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/{id}": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "One author",
+        "operationId": "authors_get_author",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Edit an author",
+        "operationId": "authors_update_author",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAuthorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Delete an author",
+        "operationId": "authors_delete_author",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/{id}/books": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "The author's books that the caller can see",
+        "operationId": "authors_list_author_books",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Books: `id`, `title`, `author`, `narrator`, `total_duration_secs`, `created_at`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/{id}/image": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "The author's photo",
+        "description": "the author's photo.\n\nA miss is cached too (see db::authors::MISS_TTL_DAYS): most libraries hold\nat least one author no catalogue has heard of, and without a negative\nentry every render of the \"by author\" view would re-ask the network.",
+        "operationId": "authors_get_author_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The photo, with its credit burned in",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "No such author, or no usable photo",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "The user's own picture for an author, mirroring `upload_cover` for a book",
+        "description": "the user's own picture for an\nauthor, mirroring `upload_cover` for a book. Marked `is_user_set`, which is\nwhat makes it permanent: the automatic lookup skips any author carrying\nthat flag, so a deliberate choice is never quietly replaced later.",
+        "operationId": "authors_upload_author_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `image` (image)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Stored"
+          },
+          "400": {
+            "description": "No `image` field, or a malformed upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Forget this author's picture, user-set or fetched, and let the automatic lookup run again",
+        "operationId": "authors_delete_author_image",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Forgotten"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/authors/{id}/image-info": {
+      "get": {
+        "tags": [
+          "authors"
+        ],
+        "summary": "Who to credit for the picture, and under what licence",
+        "description": "who to credit for the\npicture, and under what licence. Separate from the image itself for the\nsame reason as music's: an `<img>` never sees response headers, and most\nCommons licences require this to be shown, so it is not decoration.",
+        "operationId": "authors_get_author_image_info",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Author id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthorImageInfoResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No photo recorded for this author",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/from-uploads": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Creates a book from objects the client already PUT straight to storage via `/uploads/presign` + `/uploads/complete`",
+        "description": "Creates a book from objects the client already PUT straight to storage via\n`/uploads/presign` + `/uploads/complete`. Same result as `/upload`, without\nthe bytes ever crossing this server — see `crate::uploads` for why that\nmatters in production.",
+        "operationId": "audiobooks_create_book_from_uploads",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FromUploadsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookWithPath"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No files, a bad path, a duplicate relative path, unknown visibility, or a key with nothing uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An object key outside the caller's family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/collections": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "The caller's collections",
+        "operationId": "collections_list_collections",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CollectionResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Create a collection",
+        "operationId": "collections_create_collection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/collections/{id}": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "One of the caller's collections",
+        "operationId": "collections_get_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Edit a collection's name, description and visibility",
+        "operationId": "collections_update_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCollectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Delete a collection; its books are untouched",
+        "operationId": "collections_delete_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/collections/{id}/books": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "The books in a collection that the caller can see",
+        "operationId": "collections_list_collection_books",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Books: `id`, `title`, `author`, `narrator`, `cover_url` (presigned, or null), `total_duration_secs`, `created_at`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Add a book to a collection",
+        "operationId": "collections_add_book_to_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBookRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Added"
+          },
+          "400": {
+            "description": "`book_id` is not a UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such collection of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/collections/{id}/books/{book_id}": {
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Take a book out of a collection",
+        "operationId": "collections_remove_book_from_collection",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Collection id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "No such collection of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/favorites": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "The caller's favourite books that they can still see",
+        "operationId": "collections_list_favorites",
+        "responses": {
+          "200": {
+            "description": "Books: `id`, `title`, `author`, `cover_url` (presigned, or null), `total_duration_secs`, `favorited_at`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/favorites/{book_id}": {
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Mark a book as a favourite",
+        "operationId": "collections_add_favorite",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Added"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Unmark a favourite book",
+        "operationId": "collections_remove_favorite",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/favorites/{book_id}/check": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Whether a book is one of the caller's favourites",
+        "operationId": "collections_check_favorite",
+        "parameters": [
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "`is_favorite` (boolean)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/series": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "The caller's series, each with its books in order",
+        "operationId": "collections_list_series",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesResponse"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Create a series",
+        "operationId": "collections_create_series",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSeriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/series/{id}": {
+      "get": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "One of the caller's series",
+        "operationId": "collections_get_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Series id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such series of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Edit a series' name and description",
+        "operationId": "collections_update_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Series id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSeriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Delete a series; its books are untouched",
+        "operationId": "collections_delete_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Series id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/series/{id}/books": {
+      "post": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Add a book to a series at a position",
+        "operationId": "collections_add_book_to_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Series id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddBookToSeriesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Added"
+          },
+          "400": {
+            "description": "`book_id` is not a UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such series of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/organize/series/{id}/books/{book_id}": {
+      "delete": {
+        "tags": [
+          "collections"
+        ],
+        "summary": "Take a book out of a series",
+        "operationId": "collections_remove_book_from_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Series id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "book_id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "No such series of the caller's",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/upload": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Create a book by uploading its audio files (and optionally a cover) in one multipart request",
+        "operationId": "audiobooks_upload_book",
+        "requestBody": {
+          "description": "fields: `title`, `author`, `narrator`, `description`, `visibility` (`private`/`family`), `manifest` (JSON array of `{relative_path, duration_secs}`, one per file, in send order), `files` (repeated, audio), `cover` (image); all optional except at least one `files`",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No audio file, bad manifest or visibility, or a malformed upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "operationId": "audiobooks_get_book",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Edit a book's title, author, narrator and description",
+        "description": "Edit a book's title, author, narrator and description. Owner only.",
+        "operationId": "audiobooks_update_book",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateBookRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty title",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Moves the book to the trash (30 days)",
+        "description": "moves the book to the trash (30 days).\nThe owner, or a family admin when it is shared with their family.",
+        "operationId": "audiobooks_delete_book",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Moved to the trash"
+          },
+          "403": {
+            "description": "Visible, but the caller may not delete it",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/chapters": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "operationId": "audiobooks_list_chapters",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ChapterResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/cover": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "The book's cover image",
+        "operationId": "audiobooks_get_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The cover",
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "description": "No such book, or it has no cover",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/files": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "operationId": "audiobooks_list_files",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/files/from-uploads": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Add files uploaded straight to storage to a book the caller owns — the own.audio folder hands a new book's files over in batches (the system creates only so many at once), and a chapter can be added to a book later",
+        "description": "Add files uploaded straight to storage to a book the caller owns — the own.audio folder\nhands a new book's files over in batches (the system creates only so many at once), and\na chapter can be added to a book later. Each file keeps its `relative_path` (required);\nthe book's play order is then sorted by path again. A file whose path the book already\nhas is not added twice: a retried upload answers with the existing file.",
+        "operationId": "audiobooks_append_files_from_uploads",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AppendFilesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Every file sent, new or already present",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AppendedFile"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No files, a missing or bad relative_path, or a key with nothing uploaded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "An object key outside the caller's family",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/files/reorder": {
+      "put": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Owner, or a family admin when the book is shared (same rule as renaming or deleting a file; used to be owner-only, which would have 403'd a family admin dragging files on a shared book the new web UI now lets them reorder)",
+        "operationId": "audiobooks_reorder_files",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderFilesRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The files in their new order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FileResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "A file id that is not a UUID",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book the caller may manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/files/{file_id}": {
+      "put": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Rename a single file",
+        "description": "rename a single file. Only `title` is\neditable; position/duration/storage are unaffected, matching `update_book`'s own\n\"metadata only\" shape.",
+        "operationId": "audiobooks_update_file_title_handler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateFileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Empty title",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book or file the caller may manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Removes one file from a multi-file book (a botched or duplicate upload), not the whole book",
+        "description": "removes one file from a multi-file book (a\nbotched or duplicate upload), not the whole book. Owner, or a family admin when the book is\nshared — same rule as renaming a file.",
+        "operationId": "audiobooks_delete_file_handler",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "404": {
+            "description": "No such book the caller may manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/files/{file_id}/stream": {
+      "get": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "A short-lived link to play or download one file of a book",
+        "operationId": "audiobooks_stream_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "file_id",
+            "in": "path",
+            "description": "File id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book or file",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/metadata/apply": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Owner-only, mirroring `update_book`'s auth",
+        "description": "owner-only, mirroring\n`update_book`'s auth.\n\nRe-fetches the volume by id rather than trusting the candidate the client is\nholding, then writes only the fields the client asked for. The cover is\nlast and best-effort: the metadata has already been written by then, and a\ncover that won't download is not a reason to fail the match.",
+        "operationId": "audiobooks_apply_book_metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyIdentifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The Google Books quota is used up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`fields.cover` without upload rights",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book the caller may manage",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/metadata/search": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Google Books candidates for this book",
+        "description": "Google Books candidates for\nthis book.\n\nThe id scopes visibility, nothing more: the search runs on the title and\nauthor in the body, which the client seeds from the book but lets the user\nedit first. Anyone who can see the book can search — it writes nothing.",
+        "operationId": "audiobooks_search_book_metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentifySearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/BookCandidate"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Neither title nor author, or the Google Books quota is used up",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/upload-cover": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Replace the book's cover",
+        "description": "Replace the book's cover. Owner only.",
+        "operationId": "audiobooks_upload_cover",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `cover` (image)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cover stored"
+          },
+          "400": {
+            "description": "No `cover` field, or a malformed upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/upload-file": {
+      "post": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Add or replace one audio file of a book at a given position",
+        "description": "Add or replace one audio file of a book at a given position. Owner only.",
+        "operationId": "audiobooks_upload_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "fields: `position` (1-based; an existing file there is replaced), `relative_path`, `duration_secs`, `file` (audio)",
+          "content": {
+            "multipart/form-data": {}
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File stored"
+          },
+          "400": {
+            "description": "Missing or bad metadata, or no `file` field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not allowed to upload",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/audiobooks/{id}/visibility": {
+      "put": {
+        "tags": [
+          "audiobooks"
+        ],
+        "summary": "Move a book between the private and family folders",
+        "description": "move a book between the private\nand family folders. Owner only.",
+        "operationId": "audiobooks_set_book_visibility",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Book id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetVisibilityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown visibility",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such book owned by the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/admin-create-user": {
       "post": {
         "tags": [
@@ -7876,6 +10517,33 @@
           }
         }
       },
+      "AddBookRequest": {
+        "type": "object",
+        "required": [
+          "book_id"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "string"
+          }
+        }
+      },
+      "AddBookToSeriesRequest": {
+        "type": "object",
+        "required": [
+          "book_id",
+          "position"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "AdminCreateUserRequest": {
         "type": "object",
         "required": [
@@ -8098,6 +10766,35 @@
           }
         }
       },
+      "AppendFilesRequest": {
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FromUploadsFile"
+            }
+          }
+        }
+      },
+      "AppendedFile": {
+        "type": "object",
+        "required": [
+          "id",
+          "relative_path"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "relative_path": {
+            "type": "string"
+          }
+        }
+      },
       "AppleProviderInfo": {
         "type": "object",
         "required": [
@@ -8149,6 +10846,22 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "ApplyIdentifyRequest": {
+        "type": "object",
+        "description": "Body of `POST /audiobooks/{id}/metadata/apply`. Only the volume id crosses\nthe wire: the server re-fetches the volume rather than trusting a client's\ncopy of a search result.",
+        "required": [
+          "volume_id"
+        ],
+        "properties": {
+          "volume_id": {
+            "type": "string"
+          },
+          "fields": {
+            "$ref": "#/components/schemas/IdentifyFields",
+            "description": "Which parts of the match to actually write. Absent means all of them,\nso a client with no field picker still behaves sensibly."
           }
         }
       },
@@ -8216,6 +10929,90 @@
           }
         }
       },
+      "AuthorImageInfoResponse": {
+        "type": "object",
+        "required": [
+          "is_user_set"
+        ],
+        "properties": {
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "\"Wikimedia Commons\", or `None` for a picture set by hand."
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "license_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_user_set": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AuthorResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "book_count",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "sort_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "image_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "book_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
       "BillingStorage": {
         "type": "object",
         "required": [
@@ -8251,6 +11048,108 @@
             "type": "integer",
             "format": "int64",
             "description": "Referenced objects with no recorded size — counted as zero bytes, so a\nnon-zero value here means `total_bytes` is an undercount."
+          }
+        }
+      },
+      "BookAuthorResponse": {
+        "type": "object",
+        "required": [
+          "author_id",
+          "author_name",
+          "role"
+        ],
+        "properties": {
+          "author_id": {
+            "type": "string"
+          },
+          "author_name": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          }
+        }
+      },
+      "BookCandidate": {
+        "type": "object",
+        "description": "One search hit, already flattened out of Google's `volumeInfo` nesting.",
+        "required": [
+          "volume_id",
+          "title",
+          "categories",
+          "score"
+        ],
+        "properties": {
+          "volume_id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Google keeps this out of `title`; audio2 has no subtitle column, so it\nis shown to help tell two editions apart and then dropped."
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Joined with \", \" — audio2 stores one author string per book."
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "isbn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "page_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Best image Google offered, already upgraded past the 128 px thumbnail\nwhere possible. May still 404 — treat a failed load as \"no cover\"."
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32",
+            "description": "0–100, computed here rather than by Google, which returns relevance\norder but no score. See [`score`].",
+            "minimum": 0
           }
         }
       },
@@ -8290,6 +11189,135 @@
             "description": "Whoever wrote last wins. A device holding an unsent position of its own compares against\nthis before letting the server's value replace it."
           }
         }
+      },
+      "BookResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "visibility",
+          "is_owner",
+          "owner_id",
+          "created_at",
+          "updated_at",
+          "source",
+          "read_only"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "narrator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "total_duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "google_books_volume_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set once the book has been matched through the identify flow."
+          },
+          "isbn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "visibility": {
+            "type": "string",
+            "description": "`private` or `family` — which folder this book lives in."
+          },
+          "is_owner": {
+            "type": "boolean",
+            "description": "False for family-shared books owned by someone else."
+          },
+          "owner_id": {
+            "type": "string",
+            "description": "Whose it is — for acting on a family member's item (a family shortcut)."
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "`upload` or `folder`; a folder book's files are read-only (API revision 3)."
+          },
+          "read_only": {
+            "type": "boolean"
+          }
+        }
+      },
+      "BookWithPath": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/BookResponse"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        ],
+        "description": "A created book and where it sits in the own.audio folder."
       },
       "BookmarkResponse": {
         "type": "object",
@@ -8431,6 +11459,41 @@
           }
         }
       },
+      "ChapterResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "book_id",
+          "position",
+          "title",
+          "start_time_secs"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "book_id": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": "string"
+          },
+          "start_time_secs": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "ClaimInviteRequest": {
         "type": "object",
         "required": [
@@ -8465,6 +11528,50 @@
             "type": "string"
           },
           "login_email": {
+            "type": "string"
+          }
+        }
+      },
+      "CollectionResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_public",
+          "book_count",
+          "created_at",
+          "updated_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_public": {
+            "type": "boolean"
+          },
+          "book_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "created_at": {
+            "type": "string"
+          },
+          "updated_at": {
             "type": "string"
           }
         }
@@ -8759,6 +11866,71 @@
           }
         ]
       },
+      "CreateAuthorRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sort_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateBookRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "narrator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`private` (default) or `family`."
+          }
+        }
+      },
       "CreateBookmarkRequest": {
         "type": "object",
         "required": [
@@ -8795,6 +11967,26 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "CreateCollectionRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_public": {
+            "type": "boolean"
           }
         }
       },
@@ -8853,6 +12045,23 @@
             "description": "`offensive` | `inaccurate` | `not_for_children` | `other`."
           },
           "note": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "CreateSeriesRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
             "type": [
               "string",
               "null"
@@ -9424,6 +12633,57 @@
           }
         }
       },
+      "FileResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "book_id",
+          "position",
+          "audio_object_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "book_id": {
+            "type": "string"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          },
+          "audio_object_id": {
+            "type": "string"
+          },
+          "size_bytes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "sha256": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Nullable — the `media_checksum` job fills this in asynchronously after upload\n(mirror-plan B-2). A downloading client should verify against it when present and fall\nback to a size-only check when it isn't."
+          }
+        }
+      },
       "FolderStatus": {
         "type": "object",
         "required": [
@@ -9527,6 +12787,98 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "FromUploadsFile": {
+        "type": "object",
+        "required": [
+          "object_key"
+        ],
+        "properties": {
+          "object_key": {
+            "type": "string",
+            "description": "Key returned by `/uploads/presign` and already PUT to storage."
+          },
+          "relative_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Path within the uploaded folder — decides play order, exactly as in\nthe multipart manifest."
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_secs": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "FromUploadsRequest": {
+        "type": "object",
+        "description": "Body of `POST /audiobooks/from-uploads` — the direct-to-storage twin of\nthe multipart `POST /audiobooks/upload`.",
+        "required": [
+          "files"
+        ],
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "narrator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`private` (default) or `family`."
+          },
+          "cover_object_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Key returned by `/uploads/presign` for the cover, if one was uploaded."
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The book's folder in the own.audio folder (`Audiobooks/…`), for a\nfolder put there; each file's `relative_path` is then its path inside\nit and is kept as given. A single loose file: `path` is the file and\nits `relative_path` is empty. Without `path` the server gives the book\na default folder and names its files."
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FromUploadsFile"
+            }
           }
         }
       },
@@ -9790,6 +13142,59 @@
           }
         }
       },
+      "IdentifyFields": {
+        "type": "object",
+        "description": "Per-field opt-out. `narrator` is not here because Google Books has none to\ngive (see `metadata::google_books`).",
+        "properties": {
+          "title": {
+            "type": "boolean"
+          },
+          "author": {
+            "type": "boolean"
+          },
+          "description": {
+            "type": "boolean"
+          },
+          "publisher": {
+            "type": "boolean"
+          },
+          "published_year": {
+            "type": "boolean"
+          },
+          "isbn": {
+            "type": "boolean"
+          },
+          "cover": {
+            "type": "boolean"
+          }
+        }
+      },
+      "IdentifySearchRequest": {
+        "type": "object",
+        "description": "Body of `POST /audiobooks/{id}/metadata/search`. The book id scopes\nvisibility only — the query itself is whatever the client sends, because the\nbooks worth identifying are the ones whose stored title and author are wrong.",
+        "properties": {
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "minimum": 0
+          }
+        }
+      },
       "InviteResponse": {
         "type": "object",
         "required": [
@@ -9997,6 +13402,20 @@
           "sessions": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "LinkAuthorRequest": {
+        "type": "object",
+        "required": [
+          "author_id"
+        ],
+        "properties": {
+          "author_id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
           }
         }
       },
@@ -10902,6 +14321,20 @@
           }
         }
       },
+      "ReorderFilesRequest": {
+        "type": "object",
+        "required": [
+          "file_ids"
+        ],
+        "properties": {
+          "file_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ReplaceGrantsRequest": {
         "type": "object",
         "required": [
@@ -11100,6 +14533,58 @@
           }
         ]
       },
+      "SeriesBookEntry": {
+        "type": "object",
+        "required": [
+          "book_id",
+          "book_title",
+          "position"
+        ],
+        "properties": {
+          "book_id": {
+            "type": "string"
+          },
+          "book_title": {
+            "type": "string"
+          },
+          "position": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "SeriesResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "books",
+          "created_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "books": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesBookEntry"
+            }
+          },
+          "created_at": {
+            "type": "string"
+          }
+        }
+      },
       "SessionReport": {
         "type": "object",
         "required": [
@@ -11204,6 +14689,20 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "SetBookTagsRequest": {
+        "type": "object",
+        "required": [
+          "tags"
+        ],
+        "properties": {
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -11633,6 +15132,21 @@
           }
         }
       },
+      "TagResponse": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "TopItemResponse": {
         "type": "object",
         "required": [
@@ -12058,6 +15572,58 @@
           }
         }
       },
+      "UpdateAuthorRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "sort_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "bio": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "UpdateBookRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "author": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "narrator": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "UpdateBookmarkRequest": {
         "type": "object",
         "properties": {
@@ -12066,6 +15632,26 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "UpdateCollectionRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "is_public": {
+            "type": "boolean"
           }
         }
       },
@@ -12138,6 +15724,17 @@
           }
         }
       },
+      "UpdateFileRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "UpdateMemberRequest": {
         "type": "object",
         "properties": {
@@ -12200,6 +15797,23 @@
               "type": "string"
             },
             "description": "Which languages podcast discovery should answer in. Sent whole, not\nadded to one at a time: it is a list the user edits, and a PATCH that\nappends has no way to express \"remove the last one\". `[]` means every\nlanguage, which is the state everyone starts in."
+          }
+        }
+      },
+      "UpdateSeriesRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
