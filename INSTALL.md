@@ -42,10 +42,11 @@ link or QR code — there is no open sign-up unless you turn it on
 |---|---|---|
 | `PUBLIC_URL` | The address people and apps reach the server at. Links in invites and e-mails are built from it. | `http://localhost:8080` |
 | `STORAGE_KIND` | `local`: media in the `media_data` volume, streamed by the server. `s3`: an S3-compatible store, see "Storage". | `local` |
+| `PUID`, `PGID` | The user and group the server runs as (not root). They need read access to your library folders; the server's own storage is handed to them at start. | `1000` |
 | `SESSION_SECRET` | Signs sessions and media links. Changing it signs everyone out and ends open media links. | required |
 | `SERVER__RATE_LIMIT__*` | Per-IP limits on login, refresh, device codes, join codes and setup. `…__ENABLED=false` turns them off; `…__TRUST_PROXY_HEADERS=true` when you are behind a proxy on a public address. | on |
 | `AUTH__GOOGLE__*`, `AUTH__APPLE__*`, `AUTH__MICROSOFT__*` | Sign-in providers. Off until you set client ids and `…__ENABLED=true`. | off |
-| `MAIL__*` | SMTP for invite and notification mail. Off until set; invites work by link and QR without it. | off |
+| `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Mail for invites, over SMTP submission: implicit TLS on 465 by default, `SMTP_SECURITY=starttls` for 587, `none` for a relay on your own network (no password is ever sent without TLS). Most providers only accept `MAIL_FROM` = the mailbox you sign in as. Off until set; invites work by link and QR without it. | off |
 | `METADATA__BASE_URL` | A music-metadata service for identify and podcast discovery. Without it the open-source edition uses the public MusicBrainz API (Phase 4). | unset |
 
 The full list is `backend/src/app/config.rs`; every field reads from the
@@ -77,6 +78,13 @@ with local storage.
 
 Switching an existing install from one kind to the other does not move the
 files; start fresh or copy the objects across by their keys.
+
+## One family
+
+One install is one family, with as many members as you like. The first
+admin founds it in the setup; everyone after joins it, by invite or created
+by an admin. Nobody can be moved out into a second family: to stop someone,
+block or delete their account.
 
 ## Library folders
 
@@ -111,6 +119,9 @@ services:
   the scanner does not bring it back unless the file changes.
 - Files are streamed by the server itself, with seeking, whatever the
   storage kind.
+- The server runs as `PUID:PGID` (1000:1000 unless you set them), so the
+  folders must be readable by that user. `ls -ln` on the host shows the
+  numbers; music folders are usually readable by everyone already.
 
 ## Upgrading
 
@@ -119,19 +130,14 @@ docker compose pull
 docker compose up -d
 ```
 
-Migrations run on start and are forward-only: back up before upgrading and do
-not downgrade. Skipping versions is fine.
+Migrations run on start and are forward-only. Before an upgrade, and for
+moving PostgreSQL to a new major version, see [UPGRADING.md](UPGRADING.md).
 
 ## Backup
 
-Two things hold your data: the PostgreSQL database and the media. Back up
-both, together:
-
-```bash
-docker compose exec -T postgres pg_dump -U ownaudio ownaudio | gzip > ownaudio-$(date +%F).sql.gz
-# local storage: the media_data volume (or the folder mounted at /data/media)
-# s3: the bucket, with rclone, mc, or a snapshot of the rustfs_data volume
-```
+The `backup` service dumps the database every night into `./backups`; your
+uploads and library folders are files you back up yourself. What to keep and
+how to restore: [BACKUP.md](BACKUP.md).
 
 ## Where things are
 

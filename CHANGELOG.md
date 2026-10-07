@@ -7,6 +7,41 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+Contract revision 4.
+
+### Added
+- Mail over SMTP submission (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`,
+  `MAIL_FROM` in `.env`; `MAIL__SMTP_*` underneath): implicit TLS on 465 by
+  default, STARTTLS on 587, or a password-less relay on your own network.
+  No password is sent over a connection that is not encrypted. The JMAP
+  sender stays for the hosted edition until its configuration moves over.
+- `features.one_family` in `GET /api/v1/server` (revision 4).
+- Nightly database backups: a `backup` service in the compose file dumps
+  PostgreSQL at 03:00 UTC into `./backups`, keeping 7 daily and 4 weekly
+  dumps (`BACKUP_DIR`, `BACKUP_HOUR`). It uses the database's own image, so
+  the dump tool always matches it. `BACKUP.md` shows the restore, and CI
+  restores a dump into an emptied database and runs the suite against it.
+- `scripts/pg-upgrade.sh 17` moves the compose stack to a new PostgreSQL
+  major: dump, the new major on a fresh data directory beside the old one,
+  restore, every table's row count compared, and only then the server
+  started. The old data stays until you remove it. Tried from 16 to 17 with
+  the suite passing afterwards. `UPGRADING.md` explains when it is needed.
+
+### Changed
+- `features.mail` is `true` only when a mail server is actually set, not
+  when the variables exist but are blank.
+- One install is one family. The first admin founds it; every later account
+  (invite, admin-created, open registration, single sign-on) joins it as a
+  member instead of getting a family of its own, and removing a member or
+  leaving answers `409` instead of creating a second family. Installs that
+  already have several families keep them. The hosted edition is unchanged:
+  the `Hooks::one_family` default is `false`, and only the open-source
+  binary answers `true`.
+- The server no longer runs as root. The image starts as root only to hand
+  `/data/media` to `PUID:PGID` (default 1000:1000, once, if its owner
+  differs), then runs the server as that user. Library folders must be
+  readable by it.
+
 ### Fixed
 - Web console on iPhone and iPad: the volume slider did nothing, because
   Safari there ignores a page's volume (only the hardware buttons change it).
