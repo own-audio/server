@@ -10,8 +10,10 @@ that runs its own server: a home lab, a NAS that runs containers, a small
 VPS. It is not built for many unrelated families on one server; that is what
 the hosted service at own.audio is for.
 
-- **People:** up to **12** in the family. Accounts are created by invite;
-  open sign-up stays off.
+- **People:** a family, however many that is. There is no member limit
+  (Kornel, 2026-10-07: "let people use it as they want"). A family is
+  typically a handful to a dozen people, and that is what the sizing below
+  assumes. Accounts are created by invite; open sign-up stays off.
 - **Catalog:** large. A data-hoarder household: **600,000 songs and 1,000
   audiobooks**, plus podcasts, often on a disk or NAS share that the server
   only reads (read-only library folders,
@@ -29,7 +31,7 @@ is the rule this design follows:
 |---|---|---|
 | number of songs, books, episodes | PostgreSQL rows and indexes, storage | server memory, request latency |
 | listening history | PostgreSQL | server memory |
-| people (≤ 12) and their devices | connections, sessions | — (small by design) |
+| people and their devices | connections, sessions | — (a family is small) |
 | concurrent streams | storage and network (the server redirects to the file, it does not proxy audio) | server memory |
 
 In practice that means every list is paginated, every catalog-wide question

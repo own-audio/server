@@ -498,8 +498,8 @@ app, survives a rename on the share, and the conformance suite passes with
 
 ### Scale and footprint (decided 2026-10-07, runs alongside Phase 4)
 
-The positioning in `CAPACITY.md`: one install is one family of up to 12
-people, with catalogs up to 600,000 songs and 1,000 audiobooks, and a smaller
+The positioning in `CAPACITY.md`: one install is one family, with no limit
+on its members, with catalogs up to 600,000 songs and 1,000 audiobooks, and a smaller
 footprint than Navidrome and Audiobookshelf. Work, in order:
 
 1. **Allocator settings** in the image (`RAM_USAGE.md`, "Proposed change"):
@@ -508,8 +508,8 @@ footprint than Navidrome and Audiobookshelf. Work, in order:
    `max_connections`) and a server pool of 10; measure the stack again.
 3. **One family per install** in this edition: the first-run setup creates
    the family, accounts come only by invite into it, and a second family
-   cannot be created. The member limit is a setting with 12 as its default,
-   not a hard-coded number. The hosted edition keeps many families.
+   cannot be created. No limit on the number of members. The hosted edition
+   keeps many families.
 4. **Catalog-sized paths** (`CAPACITY.md`, "Known gaps", issue #2):
    paginate, index, aggregate in SQL, stream files. Subsonic album and artist
    lookups and `GET /music/tracks` first; they are on every client's path.

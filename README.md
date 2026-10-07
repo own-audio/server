@@ -27,7 +27,7 @@ Free software under the GNU Affero General Public License, version 3 or later.
 
 ## Who it is for
 
-One install serves **one family**: up to 12 people, on a home server, a NAS
+One install serves **one family**, as many people as it has, on a home server, a NAS
 or a small VPS. It is built for big collections — a data-hoarder household
 with hundreds of thousands of songs and a thousand audiobooks — and aims for
 a smaller footprint than running Navidrome and Audiobookshelf side by side.

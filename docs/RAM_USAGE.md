@@ -93,6 +93,33 @@ Caveats, so nobody quotes this wrongly:
   (Audiobookshelf keeps its library in memory); so do we today, through the
   unpaginated paths listed in [CAPACITY.md](CAPACITY.md).
 
+## What the tuned settings cost
+
+Nothing functional: the server does exactly the same work, and nothing is
+limited — not uploads, file sizes, streams or the number of users. The
+settings only change *when* glibc hands memory back to the system.
+
+| Setting | What it trades | Matters for a family? |
+|---|---|---|
+| Two arenas | Threads that allocate at the same moment can wait on each other's arena lock. | No: a family's few concurrent requests do not contend. The suite ran 1 s faster, not slower. |
+| 128 KiB mmap threshold | Each buffer over 128 KiB (uploads, cover images, large JSON) is its own mapping: one `mmap` and one `munmap` system call and fresh zeroed pages each time, instead of reusing heap memory. | No: microseconds per large buffer. Audio is not proxied, so this is not on the streaming path. |
+| 128 KiB trim threshold | Free memory at the top of the heap is returned sooner, so the next burst asks the system again. | No: same order of cost as above. |
+
+Where it could start to matter is a busy multi-user server with many CPU
+cores allocating in parallel — the hosted edition, not a family install.
+There the setting is measured before it is adopted; the cost would show up as
+CPU time and latency, never as wrong results.
+
+Other notes:
+
+- They are plain environment variables: an operator can override or remove
+  them in `docker-compose.yml` without a new image.
+- They apply to glibc only. The image is Debian (glibc); on a musl build
+  (Alpine) they would be ignored and musl's own allocator applies.
+- Lower resident memory also means a tight container limit (the demo runs
+  with 512 MiB) has real headroom instead of filling up with retained
+  memory.
+
 ## Proposed change (not applied)
 
 1. Set the three variables in the runtime stage of `backend/Dockerfile`

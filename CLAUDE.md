@@ -217,7 +217,8 @@ queries.
 ## 7. Working rules
 
 - **Size every change for one family with a huge catalog**
-  (`docs/CAPACITY.md`, decided 2026-10-07): up to 12 people, up to 600,000
+  (`docs/CAPACITY.md`, decided 2026-10-07): a family of any size (sized for
+  about a dozen people, no limit enforced), up to 600,000
   songs and 1,000 audiobooks, a smaller footprint than Navidrome and
   Audiobookshelf. Catalog size may cost PostgreSQL rows and storage, never
   server memory: every list is paginated, every catalog-wide question is

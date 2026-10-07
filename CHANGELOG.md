@@ -8,7 +8,8 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
-- `docs/CAPACITY.md`: who the server is for — one family of up to 12 people,
+- `docs/CAPACITY.md`: who the server is for — one family, with no limit on
+  its members,
   catalogs up to 600,000 songs and 1,000 audiobooks, a smaller footprint
   than Navidrome and Audiobookshelf — and an audit of the places where
   today's code still grows with the catalog (tracked in issue #2).
