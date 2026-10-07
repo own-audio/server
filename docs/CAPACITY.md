@@ -74,7 +74,9 @@ was measured yet.
    `db/sync.rs`): every track as JSON, about 1 GB. Fix: page it like
    `/sync/tree`, or retire it for `/sync/tree`.
 4. **File-sync path checks and organise** (path checks fixed in alpha.7;
-   organise still one transaction) (`filesync/paths.rs`,
+   organise stays one transaction on purpose: preview and apply make the
+   same moves, and swapping two items' places is atomic; with indexed path
+   checks it is linear in the items moved) (`filesync/paths.rs`,
    `filesync/organise.rs`): a prefix check that cannot use an index, so a
    large import costs time quadratic in the library size, and organise runs
    in one long transaction. Fix: compare against the candidate's own
@@ -87,7 +89,9 @@ was measured yet.
    fetch; random songs shuffle ids only): `ORDER BY random()` over the
    catalog, then one query per result track. Fix: sampled selection, one
    batched fetch.
-8. **No indexes for browsing**: artist, album, genre and title lookups and
+8. **No indexes for browsing** (measured 2026-10-07 within target: search
+   0.12–0.14 s, artists 0.37 s, albums 0.7 s at 600,000 tracks; `pg_trgm`
+   waits until a real library shows a need): artist, album, genre and title lookups and
    `%text%` search read every row; the visibility filter defeats index use.
    Fix: expression indexes on the normalised columns, `pg_trgm` for search.
 9. **getStarred** (fixed 2026-10-08): one query per starred track and a linear album search.
