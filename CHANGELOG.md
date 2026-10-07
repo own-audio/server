@@ -8,6 +8,16 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- **Local storage** (`STORAGE__KIND=local`, the compose default): media is
+  plain files under `/data/media`, no object store needed. RustFS moved behind
+  the compose profile `s3`.
+- **The server's own media route**, `GET | HEAD | PUT /api/v1/media`, with
+  links signed by the server (key, method, expiry; 4 hours), range requests
+  for seeking, and bodies streamed in chunks. It stands in for presigned URLs
+  with local storage, and with S3 when `STORAGE__PROXY=true` — for networks
+  whose firewall blocks the store's host. Clients see the same opaque,
+  expiring URLs either way and need no change.
+- CI runs the conformance suite against both storage kinds.
 - Plan: everything ships together as 1.1.0; a Raspberry Pi 3 demo with local
   storage only, published through a Cloudflare Tunnel.
 - Plan, Phase 6 item 4, and scope decision 14: PostgreSQL stays the only

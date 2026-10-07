@@ -145,7 +145,25 @@ impl ServerConfig {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct StorageConfig {
+    /// `STORAGE__KIND`: `s3` (default) or `local`. Local keeps every object
+    /// as a file under [`Self::path`] and serves it through the server's own
+    /// media route — no object store at all, the Raspberry Pi setup.
+    #[serde(default = "default_storage_kind")]
+    pub kind: String,
+
+    /// `STORAGE__PATH`: the folder local storage writes to. Unset ⇒
+    /// `/data/media`. Ignored for `s3`.
+    pub path: Option<String>,
+
+    /// `STORAGE__PROXY`: with `s3`, stream through the server's media route
+    /// instead of handing out presigned links to the store's own host. For
+    /// networks that block cloud-storage hosts (company firewalls), at the
+    /// cost of the server carrying the audio. Always on for `local`.
+    #[serde(default)]
+    pub proxy: bool,
+
     /// S3 endpoint the backend talks to, e.g. `http://garage:3900`.
+    #[serde(default)]
     pub endpoint: String,
 
     /// Endpoint reachable from browsers, used only for presigning URLs.
@@ -157,8 +175,11 @@ pub struct StorageConfig {
     #[serde(default = "default_s3_region")]
     pub region: String,
 
+    #[serde(default)]
     pub bucket: String,
+    #[serde(default)]
     pub access_key: String,
+    #[serde(default)]
     pub secret_key: String,
 
     /// Force path-style addressing (required by Garage and MinIO).
@@ -398,6 +419,10 @@ impl AuthConfig {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_storage_kind() -> String {
+    "s3".to_string()
 }
 
 fn default_s3_region() -> String {

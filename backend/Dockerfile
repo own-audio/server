@@ -93,6 +93,9 @@ ENV MALLOC_ARENA_MAX=2 \
     MALLOC_MMAP_THRESHOLD_=131072 \
     MALLOC_TRIM_THRESHOLD_=131072
 
+# Local storage's default folder (STORAGE__KIND=local); a volume mounts here.
+RUN mkdir -p /data/media
+
 WORKDIR /app
 
 COPY --from=builder       /build/audio2                         /app/audio2

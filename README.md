@@ -47,10 +47,10 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
   MusicBrainz API is coming (Phase 4).
 - **Family**: one server, several people. Private by default, shared when you
   say so; roles, parental controls per member, join by link or QR code.
-- **Your files stay yours**: uploads go to any S3-compatible bucket. Coming
-  before 1.0 (Phase 4): point the server at the music and audiobook folders
-  you already have on a disk or NAS, indexed read-only, and plain local
-  storage instead of a bucket.
+- **Your files stay yours**: uploads are plain files on the server's own
+  disk, or in any S3-compatible bucket if you prefer. Coming (Phase 4): point
+  the server at the music and audiobook folders you already have on a disk or
+  NAS, indexed read-only.
 - **Playback everywhere**: progress, bookmarks and the play queue sync across
   the web console and the apps; a 30-day trash catches mistakes.
 - **Statistics**: listening history per member and a yearly recap.
@@ -71,7 +71,8 @@ it offers.
 |---|---|---|
 | Run it on your own hardware | yes | — |
 | Audiobooks, podcasts, music, family sharing, web console, OpenSubsonic | yes | yes |
-| Read-only library folders, local storage | coming (Phase 4) | — |
+| Local storage | yes | — |
+| Read-only library folders | coming (Phase 4) | — |
 | Sign-in providers | optional, you configure | yes |
 | SMTP mail, music identify | coming, optional | yes |
 | Narrate a book into an audiobook, translate a podcast episode | — | yes, metered |
@@ -90,9 +91,9 @@ It resets every night, so change whatever you like.
 
 ```bash
 git clone https://github.com/own-audio/server.git && cd server
-cp .env.example .env            # set POSTGRES_PASSWORD, S3_SECRET_KEY, SESSION_SECRET
+cp .env.example .env            # set POSTGRES_PASSWORD and SESSION_SECRET
 docker compose pull             # the published pre-release image, amd64 or arm64
-docker compose up -d            # PostgreSQL 16, RustFS and the server
+docker compose up -d            # PostgreSQL 16 and the server; media on a local volume
 ```
 
 Then open `http://localhost:8080` and create the first admin. The image is

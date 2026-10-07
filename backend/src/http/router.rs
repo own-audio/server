@@ -16,6 +16,15 @@ pub fn api_routes(config: &crate::app::AppConfig) -> Router<AppState> {
     let limits = crate::http::rate_limit::Limiters::from_config(&config.server.rate_limit);
     Router::new()
         .route("/server", get(crate::http::server_info::server_info))
+        // Signed links instead of presigned store URLs: local storage, or S3
+        // behind STORAGE__PROXY. The signature is the authorisation.
+        .route(
+            "/media",
+            get(crate::http::media::media)
+                .head(crate::http::media::media)
+                .put(crate::http::media::media)
+                .layer(axum::extract::DefaultBodyLimit::disable()),
+        )
         .nest("/setup", crate::setup::router(&limits))
         .nest("/auth", crate::auth::router(&limits))
         .nest("/users", crate::users::router())

@@ -53,7 +53,8 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
     }
 
     // Build storage client
-    let object_store = storage::connect(&config.storage)
+    let media_links = storage::MediaLinks::new(&config.auth.session_secret, config.server.base_url.as_deref());
+    let object_store = storage::connect(&config.storage, media_links)
         .await
         .context("failed to connect to object storage")?;
 

@@ -72,9 +72,13 @@ jobs:
         working-directory: frontend
 
   conformance:
-    name: conformance against the compose stack
+    name: conformance (${{ matrix.storage }} storage)
     runs-on: ubuntu-latest
     needs: [server, console]
+    strategy:
+      fail-fast: false
+      matrix:
+        storage: [local, s3]
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -90,8 +94,11 @@ jobs:
       - name: Start the stack
         run: |
           cp .env.example .env
-          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^S3_SECRET_KEY=$/S3_SECRET_KEY=ci-secret-key-0000/; s/^SESSION_SECRET=$/SESSION_SECRET=ci-session-secret-not-for-production/' .env
+          sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^SESSION_SECRET=$/SESSION_SECRET=ci-session-secret-not-for-production/' .env
           echo 'SERVER_IMAGE=ownaudio/server:ci' >> .env
+          if [ "${{ matrix.storage }}" = s3 ]; then
+            printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env
+          fi
           docker compose up -d --no-build
           for i in $(seq 1 60); do curl -fs http://localhost:8080/health && break; sleep 2; done
       - name: First admin
@@ -101,6 +108,6 @@ jobs:
       - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!' --report conformance-report.json
       - uses: actions/upload-artifact@v7
         if: always()
-        with: { name: conformance-report, path: conformance-report.json, if-no-files-found: ignore }
+        with: { name: "conformance-report-${{ matrix.storage }}", path: conformance-report.json, if-no-files-found: ignore }
       - if: failure()
         run: docker compose logs server | tail -200
