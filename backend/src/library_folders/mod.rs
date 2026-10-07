@@ -341,6 +341,69 @@ async fn remember(pool: &PgPool, folder: Uuid, rel: &str, size: u64, mtime: i64,
     Ok(())
 }
 
+/// A file the scanner has not seen before may be a known file that was moved
+/// or renamed: same size, same modification time (a move keeps both), and
+/// nothing left at the old path. Then its item follows it — progress, stars
+/// and playlists stay — instead of a duplicate appearing.
+async fn adopt_moved(pool: &PgPool, folder: &FolderRow, root: &Path, rel: &str, size: u64, mtime: i64) -> anyhow::Result<Option<Uuid>> {
+    let candidates: Vec<(String, String, Uuid)> = sqlx::query_as(
+        "SELECT rel_path, item_kind, item_id FROM library_files
+         WHERE folder_id = $1 AND size_bytes = $2 AND mtime_secs = $3 AND rel_path <> $4 AND item_id IS NOT NULL
+         LIMIT 5",
+    )
+    .bind(folder.id)
+    .bind(size as i64)
+    .bind(mtime)
+    .bind(rel)
+    .fetch_all(pool)
+    .await?;
+    tracing::debug!(file = %rel, candidates = candidates.len(), "library scan: looking for a moved file");
+    for (old_rel, kind, item) in candidates {
+        let old = root.join(&old_rel);
+        let exists = tokio::fs::try_exists(&old).await;
+        tracing::debug!(candidate = %old_rel, ?exists, "library scan: move candidate");
+        if exists.unwrap_or(true) {
+            continue; // still there: a different file that happens to match
+        }
+        let object: Option<Uuid> = match kind.as_str() {
+            "track" => sqlx::query_scalar("SELECT audio_object_id FROM music_tracks_all WHERE id = $1").bind(item).fetch_optional(pool).await?,
+            _ => sqlx::query_scalar("SELECT audio_object_id FROM audiobook_files WHERE id = $1").bind(item).fetch_optional(pool).await?,
+        };
+        let mut tx = pool.begin().await?;
+        if let Some(object) = object {
+            sqlx::query("UPDATE media_objects SET object_key = $2 WHERE id = $1")
+                .bind(object)
+                .bind(crate::storage::folder_key(folder.id, rel))
+                .execute(&mut *tx)
+                .await?;
+        }
+        sqlx::query("DELETE FROM library_files WHERE folder_id = $1 AND rel_path = $2")
+            .bind(folder.id)
+            .bind(&old_rel)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query(
+            "INSERT INTO library_files (folder_id, rel_path, size_bytes, mtime_secs, item_kind, item_id, missing, last_seen_at)
+             VALUES ($1, $2, $3, $4, $5, $6, false, now())
+             ON CONFLICT (folder_id, rel_path) DO UPDATE
+               SET size_bytes = EXCLUDED.size_bytes, mtime_secs = EXCLUDED.mtime_secs, item_kind = EXCLUDED.item_kind,
+                   item_id = EXCLUDED.item_id, missing = false, last_seen_at = now()",
+        )
+        .bind(folder.id)
+        .bind(rel)
+        .bind(size as i64)
+        .bind(mtime)
+        .bind(&kind)
+        .bind(item)
+        .execute(&mut *tx)
+        .await?;
+        tx.commit().await?;
+        tracing::info!(from = %old_rel, to = %rel, "library scan: file moved, item kept");
+        return Ok(Some(item));
+    }
+    Ok(None)
+}
+
 /// Walk one folder. Returns `(files looked at, items added)`.
 pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result<(u64, u64)> {
     let pool = state.db();
@@ -410,9 +473,18 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
             "music" => {
                 let cover_key = cover.as_ref().map(|(rel, ct, size)| (crate::storage::folder_key(folder.id, rel), *ct, *size as i64));
                 for (rel, name, size, mtime) in fresh {
-                    // A changed file keeps its track; only the bookkeeping moves.
+                    // A changed file keeps its track, with its tags read again.
                     if let Some(item) = known.get(&rel).and_then(|k| k.item_id) {
+                        let path = root.join(&rel);
+                        let p2 = path.clone();
+                        let duration = tokio::task::spawn_blocking(move || duration_secs(&p2)).await.ok().flatten();
+                        if let Err(e) = crate::music::refresh_folder_track(state, folder.owner_id, item, &path, size as i64, duration).await {
+                            tracing::warn!(file = %rel, error = %format!("{e:#}"), "library scan: tags not refreshed");
+                        }
                         remember(pool, folder.id, &rel, size, mtime, "track", Some(item)).await?;
+                        continue;
+                    }
+                    if !known.contains_key(&rel) && adopt_moved(pool, folder, &root, &rel, size, mtime).await?.is_some() {
                         continue;
                     }
                     let path = root.join(&rel);
@@ -498,7 +570,11 @@ async fn scan_book_dir(
                 // Known, its item removed by someone: stays hidden.
                 remember(pool, folder.id, &f.0, f.2, f.3, "book_file", None).await?
             }
-            None => new_files.push(f),
+            None => {
+                if adopt_moved(pool, folder, &root, &f.0, f.2, f.3).await?.is_none() {
+                    new_files.push(f);
+                }
+            }
         }
     }
     if new_files.is_empty() {

@@ -8,6 +8,9 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- Library folders: a file whose tags change is read again on the next scan;
+  a moved or renamed file (same size and time, nothing left at the old path)
+  keeps its item, so progress, stars and playlists stay.
 - Conformance suite `library` (scan, tags, natural chapter order, streaming
   from a folder, removing hides) on generated fixtures
   (`conformance/tools/make_library_fixtures.sh`,
@@ -54,6 +57,10 @@ semver. Each release states the **API contract revision** it serves
 - The server's database pool is 10 connections by default and configurable
   with `DATABASE_MAX_CONNECTIONS` (it was a fixed 20). A busy deployment —
   the hosted edition — should set it explicitly.
+
+### Fixed
+- The manual tag rescan of a track streamed the file into memory whole; it
+  now streams it to a temporary file.
 
 ## [1.0.0-alpha.5] - 2026-10-07
 

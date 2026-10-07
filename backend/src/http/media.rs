@@ -87,7 +87,8 @@ async fn get(state: &AppState, key: &str, headers: &HeaderMap, head_only: bool) 
 
     let opened = match store.open(key, range).await {
         Ok(Some(o)) => o,
-        Ok(None) if range.is_some() => {
+        // A range past the end of a file that exists is 416; a missing file is 404 either way.
+        Ok(None) if range.is_some() && matches!(store.head_object(key).await, Ok(Some(_))) => {
             return (StatusCode::RANGE_NOT_SATISFIABLE, [(header::ACCEPT_RANGES, "bytes")]).into_response();
         }
         Ok(None) => return status(StatusCode::NOT_FOUND),

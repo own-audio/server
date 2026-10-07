@@ -1221,6 +1221,57 @@ pub(crate) async fn create_folder_track(
     Ok(track.id)
 }
 
+/// A folder file changed on disk: read its tags again, in place. Like the
+/// manual rescan, the file wins where it has a value and the stored value
+/// survives where it has none; a track identified through MusicBrainz keeps
+/// its identification.
+pub(crate) async fn refresh_folder_track(
+    state: &AppState,
+    owner_id: Uuid,
+    track_id: Uuid,
+    file: &StdPath,
+    size_bytes: i64,
+    duration_secs: Option<i32>,
+) -> anyhow::Result<()> {
+    let Some(track) = db::music::find_track_owned(state.db(), track_id, owner_id).await? else {
+        return Ok(()); // removed by someone: stays removed
+    };
+    sqlx::query("UPDATE media_objects SET size_bytes = $2 WHERE id = $1")
+        .bind(track.audio_object_id)
+        .bind(size_bytes)
+        .execute(state.db())
+        .await?;
+    if let Some(d) = duration_secs {
+        sqlx::query("UPDATE music_tracks_all SET duration_secs = $2 WHERE id = $1")
+            .bind(track_id)
+            .bind(d)
+            .execute(state.db())
+            .await?;
+    }
+    if track.musicbrainz_recording_id.is_some() {
+        return Ok(());
+    }
+    let path = file.to_path_buf();
+    let tags = tokio::task::spawn_blocking(move || read_embedded_tags(&path)).await?;
+    db::music::update_track(
+        state.db(),
+        track_id,
+        owner_id,
+        tags.title.as_deref().unwrap_or(&track.title),
+        tags.artist.as_deref().or(track.artist.as_deref()),
+        tags.album.as_deref().or(track.album.as_deref()),
+        tags.album_artist
+            .as_deref()
+            .or(tags.is_compilation.then_some(VARIOUS_ARTISTS))
+            .map(Some),
+        tags.genre.as_deref().or(track.genre.as_deref()),
+        tags.track_number.or(track.track_number),
+    )
+    .await?;
+    db::music::set_disc(state.db(), track_id, tags.disc_number, tags.disc_total).await?;
+    Ok(())
+}
+
 async fn update_track(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1381,18 +1432,13 @@ async fn rescan_track_tags(
         .await
         .map_err(|e| AuthError::Internal(e.into()))?;
 
-    let bytes = state
+    // `lofty` reads from a path; the object is streamed into a temp file that
+    // goes away when this returns, never held in memory whole.
+    let temp = state
         .storage()
-        .get(&key)
+        .download_to_temp(&key)
         .await
         .map_err(AuthError::Internal)?;
-
-    // `lofty` reads from a path, and the object lives in S3 — so it lands in a
-    // temp file that goes away when this returns, whatever happens.
-    let temp = NamedTempFile::new().map_err(|e| AuthError::Internal(e.into()))?;
-    tokio::fs::write(temp.path(), &bytes)
-        .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
     let tags = read_embedded_tags(temp.path());
 
     if tags.title.is_none()
