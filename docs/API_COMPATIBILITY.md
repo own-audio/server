@@ -65,6 +65,7 @@ call before it knows anything about the server.
     "library_folders": false,
     "subsonic": true,
     "mail": false,
+    "one_family": true,
     "billing": false,
     "payments": false
   },
@@ -84,6 +85,10 @@ Rules:
   everything else `false`, and fall back to probing `GET /auth/providers`.
 - `deprecations` lists endpoints or fields scheduled for removal, each with a
   `sunset` date (§5). Normally empty.
+- `one_family` (revision 4): the install has one family. Every new account
+  joins it, and removing a member or leaving answers `409`; clients hide
+  "leave family" and offer block or delete instead. `false` (or missing): each
+  account can have a family of its own.
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it

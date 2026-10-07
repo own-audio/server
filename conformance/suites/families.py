@@ -22,7 +22,8 @@ def run(ctx: Ctx) -> None:
     sfx = ctx.sfx
     call, check = ctx.call, ctx.check
 
-    owner_id, owner_email, owner_tok = ctx.make_user("owner", PW)
+    owner_id, owner_email, owner_tok = ctx.make_family_admin("owner", PW)
+    one_family = ctx.feature("one_family")
     adult_id, adult_email, adult_tok = ctx.make_user("adult", PW)
     kid_id, kid_email, kid_tok = ctx.make_user("kid", PW)
 
@@ -31,7 +32,11 @@ def run(ctx: Ctx) -> None:
         inv = call("POST", "/api/v1/family/invites", owner_tok, {"email": email, "role": "member"})
         call("POST", "/api/v1/family/invites/accept", tok, {"code": inv["code"]})
     fam = call("GET", "/api/v1/family", owner_tok)
-    check("family has 3 members", len(fam["members"]) == 3, f"members={len(fam['members'])}")
+    ids = {m["user_id"] for m in fam["members"]}
+    if one_family:
+        check("all three are in the install's family", {owner_id, adult_id, kid_id} <= ids)
+    else:
+        check("family has 3 members", len(fam["members"]) == 3, f"members={len(fam['members'])}")
 
     ctx.log("\n[private folder]")
     audio = b"ID3" + b"\x00" * 2048
@@ -87,13 +92,17 @@ def run(ctx: Ctx) -> None:
     call("PUT", f"/api/v1/family/members/{kid_id}/grants", owner_tok, {"media_kind": "audiobook", "allow": [bid]})
     check("explicit allow grant restores this one book", _has(call("GET", "/api/v1/audiobooks", kid_tok), "id", bid))
 
-    audience = call("GET", f"/api/v1/family/content/audiobook/{bid}/audience", owner_tok)
+    # Only this suite's members: on a one-family server the install's admin is here too.
+    ours = (owner_id, adult_id, kid_id)
+    audience = [a for a in call("GET", f"/api/v1/family/content/audiobook/{bid}/audience", owner_tok)
+                if a["user_id"] in ours]
     check("audience lists all three members", len(audience) == 3, f"audience={len(audience)}")
     check("audience shows everyone can listen", all(a["can_listen"] for a in audience))
 
     call("PUT", f"/api/v1/family/members/{kid_id}/grants", owner_tok, {"media_kind": "audiobook", "deny": [bid]})
     check("deny grant blocks the kid again", not _has(call("GET", "/api/v1/audiobooks", kid_tok), "id", bid))
-    audience = call("GET", f"/api/v1/family/content/audiobook/{bid}/audience", owner_tok)
+    audience = [a for a in call("GET", f"/api/v1/family/content/audiobook/{bid}/audience", owner_tok)
+                if a["user_id"] in ours]
     denied = [a for a in audience if not a["can_listen"]]
     check("audience reflects the denial", len(denied) == 1 and denied[0]["user_id"] == kid_id,
           f"denied={[a['user_id'] for a in denied]}")
@@ -129,6 +138,12 @@ def run(ctx: Ctx) -> None:
     ctx.log("\n[leaving the family]")
     call("PUT", f"/api/v1/music/tracks/{tid}/visibility", owner_tok, {"visibility": "family"})
     check("re-shared before departure", _has(call("GET", "/api/v1/music/tracks", adult_tok), "id", tid))
+    if one_family:
+        call("DELETE", f"/api/v1/family/members/{owner_id}", owner_tok, expect=(409,))
+        check("nobody leaves the only family (409)", True)
+        call("DELETE", f"/api/v1/family/members/{adult_id}", owner_tok, expect=(409,))
+        check("nor is anyone removed into a second one", True)
+        return
     # The last family admin may not leave, so hand the role over first.
     call("DELETE", f"/api/v1/family/members/{owner_id}", owner_tok, expect=(400,))
     check("last family admin is blocked from leaving", True)

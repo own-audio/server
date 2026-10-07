@@ -829,6 +829,15 @@ async fn remove_member(
         return Ok(StatusCode::NO_CONTENT);
     }
 
+    // Leaving would found a second family, which this install does not have.
+    // A pending account is still deleted below; anyone else is blocked or
+    // deleted by an admin instead.
+    if state.hooks().one_family() && !(target.pending && !removing_self) {
+        return Err(AuthError::Conflict(
+            "this server has one family: block the member or delete the account instead".into(),
+        ));
+    }
+
     // A provisioned account nobody ever claimed has no auth identity and
     // nothing of its own to preserve — delete it outright instead of
     // re-homing a phantom account into a personal family it will never sign

@@ -135,7 +135,7 @@ async fn complete_setup(
         .await
         .map_err(AuthError::Internal)?;
 
-    let membership = db::families::create_personal_family(pool, user.id)
+    let membership = db::families::home_new_user(pool, user.id, state.hooks().one_family())
         .await
         .map_err(AuthError::Internal)?;
     state

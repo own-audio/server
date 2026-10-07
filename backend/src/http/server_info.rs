@@ -19,7 +19,7 @@ pub const API_VERSION: u32 = 1;
 /// 2: `demo` in this endpoint's response.
 /// 3: `source` and `read_only` on tracks and books; `GET /library/folders`,
 ///    `POST /library/folders/scan`; stream URLs may be server media links.
-pub const API_REVISION: u32 = 3;
+pub const API_REVISION: u32 = 4;
 
 pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     let cfg = state.config();
@@ -48,7 +48,10 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
         json!(crate::library_folders::configured(cfg).is_ok_and(|f| !f.is_empty())),
     );
     features.insert("subsonic".into(), json!(true));
-    features.insert("mail".into(), json!(cfg.mail.is_some()));
+    let mail = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some() || m.jmap_base_url().is_some());
+    features.insert("mail".into(), json!(mail));
+    // Revision 4: every account joins the one family; clients hide "leave".
+    features.insert("one_family".into(), json!(state.hooks().one_family()));
     // The edition's own keys; absent in the open-source edition, so set the
     // documented defaults first and let the hooks overwrite.
     for key in ["billing", "payments", "narration", "translation"] {

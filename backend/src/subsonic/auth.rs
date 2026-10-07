@@ -144,7 +144,7 @@ impl FromRequestParts<AppState> for SubsonicAuthUser {
             return Err(reject(SubsonicErrorCode::WrongCredentials));
         }
 
-        let membership = db::families::ensure_membership(state.db(), user.id)
+        let membership = db::families::ensure_membership(state.db(), user.id, state.hooks().one_family())
             .await
             .map_err(|_| reject(SubsonicErrorCode::Generic))?;
 

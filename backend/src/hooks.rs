@@ -44,6 +44,14 @@ pub trait Hooks: Send + Sync + 'static {
         "foss"
     }
 
+    /// One family per install: new accounts join it instead of founding their
+    /// own, and nobody can be moved out into a second one. The default is
+    /// many families, so an edition that forgets to answer never puts
+    /// strangers into one family; the open-source binary answers `true`.
+    fn one_family(&self) -> bool {
+        false
+    }
+
     /// A user exists for the first time and has just received their personal
     /// family (register, SSO sign-in, admin-create, first-admin setup). The
     /// hosted edition grants the once-ever welcome credit here.
@@ -117,7 +125,11 @@ pub trait Hooks: Send + Sync + 'static {
 pub struct NoopHooks;
 
 #[async_trait]
-impl Hooks for NoopHooks {}
+impl Hooks for NoopHooks {
+    fn one_family(&self) -> bool {
+        true
+    }
+}
 
 /// How a binary chooses its edition: a function from the loaded config to
 /// the hooks, so the hooks can read the same environment the core does.

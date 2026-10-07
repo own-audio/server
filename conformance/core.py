@@ -270,6 +270,14 @@ class Ctx:
         self.track_user(u["id"], email)
         return u["id"], email, tok
 
+    def make_family_admin(self, label: str, password: str) -> tuple[str, str, str]:
+        """A user who administers a family: their own one on a server with many
+        families, the install's one (promoted by the admin) with `one_family`."""
+        uid, email, tok = self.make_user(label, password)
+        if self.feature("one_family"):
+            self.call("PUT", f"/api/v1/family/members/{uid}", self.admin_token, {"role": "family_admin"})
+        return uid, email, tok
+
     def track_user(self, uid: str, label: str = "") -> None:
         """Register a user the suite created some other way (register, claim) for deletion at the end."""
         self.on_cleanup(f"user {label or uid}", lambda: self.delete_user(uid))

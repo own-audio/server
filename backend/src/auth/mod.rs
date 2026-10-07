@@ -906,7 +906,7 @@ async fn authorize_new_account(
 }
 
 /// Place a freshly created account into a family: the inviting one, or its
-/// own. Shared by `register` and `sso_sign_in`.
+/// own (the install's one, with [`crate::hooks::Hooks::one_family`]). Shared by `register` and `sso_sign_in`.
 async fn place_in_family(
     state: &AppState,
     user_id: Uuid,
@@ -920,7 +920,7 @@ async fn place_in_family(
                 .map_err(AuthError::Internal)?;
         }
         None => {
-            let membership = db::families::create_personal_family(state.db(), user_id)
+            let membership = db::families::home_new_user(state.db(), user_id, state.hooks().one_family())
                 .await
                 .map_err(AuthError::Internal)?;
             state
@@ -1054,7 +1054,7 @@ async fn admin_create_user(
         .await
         .map_err(AuthError::Internal)?;
 
-    let membership = db::families::create_personal_family(pool, user.id)
+    let membership = db::families::home_new_user(pool, user.id, state.hooks().one_family())
         .await
         .map_err(AuthError::Internal)?;
     state

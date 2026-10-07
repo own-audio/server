@@ -106,14 +106,58 @@ pub async fn find_membership(
     .context("db: find family membership")
 }
 
-/// Resolve the user's family, creating a personal family of one if they have
+/// Resolve the user's family, giving them one ([`home_new_user`]) if they have
 /// none (users created before this feature, or by a path that forgot to call
 /// [`create_personal_family`]). Idempotent.
-pub async fn ensure_membership(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Membership> {
+pub async fn ensure_membership(pool: &PgPool, user_id: Uuid, one_family: bool) -> anyhow::Result<Membership> {
     if let Some(found) = find_membership(pool, user_id).await? {
         return Ok(found);
     }
-    create_personal_family(pool, user_id).await
+    home_new_user(pool, user_id, one_family).await
+}
+
+/// Give a brand-new user their family. With `one_family` (the open-source
+/// edition) everyone joins the install's family as a member, and only the
+/// very first user founds it; otherwise each user gets a family of their own.
+pub async fn home_new_user(pool: &PgPool, user_id: Uuid, one_family: bool) -> anyhow::Result<Membership> {
+    if !one_family {
+        return create_personal_family(pool, user_id).await;
+    }
+    let mut tx = pool.begin().await.context("db: begin home new user")?;
+    // Two first sign-ups at the same moment must not found two families.
+    sqlx::query("SELECT pg_advisory_xact_lock(hashtext('own-audio:one-family'))")
+        .execute(&mut *tx)
+        .await
+        .context("db: lock family founding")?;
+    let existing: Option<Uuid> = sqlx::query_scalar("SELECT id FROM families ORDER BY created_at, id LIMIT 1")
+        .fetch_optional(&mut *tx)
+        .await
+        .context("db: find the install's family")?;
+    let (family_id, role) = match existing {
+        Some(id) => (id, "member"),
+        None => {
+            let id: Uuid = sqlx::query_scalar(
+                "INSERT INTO families (name, created_by)
+                 SELECT display_name, id FROM users WHERE id = $1 RETURNING id",
+            )
+            .bind(user_id)
+            .fetch_one(&mut *tx)
+            .await
+            .context("db: found the install's family")?;
+            (id, "family_admin")
+        }
+    };
+    sqlx::query("INSERT INTO family_members (family_id, user_id, role) VALUES ($1, $2, $3)")
+        .bind(family_id)
+        .bind(user_id)
+        .bind(role)
+        .execute(&mut *tx)
+        .await
+        .context("db: join the install's family")?;
+    tx.commit().await.context("db: commit home new user")?;
+    find_membership(pool, user_id)
+        .await?
+        .context("db: membership just created is missing")
 }
 
 /// Create a personal family of one with `user_id` as its family_admin.

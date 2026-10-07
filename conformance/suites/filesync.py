@@ -105,7 +105,7 @@ def run(ctx: Ctx) -> None:
     def presigned(tok, kind, filename, content=None):
         return ctx.presign_upload(tok, kind, filename, content)
 
-    owner_id, owner_email, owner_tok = ctx.make_user("owner", PW)
+    owner_id, owner_email, owner_tok = ctx.make_family_admin("owner", PW)
     adult_id, adult_email, adult_tok = ctx.make_user("adult", PW)
     out_id, out_email, out_tok = ctx.make_user("outsider", PW)
     # ctx.make_user names users "<label> <sfx>"; three checks compare against it.
@@ -170,9 +170,12 @@ def run(ctx: Ctx) -> None:
                       {"object_key": key3, "original_filename": "x.mp3"})
             check("without a path it gets the default", r3["path"] == "Music/Unknown Artist/Unknown Album/x.mp3"
                   or r3["path"].startswith("Music/Unknown Artist/Unknown Album/x"))
-            call("POST", "/api/v1/music/tracks/from-upload", out_tok,
-                 {"object_key": key3, "original_filename": "x.mp3"}, expect=(401, 404))
-            check("another family's key is refused", True)
+            if ctx.feature("one_family"):
+                ctx.skip("another family's key is refused", "the server has one family")
+            else:
+                call("POST", "/api/v1/music/tracks/from-upload", out_tok,
+                     {"object_key": key3, "original_filename": "x.mp3"}, expect=(401, 404))
+                check("another family's key is refused", True)
 
             # Books.
             log("\n[book from-uploads]")

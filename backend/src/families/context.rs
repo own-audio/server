@@ -94,7 +94,7 @@ impl FromRequestParts<AppState> for FamilyContext {
     ) -> Result<Self, Self::Rejection> {
         let auth = AuthUser::from_request_parts(parts, state).await?;
 
-        let membership = db::families::ensure_membership(state.db(), auth.user_id)
+        let membership = db::families::ensure_membership(state.db(), auth.user_id, state.hooks().one_family())
             .await
             .map_err(AuthError::Internal)?;
 

@@ -28,6 +28,7 @@ import AudioAnalysisCard from "./AudioAnalysisCard";
 import AuthImage from "../../components/AuthImage";
 import { apiErrorMessage } from "../../lib/apiError";
 import { cn } from "../../lib/cn";
+import { useServerFeatures } from "../../lib/features";
 import MemberAccessSheet from "./MemberAccessSheet";
 import { t, useT, type PlainKey } from "../../i18n";
 
@@ -376,6 +377,7 @@ function MemberRow({ member, isMe, isAdmin }: { member: FamilyMember; isMe: bool
   const { t } = useT();
   const qc = useQueryClient();
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const oneFamily = useServerFeatures().features.one_family;
   const [editingAccess, setEditingAccess] = useState(false);
   const invalidate = () => qc.invalidateQueries({ queryKey: ["family"] });
 
@@ -437,9 +439,13 @@ function MemberRow({ member, isMe, isAdmin }: { member: FamilyMember; isMe: bool
           <IconButton size="sm" label={t(member.is_active ? "family.member.block" : "family.member.unblock")} onClick={() => block.mutate()}>
             <Ban className={cn("h-4 w-4", !member.is_active && "text-error")} />
           </IconButton>
-          <IconButton size="sm" label={t("family.member.removeFromFamily")} onClick={() => setConfirmRemove(true)}>
-            <Trash2 className="h-4 w-4" />
-          </IconButton>
+          {/* With one family there is nowhere to remove someone to; only an
+              unclaimed account can go (it is deleted). Block covers the rest. */}
+          {(!oneFamily || member.pending) && (
+            <IconButton size="sm" label={t("family.member.removeFromFamily")} onClick={() => setConfirmRemove(true)}>
+              <Trash2 className="h-4 w-4" />
+            </IconButton>
+          )}
         </span>
       )}
 
@@ -469,6 +475,7 @@ function MemberRow({ member, isMe, isAdmin }: { member: FamilyMember; isMe: bool
 
 export default function FamilyPage() {
   const { t } = useT();
+  const oneFamily = useServerFeatures().features.one_family;
   const qc = useQueryClient();
   const [inviting, setInviting] = useState(false);
 
@@ -539,7 +546,7 @@ export default function FamilyPage() {
         </section>
       )}
 
-      <LeaveFamily family={family} />
+      {!oneFamily && <LeaveFamily family={family} />}
 
       {inviting && <InviteDialog onClose={() => setInviting(false)} />}
     </Page>

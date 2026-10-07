@@ -59,6 +59,10 @@ def run(ctx):
         ctx.check("revision 3: GET /library/folders lists folders and the scan state",
                   isinstance(folders.get("folders"), list) and isinstance(folders.get("scanning"), bool))
 
+    if ctx.discovery and (ctx.server.get("api") or {}).get("revision", 0) >= 4:
+        ctx.check("revision 4: features.one_family is a boolean",
+                  isinstance((ctx.server.get("features") or {}).get("one_family"), bool))
+
     # Browsers always ask for gzip; a streamed body that breaks under the
     # compression layer only shows up there (1.0.0-alpha.6, the track list).
     import gzip, json as _json, urllib.request

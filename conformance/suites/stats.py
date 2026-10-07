@@ -36,7 +36,7 @@ def run(ctx):
     sfx = ctx.sfx
     call, check = ctx.call, ctx.check
 
-    parent_id, parent_email, parent_tok = ctx.make_user("parent", PW)
+    parent_id, parent_email, parent_tok = ctx.make_family_admin("parent", PW)
     kid_id, kid_email, kid_tok = ctx.make_user("kid", PW)
     adult_id, adult_email, adult_tok = ctx.make_user("adult", PW)
 
@@ -142,7 +142,8 @@ def run(ctx):
         # ── Privacy (decision D2) ────────────────────────────────────────────
         ctx.log("\n[stats privacy]")
         fam = call("GET", "/api/v1/stats/family", parent_tok)
-        others = {e["user_id"]: e for e in fam if e["user_id"] != parent_id}
+        # Only this suite's members: on a one-family server the install's admin is here too.
+        others = {e["user_id"]: e for e in fam if e["user_id"] in (kid_id, adult_id)}
         check("members are listed", len(others) == 2)
         check("members' figures are hidden by default", all(e["hidden"] for e in others.values()))
         check("hidden members expose no totals",

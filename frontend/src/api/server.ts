@@ -17,6 +17,8 @@ export interface ServerFeatures {
   library_folders: boolean;
   subsonic: boolean;
   mail: boolean;
+  /** Revision 4: every account is in the install's one family; nobody leaves. */
+  one_family: boolean;
   billing: boolean;
   payments: boolean;
   narration: boolean;
@@ -44,6 +46,7 @@ export const NO_FEATURES: ServerFeatures = {
   library_folders: false,
   subsonic: true,
   mail: false,
+  one_family: false,
   billing: false,
   payments: false,
   narration: false,

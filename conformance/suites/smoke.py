@@ -179,6 +179,30 @@ def check_smart_playlists(ctx: Ctx, token: str) -> None:
 # ── the suite ───────────────────────────────────────────────────────────────
 
 
+def one_family_lifecycle(ctx: Ctx, admin_token: str, user_token: str, user_id: str) -> None:
+    """One family per install: every account joins the admin's family as a member."""
+    family = ctx.call("GET", "/api/v1/family", user_token)
+    admin_family = ctx.call("GET", "/api/v1/family", admin_token)
+    need(family["id"] == admin_family["id"], "a new account must join the install's family")
+    need(family["my_role"] == "member", "a new account joins as a member")
+    ctx.call("PUT", "/api/v1/family", user_token, {"name": "hijacked"}, expect=(403,))
+    ctx.call("POST", "/api/v1/family/invites", user_token, {"email": "nope@example.com"}, expect=(403,))
+
+    member_email = f"smoke-member-{ctx.sfx}@example.com"
+    invite = ctx.call("POST", "/api/v1/family/invites", admin_token, {"email": member_email, "role": "member"},
+                      expect=(200, 201))
+    reg = ctx.call("POST", "/api/v1/auth/register", body={
+        "email": member_email, "password": "SmokeMember123!",
+        "display_name": f"Smoke Member {ctx.sfx}", "invite_code": invite["code"]}, expect=(200, 201))
+    member_id = reg["user"]["id"]
+    ctx.on_cleanup(f"user {member_email}", lambda: ctx.delete_user(member_id))
+    joined = ctx.call("GET", "/api/v1/family", reg["token"])
+    need(joined["id"] == admin_family["id"], "an invited account joins the same family")
+
+    ctx.call("DELETE", f"/api/v1/family/members/{user_id}", user_token, expect=(409,))
+    ctx.call("DELETE", f"/api/v1/family/members/{member_id}", admin_token, expect=(409,))
+
+
 def run(ctx: Ctx) -> None:
     with step(ctx, "health"):
         health = ctx.call("GET", "/health")
@@ -340,73 +364,77 @@ def run(ctx: Ctx) -> None:
     with step(ctx, "jobs endpoint"):
         ctx.call("GET", "/api/v1/jobs", admin_token)
 
-    with step(ctx, "family lifecycle"):
-        # Every account is backfilled into a personal family of one.
-        family = ctx.call("GET", "/api/v1/family", user_token)
-        need(family["my_role"] == "family_admin", "own personal family must grant family_admin")
-        need(len(family["members"]) == 1, "personal family must have exactly one member")
+    if ctx.feature("one_family"):
+        with step(ctx, "family lifecycle (one family)"):
+            one_family_lifecycle(ctx, admin_token, user_token, created_user_id)
+    else:
+        with step(ctx, "family lifecycle"):
+            # Every account is backfilled into a personal family of one.
+            family = ctx.call("GET", "/api/v1/family", user_token)
+            need(family["my_role"] == "family_admin", "own personal family must grant family_admin")
+            need(len(family["members"]) == 1, "personal family must have exactly one member")
 
-        ctx.call("PUT", "/api/v1/family", user_token, {"name": f"Smoke Family {suffix}"}, expect=(200, 204))
-        renamed = ctx.call("GET", "/api/v1/family", user_token)
-        need(renamed["name"] == f"Smoke Family {suffix}", "family rename must persist")
+            ctx.call("PUT", "/api/v1/family", user_token, {"name": f"Smoke Family {suffix}"}, expect=(200, 204))
+            renamed = ctx.call("GET", "/api/v1/family", user_token)
+            need(renamed["name"] == f"Smoke Family {suffix}", "family rename must persist")
 
-        # Invite a second account into the family.
-        member_email = f"smoke-member-{suffix}@example.com"
-        member_password = "SmokeMember123!"
-        invite = ctx.call(
-            "POST", "/api/v1/family/invites", user_token, {"email": member_email, "role": "member"}, expect=(200, 201),
-        )
-        need(bool(invite.get("code")), "invite must return a code")
+            # Invite a second account into the family.
+            member_email = f"smoke-member-{suffix}@example.com"
+            member_password = "SmokeMember123!"
+            invite = ctx.call(
+                "POST", "/api/v1/family/invites", user_token, {"email": member_email, "role": "member"}, expect=(200, 201),
+            )
+            need(bool(invite.get("code")), "invite must return a code")
 
-        pending = ctx.call("GET", "/api/v1/family/invites", user_token)
-        need(any(i["id"] == invite["id"] for i in pending), "invite must be listed as pending")
+            pending = ctx.call("GET", "/api/v1/family/invites", user_token)
+            need(any(i["id"] == invite["id"] for i in pending), "invite must be listed as pending")
 
-        # Registering with the code joins that family even on closed instances.
-        member_reg = ctx.call(
-            "POST", "/api/v1/auth/register",
-            body={
-                "email": member_email, "password": member_password,
-                "display_name": f"Smoke Member {suffix}", "invite_code": invite["code"],
-            },
-            expect=(200, 201),
-        )
-        member_token = member_reg["token"]
-        created_member_id = member_reg["user"]["id"]
-        ctx.on_cleanup(f"user {member_email}", lambda: ctx.delete_user(created_member_id))
+            # Registering with the code joins that family even on closed instances.
+            member_reg = ctx.call(
+                "POST", "/api/v1/auth/register",
+                body={
+                    "email": member_email, "password": member_password,
+                    "display_name": f"Smoke Member {suffix}", "invite_code": invite["code"],
+                },
+                expect=(200, 201),
+            )
+            member_token = member_reg["token"]
+            created_member_id = member_reg["user"]["id"]
+            ctx.on_cleanup(f"user {member_email}", lambda: ctx.delete_user(created_member_id))
 
-        member_family = ctx.call("GET", "/api/v1/family", member_token)
-        need(member_family["id"] == family["id"], "invited member must land in the inviting family")
-        need(member_family["my_role"] == "member", "invited member must have the invited role")
-        need(len(member_family["members"]) == 2, "family must now have two members")
+            member_family = ctx.call("GET", "/api/v1/family", member_token)
+            need(member_family["id"] == family["id"], "invited member must land in the inviting family")
+            need(member_family["my_role"] == "member", "invited member must have the invited role")
+            need(len(member_family["members"]) == 2, "family must now have two members")
 
-        # A used code cannot be redeemed twice.
-        ctx.call("POST", "/api/v1/family/invites/accept", member_token, {"code": invite["code"]}, expect=(400,))
+            # A used code cannot be redeemed twice.
+            ctx.call("POST", "/api/v1/family/invites/accept", member_token, {"code": invite["code"]}, expect=(400,))
 
-        # Members cannot perform family-admin actions.
-        ctx.call("PUT", "/api/v1/family", member_token, {"name": "hijacked"}, expect=(403,))
-        ctx.call("POST", "/api/v1/family/invites", member_token, {"email": "nope@example.com"}, expect=(403,))
+            # Members cannot perform family-admin actions.
+            ctx.call("PUT", "/api/v1/family", member_token, {"name": "hijacked"}, expect=(403,))
+            ctx.call("POST", "/api/v1/family/invites", member_token, {"email": "nope@example.com"}, expect=(403,))
 
-        # The last family admin cannot be demoted.
-        ctx.call(
-            "PUT", f"/api/v1/family/members/{family['members'][0]['user_id']}", user_token,
-            {"role": "member"}, expect=(400,),
-        )
+            # The last family admin cannot be demoted.
+            ctx.call(
+                "PUT", f"/api/v1/family/members/{family['members'][0]['user_id']}", user_token,
+                {"role": "member"}, expect=(400,),
+            )
 
-        # Labels and role promotion.
-        ctx.call(
-            "PUT", f"/api/v1/family/members/{created_member_id}", user_token,
-            {"display_label": "Kid"}, expect=(200, 204),
-        )
-        labeled = ctx.call("GET", "/api/v1/family/members", user_token)
-        kid = next(m for m in labeled if m["user_id"] == created_member_id)
-        need(kid["display_label"] == "Kid", "display label must persist")
+            # Labels and role promotion.
+            ctx.call(
+                "PUT", f"/api/v1/family/members/{created_member_id}", user_token,
+                {"display_label": "Kid"}, expect=(200, 204),
+            )
+            labeled = ctx.call("GET", "/api/v1/family/members", user_token)
+            kid = next(m for m in labeled if m["user_id"] == created_member_id)
+            need(kid["display_label"] == "Kid", "display label must persist")
 
-        # Removing a member drops them into a fresh personal family.
-        ctx.call("DELETE", f"/api/v1/family/members/{created_member_id}", user_token, expect=(200, 204))
-        after_removal = ctx.call("GET", "/api/v1/family", member_token)
-        need(after_removal["id"] != family["id"], "removed member must leave the family")
-        need(after_removal["my_role"] == "family_admin", "removed member owns their new family")
-        need(len(after_removal["members"]) == 1, "removed member is alone again")
+            # Removing a member drops them into a fresh personal family.
+            ctx.call("DELETE", f"/api/v1/family/members/{created_member_id}", user_token, expect=(200, 204))
+            after_removal = ctx.call("GET", "/api/v1/family", member_token)
+            need(after_removal["id"] != family["id"], "removed member must leave the family")
+            need(after_removal["my_role"] == "family_admin", "removed member owns their new family")
+            need(len(after_removal["members"]) == 1, "removed member is alone again")
 
     if ctx.feature("subsonic"):
         with step(ctx, "subsonic api"):
