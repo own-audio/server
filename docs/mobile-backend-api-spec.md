@@ -1,7 +1,10 @@
 # audio2 Backend Specification for Mobile (iOS/Android) Clients
 
 Date: 2026-07-18
-Status: living reference — update as the backend changes.
+Status: **retired as the endpoint reference (2026-10-07).** Every endpoint,
+parameter and response is in [api/openapi.json](api/openapi.json), generated
+from the code and checked in CI. This file stays for its prose on what a
+client needs; its endpoint details are no longer updated.
 Related:
 - [android-client-guide.md](android-client-guide.md) — practical guide for building the Android app
 - [backend-gap-analysis-abs-navidrome.md](backend-gap-analysis-abs-navidrome.md)

@@ -23,6 +23,7 @@ Free software under the GNU Affero General Public License, version 3 or later.
 > - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — what happens, in what order
 > - [docs/SCOPE.md](docs/SCOPE.md) — what is in, what is optional, what stays hosted-only
 > - [docs/API_COMPATIBILITY.md](docs/API_COMPATIBILITY.md) — how the API is versioned so every client works with every server
+> - [docs/api/openapi.json](docs/api/openapi.json) — the API itself, OpenAPI 3.1, generated from the code
 > - [docs/LICENSING.md](docs/LICENSING.md) — why AGPL
 
 ## Who it is for

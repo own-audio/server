@@ -20,6 +20,13 @@ Contract revision 4.
   install that set the JMAP variables sends no mail until `MAIL__SMTP_*`
   (or `SMTP_*` in `.env`) is set.
 - `features.one_family` in `GET /api/v1/server` (revision 4).
+- `docs/api/openapi.json`: the whole `/api/v1` contract as OpenAPI 3.1, 271
+  operations, generated from the handlers (`utoipa`). Routes are registered
+  through `utoipa-axum`'s `routes!`, so a documented route is a real one.
+  CI fails when the file is not what the code describes, when an operation
+  disappeared since the last release, or when it changed without a revision
+  bump (`scripts/check-api-contract.py`). It replaces the hand-written
+  endpoint spec in `docs/mobile-backend-api-spec.md`.
 - `SECURITY.md`, `CONTRIBUTING.md` and `docs/EDITIONS.md`.
 - Nightly database backups: a `backup` service in the compose file dumps
   PostgreSQL at 03:00 UTC into `./backups`, keeping 7 daily and 4 weekly
