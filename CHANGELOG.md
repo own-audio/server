@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-alpha.4] - 2026-10-07
+
+Contract revision 2 (unchanged).
+
+### Fixed
+- Smart playlists now see real listening. The worker rebuilds the listening
+  rollup and the per-track play counts every hour over the last year; before,
+  nothing scheduled that job, so "not played lately", "what the family plays"
+  and the play-weighted shuffle never reflected what anyone listened to.
+
 ## [1.0.0-alpha.3] - 2026-10-07
 
 Contract revision 2 (unchanged).

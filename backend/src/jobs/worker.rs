@@ -44,6 +44,15 @@ const CHECKSUM_SWEEP_INTERVAL_SECS: u64 = 3600;
 /// catalogue itself is only refreshed weekly, so anything faster is asking the
 /// same question about the same feeds and getting the same answer.
 const CATALOG_SYNC_INTERVAL_SECS: u64 = 6 * 3600;
+/// How often `stats_rollup` rebuilds the listening rollup and the per-track
+/// affinity that smart playlists filter and weight on ("not played lately",
+/// "the family plays", weighted shuffle). Nothing enqueued it before, so those
+/// signals never reflected real listening.
+const STATS_ROLLUP_INTERVAL_SECS: u64 = 3600;
+/// The window both rebuilds read. Every pass overwrites play counts with the
+/// counts inside this window, so it has to be the longest one a rule asks
+/// about — a year, for "forgotten favourites" and Wrapped.
+const STATS_ROLLUP_DAYS: i32 = 365;
 
 /// How stale a feed's catalogue metadata may get before it is re-asked. Seven
 /// days, matching the dump's own refresh cadence.
@@ -129,6 +138,8 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
     // Runs on the first tick too, so a deployment that has just gained the
     // catalogue backfills without waiting six hours for the first pass.
     let mut ticks_since_catalog_sync: u64 = catalog_sync_every_n_ticks;
+    let stats_rollup_every_n_ticks = (STATS_ROLLUP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
+    let mut ticks_since_stats_rollup: u64 = stats_rollup_every_n_ticks;
 
     // The UTC day the billing enqueue last ran for — in-process only, so a
     // restart re-checks (harmlessly: the jobs-table lookup and the ledger's
@@ -180,6 +191,19 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
                 Ok(true) => debug!("enqueued podcast catalog sync"),
                 Ok(false) => {}
                 Err(e) => warn!("failed to enqueue podcast catalog sync: {e}"),
+            }
+        }
+
+        let handles_stats_rollup = job_types
+            .as_ref()
+            .is_none_or(|types| types.iter().any(|t| t == "stats_rollup"));
+        ticks_since_stats_rollup += 1;
+        if handles_stats_rollup && ticks_since_stats_rollup >= stats_rollup_every_n_ticks {
+            ticks_since_stats_rollup = 0;
+            match db::jobs::enqueue_stats_rollup(&pool, STATS_ROLLUP_DAYS).await {
+                Ok(true) => debug!("enqueued stats rollup"),
+                Ok(false) => {}
+                Err(e) => warn!("failed to enqueue stats rollup: {e}"),
             }
         }
 

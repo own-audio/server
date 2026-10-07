@@ -259,6 +259,26 @@ pub async fn enqueue_podcast_catalog_sync(pool: &PgPool) -> anyhow::Result<bool>
     Ok(result.rows_affected() > 0)
 }
 
+/// One `stats_rollup` at a time: the rebuild is idempotent, so a pass that is
+/// already queued or running covers this one.
+pub async fn enqueue_stats_rollup(pool: &PgPool, days: i32) -> anyhow::Result<bool> {
+    let result = sqlx::query(
+        "INSERT INTO jobs (job_type, payload, scheduled_at)
+         SELECT 'stats_rollup', jsonb_build_object('days', $1::int), CURRENT_TIMESTAMP
+         WHERE NOT EXISTS (
+             SELECT 1 FROM jobs
+             WHERE job_type = 'stats_rollup'
+               AND status IN ('pending', 'running')
+         )",
+    )
+    .bind(days)
+    .execute(pool)
+    .await
+    .context("db: enqueue stats rollup")?;
+
+    Ok(result.rows_affected() > 0)
+}
+
 pub async fn enqueue_due_feed_refreshes(
     pool: &PgPool,
     interval_secs: i64,
