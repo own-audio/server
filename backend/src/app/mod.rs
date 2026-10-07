@@ -17,6 +17,23 @@ use tokio::net::TcpListener;
 use tokio::signal;
 use tracing::info;
 
+/// The session secret signs every sign-in and media link: anyone who guesses
+/// it can mint an admin session. A short or placeholder one stops the start;
+/// a merely weak one is logged loudly.
+fn check_session_secret(secret: &str) -> anyhow::Result<()> {
+    let s = secret.trim();
+    if s.len() < 16 || s.eq_ignore_ascii_case("change_me") || s.eq_ignore_ascii_case("changeme") {
+        anyhow::bail!(
+            "AUTH__SESSION_SECRET (SESSION_SECRET in .env) is missing, a placeholder or shorter than 16 characters; \
+             set it to a random value: openssl rand -hex 32"
+        );
+    }
+    if s.len() < 32 || s.to_ascii_lowercase().contains("changeme") {
+        tracing::warn!("AUTH__SESSION_SECRET looks weak; use a random value of 32 characters or more (openssl rand -hex 32)");
+    }
+    Ok(())
+}
+
 /// Bootstrap the application: load config, connect to DB, storage, workers.
 ///
 /// `hooks` turns the loaded config into the edition's [`crate::hooks::Hooks`]
@@ -27,6 +44,7 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
     let config = AppConfig::load().context("failed to load configuration")?;
 
     observability::init(&config.log_level);
+    check_session_secret(&config.auth.session_secret)?;
 
     info!(
         host = %config.server.host,
@@ -175,4 +193,18 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("received shutdown signal");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::check_session_secret;
+
+    #[test]
+    fn short_or_placeholder_secrets_stop_the_start() {
+        assert!(check_session_secret("").is_err());
+        assert!(check_session_secret("CHANGE_ME").is_err());
+        assert!(check_session_secret("short-secret").is_err());
+        assert!(check_session_secret("changeme-replace-in-production").is_ok());
+        assert!(check_session_secret(&"a1".repeat(32)).is_ok());
+    }
 }
