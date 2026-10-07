@@ -642,10 +642,11 @@ pub struct TreeId {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Every item in the caller's tree, id only — cheap enough to fetch whole, so
-/// a client can drop what it holds and the server no longer shows (revoked
-/// sharing, a changed member policy, a missed change).
-pub async fn all_ids(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<TreeId>> {
+/// Every item in the caller's tree, id only, so a client can drop what it
+/// holds and the server no longer shows (revoked sharing, a changed member
+/// policy, a missed change). Streamed into `out`: at 600,000 tracks it is
+/// about 100 MB of JSON.
+pub async fn send_all_ids(pool: PgPool, viewer: Viewer, out: tokio::sync::mpsc::Sender<anyhow::Result<TreeId>>) {
     let v = access::VISIBLE;
     let books = v.replace("$4", "'audiobook'");
     let tracks = v.replace("$4", "'music'");
@@ -664,13 +665,12 @@ pub async fn all_ids(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<TreeId
          SELECT 'companion_file', t.id, t.updated_at FROM companion_files t
           WHERE audio2_can_access($1, $2, $3, t.media_kind, t.id, t.user_id, t.family_id)"
     );
-    sqlx::query_as::<_, TreeId>(&sql)
+    let rows = sqlx::query_as::<_, TreeId>(&sql)
         .bind(viewer.user_id)
         .bind(viewer.family_id)
         .bind(viewer.is_family_admin)
-        .fetch_all(pool)
-        .await
-        .context("db: sync tree ids")
+        .fetch(&pool);
+    crate::http::json_stream::send_all(rows, out, "db: sync tree ids").await;
 }
 
 #[cfg(test)]

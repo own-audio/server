@@ -721,34 +721,10 @@ async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> ax
     let (tx, rx) = tokio::sync::mpsc::channel(256);
     tokio::spawn(db::music::send_tracks(state.db().clone(), family.viewer(), tx));
     let viewer_id = family.user_id;
-    // (receiver, nothing sent yet, finished)
-    let body = futures_util::stream::unfold((rx, true, false), move |(mut rx, first, done)| async move {
-        if done {
-            return None;
-        }
-        match rx.recv().await {
-            Some(Ok(track)) => {
-                let mut buf = if first { b"[".to_vec() } else { b",".to_vec() };
-                if let Err(e) = serde_json::to_writer(&mut buf, &track_to_response(track, viewer_id)) {
-                    return Some((Err(std::io::Error::other(e)), (rx, first, true)));
-                }
-                Some((Ok(bytes::Bytes::from(buf)), (rx, false, false)))
-            }
-            Some(Err(e)) => {
-                // The status is already sent; cutting the body short is the only signal left.
-                tracing::warn!(error = %format!("{e:#}"), "track list: stream failed");
-                Some((Err(std::io::Error::other(e.to_string())), (rx, first, true)))
-            }
-            None => Some((Ok(bytes::Bytes::from_static(if first { b"[]" } else { b"]" })), (rx, first, true))),
-        }
+    let body = crate::http::json_stream::array(rx, Vec::new(), b"", "track list", move |track| {
+        track_to_response(track, viewer_id)
     });
-    // Fused: the compression layer polls once more after the end, and a bare
-    // `unfold` panics on that (it cost every gzip client the whole list).
-    let body = futures_util::StreamExt::fuse(body);
-    (
-        [(axum::http::header::CONTENT_TYPE, "application/json")],
-        axum::body::Body::from_stream(body),
-    )
+    ([(axum::http::header::CONTENT_TYPE, "application/json")], body)
         .into_response()
 }
 
@@ -1378,12 +1354,8 @@ async fn get_track_file_tags(
         .await
         .map_err(|e| AuthError::Internal(e.into()))?;
 
-    let bytes = state.storage().get(&key).await.map_err(AuthError::Internal)?;
-
-    let temp = NamedTempFile::new().map_err(|e| AuthError::Internal(e.into()))?;
-    tokio::fs::write(temp.path(), &bytes)
-        .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
+    // Streamed to disk: a FLAC is easily 100–300 MB.
+    let temp = state.storage().download_to_temp(&key).await.map_err(AuthError::Internal)?;
     let tags = read_embedded_tags(temp.path());
 
     Ok(Json(FileTagsResponse {
@@ -1972,8 +1944,8 @@ async fn get_track_lyrics(
         .await
         .map_err(|e| AuthError::Internal(e.into()))?;
 
-    let bytes = state.storage().get(&key).await.map_err(AuthError::Internal)?;
-    let lyrics = parse_lyrics_tag(bytes).unwrap_or_default();
+    let temp = state.storage().download_to_temp(&key).await.map_err(AuthError::Internal)?;
+    let lyrics = parse_lyrics_tag(temp.path()).unwrap_or_default();
 
     db::music::update_track_lyrics(state.db(), id, &lyrics)
         .await
@@ -2079,13 +2051,12 @@ fn read_embedded_tags(path: &std::path::Path) -> EmbeddedTags {
 /// unreadable tags should read back as "no lyrics found", not fail the
 /// whole request, and it still gets cached as `""` by the caller so a
 /// broken file isn't re-parsed on every subsequent request either.
-fn parse_lyrics_tag(bytes: bytes::Bytes) -> Option<String> {
+fn parse_lyrics_tag(path: &std::path::Path) -> Option<String> {
     use lofty::file::TaggedFileExt;
     use lofty::probe::Probe;
     use lofty::tag::ItemKey;
 
-    let cursor = std::io::Cursor::new(bytes);
-    let tagged_file = Probe::new(cursor).guess_file_type().ok()?.read().ok()?;
+    let tagged_file = Probe::open(path).ok()?.guess_file_type().ok()?.read().ok()?;
     let tag = tagged_file.primary_tag().or_else(|| tagged_file.first_tag())?;
 
     // ID3v2's USLT frame (by far the most common real-world "lyrics" tag,

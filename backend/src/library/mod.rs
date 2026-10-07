@@ -120,9 +120,9 @@ pub struct ChangesResponse {
     pub full_sync: bool,
     pub audiobooks: Vec<serde_json::Value>,
     pub podcasts: Vec<serde_json::Value>,
-    pub tracks: Vec<serde_json::Value>,
     /// Items removed since `since`, so the client can purge its cache.
     pub deleted: Vec<DeletedItem>,
+    // `tracks` follows, streamed: a full sync is the whole catalog.
 }
 
 #[derive(Serialize)]
@@ -152,7 +152,7 @@ async fn changes(
     family: FamilyContext,
     State(state): State<AppState>,
     Query(q): Query<ChangesQuery>,
-) -> Result<Json<ChangesResponse>, AuthError> {
+) -> Result<axum::response::Response, AuthError> {
     // Snapshot the cursor before querying: anything written while we read
     // will be picked up next time instead of falling in the gap.
     let now = Utc::now();
@@ -173,9 +173,6 @@ async fn changes(
     let feeds = crate::db::sync::changed_feeds(pool, viewer, cursor)
         .await
         .map_err(AuthError::Internal)?;
-    let tracks = crate::db::sync::changed_tracks(pool, viewer, cursor)
-        .await
-        .map_err(AuthError::Internal)?;
 
     // Tombstones only make sense for an incremental sync: on a full one the
     // client is rebuilding from scratch and has nothing to purge.
@@ -193,7 +190,7 @@ async fn changes(
         None => Vec::new(),
     };
 
-    Ok(Json(ChangesResponse {
+    let head = ChangesResponse {
         since: since.map(|s| s.to_rfc3339_opts(chrono::SecondsFormat::Millis, true)),
         now: now.to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
         full_sync: since.is_none(),
@@ -228,27 +225,33 @@ async fn changes(
                 })
             })
             .collect(),
-        tracks: tracks
-            .into_iter()
-            .map(|t| {
-                serde_json::json!({
-                    "id": t.id.to_string(),
-                    "album_artist": t.effective_album_artist(),
-                    "title": t.title,
-                    "artist": t.artist,
-                    "album": t.album,
-                    "track_number": t.track_number,
-                    "disc_number": t.disc_number,
-                    "duration_secs": t.duration_secs,
-                    "visibility": crate::db::access::visibility_of(t.family_id),
-                    "is_owner": t.user_id == family.user_id,
-                    "owner_id": t.user_id.to_string(),
-                    "updated_at": t.updated_at.to_rfc3339(),
-                })
-            })
-            .collect(),
         deleted,
-    }))
+    };
+    let mut prefix = serde_json::to_vec(&head).map_err(|e| AuthError::Internal(e.into()))?;
+    prefix.pop(); // the closing brace; `tracks` goes in before it
+    prefix.extend_from_slice(br#","tracks":"#);
+
+    let (tx, rx) = tokio::sync::mpsc::channel(256);
+    tokio::spawn(crate::db::sync::send_changed_tracks(pool.clone(), viewer, cursor, tx));
+    let me = family.user_id;
+    let body = crate::http::json_stream::array(rx, prefix, b"}", "library changes", move |t| {
+        serde_json::json!({
+            "id": t.id.to_string(),
+            "album_artist": t.effective_album_artist(),
+            "title": t.title,
+            "artist": t.artist,
+            "album": t.album,
+            "track_number": t.track_number,
+            "disc_number": t.disc_number,
+            "duration_secs": t.duration_secs,
+            "visibility": crate::db::access::visibility_of(t.family_id),
+            "is_owner": t.user_id == me,
+            "owner_id": t.user_id.to_string(),
+            "updated_at": t.updated_at.to_rfc3339(),
+        })
+    });
+    use axum::response::IntoResponse;
+    Ok(([(axum::http::header::CONTENT_TYPE, "application/json")], body).into_response())
 }
 
 /// One private item, in the caller's "Soukromé" folder.

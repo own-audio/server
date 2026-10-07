@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 pub mod handlers;
+pub mod json_stream;
 pub mod multipart;
 pub mod router;
 pub mod media;

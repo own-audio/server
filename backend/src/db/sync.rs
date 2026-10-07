@@ -127,23 +127,21 @@ pub async fn changed_feeds(
         .context("db: changed podcast feeds")
 }
 
-pub async fn changed_tracks(
-    pool: &PgPool,
+/// Streamed into `out`: a full sync is the whole catalog.
+pub async fn send_changed_tracks(
+    pool: PgPool,
     viewer: Viewer,
     since: DateTime<Utc>,
-) -> anyhow::Result<Vec<MusicTrack>> {
+    out: tokio::sync::mpsc::Sender<anyhow::Result<MusicTrack>>,
+) {
     let cols = crate::db::music::TRACK_COLS;
     let sql = format!(
         "SELECT {cols} FROM music_tracks t
          WHERE {VISIBLE} AND t.updated_at > $5
          ORDER BY t.updated_at"
     );
-
-    bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer, MUSIC)
-        .bind(since)
-        .fetch_all(pool)
-        .await
-        .context("db: changed music tracks")
+    let rows = bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer, MUSIC).bind(since).fetch(&pool);
+    crate::http::json_stream::send_all(rows, out, "db: changed music tracks").await;
 }
 
 // ── Tombstones ────────────────────────────────────────────────────────────

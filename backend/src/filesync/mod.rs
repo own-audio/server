@@ -71,11 +71,12 @@ async fn get_tree(
 }
 
 /// GET /api/v1/sync/tree/ids
-async fn get_tree_ids(
-    family: FamilyContext,
-    State(state): State<AppState>,
-) -> Result<Json<Vec<tree::TreeId>>, AuthError> {
-    tree::all_ids(state.db(), family.viewer()).await.map(Json).map_err(AuthError::Internal)
+async fn get_tree_ids(family: FamilyContext, State(state): State<AppState>) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let (tx, rx) = tokio::sync::mpsc::channel(1024);
+    tokio::spawn(tree::send_all_ids(state.db().clone(), family.viewer(), tx));
+    let body = crate::http::json_stream::array(rx, Vec::new(), b"", "sync tree ids", |id| id);
+    ([(axum::http::header::CONTENT_TYPE, "application/json")], body).into_response()
 }
 
 /// GET /api/v1/sync/shortcuts
