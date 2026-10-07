@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- `conformance/tools/loadtest.py`: N listeners browsing, streaming with
+  ranges and reporting progress at once; `--heavy` adds the catalog-wide
+  calls on every loop.
+
+### Fixed
+- Claiming a file-sync path compared the new path with every path the owner
+  already had (no index could serve the "inside another folder" test), so a
+  first library scan slowed down with every file. The test is now three index
+  lookups (migration 0090 adds a prefix index); measured on a Raspberry Pi 4
+  during a 10,000-file scan.
+
 ## [1.0.0-alpha.6] - 2026-10-07
 
 Contract revision 3.

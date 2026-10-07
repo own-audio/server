@@ -403,6 +403,13 @@ pub(crate) async fn free_path(
     let is_file = names_file(tx, kind, item).await?;
     let mut candidate = wanted.to_string();
     for n in 2..10_000 {
+        // Every test is an index lookup (sync_paths_owner_idx and the prefix
+        // index of migration 0090), so a claim costs the same in an empty
+        // library and in one of 600,000 files: the exact path, each of the
+        // candidate's ancestor folders by equality, and anything below the
+        // candidate as a LIKE prefix range.
+        let ancestors: Vec<String> = ancestors_of(&candidate);
+        let below = format!("{}/%", like_escape(&candidate));
         let taken: bool = sqlx::query_scalar(
             "SELECT EXISTS (
                 SELECT 1 FROM sync_live_paths
@@ -412,13 +419,15 @@ pub(crate) async fn free_path(
                         -- book); a companion file lives inside a book folder
                         -- by design.
                         OR ($2 <> 'companion_file' AND kind <> 'companion_file'
-                            AND (starts_with(lower(path), lower($4) || '/')
-                                 OR starts_with(lower($4), lower(path) || '/')))))",
+                            AND (lower(path) LIKE lower($6)
+                                 OR lower(path) = ANY (SELECT lower(a) FROM unnest($5::text[]) a)))))",
         )
         .bind(owner)
         .bind(kind.as_str())
         .bind(item)
         .bind(&candidate)
+        .bind(&ancestors)
+        .bind(&below)
         .fetch_one(&mut **tx)
         .await
         .context("db: check path")?;
@@ -428,6 +437,24 @@ pub(crate) async fn free_path(
         candidate = with_suffix(wanted, n, is_file);
     }
     anyhow::bail!("no free path near '{wanted}'")
+}
+
+/// `A/B/c.mp3` → `["A", "A/B"]`: the folders a path sits in.
+fn ancestors_of(path: &str) -> Vec<String> {
+    let parts: Vec<&str> = path.split('/').collect();
+    (1..parts.len()).map(|i| parts[..i].join("/")).collect()
+}
+
+/// A literal for a LIKE pattern: `%`, `_` and the escape character itself.
+fn like_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        if matches!(c, '%' | '_' | '\\') {
+            out.push('\\');
+        }
+        out.push(c);
+    }
+    out
 }
 
 // ── Defaults for items created without a path ────────────────────────────
@@ -657,5 +684,22 @@ mod tests {
         assert_eq!(with_suffix("Audiobooks/A/Mort", 2, false), "Audiobooks/A/Mort (2)");
         assert_eq!(with_suffix("Audiobooks/A/Vol. 2", 3, false), "Audiobooks/A/Vol. 2 (3)");
         assert_eq!(with_suffix("Music/A/.hidden", 2, true), "Music/A/.hidden (2)");
+    }
+}
+
+#[cfg(test)]
+mod claim_query_tests {
+    use super::{ancestors_of, like_escape};
+
+    #[test]
+    fn ancestors() {
+        assert_eq!(ancestors_of("Music/A/B/c.mp3"), ["Music", "Music/A", "Music/A/B"]);
+        assert!(ancestors_of("loose.mp3").is_empty());
+    }
+
+    #[test]
+    fn like_literals() {
+        assert_eq!(like_escape("100% Hits_2"), "100\\% Hits\\_2");
+        assert_eq!(like_escape("a\\b"), "a\\\\b");
     }
 }
