@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.2] - 2026-10-08
+
 Contract revision 5.
 
 ### Added

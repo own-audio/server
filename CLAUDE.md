@@ -340,7 +340,9 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-08)
 
-`v1.0.0-beta.1` (contract revision 4): OpenAPI generated and checked
+`v1.0.0-beta.2` (contract revision 5): identify through the public
+MusicBrainz API, podcast search through Apple's directory, getStarred and
+playlist reads batched, storage reconcile by page. `v1.0.0-beta.1` (contract revision 4): OpenAPI generated and checked
 (`docs/api/openapi.json`, `scripts/check-api-contract.py`), one family per
 install, the server as `PUID:PGID`, SMTP only (JMAP removed), nightly
 backups and `scripts/pg-upgrade.sh`, Subsonic ids as key reads, streamed
