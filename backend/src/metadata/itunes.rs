@@ -70,9 +70,12 @@ pub async fn search(term: &str, limit: usize) -> anyhow::Result<Vec<Show>> {
 }
 
 fn shows(answer: Answer) -> Vec<Show> {
+    // Apple lists one show several times (one entry per storefront edition); one per feed.
+    let mut seen = std::collections::HashSet::new();
     answer
         .results
         .into_iter()
+        .filter(|i| i.feed_url.as_deref().is_none_or(|u| seen.insert(u.to_string())))
         .filter_map(|i| {
             Some(Show {
                 title: i.collection_name?,
@@ -93,12 +96,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn maps_shows_and_skips_ones_without_a_feed() {
+    fn maps_shows_once_and_skips_ones_without_a_feed() {
         let json = r#"{"resultCount":2,"results":[
           {"collectionName":"Hardcore History","feedUrl":"https://feeds.example/hh","artistName":"Dan Carlin",
            "artworkUrl600":"https://img/600.jpg","trackCount":12,"genres":["History","Podcasts"],
            "collectionViewUrl":"https://podcasts.apple.com/x"},
-          {"collectionName":"Apple Only","artistName":"Someone"}]}"#;
+          {"collectionName":"Apple Only","artistName":"Someone"},
+          {"collectionName":"Hardcore History","feedUrl":"https://feeds.example/hh","artistName":"Dan Carlin"}]}"#;
         let shows = shows(serde_json::from_str(json).unwrap());
         assert_eq!(shows.len(), 1);
         assert_eq!(shows[0].feed_url, "https://feeds.example/hh");

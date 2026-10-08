@@ -22,6 +22,7 @@ Contract revision 5.
   off. `features.podcast_search` says whether search works (contract
   revision 5); categories, browse and similar shows stay with
   `features.podcast_discovery`.
+  Apple lists one show several times; each feed is answered once.
 
 ### Fixed
 - Subsonic `getStarred`: the starred tracks in one query instead of one
