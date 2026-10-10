@@ -21,17 +21,21 @@ use tracing::info;
 use uuid::Uuid;
 
 
-/// Reqwest sends no `User-Agent` at all unless told to, and the hosts on the other end of both
-/// outbound podcast calls treat that as a bot: the search upstream answered every request with
-/// `403 Forbidden` (so every client's podcast search returned a 500), and feed hosts can simply
-/// never answer, which hung `POST /podcasts/subscribe` past any client timeout with the
-/// subscription already committed. Hence a real UA and a bounded timeout on both.
-const USER_AGENT: &str = concat!("audio2/", env!("CARGO_PKG_VERSION"));
-const OUTBOUND_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(30);
+// Outbound fetches (feeds, artwork, enclosures) go through `http::outbound`:
+// a real user agent, bounded stalls, public addresses only, size caps.
 
-fn outbound_client() -> Result<reqwest::Client, reqwest::Error> {
-    reqwest::Client::builder().user_agent(USER_AGENT).timeout(OUTBOUND_TIMEOUT).build()
-}
+/// Feeds and artwork are small; anything past this is not a feed.
+const MAX_FEED_BYTES: u64 = 20 * 1024 * 1024;
+
+/// The most an episode may be to be stored on the server
+/// (`PODCASTS__MAX_EPISODE_BYTES`, default 512 MiB). Past it, the episode is
+/// still playable from the publisher's URL.
+static MAX_EPISODE_BYTES: std::sync::LazyLock<u64> = std::sync::LazyLock::new(|| {
+    std::env::var("PODCASTS__MAX_EPISODE_BYTES")
+        .ok()
+        .and_then(|v| v.trim().parse().ok())
+        .unwrap_or(512 * 1024 * 1024)
+});
 
 // ── DTOs ─────────────────────────────────────────────────────────────────
 
@@ -582,9 +586,9 @@ async fn discover_preview_episodes(
         return Err(AuthError::BadRequest("feed_url is required".to_string()));
     }
 
-    let channel = fetch_rss_url(feed_url)
-        .await
-        .map_err(|_| AuthError::ItemNotFound)?;
+    let channel = fetch_rss_url(feed_url).await.map_err(|e| {
+        if crate::http::outbound::is_refused(&e) { AuthError::BadRequest(e.to_string()) } else { AuthError::ItemNotFound }
+    })?;
     Ok(Json(newest_episodes(&channel, params.limit)))
 }
 
@@ -736,7 +740,7 @@ async fn subscribe(
         family.viewer(),
     )
     .await
-    .map_err(AuthError::Internal)?;
+    .map_err(fetch_failure)?;
 
     let status = if created { StatusCode::CREATED } else { StatusCode::OK };
     Ok((status, Json(feed_to_response(feed, family.user_id))))
@@ -1367,6 +1371,7 @@ async fn set_auto_store(
     Path(id): Path<Uuid>,
     Json(body): Json<SetAutoStoreRequest>,
 ) -> Result<Json<FeedResponse>, AuthError> {
+    family.require_can_upload()?;
     let feed = db::podcasts::find_feed(state.db(), id, family.viewer())
         .await
         .map_err(AuthError::Internal)?
@@ -1435,6 +1440,7 @@ async fn store_all(
     Path(id): Path<Uuid>,
     Json(body): Json<StoreAllRequest>,
 ) -> Result<Json<StoreAllResponse>, AuthError> {
+    family.require_can_upload()?;
     let feed = db::podcasts::find_feed(state.db(), id, family.viewer())
         .await
         .map_err(AuthError::Internal)?
@@ -1500,22 +1506,23 @@ pub async fn queue_auto_store(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Res
 // ── Internal helpers ──────────────────────────────────────────────────────
 
 async fn fetch_rss(url: &str, _secret: &str) -> Result<rss::Channel, AuthError> {
-    fetch_rss_url(url)
-        .await
-        .map_err(AuthError::Internal)
+    fetch_rss_url(url).await.map_err(fetch_failure)
+}
+
+/// A URL the outbound guard refused is the caller's mistake (400); anything
+/// else that went wrong fetching is ours (500).
+pub(crate) fn fetch_failure(error: anyhow::Error) -> AuthError {
+    if crate::http::outbound::is_refused(&error) {
+        AuthError::BadRequest(error.to_string())
+    } else {
+        AuthError::Internal(error)
+    }
 }
 
 /// Public version used by the background worker (returns anyhow::Result).
 pub async fn fetch_rss_url(url: &str) -> anyhow::Result<rss::Channel> {
-    let bytes = outbound_client()
-        .map_err(|e| anyhow::anyhow!("build feed client: {e}"))?
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| anyhow::anyhow!("fetch feed: {e}"))?
-        .bytes()
-        .await
-        .map_err(|e| anyhow::anyhow!("read feed body: {e}"))?;
+    let response = crate::http::outbound::get(url).await.map_err(|e| e.context("fetch feed"))?;
+    let bytes = crate::http::outbound::bytes(response, MAX_FEED_BYTES).await.map_err(|e| e.context("read feed body"))?;
 
     rss::Channel::read_from(&bytes[..])
         .map_err(|e| anyhow::anyhow!("parse feed: {e}"))
@@ -1821,22 +1828,9 @@ async fn store_image_from_url(
     // Download. `outbound_client()`, not a bare `reqwest::get` — that had no timeout at all
     // (a dead or slow CDN would hang the caller indefinitely) and no user agent, which some
     // hosts reject.
-    let resp = outbound_client()
-        .map_err(|e| anyhow::anyhow!("build image client: {e}"))?
-        .get(image_url)
-        .send()
-        .await
-        .map_err(|e| anyhow::anyhow!("fetch image: {e}"))?;
-    let content_type = resp
-        .headers()
-        .get("content-type")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("image/jpeg")
-        .to_string();
-    let bytes = resp
-        .bytes()
-        .await
-        .map_err(|e| anyhow::anyhow!("read image: {e}"))?;
+    let resp = crate::http::outbound::get(image_url).await.map_err(|e| e.context("fetch image"))?;
+    let content_type = crate::http::outbound::content_type(&resp, "image/jpeg");
+    let bytes = crate::http::outbound::bytes(resp, MAX_FEED_BYTES).await.map_err(|e| e.context("read image"))?;
 
     // Upload
     storage.put(&key, bytes, &content_type).await?;
@@ -1870,6 +1864,7 @@ async fn download_episode(
     State(state): State<AppState>,
     Path((feed_id, ep_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<EpisodeResponse>, AuthError> {
+    family.require_can_upload()?;
     let pool = state.db();
 
     // Verify the feed belongs to this user
@@ -1984,47 +1979,47 @@ pub(crate) async fn fetch_and_store_episode_audio(
 
     info!(%ep_id, source_type = %feed.source_type, audio_url = %audio_url, "starting episode download");
 
-    let (bytes, content_type) = if feed.source_type == "youtube" {
-        youtube::download_audio_to_bytes(audio_url).await?
+    enum Body {
+        Bytes(bytes::Bytes),
+        Temp(tempfile::NamedTempFile, u64),
+    }
+    let (body, content_type) = if feed.source_type == "youtube" {
+        let (bytes, content_type) = youtube::download_audio_to_bytes(audio_url).await?;
+        (Body::Bytes(bytes), content_type)
     } else {
-        // Not a bare `reqwest::get`: with no user agent Buzzsprout's Cloudflare answered with a
-        // 403 challenge page, and with no status check that HTML was stored as the episode, so
-        // playback never started on any client. No total timeout — an hour-long episode can
-        // legitimately take longer than `OUTBOUND_TIMEOUT` — only a stall is treated as dead.
-        let response = reqwest::Client::builder()
-            .user_agent(USER_AGENT)
-            .connect_timeout(OUTBOUND_TIMEOUT)
-            .read_timeout(OUTBOUND_TIMEOUT)
-            .build()
-            .map_err(|e| anyhow::anyhow!("build audio client: {e}"))?
-            .get(audio_url)
-            .send()
-            .await
-            .and_then(reqwest::Response::error_for_status)
-            .map_err(|e| anyhow::anyhow!("fetch audio: {e}"))?;
-        let content_type = response
-            .headers()
-            .get("content-type")
-            .and_then(|v| v.to_str().ok())
-            .unwrap_or("audio/mpeg")
-            .to_string();
+        // Through the outbound guard: the enclosure URL comes from the feed,
+        // and the body goes to a temporary file under a size cap rather than
+        // into memory (security hardening plan C2, C3).
+        let response = crate::http::outbound::get(audio_url).await.map_err(|e| e.context("fetch audio"))?;
+        let content_type = crate::http::outbound::content_type(&response, "audio/mpeg");
         if content_type.starts_with("text/") {
             anyhow::bail!("fetch audio: host returned {content_type}, not audio");
         }
-        let bytes = response
-            .bytes()
+        let (temp, len) = crate::http::outbound::to_temp(response, *MAX_EPISODE_BYTES)
             .await
-            .map_err(|e| anyhow::anyhow!("read audio body: {e}"))?;
-        (bytes, content_type)
+            .map_err(|e| e.context("read audio body"))?;
+        (Body::Temp(temp, len), content_type)
     };
 
-    let byte_len = bytes.len();
     let object_key = crate::storage::family_key(family_id, format!("episodes/{ep_id}"));
     let bucket = storage.bucket().to_string();
-    storage
-        .put(&object_key, bytes, &content_type)
-        .await
-        .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
+    let byte_len = match body {
+        Body::Bytes(bytes) => {
+            let len = bytes.len();
+            storage
+                .put(&object_key, bytes, &content_type)
+                .await
+                .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
+            len
+        }
+        Body::Temp(temp, len) => {
+            storage
+                .put_temp(&object_key, temp, &content_type)
+                .await
+                .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
+            len as usize
+        }
+    };
 
     // `size_bytes` is recorded because Subsonic reports a `size` per episode,
     // which clients use to show what a download will cost before starting it.

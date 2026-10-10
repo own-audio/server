@@ -240,6 +240,9 @@ lives. Clients never parse it, never persist it, and never assume its host.
   audiobooks do.
 - **Access tokens live one hour** by default (`AUTH__ACCESS_TTL_SECS`); they
   were seven days until 2026-10-11. Clients refresh, as they already do.
+- **Uploads and storing podcast episodes need `can_upload`** (`403` without
+  it), and `POST /podcasts/subscribe` answers `400` for a feed on a private or
+  local address (since 2026-10-11).
 - **Browsers may call `/api` only from the console's origins**
   (`SERVER__CORS_ORIGINS`, defaulting to `SERVER__APP_BASE_URL` and
   `SERVER__BASE_URL`); `/rest` allows any origin. Native apps are unaffected.

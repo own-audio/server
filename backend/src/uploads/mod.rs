@@ -94,6 +94,7 @@ async fn presign(
     State(state): State<AppState>,
     Json(body): Json<PresignRequest>,
 ) -> Result<Json<PresignResponse>, AuthError> {
+    family.require_can_upload()?;
     let content_type = body.content_type.trim();
     if content_type.is_empty() {
         return Err(AuthError::BadRequest("content_type is required".to_string()));
@@ -137,6 +138,11 @@ async fn presign(
         ),
     );
 
+    // Remembered so an upload that never completes is swept (migration 0094).
+    crate::db::uploads::insert_intent(state.db(), &object_key, family.family_id, family.user_id, body.size_bytes)
+        .await
+        .map_err(AuthError::Internal)?;
+
     let url = state
         .storage()
         .presigned_put(&object_key, content_type, UPLOAD_URL_EXPIRY_SECS)
@@ -166,6 +172,7 @@ async fn complete(
     State(state): State<AppState>,
     Json(body): Json<CompleteRequest>,
 ) -> Result<(StatusCode, Json<CompleteResponse>), AuthError> {
+    family.require_can_upload()?;
     require_own_key(&family, &body.object_key)?;
 
     let (size_bytes, content_type) = state
@@ -176,6 +183,19 @@ async fn complete(
         .ok_or_else(|| {
             AuthError::BadRequest("no object was uploaded under that key".to_string())
         })?;
+    // The presigned PUT cannot cap what was sent; the cap holds here, and an
+    // object over it is removed rather than registered.
+    let declared = crate::db::uploads::take_intent(state.db(), &body.object_key)
+        .await
+        .map_err(AuthError::Internal)?
+        .flatten();
+    let too_big = size_bytes > MAX_UPLOAD_BYTES || declared.is_some_and(|d| size_bytes > d.saturating_add(d / 100));
+    if too_big {
+        let _ = state.storage().delete(&body.object_key).await;
+        return Err(AuthError::BadRequest(format!(
+            "the uploaded object is larger than allowed ({size_bytes} bytes)"
+        )));
+    }
 
     let media_object_id =
         register_object(state.db(), state.storage(), &body.object_key, &content_type, size_bytes)

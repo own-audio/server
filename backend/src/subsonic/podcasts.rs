@@ -281,6 +281,14 @@ pub async fn download_podcast_episode(
         Err(()) => return err(&auth, SubsonicErrorCode::Generic),
     };
 
+    // Storing an episode uses the family's storage: the same right as an upload.
+    let may_store = match crate::db::families::find_membership(state.db(), auth.user_id).await {
+        Ok(Some(m)) => m.role == "family_admin" || m.can_upload,
+        _ => false,
+    };
+    if !may_store {
+        return err(&auth, SubsonicErrorCode::NotAuthorized);
+    }
     match crate::podcasts::fetch_and_store_episode_audio(state.db(), state.storage(), auth.family_id, &feed, &episode).await
     {
         Ok(()) => ok(&auth, json!({})),

@@ -47,6 +47,8 @@ link or QR code — there is no open sign-up unless you turn it on
 | `PUID`, `PGID` | The user and group the server runs as (not root). They need read access to your library folders; the server's own storage is handed to them at start. | `1000` |
 | `SESSION_SECRET` | Signs sessions and media links. Changing it signs everyone out and ends open media links. | required |
 | `SERVER__CORS_ORIGINS` | Browser origins that may call `/api` from a page, comma-separated. Unset: the console's own origin, which is all a normal install needs. Apps are not affected (CORS is a browser rule); `/rest` stays open for Subsonic web clients. | console origin |
+| `SERVER__OUTBOUND__ALLOW_PRIVATE` | Let the server fetch podcast feeds and artwork from private or local addresses (your own network). Off, so a feed URL can never point the server at itself or at its neighbours. | false |
+| `PODCASTS__MAX_EPISODE_BYTES` | The largest episode the server will store; larger ones still play from the publisher's URL. | 512 MiB |
 | `AUTH__ACCESS_TTL_SECS` | How long an access token lives. Apps refresh on their own; a shorter token limits what a stolen one is worth. | 3600 |
 | `SERVER__RATE_LIMIT__*` | Per-IP limits on login, refresh, device codes, join codes and setup. `…__ENABLED=false` turns them off; `…__TRUST_PROXY_HEADERS=true` when you are behind a proxy on a public address. | on |
 | `APPLE_SIGN_IN`, `APPLE_CLIENT_IDS`, `GOOGLE_SIGN_IN`, `GOOGLE_CLIENT_IDS` | Sign in with Apple or Google from the own.audio apps; see below. | off |

@@ -16,6 +16,21 @@ semver. Each release states the **API contract revision** it serves
 - A signed-in caller without the right gets `403` on admin routes and on
   other users' records, not `401`; clients no longer refresh a good token and
   sign out over a permission.
+- Requests the server makes on a user's behalf (podcast feeds, episode
+  audio, feed artwork) go through one guard: `http` and `https` only, public
+  addresses only (checked after DNS and on every redirect, the connection
+  pinned to the checked addresses), bodies under a size cap and a stall
+  timeout. A feed on a private or local address is refused with `400`.
+  `SERVER__OUTBOUND__ALLOW_PRIVATE=true` lifts the address check for a server
+  whose feeds live on its own network.
+- Episode audio is streamed to disk under `PODCASTS__MAX_EPISODE_BYTES`
+  (default 512 MiB) instead of being read into memory whatever its size.
+- Presigned uploads and storing podcast episodes need the `can_upload` right,
+  like every other upload; the Subsonic `downloadPodcastEpisode` too. An
+  uploaded object over the size limit is removed at `complete` instead of
+  registered. A presigned upload that never completes is deleted by the daily
+  storage sweep after 24 hours (migration 0094).
+- `POST /auth/register` is rate-limited like sign-in.
 
 ### Added
 - `docker-compose.yml` passes `APPLE_SIGN_IN`/`APPLE_CLIENT_IDS` and

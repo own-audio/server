@@ -194,7 +194,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
     use crate::http::openapi::map;
     OpenApiRouter::new()
         .routes(map(routes!(login), |m| limits.login.apply(m)))
-        .routes(routes!(register))
+        .routes(map(routes!(register), |m| limits.login.apply(m)))
         .routes(routes!(registration_status))
         .routes(routes!(providers))
         .routes(routes!(google_sign_in))

@@ -798,9 +798,23 @@ async fn execute_storage_sweep(
         freed += 1;
     }
 
+    // Presigned uploads that never completed: their objects have no row, so
+    // the pass above cannot see them (migration 0094).
+    let mut stale = 0usize;
+    for key in crate::db::uploads::stale_intents(pool, 24, limit).await? {
+        match storage.delete(&key).await {
+            Ok(()) => {
+                crate::db::uploads::delete_intent(pool, &key).await?;
+                stale += 1;
+            }
+            Err(e) => warn!(%key, error = %e, "storage sweep: stale upload not deleted"),
+        }
+    }
+
     info!(
         freed,
         failed,
+        stale_uploads = stale,
         considered = candidates.len(),
         older_than_days,
         "storage sweep finished"

@@ -147,6 +147,18 @@ def run(ctx: Ctx) -> None:
     # The last family admin may not leave, so hand the role over first.
     call("DELETE", f"/api/v1/family/members/{owner_id}", owner_tok, expect=(400,))
     check("last family admin is blocked from leaving", True)
+    # Storage is spent only by members allowed to upload: presigned uploads and storing
+    # podcast episodes are the same right (security hardening plan C1, C2).
+    call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_upload": False})
+    call("POST", "/api/v1/uploads/presign", adult_tok,
+         {"kind": "music_track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 1000}, expect=(403,))
+    ctx.check("a member without can_upload cannot presign an upload", True)
+    call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_upload": True})
+    # The server never fetches its own network on a user's behalf (SSRF, plan C3).
+    for bad in ("http://127.0.0.1:8080/health", "http://169.254.169.254/latest/meta-data/", "http://[::1]/", "file:///etc/passwd"):
+        call("POST", "/api/v1/podcasts/subscribe", owner_tok, {"feed_url": bad}, expect=(400,))
+    ctx.check("a podcast feed on a private or local address is refused with 400", True)
+
     call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"role": "family_admin"})
     call("DELETE", f"/api/v1/family/members/{owner_id}", owner_tok)
     check("adult loses access after the owner leaves",
