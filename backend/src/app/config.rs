@@ -222,6 +222,21 @@ mod tests {
     }
 
     #[test]
+    fn blank_numbers_read_as_unset() {
+        #[derive(Deserialize)]
+        struct T {
+            #[serde(default, deserialize_with = "blank_as_none")]
+            n: Option<u64>,
+        }
+        let n = |j: &str| serde_json::from_str::<T>(j).unwrap().n;
+        assert_eq!(n(r#"{"n": ""}"#), None);
+        assert_eq!(n(r#"{"n": " 42 "}"#), Some(42));
+        assert_eq!(n(r#"{"n": 7}"#), Some(7));
+        assert_eq!(n("{}"), None);
+        assert!(serde_json::from_str::<T>(r#"{"n": "x"}"#).is_err());
+    }
+
+    #[test]
     fn listed_cors_origins_replace_the_defaults() {
         assert_eq!(
             cors_origins(Some(" https://a.example , https://b.example/ ,"), Some("https://app.example"), None),
@@ -272,6 +287,13 @@ pub struct StorageConfig {
     #[serde(default)]
     pub proxy: bool,
 
+    /// `STORAGE__FAMILY_QUOTA_BYTES`: the most one family may keep in
+    /// storage (uploads and stored episodes; indexed library folders are not
+    /// counted — nothing is copied). Unset ⇒ no limit. Over it, uploads and
+    /// episode downloads answer `402`.
+    #[serde(default, deserialize_with = "blank_as_none")]
+    pub family_quota_bytes: Option<i64>,
+
     /// S3 endpoint the backend talks to, e.g. `http://garage:3900`.
     #[serde(default)]
     pub endpoint: String,
@@ -321,6 +343,7 @@ pub struct LibraryConfig {
     pub visibility: Option<String>,
     /// `LIBRARY__SCAN_INTERVAL_SECS`: how often folders are rescanned. Unset
     /// ⇒ hourly. A scan skips files whose size and time have not changed.
+    #[serde(default, deserialize_with = "blank_as_none")]
     pub scan_interval_secs: Option<u64>,
 }
 
@@ -330,12 +353,14 @@ pub struct AuthConfig {
     pub session_secret: String,
 
     /// Deprecated alias for `access_ttl_secs`, honoured only when that is unset.
+    #[serde(default, deserialize_with = "blank_as_none")]
     pub session_ttl_secs: Option<u64>,
 
     /// Access-token lifetime in seconds; **one hour** unless set. A stolen token
     /// is worth an hour, not the seven days the default used to be: every client
     /// refreshes (API_COMPATIBILITY.md §7), so nothing needs the long life.
     /// Security hardening plan, C5.
+    #[serde(default, deserialize_with = "blank_as_none")]
     pub access_ttl_secs: Option<u64>,
 
     /// Refresh-token lifetime in seconds (default 90 days).
@@ -455,18 +480,25 @@ pub struct MailConfig {
     pub from_name: String,
 }
 
-fn blank_as_none<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Option<u16>, D::Error> {
+/// An optional number that a compose file may pass as `""` (an unset `.env`
+/// variable): blank reads as unset instead of failing the whole config.
+fn blank_as_none<'de, D, T>(d: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de> + std::str::FromStr,
+    T::Err: std::fmt::Display,
+{
     #[derive(Deserialize)]
     #[serde(untagged)]
-    enum Port {
-        Number(u16),
+    enum Raw<T> {
+        Number(T),
         Text(String),
     }
-    match Option::<Port>::deserialize(d)? {
+    match Option::<Raw<T>>::deserialize(d)? {
         None => Ok(None),
-        Some(Port::Number(n)) => Ok(Some(n)),
-        Some(Port::Text(t)) if t.trim().is_empty() => Ok(None),
-        Some(Port::Text(t)) => t.trim().parse().map(Some).map_err(serde::de::Error::custom),
+        Some(Raw::Number(n)) => Ok(Some(n)),
+        Some(Raw::Text(t)) if t.trim().is_empty() => Ok(None),
+        Some(Raw::Text(t)) => t.trim().parse().map(Some).map_err(serde::de::Error::custom),
     }
 }
 

@@ -46,6 +46,14 @@ pub enum AuthError {
     #[error("{0}")]
     Conflict(String),
 
+    /// The family has no room for more storage: the open-source quota
+    /// (`STORAGE__FAMILY_QUOTA_BYTES`) or the hosted edition's credit
+    /// (`storage::quota`). `402`: the request is well-formed and the caller
+    /// has the right; what is missing is something the family has to get
+    /// more of, and that is the status clients already treat that way.
+    #[error("{0}")]
+    StorageRefused(String),
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -63,6 +71,7 @@ impl IntoResponse for AuthError {
             AuthError::IdentityConflict => (StatusCode::CONFLICT, self.to_string()),
             AuthError::ProviderNotConfigured => (StatusCode::NOT_IMPLEMENTED, self.to_string()),
             AuthError::Conflict(message) => (StatusCode::CONFLICT, message.clone()),
+            AuthError::StorageRefused(message) => (StatusCode::PAYMENT_REQUIRED, message.clone()),
             AuthError::Internal(e) => {
                 tracing::error!("auth internal error: {e:#}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal server error".to_string())

@@ -13,6 +13,7 @@ use std::time::Duration;
 
 pub mod links;
 pub mod models;
+pub mod quota;
 
 pub use links::MediaLinks;
 

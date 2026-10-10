@@ -8,6 +8,8 @@ unsharing, and what happens to shared content when the owner leaves.
 """
 from __future__ import annotations
 
+import os
+
 from core import Ctx
 
 NAME = "families"
@@ -154,6 +156,14 @@ def run(ctx: Ctx) -> None:
          {"kind": "music_track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 1000}, expect=(403,))
     ctx.check("a member without can_upload cannot presign an upload", True)
     call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_upload": True})
+    # A family's storage limit (STORAGE__FAMILY_QUOTA_BYTES, plan S1) refuses an upload that
+    # would not fit with 402, before any link is issued. Only checkable when the suite is told
+    # the server's limit (CI sets both).
+    quota = os.environ.get("STORAGE__FAMILY_QUOTA_BYTES", "").strip()
+    if quota.isdigit() and int(quota) > 0:
+        over = {"kind": "music_track", "filename": "big.mp3", "content_type": "audio/mpeg", "size_bytes": int(quota) + 1}
+        call("POST", "/api/v1/uploads/presign", owner_tok, over, expect=(402,))
+        ctx.check("an upload past the family's storage limit is refused with 402", True)
     # The server never fetches its own network on a user's behalf (SSRF, plan C3).
     for bad in ("http://127.0.0.1:8080/health", "http://169.254.169.254/latest/meta-data/", "http://[::1]/", "file:///etc/passwd"):
         call("POST", "/api/v1/podcasts/subscribe", owner_tok, {"feed_url": bad}, expect=(400,))

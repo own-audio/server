@@ -1887,9 +1887,10 @@ async fn download_episode(
         return Ok(Json(episode_to_response(episode)));
     }
 
-    fetch_and_store_episode_audio(state.db(), state.storage(), family.family_id, &feed, &episode)
+    let guard = crate::storage::quota::Guard::for_state(&state);
+    fetch_and_store_episode_audio(state.db(), state.storage(), &guard, family.family_id, &feed, &episode)
         .await
-        .map_err(AuthError::Internal)?;
+        .map_err(crate::storage::quota::to_auth_error)?;
 
     let updated = db::podcasts::find_episode(pool, ep_id)
         .await
@@ -1963,6 +1964,7 @@ async fn delete_episode_download(
 pub(crate) async fn fetch_and_store_episode_audio(
     pool: &sqlx::PgPool,
     storage: &ObjectStore,
+    guard: &crate::storage::quota::Guard,
     family_id: Uuid,
     feed: &crate::podcasts::models::PodcastFeed,
     episode: &crate::podcasts::models::PodcastEpisode,
@@ -1976,6 +1978,11 @@ pub(crate) async fn fetch_and_store_episode_audio(
         .audio_url
         .as_deref()
         .ok_or_else(|| anyhow::anyhow!("episode has no audio_url"))?;
+
+    // Feeds don't reliably say how large an enclosure is, so the room check
+    // runs twice: for a family already out of room before anything is
+    // fetched, and with the real size before the file is kept.
+    guard.check(pool, storage.bucket(), family_id, 0).await?;
 
     info!(%ep_id, source_type = %feed.source_type, audio_url = %audio_url, "starting episode download");
 
@@ -2000,6 +2007,12 @@ pub(crate) async fn fetch_and_store_episode_audio(
             .map_err(|e| e.context("read audio body"))?;
         (Body::Temp(temp, len), content_type)
     };
+
+    let fetched_len = match &body {
+        Body::Bytes(bytes) => bytes.len() as i64,
+        Body::Temp(_, len) => *len as i64,
+    };
+    guard.check(pool, storage.bucket(), family_id, fetched_len).await?;
 
     let object_key = crate::storage::family_key(family_id, format!("episodes/{ep_id}"));
     let bucket = storage.bucket().to_string();

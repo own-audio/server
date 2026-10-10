@@ -31,6 +31,11 @@ semver. Each release states the **API contract revision** it serves
   registered. A presigned upload that never completes is deleted by the daily
   storage sweep after 24 hours (migration 0094).
 - `POST /auth/register` is rate-limited like sign-in.
+- A per-family storage limit, `STORAGE__FAMILY_QUOTA_BYTES` (unset: none).
+  Over it, `POST /uploads/presign`, `POST /uploads/complete` and storing a
+  podcast episode answer `402` with the reason; the Subsonic
+  `downloadPodcastEpisode` reports it in its error message. The same check is
+  the seam an edition uses for its own rule (`Hooks::storage_allowance`).
 
 ### Added
 - `docker-compose.yml` passes `APPLE_SIGN_IN`/`APPLE_CLIENT_IDS` and

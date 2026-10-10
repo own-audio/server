@@ -124,6 +124,13 @@ services:
       AUTH__APPLE__CLIENT_IDS: ${APPLE_CLIENT_IDS:-}
       AUTH__GOOGLE__ENABLED: ${GOOGLE_SIGN_IN:-false}
       AUTH__GOOGLE__CLIENT_IDS: ${GOOGLE_CLIENT_IDS:-}
+      # Optional limits, under their own names (INSTALL.md, "Settings");
+      # unset in .env means the default.
+      AUTH__ACCESS_TTL_SECS: ${AUTH__ACCESS_TTL_SECS:-}
+      SERVER__CORS_ORIGINS: ${SERVER__CORS_ORIGINS:-}
+      SERVER__OUTBOUND__ALLOW_PRIVATE: ${SERVER__OUTBOUND__ALLOW_PRIVATE:-false}
+      PODCASTS__MAX_EPISODE_BYTES: ${PODCASTS__MAX_EPISODE_BYTES:-}
+      STORAGE__FAMILY_QUOTA_BYTES: ${STORAGE__FAMILY_QUOTA_BYTES:-}
       RUST_LOG: ${RUST_LOG:-audio2=info,tower_http=warn}
       # The server runs as this user and group, not root. It must be able to
       # read your library folders; its own storage is handed to it at start.

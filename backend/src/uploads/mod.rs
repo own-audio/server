@@ -18,7 +18,7 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::db;
 use crate::families::FamilyContext;
-use crate::storage::ObjectStore;
+use crate::storage::{quota, ObjectStore};
 use axum::extract::{Json, State};
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -110,6 +110,12 @@ async fn presign(
             )));
         }
     }
+    // Room for it (quota, credit) is checked now, before a link is handed
+    // out, and again at `complete` against the size that actually arrived.
+    quota::Guard::for_state(&state)
+        .check(state.db(), state.storage().bucket(), family.family_id, body.size_bytes.unwrap_or(0))
+        .await
+        .map_err(quota::to_auth_error)?;
 
     let folder = match body.kind.as_str() {
         "audiobook_file" => "audiobooks",
@@ -195,6 +201,13 @@ async fn complete(
         return Err(AuthError::BadRequest(format!(
             "the uploaded object is larger than allowed ({size_bytes} bytes)"
         )));
+    }
+    if let Err(e) = quota::Guard::for_state(&state)
+        .check(state.db(), state.storage().bucket(), family.family_id, size_bytes)
+        .await
+    {
+        let _ = state.storage().delete(&body.object_key).await;
+        return Err(quota::to_auth_error(e));
     }
 
     let media_object_id =

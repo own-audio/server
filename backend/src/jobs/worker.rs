@@ -102,6 +102,7 @@ type Handlers = Arc<std::collections::HashMap<&'static str, Arc<dyn JobHandler>>
 
 async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: Arc<dyn Hooks>) {
     let handlers: Handlers = Arc::new(hooks.job_handlers().into_iter().collect());
+    let guard = crate::storage::quota::Guard::new(&config, hooks.clone());
     let job_types = config.worker_job_types();
     // `WORKER_JOB_TYPES=""` is how the API-only container opts out entirely:
     // no claims, no sweeps, no polling.
@@ -441,12 +442,13 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
                     let storage2 = storage.clone();
                     let config2 = config.clone();
                     let handlers2 = handlers.clone();
+                    let guard2 = guard.clone();
                     let job_id = job.id;
                     let job_type = job.job_type.clone();
                     tokio::spawn(async move {
                         let _permit = permit;
                         debug!(%job_id, %job_type, "executing job");
-                        match execute_job(&pool2, &storage2, &config2, &handlers2, &job).await {
+                        match execute_job(&pool2, &storage2, &config2, &handlers2, &guard2, &job).await {
                             Ok(()) => {
                                 info!(%job_id, %job_type, "job completed");
                                 let _ = db::jobs::complete(&pool2, job_id, None).await;
@@ -478,6 +480,7 @@ async fn execute_job(
     storage: &ObjectStore,
     config: &AppConfig,
     handlers: &Handlers,
+    guard: &crate::storage::quota::Guard,
     job: &crate::jobs::models::Job,
 ) -> anyhow::Result<()> {
     if let Some(handler) = handlers.get(job.job_type.as_str()) {
@@ -493,7 +496,7 @@ async fn execute_job(
         "podcast_catalog_sync" => execute_podcast_catalog_sync(pool, config, job).await,
         "storage_sweep" => execute_storage_sweep(pool, storage, job).await,
         "trash_purge" => execute_trash_purge(pool, storage).await,
-        "episode_download" => execute_episode_download(pool, storage, job).await,
+        "episode_download" => execute_episode_download(pool, storage, guard, job).await,
         "storage_reconcile" => execute_storage_reconcile(pool, storage, job).await,
         "family_cleanup_sweep" => execute_family_cleanup_sweep(pool, job).await,
         // Neither the core nor the edition handles this type. Fail it rather
@@ -1037,7 +1040,12 @@ async fn execute_trash_purge(pool: &PgPool, storage: &ObjectStore) -> anyhow::Re
 
 /// Store one episode of an auto-store show (docs/file-sync-plan.md §5.6),
 /// under the show owner's family like a download they asked for.
-async fn execute_episode_download(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
+async fn execute_episode_download(
+    pool: &PgPool,
+    storage: &ObjectStore,
+    guard: &crate::storage::quota::Guard,
+    job: &crate::jobs::models::Job,
+) -> anyhow::Result<()> {
     let episode_id: uuid::Uuid = job
         .payload
         .as_ref()
@@ -1069,7 +1077,7 @@ async fn execute_episode_download(pool: &PgPool, storage: &ObjectStore, job: &cr
     let Some(membership) = db::families::find_membership(pool, feed.user_id).await? else {
         return Ok(());
     };
-    crate::podcasts::fetch_and_store_episode_audio(pool, storage, membership.family_id, &feed, &episode).await
+    crate::podcasts::fetch_and_store_episode_audio(pool, storage, guard, membership.family_id, &feed, &episode).await
 }
 
 /// Backfill Podcast Index metadata onto subscribed feeds.

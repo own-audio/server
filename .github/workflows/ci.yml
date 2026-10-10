@@ -84,6 +84,10 @@ jobs:
       fail-fast: false
       matrix:
         storage: [local, s3]
+    env:
+      # A family storage limit the suite can test against (1 GiB; nothing in
+      # the suite comes near it). The server and the suite read the same name.
+      STORAGE__FAMILY_QUOTA_BYTES: "1073741824"
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -101,6 +105,7 @@ jobs:
           cp .env.example .env
           sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^SESSION_SECRET=$/SESSION_SECRET=ci-session-secret-not-for-production/' .env
           echo 'SERVER_IMAGE=ownaudio/server:ci' >> .env
+          echo "STORAGE__FAMILY_QUOTA_BYTES=$STORAGE__FAMILY_QUOTA_BYTES" >> .env
           files="-f docker-compose.yml"
           if [ "${{ matrix.storage }}" = s3 ]; then
             printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env

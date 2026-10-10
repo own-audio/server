@@ -243,6 +243,10 @@ lives. Clients never parse it, never persist it, and never assume its host.
 - **Uploads and storing podcast episodes need `can_upload`** (`403` without
   it), and `POST /podcasts/subscribe` answers `400` for a feed on a private or
   local address (since 2026-10-11).
+- **`402` means the family has no room**: `POST /uploads/presign`,
+  `POST /uploads/complete` and storing a podcast episode answer it when a
+  server's `STORAGE__FAMILY_QUOTA_BYTES` is reached (or, on a hosted server,
+  the credit is used up). Show the `error` text; it says what is missing.
 - **Browsers may call `/api` only from the console's origins**
   (`SERVER__CORS_ORIGINS`, defaulting to `SERVER__APP_BASE_URL` and
   `SERVER__BASE_URL`); `/rest` allows any origin. Native apps are unaffected.

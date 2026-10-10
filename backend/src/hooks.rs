@@ -24,6 +24,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Whether a family may add to its storage ([`Hooks::storage_allowance`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StorageVerdict {
+    Allowed,
+    /// Why not, in words the client shows (`402`, `storage::quota`).
+    Refused(String),
+}
+
 /// A background job executor contributed by an edition. The worker consults
 /// the handlers from [`Hooks::job_handlers`] before its own job types.
 #[async_trait]
@@ -78,6 +86,16 @@ pub trait Hooks: Send + Sync + 'static {
         _note: &str,
     ) -> anyhow::Result<i64> {
         Ok(0)
+    }
+
+    /// May the family add `incoming_bytes` (0 when the size is not known
+    /// yet)? Asked before a presigned upload is issued and again when it is
+    /// completed, and before an episode is stored (security hardening plan
+    /// S1). The open-source edition always allows — a per-family quota lives
+    /// in the core itself (`STORAGE__FAMILY_QUOTA_BYTES`, checked before this
+    /// is asked); the hosted edition refuses a family whose credit is gone.
+    async fn storage_allowance(&self, _db: &PgPool, _family_id: Uuid, _incoming_bytes: i64) -> anyhow::Result<StorageVerdict> {
+        Ok(StorageVerdict::Allowed)
     }
 
     /// Extra fields merged into `GET /api/v1/admin/stats`.

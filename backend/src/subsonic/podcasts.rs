@@ -289,13 +289,22 @@ pub async fn download_podcast_episode(
     if !may_store {
         return err(&auth, SubsonicErrorCode::NotAuthorized);
     }
-    match crate::podcasts::fetch_and_store_episode_audio(state.db(), state.storage(), auth.family_id, &feed, &episode).await
+    let guard = crate::storage::quota::Guard::for_state(&state);
+    match crate::podcasts::fetch_and_store_episode_audio(state.db(), state.storage(), &guard, auth.family_id, &feed, &episode)
+        .await
     {
         Ok(()) => ok(&auth, json!({})),
-        Err(error) => {
-            tracing::warn!(episode = %episode.id, %error, "subsonic episode download failed");
-            err(&auth, SubsonicErrorCode::Generic)
-        }
+        // No room (quota, credit): Subsonic has no status for it, so the
+        // reason travels in the message.
+        Err(error) => match crate::storage::quota::to_auth_error(error) {
+            AuthError::StorageRefused(reason) => {
+                envelope::error(auth.format, auth.jsonp_callback.as_deref(), SubsonicErrorCode::Generic, Some(&reason))
+            }
+            error => {
+                tracing::warn!(episode = %episode.id, %error, "subsonic episode download failed");
+                err(&auth, SubsonicErrorCode::Generic)
+            }
+        },
     }
 }
 
