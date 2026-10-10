@@ -403,31 +403,35 @@ pub(crate) async fn free_path(
     let is_file = names_file(tx, kind, item).await?;
     let mut candidate = wanted.to_string();
     for n in 2..10_000 {
-        // Every test is an index lookup (sync_paths_owner_idx and the prefix
-        // index of migration 0090), so a claim costs the same in an empty
-        // library and in one of 600,000 files: the exact path, each of the
-        // candidate's ancestor folders by equality, and anything below the
-        // candidate as a LIKE prefix range.
+        // Every test is an index lookup on the prefix index of migration 0090,
+        // so a claim costs the same in an empty library and in one of 600,000
+        // files: the exact path, anything below the candidate as a byte range
+        // ('/' to '0', the next byte), and each ancestor folder by equality.
+        // Three EXISTS rather than one OR, and a range rather than LIKE: with
+        // either, the generic plan of a prepared statement read every path the
+        // owner has (40 ms a file at 44,000 files, getting slower with each).
+        // Nesting is refused between items (no book inside a book); a
+        // companion file lives inside a book folder by design.
         let ancestors: Vec<String> = ancestors_of(&candidate);
-        let below = format!("{}/%", like_escape(&candidate));
         let taken: bool = sqlx::query_scalar(
-            "SELECT EXISTS (
-                SELECT 1 FROM sync_live_paths
-                 WHERE user_id = $1 AND NOT (kind = $2 AND item_id = $3)
-                   AND (lower(path) = lower($4)
-                        -- Nesting is refused between items (no book inside a
-                        -- book); a companion file lives inside a book folder
-                        -- by design.
-                        OR ($2 <> 'companion_file' AND kind <> 'companion_file'
-                            AND (lower(path) LIKE lower($6)
-                                 OR lower(path) = ANY (SELECT lower(a) FROM unnest($5::text[]) a)))))",
+            "SELECT EXISTS (SELECT 1 FROM sync_live_paths
+                             WHERE user_id = $1 AND lower(path) = lower($4)
+                               AND NOT (kind = $2 AND item_id = $3))
+                 OR ($2 <> 'companion_file' AND (
+                     EXISTS (SELECT 1 FROM sync_live_paths
+                              WHERE user_id = $1 AND kind <> 'companion_file'
+                                AND lower(path) ~>=~ (lower($4) || '/') AND lower(path) ~<~ (lower($4) || '0')
+                                AND NOT (kind = $2 AND item_id = $3))
+                  OR EXISTS (SELECT 1 FROM sync_live_paths
+                              WHERE user_id = $1 AND kind <> 'companion_file'
+                                AND lower(path) = ANY (ARRAY(SELECT lower(a) FROM unnest($5::text[]) a))
+                                AND NOT (kind = $2 AND item_id = $3))))",
         )
         .bind(owner)
         .bind(kind.as_str())
         .bind(item)
         .bind(&candidate)
         .bind(&ancestors)
-        .bind(&below)
         .fetch_one(&mut **tx)
         .await
         .context("db: check path")?;
@@ -443,18 +447,6 @@ pub(crate) async fn free_path(
 fn ancestors_of(path: &str) -> Vec<String> {
     let parts: Vec<&str> = path.split('/').collect();
     (1..parts.len()).map(|i| parts[..i].join("/")).collect()
-}
-
-/// A literal for a LIKE pattern: `%`, `_` and the escape character itself.
-fn like_escape(s: &str) -> String {
-    let mut out = String::with_capacity(s.len());
-    for c in s.chars() {
-        if matches!(c, '%' | '_' | '\\') {
-            out.push('\\');
-        }
-        out.push(c);
-    }
-    out
 }
 
 // ── Defaults for items created without a path ────────────────────────────
@@ -689,17 +681,11 @@ mod tests {
 
 #[cfg(test)]
 mod claim_query_tests {
-    use super::{ancestors_of, like_escape};
+    use super::ancestors_of;
 
     #[test]
     fn ancestors() {
         assert_eq!(ancestors_of("Music/A/B/c.mp3"), ["Music", "Music/A", "Music/A/B"]);
         assert!(ancestors_of("loose.mp3").is_empty());
-    }
-
-    #[test]
-    fn like_literals() {
-        assert_eq!(like_escape("100% Hits_2"), "100\\% Hits\\_2");
-        assert_eq!(like_escape("a\\b"), "a\\\\b");
     }
 }

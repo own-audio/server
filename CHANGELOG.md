@@ -14,6 +14,11 @@ semver. Each release states the **API contract revision** it serves
   back, the same item returns with its stars, playlists and history.
   Migration 0093.
 
+### Fixed
+- A first scan of a large library folder got slower with every file: the
+  check that a new item's file-sync path is free read every path the owner
+  had (40 ms a file at 44,000 files). It is three index lookups now.
+
 ## [1.0.0-beta.4] - 2026-10-10
 
 Contract revision 6.
