@@ -53,10 +53,27 @@ pub struct IdParam {
     id: String,
 }
 
+#[derive(Deserialize)]
+pub struct StreamParams {
+    id: String,
+    /// kbps; 0 or absent is no limit.
+    #[serde(rename = "maxBitRate")]
+    max_bit_rate: Option<u32>,
+    /// `mp3`, `aac` or `raw`.
+    format: Option<String>,
+    /// Seconds into the track to start a transcode at.
+    #[serde(rename = "timeOffset")]
+    time_offset: Option<u32>,
+}
+
+/// The original as a redirect to storage — unless a smaller stream or another
+/// format was asked for, which is then made on the fly (`transcode`). A
+/// transcode that can't start (every slot busy, no ffmpeg) falls back to the
+/// original rather than failing the play.
 pub async fn stream(
     auth: SubsonicAuthUser,
     State(state): State<AppState>,
-    SubsonicQuery(params): SubsonicQuery<IdParam>,
+    SubsonicQuery(params): SubsonicQuery<StreamParams>,
 ) -> Response {
     let Ok(id) = params.id.parse::<Uuid>() else {
         return binary_err(&auth, SubsonicErrorCode::NotFound);
@@ -77,10 +94,33 @@ pub async fn stream(
         Err(_) => return binary_err(&auth, SubsonicErrorCode::Generic),
     };
 
+    if params.max_bit_rate.is_some_and(|k| k > 0) || params.format.is_some() {
+        if let Some(response) = transcoded(&auth, &state, id, &key, &params).await {
+            return response;
+        }
+    }
+
     match state.storage().presigned_get(&key, STREAM_EXPIRY_SECS).await {
         Ok(url) => Redirect::temporary(&url).into_response(),
         Err(_) => binary_err(&auth, SubsonicErrorCode::Generic),
     }
+}
+
+/// `None` means send the original instead.
+async fn transcoded(auth: &SubsonicAuthUser, state: &AppState, id: Uuid, key: &str, params: &StreamParams) -> Option<Response> {
+    let (size, _) = state.storage().head_object(key).await.ok()??;
+    // The original's bitrate from its size and length, when it is a track
+    // with a known length; a limit it already meets needs no transcode.
+    let duration = db::music::find_track(state.db(), id, auth.viewer())
+        .await
+        .ok()
+        .flatten()
+        .and_then(|t| t.duration_secs)
+        .filter(|&d| d > 0);
+    let source_kbps = duration.map(|d| (size.max(0) as u64 * 8 / d as u64 / 1000) as u32);
+    let plan = super::transcode::plan(params.max_bit_rate, params.format.as_deref(), params.time_offset, source_kbps)?;
+    let opened = state.storage().open(key, None).await.ok()??;
+    super::transcode::start(opened.body, plan)
 }
 
 /// Where a playable item's audio actually lives.
@@ -145,14 +185,15 @@ async fn resolve_audio_source(
     })
 }
 
-/// `download` behaves the same as `stream` for this server — both hand back
-/// a presigned redirect to the original file.
+/// `download` is always the original file: the presigned redirect `stream`
+/// gives when no transcode is asked for.
 pub async fn download(
     auth: SubsonicAuthUser,
     state: State<AppState>,
-    params: SubsonicQuery<IdParam>,
+    SubsonicQuery(params): SubsonicQuery<IdParam>,
 ) -> Response {
-    stream(auth, state, params).await
+    let original = StreamParams { id: params.id, max_bit_rate: None, format: None, time_offset: None };
+    stream(auth, state, SubsonicQuery(original)).await
 }
 
 #[derive(Deserialize)]

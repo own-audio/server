@@ -22,6 +22,7 @@ pub mod media;
 pub mod music;
 pub mod subsonic;
 pub mod trash;
+pub mod instance;
 
 /// Pool size when `DATABASE_MAX_CONNECTIONS` is unset. A family's requests,
 /// the worker and file sync fit in ten; every idle PostgreSQL connection costs

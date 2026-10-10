@@ -23,6 +23,7 @@ pub mod playlists;
 pub mod resolve;
 pub mod podcasts;
 pub mod system;
+pub mod transcode;
 
 use crate::app::AppState;
 use axum::Router;

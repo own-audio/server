@@ -49,10 +49,16 @@ call before it knows anything about the server.
 
 ```json
 {
+  "id": "6f1c2a0e-3b7d-4c55-9a0e-2f8e1d7c4b19",
   "name": "own.audio",
   "edition": "foss",
   "version": "1.0.0",
   "api": { "version": 1, "revision": 12 },
+  "addresses": [
+    { "url": "https://music.example.com", "scope": "public" },
+    { "url": "http://192.168.1.20:8080", "scope": "lan" },
+    { "url": "http://100.101.102.103:8080", "scope": "vpn" }
+  ],
   "features": {
     "registration_open": false,
     "auth": { "local": true, "google": false, "apple": false, "microsoft": false },
@@ -94,6 +100,18 @@ Rules:
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each
   account can have a family of its own.
+- `id` (revision 6) is this server's identity, a UUID made once at install
+  and never changed. A client that knows a server by several addresses uses it
+  to tell that they reach the same server — and must not trust an address
+  that answers with another id.
+- `addresses` (revision 6) lists every address the server answers on:
+  `SERVER__BASE_URL` first, then `SERVER__ADDRESSES` (comma-separated), each
+  once, with a `scope` derived from the host — `lan` (private, link-local,
+  `.local`), `vpn` (100.64.0.0/10, `*.ts.net`) or `public`. A client learns
+  them through whichever address it signed in on, tries them all after each
+  network change and keeps the fastest that answers with the same `id`. It
+  should send credentials over plain `http` only to `lan` addresses. May be
+  empty.
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it

@@ -7,6 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- `GET /api/v1/server` says which server this is and where it can be
+  reached: `id`, a UUID made once at install, and `addresses`, every address
+  the server answers on with its `scope` (`lan`, `vpn`, `public`). The list is
+  `SERVER__BASE_URL` plus the new `SERVER__ADDRESSES` (comma-separated: the
+  home network, a Tailscale address, a second public name). A client can then
+  switch between them as the phone moves between networks. Migration 0092.
+- Subsonic `stream` makes a smaller stream on request: `maxBitRate` (kbps)
+  and/or `format` (`mp3`, `aac`; `raw` is the original), with `timeOffset` to
+  start part-way. The original is piped through ffmpeg and sent as it is
+  made, nothing written to disk. A limit the original already meets sends the
+  original; so does every case when ffmpeg is busy — at most
+  `SUBSONIC__MAX_TRANSCODES` (default 4) run at once. `download` always sends
+  the original.
+
 ## [1.0.0-beta.2] - 2026-10-08
 
 Contract revision 5.

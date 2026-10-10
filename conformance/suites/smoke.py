@@ -141,6 +141,18 @@ def check_subsonic_api(ctx: Ctx, username: str, api_key: str, track_id: str | No
             status = exc.code
         need(status in (302, 303, 307), f"stream.view must redirect, got {status}")
 
+        # Revision 6: a smaller stream made on the fly. MP3 frames start with a
+        # sync word (0xFFE…) or an ID3 tag; either proves real audio came back.
+        if (ctx.server.get("api") or {}).get("revision", 0) >= 6:
+            small = urllib.request.Request(ctx.url(f"/rest/stream.view?{query}&id={track_id}&format=mp3&maxBitRate=64"),
+                                           headers={"User-Agent": USER_AGENT})
+            with urllib.request.urlopen(small, timeout=ctx.timeout) as resp:
+                kind = resp.headers.get("Content-Type", "")
+                head = resp.read(4096)
+            need(kind.startswith("audio/mpeg"), f"stream.view format=mp3 must send audio/mpeg, got {kind!r}")
+            need(head[:3] == b"ID3" or (len(head) > 1 and head[0] == 0xFF and (head[1] & 0xE0) == 0xE0),
+                 f"stream.view format=mp3 must send MP3 data, got {head[:8]!r}")
+
 
 # ── smart playlists ─────────────────────────────────────────────────────────
 

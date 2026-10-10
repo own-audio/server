@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.5"
+    "version": "1.6"
   },
   "servers": [
     {
@@ -11445,7 +11445,7 @@
         "operationId": "server_server_info",
         "responses": {
           "200": {
-            "description": "`name`, `edition`, `version`, `api` {version, revision}, `features`, `deprecations`, optional `demo`",
+            "description": "`id`, `name`, `edition`, `version`, `api` {version, revision}, `addresses` [{url, scope}], `features`, `deprecations`, optional `demo`",
             "content": {
               "application/json": {
                 "schema": {

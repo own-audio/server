@@ -93,6 +93,9 @@ services:
       SERVER__PORT: "8080"
       # The address people and apps use to reach this server.
       SERVER__BASE_URL: ${PUBLIC_URL:-http://localhost:8080}
+      # Other addresses it answers on (home network, VPN), comma-separated;
+      # apps switch to the best one on each network.
+      SERVER__ADDRESSES: ${OTHER_URLS:-}
       DATABASE_URL: "postgres://${POSTGRES_USER:-ownaudio}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ownaudio}"
       # `local` (default): media lives in the media_data volume and streams
       # through the server. `s3`: an S3-compatible store, RustFS here with

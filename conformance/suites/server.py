@@ -69,6 +69,27 @@ def run(ctx):
         ctx.check("revision 4: features.one_family is a boolean",
                   isinstance((ctx.server.get("features") or {}).get("one_family"), bool))
 
+    if ctx.discovery and (ctx.server.get("api") or {}).get("revision", 0) >= 6:
+        import uuid as _uuid
+        info = ctx.server
+        try:
+            _uuid.UUID(str(info.get("id")))
+            valid_id = True
+        except ValueError:
+            valid_id = False
+        ctx.check("revision 6: id is a UUID", valid_id, str(info.get("id")))
+        addresses = info.get("addresses")
+        ctx.check("revision 6: addresses is a list of {url, scope}",
+                  isinstance(addresses, list)
+                  and all(isinstance(a.get("url"), str) and a.get("scope") in ("lan", "vpn", "public") for a in addresses),
+                  str(addresses)[:120])
+        urls = [a.get("url") for a in addresses or []]
+        ctx.check("revision 6: no address twice", len(urls) == len(set(urls)), str(urls)[:120])
+        import json as _json2, urllib.request as _req
+        with _req.urlopen(_req.Request(ctx.base_url + "/api/v1/server", headers={"User-Agent": "own-audio-conformance"}), timeout=30) as r:
+            again = _json2.loads(r.read())
+        ctx.check("revision 6: the id stays the same between requests", again.get("id") == info.get("id"))
+
     # Browsers always ask for gzip; a streamed body that breaks under the
     # compression layer only shows up there (1.0.0-alpha.6, the track list).
     import gzip, json as _json, urllib.request

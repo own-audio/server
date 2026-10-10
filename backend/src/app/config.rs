@@ -83,6 +83,14 @@ pub struct ServerConfig {
     /// own origin — what a client talks to, not what a person browses.
     pub base_url: Option<String>,
 
+    /// `SERVER__ADDRESSES` — every other address this server answers on, comma
+    /// separated: the home network (`http://192.168.1.20:8080`), a VPN
+    /// (`http://100.101.102.103:8080`, `https://nas.tailnet.ts.net`), a second
+    /// public name. Published with `base_url` through `GET /api/v1/server`, so a
+    /// client signed in through any one of them learns the rest and picks the
+    /// best one on each network.
+    pub addresses: Option<String>,
+
     /// Where the web console lives, for links a person is expected to click:
     /// family invites, device sign-in, Stripe returns, narration mail.
     ///
