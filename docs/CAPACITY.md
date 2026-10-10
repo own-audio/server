@@ -174,6 +174,29 @@ process's peak during the call.
 The id table holds 120,000 rows for this catalog (100,000 albums, 20,000
 artists) for the one user who browsed it.
 
+## Measured: a first scan of 600,000 files (2026-10-10)
+
+Library folders (issue #1) with `conformance/tools/scale_library.py`: 600,000
+songs (5,000 artists, 50,000 albums of 12) and 1,000 books of 10 files, each
+a real MP3 of about 2 KB with its own tags, in a Docker volume on an
+Apple-silicon Mac (a bind mount would have measured Docker Desktop's file
+sharing). Compose stack, local storage, a fresh database.
+
+| | 1.0.0-beta.4 | after the path-check fix |
+|---|---|---|
+| Files after 10 minutes | 26,436 | 116,136 |
+| Rate | 3,800 a minute falling to 1,000 by minute 27 | about 10,000 a minute, steady |
+| First scan, 610,000 files | not finished (stopped at 48,000 after 27 minutes; hours on that curve) | **58 minutes**, no errors |
+| Server memory during the scan | 16–33 MiB | **17–18 MiB** (one 30 MiB peak) |
+| Database afterwards | — | 1.4 GB |
+| Rescan with nothing changed | — | **66 s**, peak 22 MiB |
+| `GET /music/albums` (50,000 albums) afterwards | — | 0.93 s |
+
+The fall-off was the file-sync path claim (`filesync/paths.rs`): one OR with a
+`LIKE $param` that the generic plan of a prepared statement could not turn
+into an index range, so every new item read every path its owner had (40 ms
+a file at 44,000 files). It is three index lookups now (0.14 ms).
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a
