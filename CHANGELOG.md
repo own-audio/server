@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+- Library folders: a file that disappears from a folder hides its song (or,
+  when none of its files are left, its book) everywhere, the Subsonic API
+  included, instead of leaving an item that fails to play. When the file is
+  back, the same item returns with its stars, playlists and history.
+  Migration 0093.
+
 ## [1.0.0-beta.4] - 2026-10-10
 
 Contract revision 6.

@@ -6,6 +6,8 @@ e.g. the compose stack with conformance/compose.library.yml and the fixtures
 from tools/make_library_fixtures.sh: one album of three songs, one book of
 three files named 1, 2 and 10.
 """
+import os
+import shutil
 import time
 import urllib.request
 
@@ -76,3 +78,34 @@ def run(ctx):
         ctx.check("a removed folder song stays removed after a rescan",
                   len(after) == 2 and all(t["id"] != victim["id"] and t.get("title") != victim.get("title") for t in after),
                   str([t.get("title") for t in after]))
+
+        # A file that disappears hides its song; when it is back, the same song returns. Needs
+        # the fixture folder on this machine (the CI job and a local compose stack have it).
+        fixtures = os.environ.get("LIBRARY_FIXTURES", "/tmp/oa-library")
+        album_dir = os.path.join(fixtures, "music", "Test Artist", "Test Album")
+        survivor = next((t for t in after if os.path.exists(os.path.join(album_dir, f"0{t['title'][-1]} {t['title']}.mp3"))), None)
+        if survivor is None:
+            ctx.skip("missing folder files", f"{album_dir} is not on this machine")
+            return
+        name = f"0{survivor['title'][-1]} {survivor['title']}.mp3"
+        held = os.path.join(fixtures, "held")
+        os.makedirs(held, exist_ok=True)
+        shutil.move(os.path.join(album_dir, name), os.path.join(held, name))
+        try:
+            rescan(ctx)
+            gone = _items(ctx.call("GET", "/api/v1/music/tracks?limit=500", ctx.admin_token))
+            ctx.check("a song whose file is gone is hidden", all(t["id"] != survivor["id"] for t in gone))
+            ctx.call("GET", f"/api/v1/music/tracks/{survivor['id']}", ctx.admin_token, expect=(404,))
+        finally:
+            shutil.move(os.path.join(held, name), os.path.join(album_dir, name))
+        rescan(ctx)
+        back = _items(ctx.call("GET", "/api/v1/music/tracks?limit=500", ctx.admin_token))
+        ctx.check("the same song returns when its file is back", any(t["id"] == survivor["id"] for t in back))
+
+
+def rescan(ctx):
+    ctx.call("POST", "/api/v1/library/folders/scan", ctx.admin_token, expect=(202,))
+    time.sleep(5)
+    deadline = time.time() + 60
+    while time.time() < deadline and ctx.call("GET", "/api/v1/library/folders", ctx.admin_token).get("scanning"):
+        time.sleep(1)

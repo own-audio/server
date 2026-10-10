@@ -475,6 +475,12 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
                 for (rel, name, size, mtime) in fresh {
                     // A changed file keeps its track, with its tags read again.
                     if let Some(item) = known.get(&rel).and_then(|k| k.item_id) {
+                        // Back after being missing, and changed meanwhile: visible again first,
+                        // or the refresh below would not find it.
+                        sqlx::query("UPDATE music_tracks_all SET missing_at = NULL WHERE id = $1 AND missing_at IS NOT NULL")
+                            .bind(item)
+                            .execute(pool)
+                            .await?;
                         let path = root.join(&rel);
                         let p2 = path.clone();
                         let duration = tokio::task::spawn_blocking(move || duration_secs(&p2)).await.ok().flatten();
@@ -530,6 +536,7 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
     .bind(started)
     .fetch_one(pool)
     .await?;
+    sync_missing_items(pool, folder.id).await?;
     sqlx::query(
         "UPDATE library_folders
          SET scan_finished_at = now(), files_seen = $2, files_added = $3, scan_error = NULL
@@ -542,6 +549,36 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
     .await?;
     tracing::info!(folder = %folder.path, seen, added, missing, "library scan finished");
     Ok((seen, added))
+}
+
+/// Hides the items whose files are gone and shows the ones whose files are back
+/// (`missing_at`, migration 0093). Only rows whose state changed are written.
+async fn sync_missing_items(pool: &sqlx::PgPool, folder_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE music_tracks_all t
+         SET missing_at = CASE WHEN lf.missing THEN now() END
+         FROM library_files lf
+         WHERE lf.folder_id = $1 AND lf.item_kind = 'track' AND lf.item_id = t.id
+           AND lf.missing IS DISTINCT FROM (t.missing_at IS NOT NULL)",
+    )
+    .bind(folder_id)
+    .execute(pool)
+    .await?;
+    sqlx::query(
+        "WITH books AS (
+             SELECT f.book_id, bool_and(lf.missing) AS gone
+             FROM library_files lf JOIN audiobook_files f ON f.id = lf.item_id
+             WHERE lf.folder_id = $1 AND lf.item_kind = 'book_file'
+             GROUP BY f.book_id)
+         UPDATE audiobook_books_all b
+         SET missing_at = CASE WHEN books.gone THEN now() END
+         FROM books
+         WHERE books.book_id = b.id AND books.gone IS DISTINCT FROM (b.missing_at IS NOT NULL)",
+    )
+    .bind(folder_id)
+    .execute(pool)
+    .await?;
+    Ok(())
 }
 
 /// A folder of audio files is one book: its name the title, its parent's

@@ -121,6 +121,9 @@ services:
   time changed. `GET /api/v1/library/folders` shows each folder's last scan.
 - Removing an item that comes from a folder hides it; the file stays, and
   the scanner does not bring it back unless the file changes.
+- A file that disappears (a disk not mounted, a folder renamed) hides its
+  item at the next scan; when the file is back, the item returns with its
+  stars, playlists and history. Nothing is deleted.
 - Files are streamed by the server itself, with seeking, whatever the
   storage kind.
 - The server runs as `PUID:PGID` (1000:1000 unless you set them), so the
