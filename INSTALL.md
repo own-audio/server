@@ -1,6 +1,6 @@
 # Installing the own.audio server
 
-> Pre-release (`1.0.0-beta.3`). The published image is
+> Pre-release (`1.0.0-beta.4`). The published image is
 > `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker
 > Hub), for amd64 and arm64.
 

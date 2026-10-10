@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.4] - 2026-10-10
+
+Contract revision 6.
+
 ### Changed
 - A public demo's shared account (`SERVER__DEMO__EMAIL`) is read-only: its
   password is published, so anyone could otherwise change it, rotate the
