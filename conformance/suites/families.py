@@ -9,6 +9,7 @@ unsharing, and what happens to shared content when the owner leaves.
 from __future__ import annotations
 
 import os
+import uuid
 
 from core import Ctx
 
@@ -156,6 +157,18 @@ def run(ctx: Ctx) -> None:
          {"kind": "music_track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 1000}, expect=(403,))
     ctx.check("a member without can_upload cannot presign an upload", True)
     call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_upload": True})
+    # Paid work is the same kind of right (plan H4): a member without can_generate cannot start a
+    # narration or a translation on a hosted server, whatever the body says.
+    if ctx.feature("narration") or ctx.feature("translation"):
+        call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_generate": False})
+        if ctx.feature("narration"):
+            call("POST", "/api/v1/audiobook-gen/jobs", adult_tok, multipart={"title": "x", "source": ("x.txt", b"x")}, expect=(403,))
+            ctx.check("a member without can_generate cannot start a narration", True)
+        if ctx.feature("translation"):
+            call("POST", f"/api/v1/podcast-translate/episodes/{uuid.uuid4()}", adult_tok,
+                 {"target_language": "cs", "voice_profile_id": "x"}, expect=(403,))
+            ctx.check("a member without can_generate cannot start a translation", True)
+        call("PUT", f"/api/v1/family/members/{adult_id}", owner_tok, {"can_generate": True})
     # A family's storage limit (STORAGE__FAMILY_QUOTA_BYTES, plan S1) refuses an upload that
     # would not fit with 402, before any link is issued. Only checkable when the suite is told
     # the server's limit (CI sets both).

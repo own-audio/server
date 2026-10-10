@@ -64,3 +64,21 @@ impl FromRequestParts<AppState> for AuthUser {
         })
     }
 }
+
+/// The caller is an instance admin, or the request stops here with `403` —
+/// before any body is read, so a caller without the right never learns what
+/// the body should have looked like (security hardening plan §5.3). Routes
+/// declare it by taking this instead of [`AuthUser`].
+pub struct InstanceAdmin(pub AuthUser);
+
+impl FromRequestParts<AppState> for InstanceAdmin {
+    type Rejection = AuthError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let auth = AuthUser::from_request_parts(parts, state).await?;
+        if auth.role != "admin" {
+            return Err(AuthError::Forbidden);
+        }
+        Ok(InstanceAdmin(auth))
+    }
+}

@@ -300,7 +300,10 @@ support every server at or above their stated minimum revision.
 
 `conformance/` is a black-box test suite that takes a base URL and
 credentials and exercises the contract: auth, families, library sync,
-playback, uploads, trash, Subsonic. It passes against the open-source compose
+playback, uploads, trash, Subsonic — and, from `docs/api/openapi.json`,
+deny by default: every bearer-protected operation answers `401` without a
+token and the instance-admin ones `403` to a plain member (`suites/access.py`).
+It passes against the open-source compose
 stack and against the hosted canary in both repositories' CI. A `features`
 key that is `false` skips that feature's tests rather than failing them.
 

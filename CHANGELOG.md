@@ -42,6 +42,12 @@ Contract revision 7.
   account: `429` with `error: account_locked` and `Retry-After`. The owner
   is told by mail at the first lock when mail is configured. A right
   password clears it. Migration 0095. The published demo account is exempt.
+- Instance-admin routes decide on the caller before reading the body
+  (`InstanceAdmin` extractor): a plain member gets `403` with nothing else,
+  where `POST /auth/admin-create-user` used to answer a validation error
+  first, and `GET /jobs` answered `401`. The conformance suite now walks
+  `docs/api/openapi.json` (`suites/access.py`): every protected operation
+  must answer `401` without a token and every admin one `403` to a member.
 - A per-family storage limit, `STORAGE__FAMILY_QUOTA_BYTES` (unset: none).
   Over it, `POST /uploads/presign`, `POST /uploads/complete` and storing a
   podcast episode answer `402` with the reason; the Subsonic

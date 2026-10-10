@@ -9,7 +9,7 @@
 use super::BillingStorage;
 use crate::app::AppState;
 use crate::auth::error::AuthError;
-use crate::auth::middleware::AuthUser;
+use crate::auth::middleware::InstanceAdmin;
 use crate::db;
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
@@ -27,15 +27,6 @@ pub fn router() -> OpenApiRouter<AppState> {
         .routes(routes!(unlock_family))
 }
 
-pub fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
-    // Signed in but not allowed: 403. (Until 2026-10-11 this was 401, which made
-    // clients refresh a perfectly good token and, on the second 401, sign out.)
-    if auth.role != "admin" {
-        Err(AuthError::Forbidden)
-    } else {
-        Ok(())
-    }
-}
 
 #[derive(Serialize, ToSchema)]
 pub struct AdminFamilySummaryResponse {
@@ -76,11 +67,9 @@ pub struct AdminFamilyDetailResponse {
 #[utoipa::path(get, path = "/", tag = "admin", security(("bearer" = [])),
     responses((status = 200, body = Vec<AdminFamilySummaryResponse>), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_families(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<AdminFamilySummaryResponse>>, AuthError> {
-    require_admin(&auth)?;
-
     let families = db::families::list_all(state.db())
         .await
         .map_err(AuthError::Internal)?;
@@ -112,12 +101,10 @@ async fn list_families(
     params(("id" = Uuid, Path, description = "The family's id")),
     responses((status = 200, body = AdminFamilyDetailResponse), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn get_family_detail(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AdminFamilyDetailResponse>, AuthError> {
-    require_admin(&auth)?;
-
     let family = db::families::find(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
@@ -177,12 +164,10 @@ async fn get_family_detail(
     params(("id" = Uuid, Path, description = "The family's id")),
     responses((status = 204, description = "Deleted"), (status = 400, description = "Family still has members", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn delete_family(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
-
     db::families::find(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
@@ -211,12 +196,10 @@ async fn delete_family(
     params(("id" = Uuid, Path, description = "The family's id")),
     responses((status = 204, description = "Every member deactivated and signed out"), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn lock_family(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
-
     db::families::find(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
@@ -247,12 +230,10 @@ async fn lock_family(
     params(("id" = Uuid, Path, description = "The family's id")),
     responses((status = 204, description = "Every member reactivated"), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such family", body = crate::http::openapi::ErrorBody)))]
 async fn unlock_family(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
-
     db::families::find(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
@@ -293,10 +274,9 @@ pub struct AdminTrashStatsResponse {
 #[utoipa::path(get, path = "/trash", tag = "admin", security(("bearer" = [])),
     responses((status = 200, body = Vec<AdminTrashStatsResponse>), (status = 401, description = "Not signed in, or not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn trash_stats(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<AdminTrashStatsResponse>>, AuthError> {
-    require_admin(&auth)?;
     let stats = db::trash::family_stats(state.db()).await.map_err(AuthError::Internal)?;
     let mut out = Vec::with_capacity(stats.len());
     for s in stats {

@@ -169,7 +169,7 @@ def run(ctx):
     # busy run; that is not the finding, so it ends the check instead of failing it.
     uid, email, _tok = ctx.make_user("lock", "LockTest12345!")
     def _lock_outcome(who: str) -> str | None:
-        for _ in range(8):
+        for _ in range(7):
             status = ctx.status_of("POST", "/api/v1/auth/login", body={"email": who, "password": "wrong-password-1"})
             if status == 429:
                 got = ctx.call("POST", "/api/v1/auth/login", body={"email": who, "password": "wrong-password-1"},

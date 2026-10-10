@@ -106,6 +106,9 @@ jobs:
           sed -i 's/^POSTGRES_PASSWORD=$/POSTGRES_PASSWORD=ci/; s/^SESSION_SECRET=$/SESSION_SECRET=ci-session-secret-not-for-production/' .env
           echo 'SERVER_IMAGE=ownaudio/server:ci' >> .env
           echo "STORAGE__FAMILY_QUOTA_BYTES=$STORAGE__FAMILY_QUOTA_BYTES" >> .env
+          # The suite signs in a few hundred times from one address; the per-IP
+          # login limit is not what it tests (the per-account lock is).
+          echo 'SERVER__RATE_LIMIT__LOGIN_PER_MINUTE=1000' >> .env
           files="-f docker-compose.yml"
           if [ "${{ matrix.storage }}" = s3 ]; then
             printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env

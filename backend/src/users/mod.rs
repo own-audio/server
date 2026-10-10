@@ -5,6 +5,7 @@ pub mod models;
 use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
+use crate::auth::middleware::InstanceAdmin;
 use crate::db;
 use crate::families::FamilyContext;
 use axum::body::Body;
@@ -112,10 +113,9 @@ pub fn router() -> OpenApiRouter<AppState> {
 #[utoipa::path(get, path = "/", tag = "users", security(("bearer" = [])),
     responses((status = 200, body = Vec<AdminUserResponse>), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn list_users(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<AdminUserResponse>>, AuthError> {
-    require_admin(&auth)?;
     let users = db::users::list_all_with_family(state.db())
         .await
         .map_err(AuthError::Internal)?;
@@ -168,13 +168,11 @@ async fn get_user(
     request_body = UpdateUserRequest,
     responses((status = 204, description = "Updated; deactivating also signs the account out everywhere"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn update_user(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
-
     let pool = state.db();
 
     if let Some(ref display_name) = body.display_name {
@@ -495,12 +493,10 @@ async fn delete_self(
         (status = 400, description = "The id is the caller's own; use `DELETE /users/me`", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn admin_delete_user(
-    auth: AuthUser,
+    InstanceAdmin(auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
-
     // Prevent deleting yourself via this route
     if id == auth.user_id {
         return Err(AuthError::BadRequest("use DELETE /users/me to delete your own account".into()));
@@ -556,11 +552,10 @@ async fn delete_account(state: &AppState, user_id: Uuid) -> Result<(), AuthError
     params(("id" = Uuid, Path, description = "User id")),
     responses((status = 204, description = "Every session and device of the account is signed out"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn admin_revoke_sessions(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    require_admin(&auth)?;
     db::sessions::revoke_all_for_user(state.db(), id)
         .await
         .map_err(AuthError::Internal)?;
@@ -572,15 +567,6 @@ async fn admin_revoke_sessions(
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
-fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
-    // Signed in but not allowed: 403. (Until 2026-10-11 this was 401, which made
-    // clients refresh a perfectly good token and, on the second 401, sign out.)
-    if auth.role != "admin" {
-        Err(AuthError::Forbidden)
-    } else {
-        Ok(())
-    }
-}
 
 fn user_to_response(u: crate::users::models::User) -> UserResponse {
     UserResponse {

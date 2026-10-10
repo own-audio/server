@@ -5,7 +5,7 @@ pub mod worker;
 
 use crate::app::AppState;
 use crate::auth::error::AuthError;
-use crate::auth::middleware::AuthUser;
+use crate::auth::middleware::InstanceAdmin;
 use crate::db;
 use axum::extract::{Path, State};
 use axum::Json;
@@ -48,15 +48,11 @@ pub fn router() -> OpenApiRouter<AppState> {
 /// The 50 most recent background jobs.
 #[utoipa::path(get, path = "/", tag = "jobs", security(("bearer" = [])),
     responses((status = 200, body = Vec<JobResponse>),
-        (status = 401, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
+        (status = 403, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn list_jobs(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<JobResponse>>, AuthError> {
-    if auth.role != "admin" {
-        return Err(AuthError::InvalidCredentials); // reuse as 401 for non-admin
-    }
-
     let jobs = db::jobs::list_recent(state.db(), 50)
         .await
         .map_err(AuthError::Internal)?;
@@ -70,16 +66,12 @@ async fn list_jobs(
 #[utoipa::path(get, path = "/{id}", tag = "jobs", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Job id")),
     responses((status = 200, body = JobResponse),
-        (status = 401, description = "Not an instance admin, or no such job", body = crate::http::openapi::ErrorBody)))]
+        (status = 403, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn get_job(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<JobResponse>, AuthError> {
-    if auth.role != "admin" {
-        return Err(AuthError::InvalidCredentials);
-    }
-
     let job = db::jobs::find_by_id(state.db(), id)
         .await
         .map_err(AuthError::Internal)?

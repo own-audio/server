@@ -131,6 +131,9 @@ services:
       SERVER__OUTBOUND__ALLOW_PRIVATE: ${SERVER__OUTBOUND__ALLOW_PRIVATE:-false}
       PODCASTS__MAX_EPISODE_BYTES: ${PODCASTS__MAX_EPISODE_BYTES:-}
       STORAGE__FAMILY_QUOTA_BYTES: ${STORAGE__FAMILY_QUOTA_BYTES:-}
+      SERVER__RATE_LIMIT__ENABLED: ${SERVER__RATE_LIMIT__ENABLED:-true}
+      SERVER__RATE_LIMIT__LOGIN_PER_MINUTE: ${SERVER__RATE_LIMIT__LOGIN_PER_MINUTE:-30}
+      SERVER__RATE_LIMIT__TRUST_PROXY_HEADERS: ${SERVER__RATE_LIMIT__TRUST_PROXY_HEADERS:-false}
       RUST_LOG: ${RUST_LOG:-audio2=info,tower_http=warn}
       # The server runs as this user and group, not root. It must be able to
       # read your library folders; its own storage is handed to it at start.

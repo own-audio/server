@@ -6063,7 +6063,7 @@
               }
             }
           },
-          "401": {
+          "403": {
             "description": "Not an instance admin",
             "content": {
               "application/json": {
@@ -6112,8 +6112,8 @@
               }
             }
           },
-          "401": {
-            "description": "Not an instance admin, or no such job",
+          "403": {
+            "description": "Not an instance admin",
             "content": {
               "application/json": {
                 "schema": {

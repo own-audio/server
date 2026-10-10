@@ -5,7 +5,7 @@
 /// single existing module. Mounted at `/admin/stats`.
 use crate::app::AppState;
 use crate::auth::error::AuthError;
-use crate::auth::middleware::AuthUser;
+use crate::auth::middleware::InstanceAdmin;
 use crate::db;
 use axum::extract::State;
 use axum::response::Json;
@@ -17,15 +17,6 @@ pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(get_dashboard))
 }
 
-fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
-    // Signed in but not allowed: 403. (Until 2026-10-11 this was 401, which made
-    // clients refresh a perfectly good token and, on the second 401, sign out.)
-    if auth.role != "admin" {
-        Err(AuthError::Forbidden)
-    } else {
-        Ok(())
-    }
-}
 
 #[derive(Serialize, ToSchema)]
 pub struct WindowCounts {
@@ -84,11 +75,9 @@ pub struct DashboardResponse {
     responses((status = 200, body = DashboardResponse),
         (status = 401, description = "Not an instance admin", body = crate::http::openapi::ErrorBody)))]
 async fn get_dashboard(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
 ) -> Result<Json<DashboardResponse>, AuthError> {
-    require_admin(&auth)?;
-
     let users = db::users::list_all(state.db()).await.map_err(AuthError::Internal)?;
     let families = db::families::list_all(state.db()).await.map_err(AuthError::Internal)?;
     let extras = state

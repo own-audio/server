@@ -11,6 +11,7 @@ pub mod session;
 use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
+use crate::auth::middleware::InstanceAdmin;
 use crate::auth::session::{SessionClaims, sign};
 use crate::db;
 use crate::users::models::User;
@@ -1226,15 +1227,10 @@ async fn change_password(
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
         (status = 403, description = "Caller is not an admin", body = crate::http::openapi::ErrorBody)))]
 async fn admin_create_user(
-    auth: AuthUser,
+    InstanceAdmin(_auth): InstanceAdmin,
     State(state): State<AppState>,
     Json(body): Json<AdminCreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserInfo>), AuthError> {
-    // Only admins can create users via this endpoint
-    if auth.role != "admin" {
-        return Err(AuthError::Forbidden);
-    }
-
     let pool = state.db();
 
     let email = body.email.trim().to_lowercase();
