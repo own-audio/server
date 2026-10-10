@@ -15,8 +15,10 @@ function serviceWorker(): Plugin {
     generateBundle(_options, bundle) {
       const assets = Object.keys(bundle).filter((f) => f.startsWith('assets/')).sort().map((f) => `/${f}`)
       const precache = [...statics, ...assets]
-      const version = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12)
-      const source = readFileSync(new URL('./sw/sw.js', import.meta.url), 'utf8')
+      const template = readFileSync(new URL('./sw/sw.js', import.meta.url), 'utf8')
+      // The worker's own code counts too: a fix to it must replace caches it filled.
+      const version = createHash('sha256').update(precache.join('\n')).update(template).digest('hex').slice(0, 12)
+      const source = template
         .replaceAll('__VERSION__', version)
         .replaceAll('__PRECACHE__', JSON.stringify(precache))
       this.emitFile({ type: 'asset', fileName: 'sw.js', source })

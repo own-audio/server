@@ -15,11 +15,34 @@ const SHELL = "/";
 /** On a connection that is up but going nowhere, stop waiting and use the copy. */
 const NAVIGATION_TIMEOUT_MS = 4000;
 
+/* The host answers a path it doesn't have with the app's HTML page and 200 (the
+   single-page fallback), so a build file asked for while a deploy is switching
+   over can come back as HTML. Cached under the file's name, that page broke the
+   screen that loads the file ("'text/html' is not a valid JavaScript MIME type")
+   until the next deploy. Only real files are kept. */
+function isBuildFile(url) {
+  return new URL(url, self.location.origin).pathname.startsWith("/assets/");
+}
+
+function keepable(url, res) {
+  if (!res.ok) return false;
+  return !(isBuildFile(url) && (res.headers.get("content-type") ?? "").includes("text/html"));
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
+      .then((cache) =>
+        Promise.all(
+          PRECACHE.map((path) =>
+            fetch(path, { cache: "reload" }).then((res) => {
+              if (!keepable(path, res)) throw new Error(`not precached: ${path}`);
+              return cache.put(path, res);
+            })
+          )
+        )
+      )
       .then(() => self.skipWaiting())
   );
 });
@@ -83,18 +106,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Hashed build files never change under one name: cache first.
+  // Hashed build files never change under one name: cache first. A copy that is
+  // the HTML fallback, kept by an earlier worker, is dropped and fetched again.
   event.respondWith(
-    caches.match(req).then(
-      (hit) =>
-        hit ??
-        fetch(req).then((res) => {
-          if (res.ok && url.pathname.startsWith("/assets/")) {
-            const copy = res.clone();
-            void caches.open(CACHE).then((cache) => cache.put(req, copy));
-          }
-          return res;
-        })
-    )
+    caches.match(req).then((hit) => {
+      if (hit && keepable(req.url, hit)) return hit;
+      if (hit) void caches.open(CACHE).then((cache) => cache.delete(req));
+      return fetch(req).then((res) => {
+        if (url.pathname.startsWith("/assets/") && keepable(req.url, res)) {
+          const copy = res.clone();
+          void caches.open(CACHE).then((cache) => cache.put(req, copy));
+        }
+        return res;
+      });
+    })
   );
 });
