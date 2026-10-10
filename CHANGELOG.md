@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+- Subsonic: a song's `albumId` (and `parent`) now names the album it is
+  listed under. Albums are filed under the album artist, but songs used their
+  own artist, so a song with a guest ("feat.") or on a sampler pointed at an
+  album that didn't exist and "go to album" failed in every Subsonic app.
+
 ## [1.0.0-beta.3] - 2026-10-10
 
 Contract revision 6.
