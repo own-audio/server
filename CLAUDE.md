@@ -326,6 +326,11 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
   weekly. Questions go to GitHub Discussions, bugs to issues.
 - Semver tags `vMAJOR.MINOR.PATCH`; the image is tagged the same plus
   `latest`. The contract revision is stated in every `CHANGELOG.md` entry.
+- **Every tag gets a GitHub Release** (a tag alone shows nothing on the
+  repo's page; missed until beta.4, added for beta.1–4 on 2026-10-10):
+  `gh release create vX --title X --notes-file <the CHANGELOG section> --prerelease`
+  (drop `--prerelease` from 1.0), notes ending with the image names and
+  links to INSTALL.md / UPGRADING.md at that tag.
 - A tag is what the hosted edition pins. **Core changes land here first,
   get tagged, and `audio2` bumps its pin** — never the other way round, and
   never a `[patch]` path override committed on either side.
