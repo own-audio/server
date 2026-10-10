@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Security
+- Access tokens live one hour by default, not seven days (`AUTH__ACCESS_TTL_SECS`);
+  apps refresh as before, and a stolen token is worth an hour.
+- Browsers may call `/api` only from the console's origins
+  (`SERVER__CORS_ORIGINS`, default: the console's and the server's own); the
+  server used to allow any origin. `/rest` stays open for Subsonic web clients.
+- A signed-in caller without the right gets `403` on admin routes and on
+  other users' records, not `401`; clients no longer refresh a good token and
+  sign out over a permission.
+
 ### Added
 - `docker-compose.yml` passes `APPLE_SIGN_IN`/`APPLE_CLIENT_IDS` and
   `GOOGLE_SIGN_IN`/`GOOGLE_CLIENT_IDS` through, so a self-hosted server can let

@@ -18,8 +18,10 @@ pub fn router() -> OpenApiRouter<AppState> {
 }
 
 fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
+    // Signed in but not allowed: 403. (Until 2026-10-11 this was 401, which made
+    // clients refresh a perfectly good token and, on the second 401, sign out.)
     if auth.role != "admin" {
-        Err(AuthError::SessionInvalid)
+        Err(AuthError::Forbidden)
     } else {
         Ok(())
     }

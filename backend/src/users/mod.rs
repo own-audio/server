@@ -151,7 +151,7 @@ async fn get_user(
 ) -> Result<Json<UserResponse>, AuthError> {
     // Users can only see themselves; admins can see anyone.
     if auth.user_id != id && auth.role != "admin" {
-        return Err(AuthError::SessionInvalid);
+        return Err(AuthError::Forbidden);
     }
 
     let user = db::users::find_by_id(state.db(), id)
@@ -573,8 +573,10 @@ async fn admin_revoke_sessions(
 // ── Helpers ───────────────────────────────────────────────────────────────
 
 fn require_admin(auth: &AuthUser) -> Result<(), AuthError> {
+    // Signed in but not allowed: 403. (Until 2026-10-11 this was 401, which made
+    // clients refresh a perfectly good token and, on the second 401, sign out.)
     if auth.role != "admin" {
-        Err(AuthError::SessionInvalid)
+        Err(AuthError::Forbidden)
     } else {
         Ok(())
     }

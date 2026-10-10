@@ -228,15 +228,21 @@ lives. Clients never parse it, never persist it, and never assume its host.
 - A server that cannot verify a token answers `401`; clients then refresh once
   and, on a second `401`, sign out. This is already how every client behaves
   and it must stay so.
+- **A signed-in caller without the right answers `403`** (since 2026-10-11;
+  it was `401`, which made clients refresh a good token and sign out). Nothing
+  was in production, so the status changed in place.
 - **Known quirk, kept for v1:** some handlers answer `401` for an item that
   does not exist, where `404` would be right: family members, invites and
   join codes (`/family/*`), users (`/users/*`), jobs, uploads and statistics
-  for another member. A client following the rule above refreshes its token
-  for nothing and then gets the same `401`; it must not sign out on a `401`
-  from these routes when the refresh succeeded. Changing the status of a case
-  clients already handle is not allowed within v1 (§4), so the fix waits for
-  `/api/v2` (§11). Newer code answers `404` for missing or hidden
-  items, as `/podcasts/*`, music and audiobooks do.
+  for another member. A client must not sign out on a `401` from these routes
+  when a refresh succeeded. The fix waits for `/api/v2` (§11). Newer code
+  answers `404` for missing or hidden items, as `/podcasts/*`, music and
+  audiobooks do.
+- **Access tokens live one hour** by default (`AUTH__ACCESS_TTL_SECS`); they
+  were seven days until 2026-10-11. Clients refresh, as they already do.
+- **Browsers may call `/api` only from the console's origins**
+  (`SERVER__CORS_ORIGINS`, defaulting to `SERVER__APP_BASE_URL` and
+  `SERVER__BASE_URL`); `/rest` allows any origin. Native apps are unaffected.
 
 ---
 

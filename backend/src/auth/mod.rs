@@ -1185,7 +1185,7 @@ mod tests {
     fn base_auth_config() -> AuthConfig {
         AuthConfig {
             session_secret: "test-secret".into(),
-            session_ttl_secs: 604_800,
+            session_ttl_secs: None,
             access_ttl_secs: None,
             refresh_ttl_secs: 7_776_000,
             local_enabled: true,

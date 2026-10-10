@@ -5,7 +5,8 @@ use axum::Router;
 use utoipa_axum::{router::OpenApiRouter, routes};
 use axum::routing::get;
 use tower_http::compression::CompressionLayer;
-use tower_http::cors::CorsLayer;
+use axum::http::{header, HeaderName, HeaderValue, Method};
+use tower_http::cors::{AllowOrigin, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 
@@ -80,12 +81,13 @@ pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
 /// `root` is merged at the site root for an edition's non-API pages (the
 /// hosted edition's Stripe landing pages); the core passes an empty router.
 pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) -> Router {
+    let api_cors = api_cors(&state.config().server.cors_origins());
     Router::new()
         .route("/health", get(handlers::health))
         // The API answers 404 (or 501 for hosted-only paths) for its own unknown
         // paths. Without this the outer SPA fallback below would hand an API
         // client a page of HTML with status 200.
-        .nest("/api/v1", api.fallback(handlers::api_fallback))
+        .nest("/api/v1", api.fallback(handlers::api_fallback).layer(api_cors))
         .merge(root)
         // OpenSubsonic-compatible surface for external music clients. A
         // sibling of /api/v1 (not nested under it) because Subsonic clients
@@ -96,7 +98,10 @@ pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) 
                 .layer(axum::middleware::from_fn(
                     crate::subsonic::form::merge_post_form,
                 ))
-                .fallback(handlers::not_found),
+                .fallback(handlers::not_found)
+                // Subsonic web clients run from any origin and carry their
+                // credentials in the request itself, so the open policy stays here.
+                .layer(CorsLayer::permissive()),
         )
         // A real SPA fallback: unknown paths get index.html so the console's own router
         // can render /join/<code>, /audiobooks/<id> and friends. ServeDir alone 404s
@@ -107,8 +112,26 @@ pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) 
         )
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
-        .layer(CorsLayer::permissive())
         .with_state(state)
+}
+
+/// Browsers may call `/api` only from the console's origins. Everything a
+/// native app does is unaffected: CORS is a browser rule.
+fn api_cors(origins: &[String]) -> CorsLayer {
+    let allowed: Vec<HeaderValue> = origins.iter().filter_map(|o| HeaderValue::from_str(o).ok()).collect();
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::list(allowed))
+        .allow_methods([Method::GET, Method::POST, Method::PUT, Method::PATCH, Method::DELETE, Method::OPTIONS])
+        .allow_headers([
+            header::AUTHORIZATION,
+            header::CONTENT_TYPE,
+            header::ACCEPT,
+            header::IF_MATCH,
+            header::IF_NONE_MATCH,
+            HeaderName::from_static("idempotency-key"),
+        ])
+        .expose_headers([header::RETRY_AFTER, header::ETAG])
+        .max_age(std::time::Duration::from_secs(3600))
 }
 
 /// Assemble the full core-only Axum router.

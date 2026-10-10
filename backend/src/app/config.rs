@@ -100,6 +100,14 @@ pub struct ServerConfig {
     /// at a host that serves no pages and 404s.
     pub app_base_url: Option<String>,
 
+    /// Browser origins allowed to call `/api` from a page, comma-separated
+    /// (`SERVER__CORS_ORIGINS`). Unset ⇒ the console's origin (`app_base_url`,
+    /// else `base_url`), which is all a normal install needs; a console served
+    /// by the server itself is same-origin and needs none. `/rest` stays open
+    /// to any origin, as Subsonic web clients expect. Until 2026-10-11 the
+    /// whole server allowed any origin (security hardening plan, C5).
+    pub cors_origins: Option<String>,
+
     /// Per-IP limits on the routes an attacker would hammer. See
     /// [`RateLimitConfig`]; `SERVER__RATE_LIMIT__ENABLED=false` turns them off.
     #[serde(default)]
@@ -169,6 +177,79 @@ impl ServerConfig {
     /// that is genuinely also the console.
     pub fn web_base(&self) -> Option<&str> {
         self.app_base_url.as_deref().or(self.base_url.as_deref())
+    }
+
+    /// Origins allowed on `/api` from a browser, each as `scheme://host[:port]`.
+    pub fn cors_origins(&self) -> Vec<String> {
+        cors_origins(self.cors_origins.as_deref(), self.app_base_url.as_deref(), self.base_url.as_deref())
+    }
+}
+
+/// The listed origins when there are any, else the console's and the API's own;
+/// trailing slashes dropped, duplicates dropped, order kept.
+fn cors_origins(listed: Option<&str>, app_base: Option<&str>, base: Option<&str>) -> Vec<String> {
+    let listed: Vec<&str> = listed
+        .map(|s| s.split(',').map(str::trim).filter(|s| !s.is_empty()).collect())
+        .unwrap_or_default();
+    let candidates: Vec<&str> = if listed.is_empty() {
+        app_base.into_iter().chain(base).collect()
+    } else {
+        listed
+    };
+    let mut out: Vec<String> = Vec::new();
+    for o in candidates {
+        let origin = o.trim().trim_end_matches('/').to_string();
+        if !origin.is_empty() && !out.contains(&origin) {
+            out.push(origin);
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cors_defaults_to_the_console_and_api_origins() {
+        assert_eq!(
+            cors_origins(None, Some("https://app.example"), Some("https://api.example/")),
+            ["https://app.example", "https://api.example"]
+        );
+        // One origin serving both: listed once.
+        assert_eq!(cors_origins(None, None, Some("http://localhost:8080")), ["http://localhost:8080"]);
+        assert!(cors_origins(None, None, None).is_empty());
+    }
+
+    #[test]
+    fn listed_cors_origins_replace_the_defaults() {
+        assert_eq!(
+            cors_origins(Some(" https://a.example , https://b.example/ ,"), Some("https://app.example"), None),
+            ["https://a.example", "https://b.example"]
+        );
+        // A blank list means "not set".
+        assert_eq!(cors_origins(Some(" , "), Some("https://app.example"), None), ["https://app.example"]);
+    }
+
+    #[test]
+    fn access_tokens_live_an_hour_unless_configured() {
+        let mut cfg = AuthConfig {
+            session_secret: "s".into(),
+            session_ttl_secs: None,
+            access_ttl_secs: None,
+            refresh_ttl_secs: default_refresh_ttl(),
+            local_enabled: true,
+            registration_open: false,
+            dev_seed_admin: false,
+            google: None,
+            apple: None,
+            microsoft: None,
+        };
+        assert_eq!(cfg.access_ttl(), 3600);
+        cfg.session_ttl_secs = Some(600);
+        assert_eq!(cfg.access_ttl(), 600, "the deprecated alias still counts");
+        cfg.access_ttl_secs = Some(900);
+        assert_eq!(cfg.access_ttl(), 900, "the real setting wins");
     }
 }
 
@@ -248,15 +329,13 @@ pub struct AuthConfig {
     /// Secret key used to sign session JWTs.
     pub session_secret: String,
 
-    /// Session lifetime in seconds. Deprecated alias for `access_ttl_secs`;
-    /// still honored as the access-token TTL when `access_ttl_secs` is unset.
-    #[serde(default = "default_session_ttl")]
-    pub session_ttl_secs: u64,
+    /// Deprecated alias for `access_ttl_secs`, honoured only when that is unset.
+    pub session_ttl_secs: Option<u64>,
 
-    /// Access-JWT lifetime in seconds. Unset ⇒ falls back to
-    /// `session_ttl_secs` (7 days) so existing deployments keep long-lived
-    /// tokens until their clients adopt the refresh flow; set to e.g. 3600
-    /// once they do.
+    /// Access-token lifetime in seconds; **one hour** unless set. A stolen token
+    /// is worth an hour, not the seven days the default used to be: every client
+    /// refreshes (API_COMPATIBILITY.md §7), so nothing needs the long life.
+    /// Security hardening plan, C5.
     pub access_ttl_secs: Option<u64>,
 
     /// Refresh-token lifetime in seconds (default 90 days).
@@ -502,9 +581,9 @@ fn default_log_level() -> String {
     "info".to_string()
 }
 
-fn default_session_ttl() -> u64 {
-    86400 * 7 // 7 days
-}
+/// One hour (RFC 9700 asks for short-lived access tokens; Google, Spotify and
+/// Audiobookshelf use the same).
+pub const DEFAULT_ACCESS_TTL_SECS: u64 = 3600;
 
 fn default_refresh_ttl() -> u64 {
     86400 * 90 // 90 days
@@ -530,7 +609,7 @@ impl AuthConfig {
     /// Effective access-JWT TTL: `access_ttl_secs` when set, else the
     /// deprecated `session_ttl_secs`.
     pub fn access_ttl(&self) -> u64 {
-        self.access_ttl_secs.unwrap_or(self.session_ttl_secs)
+        self.access_ttl_secs.or(self.session_ttl_secs).unwrap_or(DEFAULT_ACCESS_TTL_SECS)
     }
 }
 

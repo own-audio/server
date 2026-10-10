@@ -1,6 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """Discovery and error conventions: GET /server, 404 vs 501, the features contract."""
 
+import urllib.error
+import urllib.request
+
 NAME = "server"
 
 REQUIRED_FEATURE_KEYS = [
@@ -15,6 +18,19 @@ HOSTED_PATHS = {
     "narration": "/api/v1/audiobook-gen/languages",
     "translation": "/api/v1/podcast-translate/recent",
 }
+
+
+def _preflight(ctx, path, origin):
+    """The Access-Control-Allow-Origin a browser would see for a GET from `origin`, or None."""
+    req = urllib.request.Request(ctx.url(path), method="OPTIONS", headers={
+        "Origin": origin, "Access-Control-Request-Method": "GET",
+        "Access-Control-Request-Headers": "authorization", "User-Agent": "own-audio-conformance",
+    })
+    try:
+        with urllib.request.urlopen(req, timeout=ctx.timeout) as r:
+            return r.headers.get("Access-Control-Allow-Origin")
+    except urllib.error.HTTPError as e:
+        return e.headers.get("Access-Control-Allow-Origin")
 
 
 def run(ctx):
@@ -54,6 +70,20 @@ def run(ctx):
                 ctx.call("POST", "/api/v1/auth/password", tok, body={"current_password": "not-the-password", "new_password": "x" * 16},
                          expect=(403,))
                 ctx.check("the demo account can read but not change its password", True)
+        # Signed in without the right: 403, never 401 (a 401 makes clients refresh a good
+        # token and sign out on the second one). Security hardening plan, C5.
+        if ctx.admin_token:
+            _uid, _email, user_tok = ctx.make_user("plain", "Plain-pass-123456")
+            ctx.call("GET", "/api/v1/users", user_tok, expect=(403,))
+            ctx.call("GET", "/api/v1/jobs", user_tok, expect=(403,))
+            ctx.check("a user without the admin role gets 403 on admin routes", True)
+        # Browsers may call /api only from the console's origins; /rest stays open.
+        base = ctx.base_url.rstrip("/")
+        allowed = _preflight(ctx, "/api/v1/server", base)
+        refused = _preflight(ctx, "/api/v1/server", "https://evil.example")
+        ctx.check("CORS on /api allows the server's own origin", allowed == base, str(allowed))
+        ctx.check("CORS on /api refuses another origin", refused is None, str(refused))
+        ctx.check("CORS on /rest allows any origin", _preflight(ctx, "/rest/ping.view", "https://evil.example") == "*")
         ctx.check("features.auth agrees with /auth/providers",
                   all(auth.get(p) == bool((ctx.providers.get(p) or {}).get("enabled")) for p in ("google", "apple", "microsoft")))
 
