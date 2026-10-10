@@ -12,6 +12,8 @@ semver. Each release states the **API contract revision** it serves
   listed under. Albums are filed under the album artist, but songs used their
   own artist, so a song with a guest ("feat.") or on a sampler pointed at an
   album that didn't exist and "go to album" failed in every Subsonic app.
+  Songs shared from another family member's library had the same problem:
+  their album and artist ids were made for the owner, not for the listener.
 
 ## [1.0.0-beta.3] - 2026-10-10
 

@@ -560,6 +560,9 @@ pub async fn search3(
 /// each song fetching its own — cost one query per track, so a full album list
 /// issued hundreds of round trips to render one page.
 pub(crate) struct SongContext {
+    /// Who is asking. Album and artist ids are derived per viewer, so a song shared from
+    /// another family member's library must carry the viewer's ids, not its owner's.
+    viewer: Uuid,
     media: HashMap<Uuid, (String, Option<i64>)>,
     starred: HashMap<Uuid, DateTime<Utc>>,
     ratings: HashMap<Uuid, i16>,
@@ -569,6 +572,7 @@ impl SongContext {
     pub(crate) async fn load(pool: &sqlx::PgPool, user_id: Uuid, tracks: &[MusicTrack]) -> Self {
         let object_ids: Vec<Uuid> = tracks.iter().map(|t| t.audio_object_id).collect();
         SongContext {
+            viewer: user_id,
             media: db::subsonic::media_info_for(pool, &object_ids)
                 .await
                 .unwrap_or_default(),
@@ -650,11 +654,11 @@ impl GroupContext {
 pub(crate) fn song_json(track: &MusicTrack, ctx: &SongContext) -> Value {
     let artist_name = normalize_or(track.artist.as_deref(), UNKNOWN_ARTIST).to_string();
     let album_name = normalize_or(track.album.as_deref(), UNKNOWN_ALBUM).to_string();
-    let artist_id = ids::artist_id(track.user_id, &artist_name);
+    let artist_id = ids::artist_id(ctx.viewer, &artist_name);
     // Filed under the album artist, as the album lists file it: with the track artist, every
     // song on a sampler or a "feat." track would point at an album that doesn't exist.
     let album_artist = track.effective_album_artist().unwrap_or_else(|| UNKNOWN_ARTIST.to_string());
-    let album_id = ids::album_id(track.user_id, &album_artist, &album_name);
+    let album_id = ids::album_id(ctx.viewer, &album_artist, &album_name);
 
     let mut obj = json!({
         "id": track.id.to_string(),
