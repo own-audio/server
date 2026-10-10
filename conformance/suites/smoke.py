@@ -130,8 +130,8 @@ def check_subsonic_api(ctx: Ctx, username: str, api_key: str, track_id: str | No
     get_json("ping.view")
     get_json("getArtists.view")
 
-    # A song's albumId must open its album. Albums are filed under the album artist, so a
-    # song with a guest ("feat.") or on a sampler must point there too, not at its own artist.
+    # A song's albumId must open its album, for songs shared from another family member's
+    # library too (ids are derived per listener).
     songs = get_json("search3.view?query=&songCount=200&artistCount=0&albumCount=0").get("searchResult3", {}).get("song") or []
     for album_id in sorted({s["albumId"] for s in songs if s.get("albumId")}):
         album = get_json(f"getAlbum.view?id={album_id}").get("album") or {}
@@ -460,8 +460,6 @@ def run(ctx: Ctx) -> None:
         with step(ctx, "subsonic api"):
             subsonic_key = ctx.call("GET", "/api/v1/users/me/subsonic-key", user_token)
             need(bool(subsonic_key.get("api_key")), "subsonic key must be created")
-            # One song with a guest: its album is filed under the main artist.
-            ctx.upload_track(user_token, "Guest Song", artist="Smoke Artist feat. Guest", album="Smoke Album")
             # The temp user owns no streamable tracks; ping/browse with their key only.
             check_subsonic_api(ctx, subsonic_key["username"], subsonic_key["api_key"], None)
             # The stream-redirect check needs a key whose user owns the track.

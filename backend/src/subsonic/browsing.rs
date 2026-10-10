@@ -655,10 +655,7 @@ pub(crate) fn song_json(track: &MusicTrack, ctx: &SongContext) -> Value {
     let artist_name = normalize_or(track.artist.as_deref(), UNKNOWN_ARTIST).to_string();
     let album_name = normalize_or(track.album.as_deref(), UNKNOWN_ALBUM).to_string();
     let artist_id = ids::artist_id(ctx.viewer, &artist_name);
-    // Filed under the album artist, as the album lists file it: with the track artist, every
-    // song on a sampler or a "feat." track would point at an album that doesn't exist.
-    let album_artist = track.effective_album_artist().unwrap_or_else(|| UNKNOWN_ARTIST.to_string());
-    let album_id = ids::album_id(ctx.viewer, &album_artist, &album_name);
+    let album_id = ids::album_id(ctx.viewer, &artist_name, &album_name);
 
     let mut obj = json!({
         "id": track.id.to_string(),
