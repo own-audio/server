@@ -228,6 +228,7 @@ export interface MessageParams {
   "auth.error.nameMissing": undefined;
   "auth.error.passwordShort": undefined;
   "auth.error.registerFailed": undefined;
+  "auth.error.tooManyAttempts": undefined;
   "auth.field.email": undefined;
   "auth.field.inviteCode": undefined;
   "auth.field.inviteCodeHint": undefined;

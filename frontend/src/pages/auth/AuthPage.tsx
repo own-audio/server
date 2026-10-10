@@ -7,7 +7,7 @@ import { getServerInfo } from "../../api/server";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 import AppleSignInButton from "../../components/AppleSignInButton";
 import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
-import { apiErrorMessage } from "../../lib/apiError";
+import { apiErrorMessage, isRateLimited } from "../../lib/apiError";
 import { Button, Input, PasswordInput } from "../../components/ui";
 import { useAuthStore } from "../../store/authStore";
 import { safeReturnTo } from "../../lib/returnTo";
@@ -58,7 +58,7 @@ export default function AuthPage() {
     setError(null);
     if (mode === "register") {
       if (!displayName.trim()) return setError(t("auth.error.nameMissing"));
-      if (password.length < 8) return setError(t("auth.error.passwordShort"));
+      if (password.length < 12) return setError(t("auth.error.passwordShort"));
     }
     setLoading(true);
     try {
@@ -68,6 +68,7 @@ export default function AuthPage() {
           : await register(email, password, displayName.trim(), inviteCode.trim() || undefined);
       setAuth(result.token, result.user, result.refresh_token);
     } catch (err) {
+      if (isRateLimited(err)) return setError(t("auth.error.tooManyAttempts"));
       setError(apiErrorMessage(err, mode === "login" ? t("auth.error.badLogin") : t("auth.error.registerFailed")));
     } finally {
       setLoading(false);

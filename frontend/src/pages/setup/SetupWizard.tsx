@@ -150,7 +150,7 @@ function AdminStep({ onBack, onComplete }: { onBack: () => void; onComplete: (to
     setError(null);
     if (!displayName.trim()) return setError(t("auth.error.nameMissing"));
     if (!email.includes("@")) return setError(t("setup.admin.badEmail"));
-    if (password.length < 8) return setError(t("auth.error.passwordShort"));
+    if (password.length < 12) return setError(t("auth.error.passwordShort"));
     setLoading(true);
     try {
       const { token, user, refresh_token } = await completeSetup(email.trim(), password, displayName.trim());

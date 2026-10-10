@@ -3029,7 +3029,7 @@
             }
           },
           "400": {
-            "description": "Invalid email, password under 8 characters, empty display name, or email in use",
+            "description": "Invalid email, password under 12 characters, empty display name, or email in use",
             "content": {
               "application/json": {
                 "schema": {
@@ -3610,7 +3610,7 @@
             }
           },
           "429": {
-            "description": "Rate limited; see `Retry-After`",
+            "description": "Rate limited, or too many wrong passwords for this email (`account_locked`); see `Retry-After`",
             "content": {
               "application/json": {
                 "schema": {
@@ -3797,7 +3797,7 @@
             "description": "Changed; every other session and device is signed out"
           },
           "400": {
-            "description": "New password under 8 characters, or current password incorrect",
+            "description": "New password under 12 characters, or current password incorrect",
             "content": {
               "application/json": {
                 "schema": {
@@ -3933,7 +3933,7 @@
             }
           },
           "400": {
-            "description": "Invalid email, password under 8 characters, empty display name, email taken, invalid invite, or registration closed",
+            "description": "Invalid email, password under 12 characters, empty display name, email taken, invalid invite, or registration closed",
             "content": {
               "application/json": {
                 "schema": {
@@ -11490,7 +11490,7 @@
             }
           },
           "400": {
-            "description": "Setup already complete, or invalid email, password (under 8 characters) or display name",
+            "description": "Setup already complete, or invalid email, password (under 12 characters) or display name",
             "content": {
               "application/json": {
                 "schema": {

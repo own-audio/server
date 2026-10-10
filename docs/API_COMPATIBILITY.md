@@ -243,6 +243,13 @@ lives. Clients never parse it, never persist it, and never assume its host.
 - **Uploads and storing podcast episodes need `can_upload`** (`403` without
   it), and `POST /podcasts/subscribe` answers `400` for a feed on a private or
   local address (since 2026-10-11).
+- **A password must be 12 characters or more** when set (`400` below that);
+  it was 8 until 2026-10-11. Sign-in with an older, shorter password still
+  works.
+- **`POST /auth/login` answers `429` for too many wrong passwords** on one
+  email (`error: account_locked`, `Retry-After` in seconds) as well as for
+  the per-IP limit (`error: rate_limited`). Treat both as "wait", show the
+  seconds; neither says whether the email exists.
 - **`402` means the family has no room**: `POST /uploads/presign`,
   `POST /uploads/complete` and storing a podcast episode answer it when a
   server's `STORAGE__FAMILY_QUOTA_BYTES` is reached (or, on a hosted server,

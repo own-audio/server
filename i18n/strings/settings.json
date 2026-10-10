@@ -98,8 +98,8 @@
     "note": "Label of the field repeating the new password."
   },
   "settings.password.hint": {
-    "en": "At least 8 characters. Changing your password signs out your other devices.",
-    "cs": "Nejméně 8 znaků. Změna hesla odhlásí vaše ostatní zařízení."
+    "en": "At least 12 characters. Changing your password signs out your other devices.",
+    "cs": "Nejméně 12 znaků. Změna hesla odhlásí vaše ostatní zařízení."
   },
   "settings.password.change": {
     "en": "Change password",
@@ -118,8 +118,8 @@
     "cs": "Heslo se nepodařilo změnit."
   },
   "settings.password.tooShort": {
-    "en": "Use at least 8 characters.",
-    "cs": "Použijte alespoň 8 znaků."
+    "en": "Use at least 12 characters.",
+    "cs": "Použijte alespoň 12 znaků."
   },
   "settings.password.mismatch": {
     "en": "Those passwords don't match.",

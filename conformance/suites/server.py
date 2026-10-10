@@ -162,3 +162,28 @@ def run(ctx):
                       b'"feature_unavailable"' in got and feature.encode() in got, got[:120].decode(errors="replace"))
         else:
             ctx.skip(f"{feature}: {path}", "pre-discovery server")
+
+    # Wrong passwords in a row lock the email for a growing while (security hardening plan
+    # §5.1): 429 `account_locked` with Retry-After, for an email with an account and for one
+    # without alike. The per-IP login limit answers 429 `rate_limited` and may come first on a
+    # busy run; that is not the finding, so it ends the check instead of failing it.
+    uid, email, _tok = ctx.make_user("lock", "LockTest12345!")
+    def _lock_outcome(who: str) -> str | None:
+        for _ in range(8):
+            status = ctx.status_of("POST", "/api/v1/auth/login", body={"email": who, "password": "wrong-password-1"})
+            if status == 429:
+                got = ctx.call("POST", "/api/v1/auth/login", body={"email": who, "password": "wrong-password-1"},
+                               expect=(429,), raw=True)
+                return "locked" if b'"account_locked"' in got else "rate_limited"
+            if status != 401:
+                return f"unexpected {status}"
+        return "never"
+    outcome = _lock_outcome(email)
+    if outcome == "rate_limited":
+        ctx.skip("account lock after wrong passwords", "the per-IP login limit answered first")
+    else:
+        ctx.check("an email is locked after a run of wrong passwords (429 account_locked)", outcome == "locked", outcome)
+        status = ctx.status_of("POST", "/api/v1/auth/login", body={"email": email, "password": "LockTest12345!"})
+        ctx.check("the right password is refused too while the lock lasts", status == 429, str(status))
+        outcome = _lock_outcome(f"nobody-{ctx.sfx}@example.com")
+        ctx.check("an email without an account locks the same way", outcome in ("locked", "rate_limited"), outcome)

@@ -5,6 +5,7 @@ pub mod device;
 pub mod error;
 pub mod middleware;
 pub mod oidc;
+pub mod password;
 pub mod session;
 
 use crate::app::AppState;
@@ -231,40 +232,51 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
     responses(
         (status = 200, body = LoginResponse),
         (status = 401, description = "Unknown account, inactive account or wrong password — deliberately not told apart", body = crate::http::openapi::ErrorBody),
-        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
+        (status = 429, description = "Rate limited, or too many wrong passwords for this email (`account_locked`); see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, AuthError> {
     let pool = state.db();
 
-    // 1. Look up the user by email
-    let user = db::users::find_by_email(pool, &body.email)
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::InvalidCredentials)?;
-
-    if !user.is_active {
-        return Err(AuthError::InvalidCredentials);
+    // Wrong passwords in a row lock the email for a growing while, whether
+    // or not it has an account — so the lock says nothing about which
+    // emails exist (security hardening plan §5.1). The published demo
+    // account is exempt: anyone could lock it for everyone else.
+    let email_lc = body.email.trim().to_lowercase();
+    let lockable = !crate::demo::is_read_only_account(&state, &email_lc);
+    if lockable {
+        if let Some(secs) = db::login_failures::locked_for_secs(pool, &email_lc).await.map_err(AuthError::Internal)? {
+            return Err(AuthError::Locked { retry_after_secs: secs.max(1) as u64 });
+        }
     }
 
-    // 2. Find the local identity (password hash)
-    let identity = db::users::find_identity_for_local(pool, user.id)
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::InvalidCredentials)?;
+    let user = match verify_password_login(pool, &body).await {
+        Ok(user) => user,
+        Err(AuthError::InvalidCredentials) if lockable => {
+            let failures = db::login_failures::record(pool, &email_lc, password::lock_after)
+                .await
+                .map_err(AuthError::Internal)?;
+            if failures == password::LOCK_AT {
+                // Told once, at the first lock, and only if there is someone to tell.
+                if let Ok(Some(owner)) = db::users::find_by_email(pool, &email_lc).await {
+                    let mail = state.config().mail.clone();
+                    tokio::spawn(async move {
+                        crate::mail::lockout::send_lockout_notice(mail.as_ref(), &owner.email, failures).await;
+                    });
+                }
+            }
+            return Err(AuthError::InvalidCredentials);
+        }
+        Err(e) => return Err(e),
+    };
+    if lockable {
+        if let Err(e) = db::login_failures::clear(pool, &email_lc).await {
+            tracing::warn!(error = %e, "could not clear login failures");
+        }
+    }
 
-    let hash_str = identity.password_hash.ok_or(AuthError::InvalidCredentials)?;
-
-    // 3. Verify the password with argon2
-    let parsed_hash = PasswordHash::new(&hash_str)
-        .map_err(|_| AuthError::InvalidCredentials)?;
-
-    Argon2::default()
-        .verify_password(body.password.as_bytes(), &parsed_hash)
-        .map_err(|_| AuthError::InvalidCredentials)?;
-
-    // 4. Mint access JWT + refresh token (new device chain)
+    // Mint access JWT + refresh token (new device chain)
     let issued = issue_tokens(
         &state,
         &user,
@@ -275,6 +287,29 @@ async fn login(
     .await?;
 
     Ok(Json(login_response(issued, user)))
+}
+
+/// The account behind an email and password, or `InvalidCredentials` — for an
+/// unknown email, an inactive account, no local identity and a wrong
+/// password alike, deliberately not told apart.
+async fn verify_password_login(pool: &sqlx::PgPool, body: &LoginRequest) -> Result<User, AuthError> {
+    let user = db::users::find_by_email(pool, &body.email)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::InvalidCredentials)?;
+    if !user.is_active {
+        return Err(AuthError::InvalidCredentials);
+    }
+    let identity = db::users::find_identity_for_local(pool, user.id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::InvalidCredentials)?;
+    let hash_str = identity.password_hash.ok_or(AuthError::InvalidCredentials)?;
+    let parsed_hash = PasswordHash::new(&hash_str).map_err(|_| AuthError::InvalidCredentials)?;
+    Argon2::default()
+        .verify_password(body.password.as_bytes(), &parsed_hash)
+        .map_err(|_| AuthError::InvalidCredentials)?;
+    Ok(user)
 }
 
 /// Keep in sync with `playback::normalize_device_kind`, which gates the same values for progress
@@ -638,7 +673,7 @@ pub(crate) fn providers_response(auth: &crate::app::AuthConfig) -> ProvidersResp
     request_body = RegisterRequest,
     responses(
         (status = 201, description = "Account created and signed in", body = LoginResponse),
-        (status = 400, description = "Invalid email, password under 8 characters, empty display name, email taken, invalid invite, or registration closed", body = crate::http::openapi::ErrorBody)))]
+        (status = 400, description = "Invalid email, password under 12 characters, empty display name, email taken, invalid invite, or registration closed", body = crate::http::openapi::ErrorBody)))]
 async fn register(
     State(state): State<AppState>,
     Json(body): Json<RegisterRequest>,
@@ -655,11 +690,7 @@ async fn register(
     // 2. Authorize: either open registration, or a valid invite for this email.
     let invite = authorize_new_account(&state, &email, body.invite_code.as_deref()).await?;
 
-    if body.password.len() < 8 {
-        return Err(AuthError::BadRequest(
-            "password must be at least 8 characters".into(),
-        ));
-    }
+    password::check(&body.password)?;
     let display_name = body.display_name.trim().to_string();
     if display_name.is_empty() {
         return Err(AuthError::BadRequest("display name is required".into()));
@@ -1023,7 +1054,7 @@ fn is_loopback_redirect(uri: &str) -> bool {
     request_body = ChangePasswordRequest,
     responses(
         (status = 204, description = "Changed; every other session and device is signed out"),
-        (status = 400, description = "New password under 8 characters, or current password incorrect", body = crate::http::openapi::ErrorBody),
+        (status = 400, description = "New password under 12 characters, or current password incorrect", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Invalid access token, or the account has no password", body = crate::http::openapi::ErrorBody)))]
 async fn change_password(
     auth: AuthUser,
@@ -1033,11 +1064,7 @@ async fn change_password(
     let pool = state.db();
 
     // 1. Validate new password
-    if body.new_password.len() < 8 {
-        return Err(AuthError::BadRequest(
-            "new password must be at least 8 characters".into(),
-        ));
-    }
+    password::check(&body.new_password)?;
 
     // 2. Verify current password
     let identity = db::users::find_identity_for_local(pool, auth.user_id)
@@ -1081,7 +1108,7 @@ async fn change_password(
     request_body = AdminCreateUserRequest,
     responses(
         (status = 201, body = UserInfo),
-        (status = 400, description = "Invalid email, password under 8 characters, empty display name, or email in use", body = crate::http::openapi::ErrorBody),
+        (status = 400, description = "Invalid email, password under 12 characters, empty display name, or email in use", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
         (status = 403, description = "Caller is not an admin", body = crate::http::openapi::ErrorBody)))]
 async fn admin_create_user(
@@ -1100,9 +1127,7 @@ async fn admin_create_user(
     if email.is_empty() || !email.contains('@') {
         return Err(AuthError::BadRequest("invalid email address".into()));
     }
-    if body.password.len() < 8 {
-        return Err(AuthError::BadRequest("password must be at least 8 characters".into()));
-    }
+    password::check(&body.password)?;
     let display_name = body.display_name.trim().to_string();
     if display_name.is_empty() {
         return Err(AuthError::BadRequest("display name is required".into()));

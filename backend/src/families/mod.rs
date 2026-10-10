@@ -1885,11 +1885,7 @@ async fn claim_provisioned_account(
     Path(code): Path<String>,
     Json(body): Json<ClaimInviteRequest>,
 ) -> Result<(StatusCode, Json<crate::auth::LoginResponse>), AuthError> {
-    if body.password.len() < 8 {
-        return Err(AuthError::BadRequest(
-            "password must be at least 8 characters".into(),
-        ));
-    }
+    crate::auth::password::check(&body.password)?;
 
     let invite = db::families::find_invite_by_code(state.db(), code.trim())
         .await

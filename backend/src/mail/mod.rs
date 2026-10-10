@@ -9,6 +9,7 @@
 use crate::app::config::MailConfig;
 
 pub mod invite;
+pub mod lockout;
 mod smtp;
 
 /// Send a plain-text + HTML email. `config: None`, or one without an SMTP

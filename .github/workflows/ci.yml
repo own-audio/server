@@ -120,8 +120,8 @@ jobs:
       - name: First admin
         run: |
           curl -fs -X POST http://localhost:8080/api/v1/setup/complete -H 'Content-Type: application/json' \
-            -d '{"email":"admin@example.com","password":"CiAdmin123!","display_name":"CI"}'
-      - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!' --report conformance-report.json
+            -d '{"email":"admin@example.com","password":"CiAdmin123!-long","display_name":"CI"}'
+      - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!-long' --report conformance-report.json
       # BACKUP.md's restore, word for word, into an emptied database; then the
       # server must work on what came back.
       - name: Backup and restore
@@ -137,7 +137,7 @@ jobs:
           for i in $(seq 1 60); do curl -fs http://localhost:8080/health && break; sleep 2; done
       - name: The restored database works
         # After a minute, so the per-IP login limit from the full run has reset.
-        run: sleep 61 && python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!' --only smoke,families
+        run: sleep 61 && python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!-long' --only smoke,families
       - uses: actions/upload-artifact@v7
         if: always()
         with: { name: "conformance-report-${{ matrix.storage }}", path: conformance-report.json, if-no-files-found: ignore }

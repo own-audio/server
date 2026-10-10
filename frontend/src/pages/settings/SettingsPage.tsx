@@ -143,7 +143,7 @@ function Password() {
   function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (next.length < 8) return setError(t("settings.password.tooShort"));
+    if (next.length < 12) return setError(t("settings.password.tooShort"));
     if (next !== confirm) return setError(t("settings.password.mismatch"));
     change.mutate();
   }

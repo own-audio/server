@@ -23,6 +23,7 @@ pub mod music;
 pub mod subsonic;
 pub mod trash;
 pub mod uploads;
+pub mod login_failures;
 pub mod instance;
 
 /// Pool size when `DATABASE_MAX_CONNECTIONS` is unset. A family's requests,

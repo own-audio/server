@@ -93,7 +93,7 @@ async fn setup_status(
     request_body = CompleteSetupRequest,
     responses(
         (status = 201, description = "Admin created and signed in", body = crate::auth::LoginResponse),
-        (status = 400, description = "Setup already complete, or invalid email, password (under 8 characters) or display name", body = crate::http::openapi::ErrorBody),
+        (status = 400, description = "Setup already complete, or invalid email, password (under 12 characters) or display name", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn complete_setup(
     State(state): State<AppState>,
@@ -117,11 +117,7 @@ async fn complete_setup(
     if email.is_empty() || !email.contains('@') {
         return Err(AuthError::BadRequest("invalid email address".into()));
     }
-    if body.password.len() < 8 {
-        return Err(AuthError::BadRequest(
-            "password must be at least 8 characters".into(),
-        ));
-    }
+    crate::auth::password::check(&body.password)?;
     let display_name = body.display_name.trim().to_string();
     if display_name.is_empty() {
         return Err(AuthError::BadRequest("display name is required".into()));

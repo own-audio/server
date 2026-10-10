@@ -31,6 +31,15 @@ semver. Each release states the **API contract revision** it serves
   registered. A presigned upload that never completes is deleted by the daily
   storage sweep after 24 hours (migration 0094).
 - `POST /auth/register` is rate-limited like sign-in.
+- A new password must be at least 12 characters (was 8); nothing else is
+  required of it, and existing passwords keep working. Setup, register,
+  invite claim, password change and admin-create all apply it; the console's
+  hints say so.
+- Wrong passwords in a row lock sign-in for that email for a growing while
+  (30 s after five, doubling to 16 minutes), whether or not the email has an
+  account: `429` with `error: account_locked` and `Retry-After`. The owner
+  is told by mail at the first lock when mail is configured. A right
+  password clears it. Migration 0095. The published demo account is exempt.
 - A per-family storage limit, `STORAGE__FAMILY_QUOTA_BYTES` (unset: none).
   Over it, `POST /uploads/presign`, `POST /uploads/complete` and storing a
   podcast episode answer `402` with the reason; the Subsonic

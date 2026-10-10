@@ -8,7 +8,7 @@ import { login, register } from "../../api/auth";
 import { useAuthStore } from "../../store/authStore";
 import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
 import { Button, Input, PasswordInput, Skeleton, toast } from "../../components/ui";
-import { apiErrorMessage } from "../../lib/apiError";
+import { apiErrorMessage, isRateLimited } from "../../lib/apiError";
 import { useT } from "../../i18n";
 
 /**
@@ -64,7 +64,7 @@ export default function JoinPage() {
     setError(null);
     if (mode === "register") {
       if (!name.trim()) return setError(t("auth.error.nameMissing"));
-      if (password.length < 8) return setError(t("auth.error.passwordShort"));
+      if (password.length < 12) return setError(t("auth.error.passwordShort"));
     }
     setBusy(true);
     try {
@@ -79,6 +79,7 @@ export default function JoinPage() {
       }
       landInside(preview?.family_name ?? null);
     } catch (err) {
+      if (isRateLimited(err)) return setError(t("auth.error.tooManyAttempts"));
       setError(apiErrorMessage(err, t(mode === "register" ? "auth.error.registerFailed" : "auth.error.badLogin")));
     } finally {
       setBusy(false);
@@ -89,7 +90,7 @@ export default function JoinPage() {
   async function claim(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) return setError(t("auth.error.passwordShort"));
+    if (password.length < 12) return setError(t("auth.error.passwordShort"));
     setBusy(true);
     try {
       const result = await claimAccount(code, password);
