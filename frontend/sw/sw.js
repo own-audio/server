@@ -112,13 +112,17 @@ self.addEventListener("fetch", (event) => {
     caches.match(req).then((hit) => {
       if (hit && keepable(req.url, hit)) return hit;
       if (hit) void caches.open(CACHE).then((cache) => cache.delete(req));
-      return fetch(req).then((res) => {
-        if (url.pathname.startsWith("/assets/") && keepable(req.url, res)) {
-          const copy = res.clone();
-          void caches.open(CACHE).then((cache) => cache.put(req, copy));
-        }
-        return res;
-      });
+      // Past the browser's HTTP cache too: a CDN can give a `.js` path hours of it,
+      // and the HTML fallback it once answered with would come back from there.
+      return fetch(req, { cache: "no-cache" })
+        .then((res) => (keepable(req.url, res) ? res : fetch(req, { cache: "reload" })))
+        .then((res) => {
+          if (url.pathname.startsWith("/assets/") && keepable(req.url, res)) {
+            const copy = res.clone();
+            void caches.open(CACHE).then((cache) => cache.put(req, copy));
+          }
+          return res;
+        });
     })
   );
 });

@@ -21,6 +21,9 @@ semver. Each release states the **API contract revision** it serves
   for a build file asked for while a deploy was switching over, and the
   service worker cached it under that file's name. It now keeps only real
   files and drops such a copy; its cache is renewed when its own code changes.
+  It also asks past the browser's HTTP cache, where a CDN that gives `.js`
+  paths hours of cache kept the fallback page too, and the worker's own
+  update check no longer goes through that cache.
 - Web console sign-in: the "Continue with Apple" button had no visible label
   (its text took the background colour), and in the dark theme Google's
   button sat in a white box. Both are now the same height and shape.

@@ -23,7 +23,9 @@ void initDownloads()
 // code under hot reload.
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {
+    // A CDN may give `.js` files hours of browser cache, sw.js included; an update
+    // check that went through that cache would keep a broken worker for hours.
+    navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).catch(() => {
       // Without it the app still works online; it just won't open offline.
     })
   })
