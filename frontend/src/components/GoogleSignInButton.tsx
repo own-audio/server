@@ -47,7 +47,10 @@ export default function GoogleSignInButton({ providers, onSignedIn, onError }: P
   return (
     <div>
       <GoogleOAuthProvider clientId={clientId} locale={locale}>
-        <div ref={measureRef} className="flex min-h-10 justify-center">
+        {/* Google's iframe is a light document. Under the dark theme's `color-scheme: dark`
+            the browser paints an opaque white backdrop behind a frame whose scheme differs,
+            which showed as a white box around the dark button; matching it keeps it clear. */}
+        <div ref={measureRef} className="flex min-h-10 justify-center" style={{ colorScheme: "light" }}>
           {width != null && (
             <GoogleLogin
               width={String(width)}

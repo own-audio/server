@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { loginWithApple, type AuthProviders } from "../api/auth";
 import type { LoginResponse } from "../api/types";
-import { Button } from "./ui/Button";
+import { Loader2 } from "lucide-react";
 import { useT, type Locale } from "../i18n";
 
 interface Props {
@@ -93,22 +93,24 @@ export default function AppleSignInButton({ providers, onSignedIn, onError }: Pr
     }
   }
 
+  // A plain button, not ui/Button: a variant's own text colour beat `text-bg` (class order
+  // doesn't decide, the stylesheet does) and left the label invisible. Apple's black style
+  // in light mode and white in dark, at the height and shape of Google's large pill.
   return (
-    <Button
+    <button
       type="button"
-      variant="secondary"
-      size="lg"
-      className="w-full bg-fg text-bg hover:bg-fg/90"
       onClick={signIn}
-      disabled={!ready}
-      loading={busy}
-      icon={
-        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current" aria-hidden="true">
+      disabled={!ready || busy}
+      className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-pill bg-fg px-5 text-[14px] font-medium text-bg transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50"
+    >
+      {busy ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] fill-current" aria-hidden="true">
           <path d="M16.37 12.7c-.03-2.6 2.13-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.9-1.74.03-3.35 1.01-4.25 2.58-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.89 2.65 3.24 2.6 1.3-.05 1.79-.84 3.36-.84 1.57 0 2.01.84 3.39.81 1.4-.02 2.29-1.27 3.14-2.52.99-1.45 1.4-2.85 1.42-2.92-.03-.01-2.73-1.05-2.74-4.14zM13.8 5.06c.72-.87 1.2-2.08 1.07-3.29-1.03.04-2.29.69-3.03 1.56-.66.77-1.25 2-1.09 3.18 1.15.09 2.33-.58 3.05-1.45z" />
         </svg>
-      }
-    >
+      )}
       {t("common.action.continueWithApple")}
-    </Button>
+    </button>
   );
 }

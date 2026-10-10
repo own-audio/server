@@ -15,6 +15,9 @@ semver. Each release states the **API contract revision** it serves
   Migration 0093.
 
 ### Fixed
+- Web console sign-in: the "Continue with Apple" button had no visible label
+  (its text took the background colour), and in the dark theme Google's
+  button sat in a white box. Both are now the same height and shape.
 - A first scan of a large library folder got slower with every file: the
   check that a new item's file-sync path is free read every path the owner
   had (40 ms a file at 44,000 files). It is three index lookups now.
