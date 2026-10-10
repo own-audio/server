@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.3] - 2026-10-10
+
+Contract revision 6.
+
 ### Added
 - `GET /api/v1/server` says which server this is and where it can be
   reached: `id`, a UUID made once at install, and `addresses`, every address
