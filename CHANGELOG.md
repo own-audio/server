@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- `docker-compose.yml` passes `APPLE_SIGN_IN`/`APPLE_CLIENT_IDS` and
+  `GOOGLE_SIGN_IN`/`GOOGLE_CLIENT_IDS` through, so a self-hosted server can let
+  own.audio Music sign in with Apple or Google (INSTALL.md lists the ids).
+
 ### Changed
 - Library folders: a file that disappears from a folder hides its song (or,
   when none of its files are left, its book) everywhere, the Subsonic API

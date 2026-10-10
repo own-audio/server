@@ -47,7 +47,7 @@ link or QR code — there is no open sign-up unless you turn it on
 | `PUID`, `PGID` | The user and group the server runs as (not root). They need read access to your library folders; the server's own storage is handed to them at start. | `1000` |
 | `SESSION_SECRET` | Signs sessions and media links. Changing it signs everyone out and ends open media links. | required |
 | `SERVER__RATE_LIMIT__*` | Per-IP limits on login, refresh, device codes, join codes and setup. `…__ENABLED=false` turns them off; `…__TRUST_PROXY_HEADERS=true` when you are behind a proxy on a public address. | on |
-| `AUTH__GOOGLE__*`, `AUTH__APPLE__*`, `AUTH__MICROSOFT__*` | Sign-in providers. Off until you set client ids and `…__ENABLED=true`. | off |
+| `APPLE_SIGN_IN`, `APPLE_CLIENT_IDS`, `GOOGLE_SIGN_IN`, `GOOGLE_CLIENT_IDS` | Sign in with Apple or Google from the own.audio apps; see below. | off |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Mail for invites, over SMTP submission: implicit TLS on 465 by default, `SMTP_SECURITY=starttls` for 587, `none` for a relay on your own network (no password is ever sent without TLS). Most providers only accept `MAIL_FROM` = the mailbox you sign in as. Off until set; invites work by link and QR without it. | off |
 | `MUSICBRAINZ__ENABLED`, `MUSICBRAINZ__CONTACT` | Identify music through the public MusicBrainz API, when someone presses identify (never in the background), at most once a second. `false` keeps the server from contacting musicbrainz.org. The contact (an e-mail or URL) goes in the User-Agent, as MusicBrainz asks. | on |
 | `ITUNES__ENABLED` | Podcast search through Apple's public directory, when no metadata service is set. The search term goes to Apple; `false` turns search off. | on |
@@ -55,6 +55,26 @@ link or QR code — there is no open sign-up unless you turn it on
 
 The full list is `backend/src/app/config.rs`; every field reads from the
 environment with `__` between levels.
+
+### Sign in with Apple or Google
+
+The own.audio apps can sign in to your server with Apple or Google instead
+of a password. The server checks the token the provider gives the app against
+the provider's public keys, so no key or secret is needed, only the app's id.
+In `.env`:
+
+```bash
+APPLE_SIGN_IN=true
+APPLE_CLIENT_IDS=audio.own.musicplayer
+GOOGLE_SIGN_IN=true
+GOOGLE_CLIENT_IDS=456111077348-2sr1qbemell0eoju7o8n0nt10gb34a85.apps.googleusercontent.com
+```
+
+These are own.audio Music's ids (iPhone and iPad). The account is matched by
+the email Apple or Google confirms; with no account for that email, the
+server makes one only if registration is open or the person has an invite.
+The web console's Apple and Google buttons need ids registered for your own
+domain, so they stay off with these.
 
 ## Storage
 
