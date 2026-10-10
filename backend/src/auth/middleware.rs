@@ -52,6 +52,10 @@ impl FromRequestParts<AppState> for AuthUser {
             return Err(AuthError::SessionInvalid);
         }
 
+        if crate::demo::refuses(state, &parts.method, parts.uri.path(), claims.sub).await {
+            return Err(AuthError::DemoReadOnly);
+        }
+
         Ok(AuthUser {
             user_id: claims.sub,
             session_id: claims.jti,

@@ -30,6 +30,10 @@ pub enum AuthError {
     #[error("forbidden")]
     Forbidden,
 
+    /// A public demo's shared account tried to change something (`crate::demo`).
+    #[error("the demo account is read-only")]
+    DemoReadOnly,
+
     #[error("identity already linked to another account")]
     IdentityConflict,
 
@@ -55,7 +59,7 @@ impl IntoResponse for AuthError {
             AuthError::BadRequest(message) => (StatusCode::BAD_REQUEST, message.clone()),
             AuthError::ItemNotFound => (StatusCode::NOT_FOUND, self.to_string()),
             AuthError::SessionInvalid => (StatusCode::UNAUTHORIZED, self.to_string()),
-            AuthError::Forbidden => (StatusCode::FORBIDDEN, self.to_string()),
+            AuthError::Forbidden | AuthError::DemoReadOnly => (StatusCode::FORBIDDEN, self.to_string()),
             AuthError::IdentityConflict => (StatusCode::CONFLICT, self.to_string()),
             AuthError::ProviderNotConfigured => (StatusCode::NOT_IMPLEMENTED, self.to_string()),
             AuthError::Conflict(message) => (StatusCode::CONFLICT, message.clone()),

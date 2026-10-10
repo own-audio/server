@@ -115,7 +115,12 @@ Rules:
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it
-  in. It is set by `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD`.
+  in. It is set by `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD`. The
+  account is read-only (since 1.0.0-beta.4): a write answers `403`
+  `{"error": "the demo account is read-only"}`, a Subsonic write error 50.
+  Listening still works — playback sessions, progress, the play queue,
+  scrobbles — and so do searches and smart-playlist previews.
+  `SERVER__DEMO__READ_ONLY=false` lifts it, for a script that fills the demo.
 
 The web console in this repo and every native client hide or disable UI for a
 feature whose key is `false`. There is no second source of truth (no

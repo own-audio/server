@@ -144,6 +144,10 @@ impl FromRequestParts<AppState> for SubsonicAuthUser {
             return Err(reject(SubsonicErrorCode::WrongCredentials));
         }
 
+        if crate::demo::is_read_only_account(state, &user.email) && crate::demo::subsonic_refuses(parts.uri.path()) {
+            return Err(reject(SubsonicErrorCode::NotAuthorized));
+        }
+
         let membership = db::families::ensure_membership(state.db(), user.id, state.hooks().one_family())
             .await
             .map_err(|_| reject(SubsonicErrorCode::Generic))?;

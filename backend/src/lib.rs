@@ -17,6 +17,7 @@ pub mod app;
 pub mod auth;
 pub mod audiobooks;
 pub mod dashboard;
+pub mod demo;
 pub mod db;
 pub mod devices;
 pub mod families;

@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+- A public demo's shared account (`SERVER__DEMO__EMAIL`) is read-only: its
+  password is published, so anyone could otherwise change it, rotate the
+  Subsonic key or delete the music and lock everyone else out. Listening,
+  progress, the play queue, scrobbles, searches and smart-playlist previews
+  still work; other writes answer `403` (Subsonic: error 50).
+  `SERVER__DEMO__READ_ONLY=false` lifts it while a seed script runs.
+
 ### Fixed
 - Subsonic: songs shared from another family member's library carried album
   and artist ids made for their owner, not for the listener, so "go to album"

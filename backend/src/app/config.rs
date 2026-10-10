@@ -109,7 +109,8 @@ pub struct ServerConfig {
     /// so a visitor can try the server without asking for an account. Both
     /// `SERVER__DEMO__EMAIL` and `SERVER__DEMO__PASSWORD` are published
     /// through `GET /api/v1/server` to anyone, so set them only on a server
-    /// whose whole point is to be tried by strangers.
+    /// whose whole point is to be tried by strangers. The account is read-only
+    /// (see `crate::demo`) unless `SERVER__DEMO__READ_ONLY=false`.
     pub demo: Option<DemoConfig>,
 }
 
@@ -117,6 +118,12 @@ pub struct ServerConfig {
 pub struct DemoConfig {
     pub email: String,
     pub password: String,
+    #[serde(default = "read_only_by_default")]
+    pub read_only: bool,
+}
+
+fn read_only_by_default() -> bool {
+    true
 }
 
 /// Per-client-IP request limits for the unauthenticated, guessable routes:

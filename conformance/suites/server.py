@@ -43,6 +43,17 @@ def run(ctx):
             demo = info["demo"] or {}
             ctx.check("demo carries an email and a password",
                       all(isinstance(demo.get(k), str) and demo[k] for k in ("email", "password")))
+            # The published account must not be able to lock everyone else out. A wrong current
+            # password makes the probe harmless on a server where the account isn't read-only.
+            try:
+                tok = ctx.call("POST", "/api/v1/auth/login", body={"email": demo["email"], "password": demo["password"]})["token"]
+            except AssertionError:
+                tok = None
+            if tok:
+                ctx.call("GET", "/api/v1/music/tracks?limit=1", tok)
+                ctx.call("POST", "/api/v1/auth/password", tok, body={"current_password": "not-the-password", "new_password": "x" * 16},
+                         expect=(403,))
+                ctx.check("the demo account can read but not change its password", True)
         ctx.check("features.auth agrees with /auth/providers",
                   all(auth.get(p) == bool((ctx.providers.get(p) or {}).get("enabled")) for p in ("google", "apple", "microsoft")))
 
