@@ -1093,6 +1093,8 @@ async fn provision_member(
     db::families::add_member(state.db(), family.family_id, user.id, "member")
         .await
         .map_err(AuthError::Internal)?;
+    // A login the family admin made up: nothing to mail, nothing to prove.
+    crate::auth::verification::born(&state, &user, family.family_id, true).await?;
 
     if let Some(label) = body.display_label.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
         db::families::set_display_label(state.db(), family.family_id, user.id, Some(label))
@@ -1165,6 +1167,8 @@ async fn create_invite(
     Json(body): Json<CreateInviteRequest>,
 ) -> Result<(StatusCode, Json<InviteResponse>), AuthError> {
     family.require_family_admin()?;
+    // Inviting people needs a proven address (security hardening plan §5.1).
+    crate::auth::verification::require_verified(&state, family.user_id).await?;
 
     let kind = body.kind.trim().to_lowercase();
     if !matches!(kind.as_str(), "email" | "link") {

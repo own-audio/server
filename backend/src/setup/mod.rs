@@ -147,6 +147,7 @@ async fn complete_setup(
         .user_created(pool, membership.family_id, user.id)
         .await
         .map_err(AuthError::Internal)?;
+    crate::auth::verification::born(&state, &user, membership.family_id, true).await?;
 
     tracing::info!(
         email = %user.email,

@@ -7,7 +7,18 @@ use uuid::Uuid;
 /// Column list shared by every query below; keep in sync with `User`.
 const USER_COLUMNS: &str = "id, email, display_name, role, is_active, avatar_object_id,
      recommendations_enabled, recommendations_changed_at, discovery_languages,
-     created_at, updated_at";
+     email_verified_at, created_at, updated_at";
+
+/// Records the proof; `true` the first time, `false` when it was already there.
+pub async fn mark_email_verified(pool: &PgPool, user_id: Uuid) -> anyhow::Result<bool> {
+    let rows = sqlx::query("UPDATE users SET email_verified_at = now() WHERE id = $1 AND email_verified_at IS NULL")
+        .bind(user_id)
+        .execute(pool)
+        .await
+        .context("db: mark email verified")?
+        .rows_affected();
+    Ok(rows > 0)
+}
 
 pub async fn find_by_id(pool: &PgPool, id: Uuid) -> anyhow::Result<Option<User>> {
     sqlx::query_as::<_, User>(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = $1"))

@@ -197,3 +197,15 @@ def run(ctx):
     ctx.call("POST", "/api/v1/auth/password/reset", body={"token": "0" * 64, "password": "LongEnough123!"}, expect=(400,))
     ctx.call("POST", "/api/v1/auth/password/reset", body={"token": "0" * 64, "password": "short"}, expect=(400,))
     ctx.check("password/reset refuses a made-up link and a short password with 400", True)
+
+    # Email verification (plan H6): `me` says whether the address is proven; on a server that
+    # does not mail links every account is born verified, so the admin's is. A made-up link is
+    # refused; "resend" for a verified account answers 200 and sends nothing.
+    me = ctx.call("GET", "/api/v1/auth/me", ctx.admin_token)
+    ctx.check("me.email_verified is a boolean", isinstance(me.get("email_verified"), bool), str(me.get("email_verified")))
+    if not ctx.feature("auth.email_verification"):
+        ctx.check("without mailed links every account counts as verified", me.get("email_verified") is True)
+    ctx.call("POST", "/api/v1/auth/email/verify", body={"token": "0" * 64}, expect=(400,))
+    ctx.check("email/verify refuses a made-up link with 400", True)
+    resent = ctx.call("POST", "/api/v1/auth/email/resend", ctx.admin_token)
+    ctx.check("email/resend answers sent/verified booleans", isinstance(resent.get("sent"), bool) and isinstance(resent.get("verified"), bool), str(resent))

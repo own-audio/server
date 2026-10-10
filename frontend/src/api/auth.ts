@@ -53,6 +53,15 @@ export async function resetPassword(token: string, password: string): Promise<vo
   await api.post("/auth/password/reset", { token, password });
 }
 
+export async function verifyEmail(token: string): Promise<void> {
+  await api.post("/auth/email/verify", { token });
+}
+
+export async function resendVerification(): Promise<{ sent: boolean; verified: boolean }> {
+  const { data } = await api.post<{ sent: boolean; verified: boolean }>("/auth/email/resend");
+  return data;
+}
+
 export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>("/auth/google", {
     id_token: idToken,

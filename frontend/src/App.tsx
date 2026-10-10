@@ -25,6 +25,7 @@ const BillingPage = lazyPage(() => import("./pages/billing/BillingPage"));
 const TrashPage = lazyPage(() => import("./pages/trash/TrashPage"));
 const JoinPage = lazyPage(() => import("./pages/join/JoinPage"));
 const ResetPasswordPage = lazyPage(() => import("./pages/auth/ResetPasswordPage"));
+const VerifyEmailPage = lazyPage(() => import("./pages/auth/VerifyEmailPage"));
 const LinkPage = lazyPage(() => import("./pages/link/LinkPage"));
 const PlayPage = lazyPage(() => import("./pages/play/PlayPage"));
 const TranslatePage = lazyPage(() => import("./pages/podcasts/TranslatePage"));
@@ -47,6 +48,7 @@ export default function App({ extraRoutes }: AppProps = {}) {
       <Routes>
         <Route path="/auth/login" element={<AuthPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
         <Route path="/setup" element={<SetupWizard />} />
         {/* Public: an invite link has to work signed out. */}
         <Route path="/join/:code" element={<JoinPage />} />

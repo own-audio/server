@@ -43,8 +43,10 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
             "google": providers.google.enabled,
             "apple": providers.apple.enabled,
             "microsoft": providers.microsoft.enabled,
-            // Revision 7: "forgot password" links can be mailed.
+            // Revision 7: "forgot password" links can be mailed, and new
+            // accounts get a confirmation link (`me.email_verified`).
             "password_reset": crate::auth::password_reset_offered(cfg),
+            "email_verification": crate::auth::verification::offered(cfg),
         }),
     );
     features.insert("uploads".into(), json!({ "presigned": true, "multipart_max_bytes": Value::Null }));

@@ -258,6 +258,11 @@ export interface MessageParams {
   "auth.reset.title": undefined;
   "auth.signIn.title": undefined;
   "auth.tagline": undefined;
+  "auth.verify.done": undefined;
+  "auth.verify.invalid": undefined;
+  "auth.verify.open": undefined;
+  "auth.verify.title": undefined;
+  "auth.verify.working": undefined;
   "auth.version": { "version": string | number };
   "billing.alerts.balance": { "currency": string | number };
   "billing.alerts.days": undefined;
@@ -1474,6 +1479,9 @@ export interface MessageParams {
   "shell.uploads.title": undefined;
   "shell.uploads.uploading": { "count": number };
   "shell.uploads.waiting": undefined;
+  "shell.verifyEmail.message": { "email": string | number };
+  "shell.verifyEmail.resend": undefined;
+  "shell.verifyEmail.sent": undefined;
   "stats.chart.axisHours": { "n": string | number };
   "stats.chart.axisMinutes": { "n": string | number };
   "stats.chart.barLabel": { "title": string | number; "parts": string | number; "total": string | number };

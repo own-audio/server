@@ -4,6 +4,8 @@ export interface UserInfo {
   email: string;
   display_name: string;
   role: string;
+  /** False on a server that mails confirmation links, until the link is used (revision 7). */
+  email_verified: boolean;
   /**
    * False until the user turns it on, for every account. While false the
    * app must compute and show nothing derived from listening history —

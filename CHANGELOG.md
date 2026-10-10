@@ -42,6 +42,17 @@ Contract revision 7.
   account: `429` with `error: account_locked` and `Retry-After`. The owner
   is told by mail at the first lock when mail is configured. A right
   password clears it. Migration 0095. The published demo account is exempt.
+- Email addresses are verified. An account born from an invite mailed to
+  that address, from a sign-in provider that vouches for it, or typed in by
+  an admin counts as proven; one from open registration (or a link invite)
+  gets a confirmation link, good for 24 hours, and `me.email_verified` is
+  false until it is used (`POST /auth/email/verify`, `POST /auth/email/resend`;
+  the console shows a banner). Inviting people needs a proven address
+  (`403 email_unverified`). A server without mail or a console address takes
+  addresses as given — nothing to verify against. Everyone who exists at
+  upgrade is taken as verified (migration 0097). The edition seam gains
+  `Hooks::email_verified`, where the hosted edition grants its welcome credit
+  from now on, so a stream of fresh registrations earns nothing.
 - Instance-admin routes decide on the caller before reading the body
   (`InstanceAdmin` extractor): a plain member gets `403` with nothing else,
   where `POST /auth/admin-create-user` used to answer a validation error

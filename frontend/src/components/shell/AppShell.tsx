@@ -12,6 +12,7 @@ import ShortcutsDialog from "./ShortcutsDialog";
 import { startQueueSync, type ForeignQueue } from "../../lib/queueSync";
 import ContinueElsewhere from "./ContinueElsewhere";
 import OfflineBanner from "./OfflineBanner";
+import VerifyEmailBanner from "./VerifyEmailBanner";
 import { useSidebar } from "../../lib/sidebar";
 import { useCommandPalette } from "../../lib/commandPalette";
 import { useT } from "../../i18n";
@@ -66,6 +67,7 @@ export default function AppShell() {
           {t("shell.skipToContent")}
         </a>
         <OfflineBanner />
+        <VerifyEmailBanner />
 
         <div className="relative flex min-h-0 flex-1">
           <div className="hidden lg:block"><Sidebar /></div>

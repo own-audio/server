@@ -17,6 +17,10 @@ pub struct User {
     /// admin cannot set it for a member.
     #[sqlx(default)]
     pub recommendations_enabled: bool,
+    /// When the address was proven (migration 0097); `None` until the mailed
+    /// link is used. See `auth::verification`.
+    #[sqlx(default)]
+    pub email_verified_at: Option<DateTime<Utc>>,
     #[sqlx(default)]
     pub recommendations_changed_at: Option<DateTime<Utc>>,
     /// Languages podcast discovery answers in, as base subtags (`en`, `cs`).

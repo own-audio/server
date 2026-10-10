@@ -3440,6 +3440,108 @@
         ]
       }
     },
+    "/api/v1/auth/email/resend": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Another link for the signed-in account",
+        "description": "another link for the signed-in account.\n`200` whether or not one went out (already verified, or the server does\nnot mail links); the response says which.",
+        "operationId": "auth_resend_verification",
+        "responses": {
+          "200": {
+            "description": "`sent`: whether a link went out; `verified`: whether the address already is",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/email/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The mailed link's landing call",
+        "description": "the mailed link's landing call. Public:\nthe person may open it on a device that is not signed in.",
+        "operationId": "auth_verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The address is confirmed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Link invalid, used or expired",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ]
+      }
+    },
     "/api/v1/auth/fork": {
       "post": {
         "tags": [
@@ -20283,6 +20385,7 @@
           "display_name",
           "role",
           "recommendations_enabled",
+          "email_verified",
           "discovery_languages"
         ],
         "properties": {
@@ -20301,6 +20404,10 @@
           "recommendations_enabled": {
             "type": "boolean",
             "description": "False until the user turns recommendations on. Carried on every\nauth response so a client knows before it renders anything —\nfetching `/users/me` separately would mean a frame where the app\ndoes not yet know whether it may look at listening history."
+          },
+          "email_verified": {
+            "type": "boolean",
+            "description": "Whether the address was proven (`auth::verification`). False only on\na server that mails confirmation links, until the link is used; the\nconsole then shows a banner with \"resend\"."
           },
           "discovery_languages": {
             "type": "array",
@@ -20359,6 +20466,18 @@
           },
           "created_at": {
             "type": "string"
+          }
+        }
+      },
+      "VerifyEmailRequest": {
+        "type": "object",
+        "required": [
+          "token"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "The secret from the mailed link."
           }
         }
       },

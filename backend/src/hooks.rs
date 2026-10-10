@@ -67,6 +67,14 @@ pub trait Hooks: Send + Sync + 'static {
         Ok(())
     }
 
+    /// The user's email address is proven: by a provider, an invite sent to
+    /// it, the admin who typed it, or the mailed link (`auth::verification`).
+    /// Once per user. The hosted edition grants the welcome credit here, not
+    /// at creation, so a run of fresh registrations earns nothing (H6).
+    async fn email_verified(&self, _db: &PgPool, _family_id: Uuid, _user_id: Uuid) -> anyhow::Result<()> {
+        Ok(())
+    }
+
     /// What restoring `size_bytes` after `days` whole days in the trash would
     /// charge the family, in micro-currency; shown to the user before they
     /// confirm. Nothing is charged in the open-source edition.

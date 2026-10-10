@@ -118,6 +118,12 @@ Rules:
   signs every session out. True when the server has mail and a console
   address (`SERVER__APP_BASE_URL`); clients show "forgot password?" only
   then. `forgot` answers `200` whatever the email.
+- `auth.email_verification` (revision 7): the server mails a confirmation
+  link to accounts whose address nothing vouched for, and `me.email_verified`
+  (also on every sign-in response) is false until the link is used. Clients
+  show a banner with "resend" (`POST /auth/email/resend`) while it is false
+  and treat `403` with `code: email_unverified` (inviting people) as "confirm
+  your address first". False: every account is born verified.
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it

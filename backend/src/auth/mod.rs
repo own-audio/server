@@ -7,6 +7,7 @@ pub mod middleware;
 pub mod oidc;
 pub mod password;
 pub mod session;
+pub mod verification;
 
 use crate::app::AppState;
 use crate::auth::error::AuthError;
@@ -145,6 +146,10 @@ pub struct UserInfo {
     /// fetching `/users/me` separately would mean a frame where the app
     /// does not yet know whether it may look at listening history.
     pub recommendations_enabled: bool,
+    /// Whether the address was proven (`auth::verification`). False only on
+    /// a server that mails confirmation links, until the link is used; the
+    /// console then shows a banner with "resend".
+    pub email_verified: bool,
     /// Base subtags (`en`, `cs`) podcast discovery answers in; empty means
     /// every language. Carried on sign-in so a client can show the setting
     /// without a second call.
@@ -227,6 +232,8 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(change_password))
         .routes(map(routes!(forgot_password), |m| limits.login.apply(m)))
         .routes(map(routes!(reset_password), |m| limits.login.apply(m)))
+        .routes(map(routes!(verification::verify_email), |m| limits.login.apply(m)))
+        .routes(map(routes!(verification::resend_verification), |m| limits.login.apply(m)))
         .routes(routes!(list_sessions))
         .routes(routes!(delete_session))
         .routes(routes!(admin_create_user))
@@ -510,6 +517,7 @@ pub(crate) fn login_response(issued: IssuedTokens, user: User) -> LoginResponse 
             display_name: user.display_name,
             role: user.role,
             recommendations_enabled: user.recommendations_enabled,
+            email_verified: user.email_verified_at.is_some(),
             discovery_languages: user.discovery_languages.clone(),
         },
     }
@@ -723,6 +731,7 @@ async fn me(
         display_name: user.display_name,
         role: user.role,
         recommendations_enabled: user.recommendations_enabled,
+        email_verified: user.email_verified_at.is_some(),
         discovery_languages: user.discovery_languages.clone(),
     }))
 }
@@ -839,7 +848,9 @@ async fn register(
         .map_err(AuthError::Internal)?;
 
     // 6. Place the account in a family: the inviting one, or its own.
-    place_in_family(&state, user.id, invite).await?;
+    let proven = invite_proves(invite.as_ref(), &email);
+    let family_id = place_in_family(&state, user.id, invite).await?;
+    verification::born(&state, &user, family_id, proven).await?;
 
     // 7. Auto-login: mint access + refresh tokens
     let issued = issue_tokens(&state, &user, None, None, None).await?;
@@ -1089,7 +1100,9 @@ async fn sso_sign_in(
     db::users::insert_oidc_identity(pool, user.id, provider, &identity.subject)
         .await
         .map_err(AuthError::Internal)?;
-    place_in_family(state, user.id, invite).await?;
+    let proven = identity.email_verified || invite_proves(invite.as_ref(), &email);
+    let family_id = place_in_family(state, user.id, invite).await?;
+    verification::born(state, &user, family_id, proven).await?;
 
     let issued = issue_tokens(state, &user, device_name, device_kind, None).await?;
     Ok((StatusCode::CREATED, login_response(issued, user)))
@@ -1121,13 +1134,14 @@ async fn place_in_family(
     state: &AppState,
     user_id: Uuid,
     invite: Option<db::families::FamilyInvite>,
-) -> Result<(), AuthError> {
+) -> Result<Uuid, AuthError> {
     match invite {
         Some(invite) => {
             crate::families::claim_invite(state, invite.id, user_id).await?;
             db::families::move_to_family(state.db(), user_id, invite.family_id, &invite.role)
                 .await
                 .map_err(AuthError::Internal)?;
+            Ok(invite.family_id)
         }
         None => {
             let membership = db::families::home_new_user(state.db(), user_id, state.hooks().one_family())
@@ -1138,9 +1152,15 @@ async fn place_in_family(
                 .user_created(state.db(), membership.family_id, user_id)
                 .await
                 .map_err(AuthError::Internal)?;
+            Ok(membership.family_id)
         }
     }
-    Ok(())
+}
+
+/// An invite mailed to this very address proves it; a link invite or open
+/// registration proves nothing.
+fn invite_proves(invite: Option<&db::families::FamilyInvite>, email: &str) -> bool {
+    invite.is_some_and(|i| i.kind == "email" && i.email.as_deref().is_some_and(|e| e.eq_ignore_ascii_case(email)))
 }
 
 /// Only loopback redirect URIs are accepted for the Google authorization-code
@@ -1274,6 +1294,8 @@ async fn admin_create_user(
         .user_created(pool, membership.family_id, user.id)
         .await
         .map_err(AuthError::Internal)?;
+    // The admin typed the address: that vouches for it.
+    verification::born(&state, &user, membership.family_id, true).await?;
 
     Ok((
         StatusCode::CREATED,
@@ -1283,6 +1305,7 @@ async fn admin_create_user(
             display_name: user.display_name,
             role: user.role,
             recommendations_enabled: user.recommendations_enabled,
+            email_verified: user.email_verified_at.is_some(),
             discovery_languages: user.discovery_languages.clone(),
         }),
     ))

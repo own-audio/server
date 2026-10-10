@@ -60,6 +60,11 @@ pub enum AuthError {
     #[error("too many sign-in attempts; try again in {retry_after_secs} seconds")]
     Locked { retry_after_secs: u64 },
 
+    /// The action needs a proven email address (`auth::verification`):
+    /// `403` with `code: email_unverified`, so a client can offer "resend".
+    #[error("confirm your email address first")]
+    EmailUnverified,
+
     #[error(transparent)]
     Internal(#[from] anyhow::Error),
 }
@@ -71,6 +76,13 @@ impl IntoResponse for AuthError {
                 StatusCode::TOO_MANY_REQUESTS,
                 [("Retry-After", retry_after_secs.to_string())],
                 Json(json!({ "error": "account_locked", "retry_after_secs": retry_after_secs })),
+            )
+                .into_response();
+        }
+        if let AuthError::EmailUnverified = &self {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": self.to_string(), "code": "email_unverified" })),
             )
                 .into_response();
         }
@@ -86,7 +98,7 @@ impl IntoResponse for AuthError {
             AuthError::ProviderNotConfigured => (StatusCode::NOT_IMPLEMENTED, self.to_string()),
             AuthError::Conflict(message) => (StatusCode::CONFLICT, message.clone()),
             AuthError::StorageRefused(message) => (StatusCode::PAYMENT_REQUIRED, message.clone()),
-            AuthError::Locked { .. } => unreachable!("answered above"),
+            AuthError::Locked { .. } | AuthError::EmailUnverified => unreachable!("answered above"),
             AuthError::Internal(e) => {
                 tracing::error!("auth internal error: {e:#}");
                 (StatusCode::INTERNAL_SERVER_ERROR, "internal server error".to_string())

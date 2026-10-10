@@ -11,6 +11,7 @@ use crate::app::config::MailConfig;
 pub mod invite;
 pub mod lockout;
 pub mod password_reset;
+pub mod verify_email;
 mod smtp;
 
 /// Send a plain-text + HTML email. `config: None`, or one without an SMTP
