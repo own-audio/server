@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 6;
+pub const API_REVISION: u32 = 7;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -43,6 +43,8 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
             "google": providers.google.enabled,
             "apple": providers.apple.enabled,
             "microsoft": providers.microsoft.enabled,
+            // Revision 7: "forgot password" links can be mailed.
+            "password_reset": crate::auth::password_reset_offered(cfg),
         }),
     );
     features.insert("uploads".into(), json!({ "presigned": true, "multipart_max_bytes": Value::Null }));

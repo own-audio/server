@@ -112,6 +112,12 @@ Rules:
   network change and keeps the fastest that answers with the same `id`. It
   should send credentials over plain `http` only to `lan` addresses. May be
   empty.
+- `auth.password_reset` (revision 7): `POST /auth/password/forgot` mails a
+  single-use link (30 minutes) when the email has an account with a
+  password, and `POST /auth/password/reset` sets the password behind it and
+  signs every session out. True when the server has mail and a console
+  address (`SERVER__APP_BASE_URL`); clients show "forgot password?" only
+  then. `forgot` answers `200` whatever the email.
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it
@@ -250,6 +256,9 @@ lives. Clients never parse it, never persist it, and never assume its host.
   email (`error: account_locked`, `Retry-After` in seconds) as well as for
   the per-IP limit (`error: rate_limited`). Treat both as "wait", show the
   seconds; neither says whether the email exists.
+- **Password reset** (revision 7): `POST /auth/password/forgot` and
+  `POST /auth/password/reset`, see §3. A reset signs every session of the
+  account out, refresh tokens included; the app signs in again.
 - **`402` means the family has no room**: `POST /uploads/presign`,
   `POST /uploads/complete` and storing a podcast episode answer it when a
   server's `STORAGE__FAMILY_QUOTA_BYTES` is reached (or, on a hosted server,

@@ -9,7 +9,8 @@ import api from "./client";
 
 export interface ServerFeatures {
   registration_open: boolean;
-  auth: { local: boolean; google: boolean; apple: boolean; microsoft: boolean };
+  /** `password_reset` (revision 7): "forgot password" links can be mailed. */
+  auth: { local: boolean; google: boolean; apple: boolean; microsoft: boolean; password_reset?: boolean };
   uploads: { presigned: boolean; multipart_max_bytes: number | null };
   music_identify: boolean;
   podcast_discovery: boolean;

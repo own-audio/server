@@ -96,6 +96,18 @@ pub struct ChangePasswordRequest {
     pub new_password: String,
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct ForgotPasswordRequest {
+    pub email: String,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct ResetPasswordRequest {
+    /// The secret from the mailed link.
+    pub token: String,
+    pub password: String,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct LoginResponse {
     pub token: String,
@@ -212,6 +224,8 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(device::deny))
         .routes(routes!(me))
         .routes(routes!(change_password))
+        .routes(map(routes!(forgot_password), |m| limits.login.apply(m)))
+        .routes(map(routes!(reset_password), |m| limits.login.apply(m)))
         .routes(routes!(list_sessions))
         .routes(routes!(delete_session))
         .routes(routes!(admin_create_user))
@@ -287,6 +301,106 @@ async fn login(
     .await?;
 
     Ok(Json(login_response(issued, user)))
+}
+
+/// How long a mailed reset link works.
+const PASSWORD_RESET_MINUTES: i64 = 30;
+
+/// Whether this server can mail reset links: mail set up and a console
+/// address to link to. Reported as `features.auth.password_reset`.
+pub fn password_reset_offered(cfg: &crate::app::AppConfig) -> bool {
+    cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some()) && cfg.server.web_base().is_some()
+}
+
+/// POST /api/v1/auth/password/forgot — mails a single-use link, good for
+/// thirty minutes, to an email that has an active account with a password.
+/// The answer is `200` whatever the email, so it cannot be used to learn
+/// which emails have accounts. Security hardening plan §5.1.
+#[utoipa::path(post, path = "/password/forgot", tag = "auth",
+    request_body = ForgotPasswordRequest,
+    responses(
+        (status = 200, description = "Accepted. A link is on its way if the email has an account that can be reset; the answer is the same either way", body = Object),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
+async fn forgot_password(
+    State(state): State<AppState>,
+    Json(body): Json<ForgotPasswordRequest>,
+) -> Result<Json<serde_json::Value>, AuthError> {
+    let cfg = state.config();
+    let email = body.email.trim().to_lowercase();
+    let Some(web_base) = cfg.server.web_base().filter(|_| password_reset_offered(cfg)) else {
+        tracing::info!("password reset asked for, but mail or the console address is not configured");
+        return Ok(Json(serde_json::json!({})));
+    };
+    if !email.contains('@') {
+        return Ok(Json(serde_json::json!({})));
+    }
+    let pool = state.db();
+    let Some(user) = db::users::find_by_email_ci(pool, &email).await.map_err(AuthError::Internal)? else {
+        return Ok(Json(serde_json::json!({})));
+    };
+    let has_password = user.is_active
+        && db::users::find_identity_for_local(pool, user.id)
+            .await
+            .map_err(AuthError::Internal)?
+            .is_some_and(|i| i.password_hash.is_some());
+    if !has_password {
+        return Ok(Json(serde_json::json!({})));
+    }
+    // 256-bit secret in the link; only its SHA-256 is stored, like a refresh token.
+    let mut secret = [0u8; 32];
+    OsRng.fill_bytes(&mut secret);
+    let token: String = secret.iter().map(|b| format!("{b:02x}")).collect();
+    let expires = chrono::Utc::now() + chrono::Duration::minutes(PASSWORD_RESET_MINUTES);
+    db::password_resets::insert(pool, user.id, &db::refresh_tokens::hash_token(&token), expires)
+        .await
+        .map_err(AuthError::Internal)?;
+    let url = format!("{}/reset-password?token={token}", web_base.trim_end_matches('/'));
+    let mail = cfg.mail.clone();
+    let to = user.email.clone();
+    tokio::spawn(async move {
+        crate::mail::password_reset::send_password_reset(mail.as_ref(), &to, &url, PASSWORD_RESET_MINUTES).await;
+    });
+    Ok(Json(serde_json::json!({})))
+}
+
+/// POST /api/v1/auth/password/reset — sets the password behind a mailed
+/// link and signs every session of the account out, this one included:
+/// whoever asked for the link signs in again with the new password.
+#[utoipa::path(post, path = "/password/reset", tag = "auth",
+    request_body = ResetPasswordRequest,
+    responses(
+        (status = 200, description = "Password set; sign in again", body = Object),
+        (status = 400, description = "Link invalid, used or expired, or password under 12 characters", body = crate::http::openapi::ErrorBody),
+        (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
+async fn reset_password(
+    State(state): State<AppState>,
+    Json(body): Json<ResetPasswordRequest>,
+) -> Result<Json<serde_json::Value>, AuthError> {
+    password::check(&body.password)?;
+    let pool = state.db();
+    let token = body.token.trim();
+    let invalid = || AuthError::BadRequest("this reset link is not valid any more; ask for a new one".into());
+    if token.is_empty() || token.len() > 128 {
+        return Err(invalid());
+    }
+    let Some(user_id) = db::password_resets::take(pool, &db::refresh_tokens::hash_token(token))
+        .await
+        .map_err(AuthError::Internal)?
+    else {
+        return Err(invalid());
+    };
+    let salt = SaltString::generate(&mut OsRng);
+    let hash = Argon2::default()
+        .hash_password(body.password.as_bytes(), &salt)
+        .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
+        .to_string();
+    db::users::update_password(pool, user_id, &hash).await.map_err(AuthError::Internal)?;
+    db::sessions::revoke_all_for_user(pool, user_id).await.map_err(AuthError::Internal)?;
+    db::refresh_tokens::revoke_all_for_user(pool, user_id, None).await.map_err(AuthError::Internal)?;
+    if let Ok(Some(user)) = db::users::find_by_id(pool, user_id).await {
+        let _ = db::login_failures::clear(pool, &user.email.trim().to_lowercase()).await;
+    }
+    Ok(Json(serde_json::json!({})))
 }
 
 /// The account behind an email and password, or `InvalidCredentials` — for an

@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+Contract revision 7.
+
 ### Security
 - Access tokens live one hour by default, not seven days (`AUTH__ACCESS_TTL_SECS`);
   apps refresh as before, and a stolen token is worth an hour.
@@ -47,6 +49,13 @@ semver. Each release states the **API contract revision** it serves
   the seam an edition uses for its own rule (`Hooks::storage_allowance`).
 
 ### Added
+- "Forgot your password?" — `POST /auth/password/forgot` mails a single-use
+  link, good for 30 minutes, when the email has an account with a password
+  (the answer is `200` whatever the email); `POST /auth/password/reset` sets
+  the new password behind it and signs every device out. Offered as
+  `features.auth.password_reset` when mail and `SERVER__APP_BASE_URL` are
+  set; the console shows the link only then. Migration 0096. Contract
+  revision 7.
 - `docker-compose.yml` passes `APPLE_SIGN_IN`/`APPLE_CLIENT_IDS` and
   `GOOGLE_SIGN_IN`/`GOOGLE_CLIENT_IDS` through, so a self-hosted server can let
   own.audio Music sign in with Apple or Google (INSTALL.md lists the ids).

@@ -2,7 +2,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { login, register, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
+import { login, register, forgotPassword, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
 import { getServerInfo } from "../../api/server";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 import AppleSignInButton from "../../components/AppleSignInButton";
@@ -13,7 +13,7 @@ import { useAuthStore } from "../../store/authStore";
 import { safeReturnTo } from "../../lib/returnTo";
 import { useT } from "../../i18n";
 
-type Mode = "login" | "register";
+type Mode = "login" | "register" | "forgot";
 
 export default function AuthPage() {
   const [mode, setMode] = useState<Mode>("login");
@@ -24,6 +24,7 @@ export default function AuthPage() {
   const [showInvite, setShowInvite] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { setAuth, token } = useAuthStore();
@@ -43,6 +44,7 @@ export default function AuthPage() {
   // Best-effort too: without it the screen only loses the demo box and version line.
   const { data: server } = useQuery({ queryKey: ["server-info"], queryFn: getServerInfo, staleTime: 60_000, retry: false });
   const demo = mode === "login" ? server?.demo : undefined;
+  const canResetPassword = server?.features?.auth?.password_reset === true;
 
   useEffect(() => {
     if (token) navigate(next, { replace: true });
@@ -51,6 +53,7 @@ export default function AuthPage() {
   function switchMode(m: Mode) {
     setMode(m);
     setError(null);
+    setResetSent(false);
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -62,6 +65,11 @@ export default function AuthPage() {
     }
     setLoading(true);
     try {
+      if (mode === "forgot") {
+        await forgotPassword(email.trim());
+        setResetSent(true);
+        return;
+      }
       const result =
         mode === "login"
           ? await login(email, password)
@@ -77,7 +85,10 @@ export default function AuthPage() {
 
   return (
     <AuthLayout>
-      <AuthHeading title={mode === "login" ? t("auth.signIn.title") : t("auth.register.title")} />
+      <AuthHeading
+        title={mode === "login" ? t("auth.signIn.title") : mode === "register" ? t("auth.register.title") : t("auth.forgot.title")}
+        subtitle={mode === "forgot" ? t("auth.forgot.body") : undefined}
+      />
 
       {demo && (
         <div className="mb-6 rounded-[10px] border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
@@ -104,7 +115,7 @@ export default function AuthPage() {
       )}
 
       {/* One tap, nothing to type or remember — so it comes first. */}
-      {hasSocial && (
+      {hasSocial && mode !== "forgot" && (
         <>
           <div className="space-y-3">
             <GoogleSignInButton providers={providers} onSignedIn={(r) => setAuth(r.token, r.user, r.refresh_token)} onError={setError} />
@@ -142,14 +153,22 @@ export default function AuthPage() {
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@example.com"
         />
-        <PasswordInput
-          label={t("auth.field.password")}
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          hint={mode === "register" ? t("auth.field.passwordHint") : undefined}
-        />
+        {mode !== "forgot" && (
+          <PasswordInput
+            label={t("auth.field.password")}
+            autoComplete={mode === "login" ? "current-password" : "new-password"}
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            hint={mode === "register" ? t("auth.field.passwordHint") : undefined}
+          />
+        )}
+        {mode === "login" && canResetPassword && (
+          <button type="button" onClick={() => switchMode("forgot")} className="text-sm font-medium text-accent hover:underline">
+            {t("auth.forgot.link")}
+          </button>
+        )}
+        {mode === "forgot" && resetSent && <p className="text-sm text-muted">{t("auth.forgot.sent")}</p>}
         {mode === "register" &&
           (showInvite ? (
             <Input
@@ -171,12 +190,20 @@ export default function AuthPage() {
 
         <FormError>{error}</FormError>
 
-        <Button type="submit" size="lg" className="w-full" loading={loading}>
-          {mode === "login" ? t("common.action.signIn") : t("common.action.createAccount")}
+        <Button type="submit" size="lg" className="w-full" loading={loading} disabled={mode === "forgot" && resetSent}>
+          {mode === "login" ? t("common.action.signIn") : mode === "register" ? t("common.action.createAccount") : t("auth.forgot.submit")}
         </Button>
       </form>
 
-      {registrationOpen && (
+      {mode === "forgot" && (
+        <p className="mt-6 text-center text-sm text-muted">
+          <button type="button" onClick={() => switchMode("login")} className="font-medium text-accent hover:underline">
+            {t("auth.forgot.back")}
+          </button>
+        </p>
+      )}
+
+      {registrationOpen && mode !== "forgot" && (
         <p className="mt-6 text-center text-sm text-muted">
           {mode === "login"
             ? rich("auth.newHere", {

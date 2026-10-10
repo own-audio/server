@@ -236,6 +236,12 @@ export interface MessageParams {
   "auth.field.namePlaceholder": undefined;
   "auth.field.password": undefined;
   "auth.field.passwordHint": undefined;
+  "auth.forgot.back": undefined;
+  "auth.forgot.body": undefined;
+  "auth.forgot.link": undefined;
+  "auth.forgot.sent": undefined;
+  "auth.forgot.submit": undefined;
+  "auth.forgot.title": undefined;
   "auth.haveAccount": { "link": (chunks: ReactNode[]) => ReactNode };
   "auth.haveInviteCode": undefined;
   "auth.newHere": { "link": (chunks: ReactNode[]) => ReactNode };
@@ -243,6 +249,13 @@ export interface MessageParams {
   "auth.password.hide": undefined;
   "auth.password.show": undefined;
   "auth.register.title": undefined;
+  "auth.reset.again": undefined;
+  "auth.reset.done": undefined;
+  "auth.reset.invalid": undefined;
+  "auth.reset.mismatch": undefined;
+  "auth.reset.newPassword": undefined;
+  "auth.reset.submit": undefined;
+  "auth.reset.title": undefined;
   "auth.signIn.title": undefined;
   "auth.tagline": undefined;
   "auth.version": { "version": string | number };

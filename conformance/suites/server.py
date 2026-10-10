@@ -187,3 +187,13 @@ def run(ctx):
         ctx.check("the right password is refused too while the lock lasts", status == 429, str(status))
         outcome = _lock_outcome(f"nobody-{ctx.sfx}@example.com")
         ctx.check("an email without an account locks the same way", outcome in ("locked", "rate_limited"), outcome)
+
+    # "Forgot password" never says whether an email exists: 200 for an unknown email and for
+    # the admin's alike (the mail itself is best effort and not observed here). A made-up
+    # link is refused with 400, and a short password is refused before the link is looked at.
+    for who in (f"nobody-{ctx.sfx}@example.com", ctx.admin_email):
+        ctx.call("POST", "/api/v1/auth/password/forgot", body={"email": who}, expect=(200,))
+    ctx.check("password/forgot answers 200 for unknown and known emails alike", True)
+    ctx.call("POST", "/api/v1/auth/password/reset", body={"token": "0" * 64, "password": "LongEnough123!"}, expect=(400,))
+    ctx.call("POST", "/api/v1/auth/password/reset", body={"token": "0" * 64, "password": "short"}, expect=(400,))
+    ctx.check("password/reset refuses a made-up link and a short password with 400", True)

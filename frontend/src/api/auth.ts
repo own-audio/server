@@ -44,6 +44,15 @@ export async function getAuthProviders(): Promise<AuthProviders> {
  * endpoint is macOS-only — it requires a loopback redirect_uri, which a
  * browser cannot supply.
  */
+/** Always resolves, whatever the email: the server never says whether it has an account. */
+export async function forgotPassword(email: string): Promise<void> {
+  await api.post("/auth/password/forgot", { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await api.post("/auth/password/reset", { token, password });
+}
+
 export async function loginWithGoogle(idToken: string): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>("/auth/google", {
     id_token: idToken,
