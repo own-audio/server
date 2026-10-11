@@ -42,6 +42,8 @@ semver. Each release states the **API contract revision** it serves
   the household's contributors, with photos shared with the music side.
   Roles are `author`, `co_author`, `narrator`, `translator`, `editor`,
   `illustrator`.
+- Podcasts credit their hosts the same way, from the feed's author line
+  (migration 0103); a refresh that brings the same author changes nothing.
 
 ### Security
 - `/audiobooks/authors` was one list for the whole server: every household

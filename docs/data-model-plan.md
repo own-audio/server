@@ -49,7 +49,7 @@ the console all read. Written 2026-10-11.
 
 ## Phases
 
-Status 2026-10-11: E1 (`dfefb49`), E2a (`1d1592e`), E2b (`fac8d4c`) and E3 for books are done; podcast hosts (rest of E3) and E4 next.
+Status 2026-10-11: E1 (`dfefb49`), E2a (`1d1592e`), E2b (`fac8d4c`) and E3 (books, podcast hosts) are done; E4 next.
 
 | Phase | Content | Test |
 |---|---|---|
