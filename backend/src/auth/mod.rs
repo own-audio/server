@@ -2,6 +2,7 @@
 /// Auth module — local credentials, OIDC (Google + Microsoft), session issuance,
 /// identity linking.
 pub mod at_rest;
+pub mod audit;
 pub mod device;
 pub mod error;
 pub mod middleware;
@@ -236,6 +237,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(map(routes!(reset_password), |m| limits.login.apply(m)))
         .routes(map(routes!(verification::verify_email), |m| limits.login.apply(m)))
         .routes(map(routes!(verification::resend_verification), |m| limits.login.apply(m)))
+        .routes(routes!(audit::list_own))
         .routes(routes!(totp::status, totp::disable))
         .routes(routes!(totp::setup))
         .routes(routes!(totp::enable))
@@ -264,6 +266,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         (status = 429, description = "Rate limited, or too many wrong passwords for this email (`account_locked`); see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn login(
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Json(body): Json<LoginRequest>,
 ) -> Result<totp::SignIn, AuthError> {
     let pool = state.db();
@@ -276,6 +279,8 @@ async fn login(
     let lockable = !crate::demo::is_read_only_account(&state, &email_lc);
     if lockable {
         if let Some(secs) = db::login_failures::locked_for_secs(pool, &email_lc).await.map_err(AuthError::Internal)? {
+            let owner = db::users::find_by_email_ci(pool, &email_lc).await.ok().flatten().map(|u| u.id);
+            audit::record(&state, &meta, owner, None, "login.locked", serde_json::json!({ "retry_after_secs": secs })).await;
             return Err(AuthError::Locked { retry_after_secs: secs.max(1) as u64 });
         }
     }
@@ -286,6 +291,11 @@ async fn login(
             let failures = db::login_failures::record(pool, &email_lc, password::lock_after)
                 .await
                 .map_err(AuthError::Internal)?;
+            // On the trail only when there is an account to attach it to; a
+            // mistyped email is nobody's event.
+            if let Ok(Some(owner)) = db::users::find_by_email_ci(pool, &email_lc).await {
+                audit::record(&state, &meta, Some(owner.id), None, "login.failed", serde_json::json!({ "failures": failures })).await;
+            }
             if failures == password::LOCK_AT {
                 // Told once, at the first lock, and only if there is someone to tell.
                 if let Ok(Some(owner)) = db::users::find_by_email(pool, &email_lc).await {
@@ -306,7 +316,14 @@ async fn login(
     }
 
     // Tokens (a new device chain), or the second factor first.
-    totp::finish_sign_in(&state, user, body.device_name.as_deref(), body.device_kind.as_deref(), StatusCode::OK).await
+    let user_id = user.id;
+    let signed = totp::finish_sign_in(&state, user, body.device_name.as_deref(), body.device_kind.as_deref(), StatusCode::OK).await?;
+    let kind = match &signed {
+        totp::SignIn::Tokens(..) => "login.ok",
+        totp::SignIn::Mfa(_) => "login.mfa_pending",
+    };
+    audit::record(&state, &meta, Some(user_id), None, kind, serde_json::json!({ "device_kind": normalize_device_kind(body.device_kind.as_deref()), "device_name": body.device_name })).await;
+    Ok(signed)
 }
 
 /// How long a mailed reset link works.
@@ -329,6 +346,7 @@ pub fn password_reset_offered(cfg: &crate::app::AppConfig) -> bool {
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn forgot_password(
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Json(body): Json<ForgotPasswordRequest>,
 ) -> Result<Json<serde_json::Value>, AuthError> {
     let cfg = state.config();
@@ -360,6 +378,7 @@ async fn forgot_password(
     db::password_resets::insert(pool, user.id, &db::refresh_tokens::hash_token(&token), expires)
         .await
         .map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(user.id), None, "password.reset_requested", serde_json::json!({})).await;
     let url = format!("{}/reset-password?token={token}", web_base.trim_end_matches('/'));
     let mail = cfg.mail.clone();
     let to = user.email.clone();
@@ -380,6 +399,7 @@ async fn forgot_password(
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn reset_password(
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Json(body): Json<ResetPasswordRequest>,
 ) -> Result<Json<serde_json::Value>, AuthError> {
     password::check(&body.password)?;
@@ -401,6 +421,7 @@ async fn reset_password(
         .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
         .to_string();
     db::users::update_password(pool, user_id, &hash).await.map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(user_id), None, "password.reset", serde_json::json!({})).await;
     db::sessions::revoke_all_for_user(pool, user_id).await.map_err(AuthError::Internal)?;
     db::refresh_tokens::revoke_all_for_user(pool, user_id, None).await.map_err(AuthError::Internal)?;
     if let Ok(Some(user)) = db::users::find_by_id(pool, user_id).await {
@@ -706,11 +727,13 @@ async fn list_sessions(
 async fn delete_session(
     auth: AuthUser,
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Path(chain_id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
     db::refresh_tokens::revoke_chain(state.db(), chain_id, auth.user_id)
         .await
         .map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(auth.user_id), None, "session.revoked", serde_json::json!({ "chain_id": chain_id })).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -723,11 +746,13 @@ async fn delete_session(
 async fn logout(
     auth: AuthUser,
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
 ) -> Result<StatusCode, AuthError> {
     let _ = db::sessions::revoke(state.db(), auth.session_id).await;
     if let Some(chain_id) = auth.chain_id {
         let _ = db::refresh_tokens::revoke_chain(state.db(), chain_id, auth.user_id).await;
     }
+    audit::record(&state, &meta, Some(auth.user_id), None, "session.signed_out", serde_json::json!({})).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -1211,6 +1236,7 @@ fn is_loopback_redirect(uri: &str) -> bool {
 async fn change_password(
     auth: AuthUser,
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Json(body): Json<ChangePasswordRequest>,
 ) -> Result<StatusCode, AuthError> {
     let pool = state.db();
@@ -1250,6 +1276,7 @@ async fn change_password(
     db::refresh_tokens::revoke_all_for_user(pool, auth.user_id, auth.chain_id)
         .await
         .map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(auth.user_id), None, "password.changed", serde_json::json!({})).await;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -1264,8 +1291,9 @@ async fn change_password(
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody),
         (status = 403, description = "Caller is not an admin", body = crate::http::openapi::ErrorBody)))]
 async fn admin_create_user(
-    InstanceAdmin(_auth): InstanceAdmin,
+    InstanceAdmin(auth): InstanceAdmin,
     State(state): State<AppState>,
+    meta: audit::RequestMeta,
     Json(body): Json<AdminCreateUserRequest>,
 ) -> Result<(StatusCode, Json<UserInfo>), AuthError> {
     let pool = state.db();
@@ -1313,6 +1341,7 @@ async fn admin_create_user(
         .map_err(AuthError::Internal)?;
     // The admin typed the address: that vouches for it.
     verification::born(&state, &user, membership.family_id, true).await?;
+    audit::record(&state, &meta, Some(user.id), Some(auth.user_id), "account.created", serde_json::json!({ "role": user.role })).await;
 
     Ok((
         StatusCode::CREATED,

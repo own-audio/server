@@ -27,6 +27,7 @@ pub mod login_failures;
 pub mod password_resets;
 pub mod email_verifications;
 pub mod totp;
+pub mod security_events;
 pub mod instance;
 
 /// Pool size when `DATABASE_MAX_CONNECTIONS` is unset. A family's requests,

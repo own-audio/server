@@ -168,12 +168,17 @@ async fn get_user(
     request_body = UpdateUserRequest,
     responses((status = 204, description = "Updated; deactivating also signs the account out everywhere"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn update_user(
-    InstanceAdmin(_auth): InstanceAdmin,
+    InstanceAdmin(auth): InstanceAdmin,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateUserRequest>,
 ) -> Result<StatusCode, AuthError> {
     let pool = state.db();
+    if body.role.is_some() || body.is_active.is_some() {
+        crate::auth::audit::record(&state, &meta, Some(id), Some(auth.user_id), "account.changed",
+            serde_json::json!({ "role": body.role, "is_active": body.is_active })).await;
+    }
 
     if let Some(ref display_name) = body.display_name {
         sqlx::query("UPDATE users SET display_name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2")
@@ -495,6 +500,7 @@ async fn delete_self(
 async fn admin_delete_user(
     InstanceAdmin(auth): InstanceAdmin,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
     // Prevent deleting yourself via this route
@@ -502,6 +508,7 @@ async fn admin_delete_user(
         return Err(AuthError::BadRequest("use DELETE /users/me to delete your own account".into()));
     }
 
+    crate::auth::audit::record(&state, &meta, Some(id), Some(auth.user_id), "account.deleted", serde_json::json!({})).await;
     delete_account(&state, id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -552,8 +559,9 @@ async fn delete_account(state: &AppState, user_id: Uuid) -> Result<(), AuthError
     params(("id" = Uuid, Path, description = "User id")),
     responses((status = 204, description = "Every session and device of the account is signed out"), (status = 401, description = "Invalid access token, or the caller is not an admin (answered 401, not 403)", body = crate::http::openapi::ErrorBody)))]
 async fn admin_revoke_sessions(
-    InstanceAdmin(_auth): InstanceAdmin,
+    InstanceAdmin(auth): InstanceAdmin,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
     db::sessions::revoke_all_for_user(state.db(), id)
@@ -562,6 +570,7 @@ async fn admin_revoke_sessions(
     db::refresh_tokens::revoke_all_for_user(state.db(), id, None)
         .await
         .map_err(AuthError::Internal)?;
+    crate::auth::audit::record(&state, &meta, Some(id), Some(auth.user_id), "session.revoked_all", serde_json::json!({})).await;
     Ok(StatusCode::NO_CONTENT)
 }
 

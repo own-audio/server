@@ -802,6 +802,12 @@ async fn execute_storage_sweep(
     }
 
     // Presigned uploads that never completed: their objects have no row, so
+    // The security trail keeps a year (security hardening plan §9).
+    match crate::db::security_events::purge_older_than(pool, crate::auth::audit::RETENTION_DAYS).await {
+        Ok(0) => {}
+        Ok(n) => info!(count = n, "security events past retention dropped"),
+        Err(e) => warn!(error = %e, "could not purge security events"),
+    }
     // the pass above cannot see them (migration 0094).
     let mut stale = 0usize;
     for key in crate::db::uploads::stale_intents(pool, 24, limit).await? {

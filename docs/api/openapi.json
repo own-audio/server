@@ -4214,6 +4214,45 @@
         ]
       }
     },
+    "/api/v1/auth/security-events": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The account's own trail, newest first",
+        "operationId": "auth_list_own",
+        "responses": {
+          "200": {
+            "description": "The last 100 events about this account",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SecurityEvent"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/auth/sessions": {
       "get": {
         "tags": [
@@ -19010,6 +19049,49 @@
             }
           }
         ]
+      },
+      "SecurityEvent": {
+        "type": "object",
+        "required": [
+          "id",
+          "at",
+          "kind",
+          "detail"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "detail": {},
+          "actor_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Set when someone other than the account's owner did it (an admin)."
+          },
+          "ip": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user_agent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "SeriesBookEntry": {
         "type": "object",

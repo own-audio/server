@@ -13,6 +13,7 @@
 use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
+use crate::auth::audit::{self, RequestMeta};
 use crate::auth::{issue_tokens, login_response, LoginResponse};
 use crate::db;
 use crate::users::models::User;
@@ -217,7 +218,7 @@ pub struct RecoveryCodes {
         (status = 200, body = RecoveryCodes),
         (status = 400, description = "No setup pending, or the code is wrong", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-pub async fn enable(auth: AuthUser, State(state): State<AppState>, Json(body): Json<CodeRequest>) -> Result<Json<RecoveryCodes>, AuthError> {
+pub async fn enable(auth: AuthUser, State(state): State<AppState>, meta: RequestMeta, Json(body): Json<CodeRequest>) -> Result<Json<RecoveryCodes>, AuthError> {
     let pool = state.db();
     let Some(totp) = db::totp::find(pool, auth.user_id).await.map_err(AuthError::Internal)? else {
         return Err(AuthError::BadRequest("set up two-factor sign-in first".into()));
@@ -233,6 +234,7 @@ pub async fn enable(auth: AuthUser, State(state): State<AppState>, Json(body): J
     let hashes: Vec<String> = codes.iter().map(|c| recovery_hash(c)).collect();
     db::totp::replace_recovery_codes(pool, auth.user_id, &hashes).await.map_err(AuthError::Internal)?;
     db::totp::enable(pool, auth.user_id, step).await.map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(auth.user_id), None, "totp.enabled", serde_json::json!({})).await;
     Ok(Json(RecoveryCodes { recovery_codes: codes }))
 }
 
@@ -244,7 +246,7 @@ pub async fn enable(auth: AuthUser, State(state): State<AppState>, Json(body): J
         (status = 204, description = "Two-factor sign-in is off"),
         (status = 400, description = "Not on, or the code is wrong", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-pub async fn disable(auth: AuthUser, State(state): State<AppState>, Json(body): Json<CodeRequest>) -> Result<StatusCode, AuthError> {
+pub async fn disable(auth: AuthUser, State(state): State<AppState>, meta: RequestMeta, Json(body): Json<CodeRequest>) -> Result<StatusCode, AuthError> {
     let pool = state.db();
     let Some(totp) = db::totp::find(pool, auth.user_id).await.map_err(AuthError::Internal)? else {
         return Err(AuthError::BadRequest("two-factor sign-in is not on".into()));
@@ -258,6 +260,7 @@ pub async fn disable(auth: AuthUser, State(state): State<AppState>, Json(body): 
         return Err(AuthError::BadRequest("that code is not right".into()));
     }
     db::totp::remove(pool, auth.user_id).await.map_err(AuthError::Internal)?;
+    audit::record(&state, &meta, Some(auth.user_id), None, "totp.disabled", serde_json::json!({})).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -277,7 +280,7 @@ pub struct VerifyRequest {
         (status = 400, description = "The code is wrong", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "The challenge is unknown, spent or expired: sign in again", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
-pub async fn verify(State(state): State<AppState>, Json(body): Json<VerifyRequest>) -> Result<Json<LoginResponse>, AuthError> {
+pub async fn verify(State(state): State<AppState>, meta: RequestMeta, Json(body): Json<VerifyRequest>) -> Result<Json<LoginResponse>, AuthError> {
     let pool = state.db();
     let token_hash = db::refresh_tokens::hash_token(body.mfa_token.trim());
     let Some(challenge) = db::totp::find_challenge(pool, &token_hash).await.map_err(AuthError::Internal)? else {
@@ -288,6 +291,7 @@ pub async fn verify(State(state): State<AppState>, Json(body): Json<VerifyReques
         return Err(AuthError::SessionInvalid);
     };
     if !check_code(&state, challenge.user_id, &totp, &body.code).await? {
+        audit::record(&state, &meta, Some(challenge.user_id), None, "login.mfa_failed", serde_json::json!({})).await;
         return Err(AuthError::BadRequest("that code is not right".into()));
     }
     if !db::totp::spend_challenge(pool, &token_hash).await.map_err(AuthError::Internal)? {
@@ -299,6 +303,7 @@ pub async fn verify(State(state): State<AppState>, Json(body): Json<VerifyReques
         .filter(|u| u.is_active)
         .ok_or(AuthError::InvalidCredentials)?;
     let issued = issue_tokens(&state, &user, challenge.device_name.as_deref(), challenge.device_kind.as_deref(), None).await?;
+    audit::record(&state, &meta, Some(user.id), None, "login.mfa_ok", serde_json::json!({ "device_kind": challenge.device_kind, "device_name": challenge.device_name })).await;
     Ok(Json(login_response(issued, user)))
 }
 

@@ -258,3 +258,10 @@ def run(ctx):
               "frame-ancestors 'none'" in csp and "script-src 'self'" in csp, csp[:100])
     ctx.check("X-Content-Type-Options is nosniff", hdrs.get("x-content-type-options") == "nosniff")
     ctx.check("Referrer-Policy is set", bool(hdrs.get("referrer-policy")))
+
+    # The security trail (plan §9): the sign-in above is on the account's own list, newest first.
+    events = ctx.call("GET", "/api/v1/auth/security-events", tok)
+    kinds = [e.get("kind") for e in events] if isinstance(events, list) else []
+    ctx.check("the account's security trail lists its sign-ins and two-factor changes",
+              "login.ok" in kinds and "totp.enabled" in kinds and "totp.disabled" in kinds, ", ".join(kinds[:8]))
+    ctx.check("trail entries carry no secrets", all("password" not in str(e.get("detail", {})).lower() for e in events))

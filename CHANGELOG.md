@@ -53,6 +53,12 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- A security trail per account (`GET /auth/security-events`, the last 100):
+  sign-ins and failures, locks, two-factor steps and changes, password
+  changes and resets, email confirmation, sessions signed out or revoked,
+  accounts created, changed or deleted by an admin — with the address and
+  user agent, never a secret. Kept a year; the daily sweep drops older rows.
+  Migration 0099.
 - Browser-facing headers on every response: a `Content-Security-Policy` for
   the console (its own files and the Google and Apple sign-in scripts, no
   inline scripts, no framing; media and images from wherever this install

@@ -92,6 +92,7 @@ pub struct VerifyEmailRequest {
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 pub async fn verify_email(
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Json(body): Json<VerifyEmailRequest>,
 ) -> Result<Json<serde_json::Value>, AuthError> {
     let token = body.token.trim();
@@ -109,6 +110,7 @@ pub async fn verify_email(
         return Err(invalid());
     };
     mark_verified(&state, user_id, membership.family_id).await?;
+    crate::auth::audit::record(&state, &meta, Some(user_id), None, "email.verified", serde_json::json!({})).await;
     Ok(Json(serde_json::json!({})))
 }
 
