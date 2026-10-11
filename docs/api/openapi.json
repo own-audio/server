@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.8"
+    "version": "1.9"
   },
   "servers": [
     {
@@ -9921,6 +9921,65 @@
           },
           "400": {
             "description": "Already identified, or the file has no tags",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/metadata/revert": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Owner-only",
+        "description": "owner-only. Undoes an identify:\nthe track's title, artist, album, album artist, genre and track number go back to\nwhat they were before it was first identified, and its MusicBrainz ids go with\nthem. A track whose ids came from its own file goes back to having none.\n\nThe file is never involved: identifying never wrote to it, so undoing has nothing\nto undo there. A cover fetched with the match stays.",
+        "operationId": "music_revert_track_metadata",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrackResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not identified, or identified before the server kept what to go back to",
             "content": {
               "application/json": {
                 "schema": {

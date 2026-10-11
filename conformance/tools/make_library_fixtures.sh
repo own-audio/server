@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Builds a tiny library for the `library` conformance suite: three tagged
-# songs on one album and an audiobook of three files, all generated tones,
+# songs on one album, one song carrying MusicBrainz ids, and an audiobook of
+# three files, all generated tones,
 # so nothing copyrighted lands in CI. Needs ffmpeg.
 #
 #   conformance/tools/make_library_fixtures.sh /tmp/oa-library
@@ -20,6 +21,15 @@ for n in 1 2 3; do
     -metadata title="Song $n" -metadata artist="Test Artist" -metadata album="Test Album" \
     -metadata track="$n" -metadata genre="Conformance"
 done
+# A song as MusicBrainz Picard leaves it: its MusicBrainz ids in its own tags
+# (Vorbis MUSICBRAINZ_TRACKID is the recording id). Made-up ids, valid UUIDs.
+mkdir -p "$out/music/Test Artist/Tagged Album"
+ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=800:duration=3" -ac 1 -ar 22050 -c:a flac \
+  -metadata title="Tagged Song" -metadata artist="Test Artist" -metadata album="Tagged Album" \
+  -metadata track=1 -metadata MUSICBRAINZ_TRACKID=6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e01 \
+  -metadata MUSICBRAINZ_ALBUMID=6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e02 \
+  -metadata MUSICBRAINZ_RELEASEGROUPID=6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e03 \
+  "$out/music/Test Artist/Tagged Album/01 Tagged Song.flac"
 # Files named so that only natural order is right: 2 before 10.
 tone "$out/audiobooks/Test Author/Test Book/2.mp3" 2 500 -metadata title="Part two"
 tone "$out/audiobooks/Test Author/Test Book/10.mp3" 2 600 -metadata title="Part ten"

@@ -345,7 +345,18 @@ you must implement separately (§8).
 | Share a playlist with family members | `GET /music/playlists/{id}/audience`, `PUT /music/playlists/{id}/share` `{mode: "live"|"copy", user_ids}`; the recipient's inbox gets `playlist_shared` with `data.playlist_id` |
 | Favourite songs (heart) | `GET /music/starred` (ids), `PUT`/`DELETE /music/tracks/{id}/star` |
 | Add / remove / reorder | `POST` `/tracks`, `DELETE …/tracks/{entry_id}`, `PUT …/tracks/reorder` |
-| Identify via MusicBrainz | `POST /music/tracks/{id}/metadata/search`, `POST …/metadata/apply` |
+| Identify via MusicBrainz | `POST /music/tracks/{id}/metadata/search`, `POST …/metadata/apply`, `POST …/metadata/revert` (revision 9) |
+
+**Identify provenance (revision 9).** A file that already carries MusicBrainz ids in its
+own tags — as one saved by MusicBrainz Picard does — arrives identified: its
+`musicbrainz_recording_id` and the release ids are taken from the file, with no lookup, and
+re-read whenever the file changes. `POST /music/tracks/{id}/metadata/revert` undoes an
+identify: the title, artist, album, album artist, genre and track number go back to what
+they were before the first identify, and the ids go with them (`200` with the track). It
+answers `400` for a track that is not identified, and for one identified before revision 9,
+whose earlier values were never kept. Nothing is ever written to the file, so there is
+nothing to undo there; a cover fetched with the match stays. `…/metadata/rescan` now refuses
+only a track this server matched — one whose ids came from its file can be re-read.
 
 **Owner (2026-09-26).** Books, tracks, feeds and their `/library/changes` rows carry
 `owner_id` next to `is_owner` — the member to name in `POST /sync/shortcuts` when adding one

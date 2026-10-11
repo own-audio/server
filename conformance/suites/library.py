@@ -48,6 +48,8 @@ def run(ctx):
     ctx.check("folder songs are read-only", all(t.get("source") == "folder" and t.get("read_only") is True for t in tracks))
     ctx.check("songs know their length", all((t.get("duration_secs") or 0) >= 2 for t in tracks))
 
+    tagged(ctx)
+
     books = [b for b in _items(ctx.call("GET", "/api/v1/audiobooks", ctx.admin_token)) if b.get("title") == "Test Book"]
     ctx.check("the book folder is one book, its parent the author",
               len(books) == 1 and books[0].get("author") == "Test Author", str(books[:1]))
@@ -101,6 +103,33 @@ def run(ctx):
         rescan(ctx)
         back = _items(ctx.call("GET", "/api/v1/music/tracks?limit=500", ctx.admin_token))
         ctx.check("the same song returns when its file is back", any(t["id"] == survivor["id"] for t in back))
+
+
+TAGGED_RECORDING = "6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e01"
+
+
+def tagged(ctx):
+    """A file carrying its own MusicBrainz ids arrives identified; a revert takes the ids
+    away, and re-reading the file brings them back (revision 9)."""
+    if (ctx.server.get("api") or {}).get("revision", 0) < 9:
+        ctx.skip("MusicBrainz ids from tags", "server older than revision 9")
+        return
+    song = next((t for t in _items(ctx.call("GET", "/api/v1/music/tracks?limit=500", ctx.admin_token))
+                 if t.get("album") == "Tagged Album"), None)
+    if song is None:
+        ctx.skip("MusicBrainz ids from tags", "fixtures older than the tagged song")
+        return
+    ctx.check("a file's own MusicBrainz ids are taken without a lookup",
+              song.get("musicbrainz_recording_id") == TAGGED_RECORDING, str(song.get("musicbrainz_recording_id")))
+    path = f"/api/v1/music/tracks/{song['id']}/metadata"
+    reverted = ctx.call("POST", f"{path}/revert", ctx.admin_token)
+    ctx.check("a revert takes the ids away and keeps the tags",
+              reverted.get("musicbrainz_recording_id") is None and reverted.get("title") == "Tagged Song",
+              str((reverted.get("musicbrainz_recording_id"), reverted.get("title"))))
+    ctx.call("POST", f"{path}/revert", ctx.admin_token, expect=(400,))
+    again = ctx.call("POST", f"{path}/rescan", ctx.admin_token)
+    ctx.check("re-reading the file brings its ids back",
+              again.get("musicbrainz_recording_id") == TAGGED_RECORDING, str(again.get("musicbrainz_recording_id")))
 
 
 def rescan(ctx):

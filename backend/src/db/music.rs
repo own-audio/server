@@ -335,7 +335,24 @@ pub async fn apply_musicbrainz_metadata(
     mb_artist_id: Option<&str>,
     album_artist: Option<&str>,
     mb_release_group_id: Option<&str>,
+    run_id: Option<Uuid>,
 ) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await.context("db: begin identify")?;
+    // What the track was before, kept for a revert. Locked so a concurrent edit
+    // can't slip between the snapshot and the update.
+    let before: Option<serde_json::Value> = sqlx::query_scalar(&format!(
+        "SELECT {IDENTITY_SNAPSHOT} FROM music_tracks_all
+          WHERE id = $1 AND user_id = $2 AND trashed_at IS NULL AND missing_at IS NULL FOR UPDATE"
+    ))
+    .bind(id)
+    .bind(user_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .context("db: snapshot track before identify")?;
+    let Some(before) = before else {
+        return Ok(()); // not the caller's track: nothing to do, as the UPDATE below would
+    };
+
     // The release's artist credit becomes the album artist (docs/album-artist-plan.md rule 1).
     // When the service didn't send one the stored value stays — rule 3 still derives it.
     sqlx::query(
@@ -361,9 +378,202 @@ pub async fn apply_musicbrainz_metadata(
     .bind(mb_artist_id)
     .bind(album_artist)
     .bind(mb_release_group_id)
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .context("db: apply musicbrainz metadata to music track")?;
+
+    // A re-identify keeps the first snapshot: a revert goes back to the track as
+    // it was before any identify, not to the previous match. A track identified
+    // before snapshots were kept (NULL) gets this one.
+    sqlx::query(
+        "INSERT INTO music_track_identity (track_id, source, identified_at, run_id, before)
+         VALUES ($1, 'identify', now(), $2, $3)
+         ON CONFLICT (track_id) DO UPDATE
+            SET source = 'identify', identified_at = now(), run_id = EXCLUDED.run_id,
+                before = COALESCE(music_track_identity.before, EXCLUDED.before)",
+    )
+    .bind(id)
+    .bind(run_id)
+    .bind(before)
+    .execute(&mut *tx)
+    .await
+    .context("db: record track identity")?;
+    tx.commit().await.context("db: commit identify")?;
+    Ok(())
+}
+
+/// The track columns an identify may overwrite, as one JSON object; `revert_identity`
+/// writes the same keys back.
+const IDENTITY_SNAPSHOT: &str = "jsonb_build_object(
+    'title', title, 'artist', artist, 'album', album, 'album_artist', album_artist,
+    'genre', genre, 'track_number', track_number,
+    'musicbrainz_recording_id', musicbrainz_recording_id,
+    'musicbrainz_release_id', musicbrainz_release_id,
+    'musicbrainz_artist_id', musicbrainz_artist_id,
+    'musicbrainz_release_group_id', musicbrainz_release_group_id,
+    'release_checked_at', release_checked_at)";
+
+/// How a track got its MusicBrainz identity: `identify` (matched by this server),
+/// `mbid_tag` (read from the file), or `None` when it has none.
+pub async fn identity_source<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
+    id: Uuid,
+) -> anyhow::Result<Option<String>> {
+    sqlx::query_scalar("SELECT source FROM music_track_identity WHERE track_id = $1")
+        .bind(id)
+        .fetch_optional(executor)
+        .await
+        .context("db: track identity source")
+}
+
+/// Whether a track's tags may be re-read from its file. Not when this server matched
+/// it: MusicBrainz is the better source, and a deliberate match must not be undone by
+/// whatever a tagger once wrote. A file that carries its own IDs stays the authority.
+pub async fn file_tags_may_overwrite<'e, E: sqlx::PgExecutor<'e>>(
+    executor: E,
+    id: Uuid,
+) -> anyhow::Result<bool> {
+    Ok(identity_source(executor, id).await?.as_deref() != Some("identify"))
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RevertOutcome {
+    Reverted,
+    /// The track has no MusicBrainz identity to undo.
+    NotIdentified,
+    /// Identified before snapshots were kept: nothing to go back to.
+    NothingRecorded,
+}
+
+/// Undo a track's identify: the columns go back to what they were before it, the
+/// MusicBrainz ids with them, and the track no longer counts as identified.
+pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid) -> anyhow::Result<RevertOutcome> {
+    let mut tx = pool.begin().await.context("db: begin revert")?;
+    let row: Option<(Option<serde_json::Value>,)> = sqlx::query_as(
+        "SELECT i.before
+           FROM music_track_identity i
+           JOIN music_tracks_all t ON t.id = i.track_id
+          WHERE i.track_id = $1 AND t.user_id = $2 AND t.trashed_at IS NULL AND t.missing_at IS NULL
+          FOR UPDATE OF i, t",
+    )
+    .bind(id)
+    .bind(user_id)
+    .fetch_optional(&mut *tx)
+    .await
+    .context("db: read track identity")?;
+    let Some((before,)) = row else { return Ok(RevertOutcome::NotIdentified) };
+    let Some(before) = before else { return Ok(RevertOutcome::NothingRecorded) };
+
+    sqlx::query(
+        "UPDATE music_tracks_all
+            SET title = COALESCE($2->>'title', title),
+                artist = $2->>'artist', album = $2->>'album',
+                album_artist = $2->>'album_artist', genre = $2->>'genre',
+                track_number = ($2->>'track_number')::int,
+                musicbrainz_recording_id = $2->>'musicbrainz_recording_id',
+                musicbrainz_release_id = $2->>'musicbrainz_release_id',
+                musicbrainz_artist_id = $2->>'musicbrainz_artist_id',
+                musicbrainz_release_group_id = $2->>'musicbrainz_release_group_id',
+                release_checked_at = ($2->>'release_checked_at')::timestamptz,
+                updated_at = now()
+          WHERE id = $1",
+    )
+    .bind(id)
+    .bind(&before)
+    .execute(&mut *tx)
+    .await
+    .context("db: restore track before identify")?;
+    sqlx::query("DELETE FROM music_track_identity WHERE track_id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .context("db: forget track identity")?;
+    tx.commit().await.context("db: commit revert")?;
+    Ok(RevertOutcome::Reverted)
+}
+
+/// MusicBrainz ids a file carries in its own tags (written by MusicBrainz Picard and
+/// most taggers that follow it). Only the recording id is required to count.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct TagMbids {
+    pub recording: String,
+    pub release: Option<String>,
+    pub artist: Option<String>,
+    pub release_group: Option<String>,
+}
+
+/// Bring a track's MusicBrainz ids in line with its file: set them when the file has
+/// them, take them away again when a file that had them no longer does. No network
+/// call — the file's tags already hold what a lookup would have returned. Callers
+/// must not use this on a track this server identified (`file_tags_may_overwrite`).
+pub async fn sync_tag_mbids(
+    conn: &mut sqlx::PgConnection,
+    id: Uuid,
+    mbids: Option<&TagMbids>,
+) -> anyhow::Result<()> {
+    let Some(m) = mbids else {
+        // Only ids that came from the file go when the file drops them.
+        let removed = sqlx::query(
+            "DELETE FROM music_track_identity WHERE track_id = $1 AND source = 'mbid_tag'",
+        )
+        .bind(id)
+        .execute(&mut *conn)
+        .await
+        .context("db: forget tag identity")?;
+        if removed.rows_affected() > 0 {
+            sqlx::query(
+                "UPDATE music_tracks_all
+                    SET musicbrainz_recording_id = NULL, musicbrainz_release_id = NULL,
+                        musicbrainz_artist_id = NULL, musicbrainz_release_group_id = NULL,
+                        release_checked_at = NULL, updated_at = now()
+                  WHERE id = $1",
+            )
+            .bind(id)
+            .execute(&mut *conn)
+            .await
+            .context("db: clear tag mbids")?;
+        }
+        return Ok(());
+    };
+
+    let before: serde_json::Value = sqlx::query_scalar(&format!(
+        "SELECT {IDENTITY_SNAPSHOT} FROM music_tracks_all WHERE id = $1 FOR UPDATE"
+    ))
+    .bind(id)
+    .fetch_one(&mut *conn)
+    .await
+    .context("db: snapshot track before tag mbids")?;
+    sqlx::query(
+        "UPDATE music_tracks_all
+            SET musicbrainz_recording_id = $2, musicbrainz_release_id = $3,
+                musicbrainz_artist_id = $4, musicbrainz_release_group_id = $5,
+                -- With the release group in the file there is nothing for the release
+                -- backfill to look up; without it, it may still fill it in.
+                release_checked_at = CASE WHEN $5 IS NULL THEN NULL ELSE now() END,
+                updated_at = CASE WHEN musicbrainz_recording_id IS DISTINCT FROM $2
+                                    OR musicbrainz_release_id IS DISTINCT FROM $3
+                                  THEN now() ELSE updated_at END
+          WHERE id = $1",
+    )
+    .bind(id)
+    .bind(&m.recording)
+    .bind(&m.release)
+    .bind(&m.artist)
+    .bind(&m.release_group)
+    .execute(&mut *conn)
+    .await
+    .context("db: set tag mbids")?;
+    sqlx::query(
+        "INSERT INTO music_track_identity (track_id, source, before)
+         VALUES ($1, 'mbid_tag', $2)
+         ON CONFLICT (track_id) DO UPDATE SET source = 'mbid_tag', identified_at = now()
+          WHERE music_track_identity.source = 'mbid_tag'",
+    )
+    .bind(id)
+    .bind(before)
+    .execute(&mut *conn)
+    .await
+    .context("db: record tag identity")?;
     Ok(())
 }
 

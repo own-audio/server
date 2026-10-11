@@ -355,6 +355,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(read_discs))
         .routes(crate::http::openapi::map(routes!(search_track_metadata), |m| limits.outbound.apply(m)))
         .routes(routes!(apply_track_metadata))
+        .routes(routes!(revert_track_metadata))
         .routes(crate::http::openapi::map(routes!(identify_album), |m| limits.outbound.apply(m)))
         // Track playback progress
         .routes(routes!(get_track_progress, upsert_track_progress))
@@ -1181,6 +1182,17 @@ async fn create_track(
     let mut track = track;
     track.disc_number = embedded.disc_number.filter(|n| *n > 0);
     track.disc_total = embedded.disc_total.filter(|n| *n > 0);
+    // A file saved by MusicBrainz Picard arrives identified: its ids are taken as they
+    // are, with no lookup.
+    if let Some(m) = &embedded.mbids {
+        db::music::sync_tag_mbids(&mut tx, track.id, Some(m))
+            .await
+            .map_err(AuthError::Internal)?;
+        track.musicbrainz_recording_id = Some(m.recording.clone());
+        track.musicbrainz_release_id = m.release.clone();
+        track.musicbrainz_artist_id = m.artist.clone();
+        track.musicbrainz_release_group_id = m.release_group.clone();
+    }
 
     if let Some(cover) = cover_upload {
         let ext = file_extension(&cover.file_name).unwrap_or("jpg");
@@ -1299,7 +1311,7 @@ pub(crate) async fn refresh_folder_track(
             .execute(state.db())
             .await?;
     }
-    if track.musicbrainz_recording_id.is_some() {
+    if !db::music::file_tags_may_overwrite(state.db(), track_id).await? {
         return Ok(());
     }
     let path = file.to_path_buf();
@@ -1320,6 +1332,8 @@ pub(crate) async fn refresh_folder_track(
     )
     .await?;
     db::music::set_disc(state.db(), track_id, tags.disc_number, tags.disc_total).await?;
+    let mut conn = state.db().acquire().await?;
+    db::music::sync_tag_mbids(&mut conn, track_id, tags.mbids.as_ref()).await?;
     Ok(())
 }
 
@@ -1480,7 +1494,7 @@ async fn rescan_track_tags(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    if track.musicbrainz_recording_id.is_some() {
+    if !db::music::file_tags_may_overwrite(state.db(), id).await.map_err(AuthError::Internal)? {
         return Err(AuthError::BadRequest(
             "this track was identified via MusicBrainz; re-reading its file tags would overwrite that".to_string(),
         ));
@@ -1538,6 +1552,11 @@ async fn rescan_track_tags(
     db::music::set_disc(state.db(), id, tags.disc_number, tags.disc_total)
         .await
         .map_err(AuthError::Internal)?;
+    let mut conn = state.db().acquire().await.map_err(|e| AuthError::Internal(e.into()))?;
+    db::music::sync_tag_mbids(&mut conn, id, tags.mbids.as_ref())
+        .await
+        .map_err(AuthError::Internal)?;
+    drop(conn);
 
     if let Some((cover_bytes, ext, content_type)) = tags.cover {
         store_rescanned_cover(&state, &family, id, cover_bytes, ext, content_type).await;
@@ -1814,6 +1833,7 @@ async fn apply_track_metadata(
         recording.mb_artist_id.as_deref(),
         recording.album_artist.as_deref(),
         recording.mb_release_group_id.as_deref(),
+        None,
     )
     .await
     .map_err(AuthError::Internal)?;
@@ -1830,6 +1850,50 @@ async fn apply_track_metadata(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
+    Ok(Json(track_to_response(fresh, family.user_id)))
+}
+
+/// POST /api/v1/music/tracks/:id/metadata/revert — owner-only. Undoes an identify:
+/// the track's title, artist, album, album artist, genre and track number go back to
+/// what they were before it was first identified, and its MusicBrainz ids go with
+/// them. A track whose ids came from its own file goes back to having none.
+///
+/// The file is never involved: identifying never wrote to it, so undoing has nothing
+/// to undo there. A cover fetched with the match stays.
+#[utoipa::path(post, path = "/tracks/{id}/metadata/revert", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = TrackResponse),
+        (status = 400, description = "Not identified, or identified before the server kept what to go back to", body = crate::http::openapi::ErrorBody),
+        (status = 404, body = crate::http::openapi::ErrorBody)))]
+async fn revert_track_metadata(
+    family: FamilyContext,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<TrackResponse>, AuthError> {
+    db::music::find_track_owned(state.db(), id, family.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
+
+    match db::music::revert_identity(state.db(), id, family.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+    {
+        db::music::RevertOutcome::Reverted => {}
+        db::music::RevertOutcome::NotIdentified => {
+            return Err(AuthError::BadRequest("this track has not been identified".to_string()));
+        }
+        db::music::RevertOutcome::NothingRecorded => {
+            return Err(AuthError::BadRequest(
+                "this track was identified before the server kept what it replaced; edit it instead".to_string(),
+            ));
+        }
+    }
+
+    let fresh = db::music::find_track_owned(state.db(), id, family.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
     Ok(Json(track_to_response(fresh, family.user_id)))
 }
 
@@ -2055,6 +2119,10 @@ struct EmbeddedTags {
     /// Vorbis `DISCNUMBER`/`DISCTOTAL`, ID3 `TPOS`, MP4 `disk`.
     disc_number: Option<i32>,
     disc_total: Option<i32>,
+    /// MusicBrainz ids the file carries, as MusicBrainz Picard writes them (Vorbis
+    /// `MUSICBRAINZ_TRACKID` is the *recording* id there, ID3 `UFID`, MP4
+    /// `----:com.apple.iTunes:MusicBrainz Track Id`; `lofty` maps all of them).
+    mbids: Option<db::music::TagMbids>,
     /// (raw bytes, file extension, content type) — extension and content type both come from
     /// the picture's own declared MIME type, not guessed from bytes.
     cover: Option<(Vec<u8>, &'static str, &'static str)>,
@@ -2124,8 +2192,30 @@ fn read_embedded_tags(path: &std::path::Path) -> EmbeddedTags {
         track_number: tag.track().map(|n| n as i32),
         disc_number: tag.disk().map(|n| n as i32),
         disc_total: tag.disk_total().map(|n| n as i32),
+        mbids: tag_mbids(|key| tag.get_string(key)),
         cover,
     }
+}
+
+/// The MusicBrainz ids in a file's tags, when it has a valid recording id. Each value
+/// must be a UUID; a tagger that writes several ids into one field ("a; b", as Picard
+/// does for multiple artists) gives its first.
+fn tag_mbids<'a>(get: impl Fn(lofty::tag::ItemKey) -> Option<&'a str>) -> Option<db::music::TagMbids> {
+    use lofty::tag::ItemKey;
+    let id = |key| {
+        get(key)
+            .into_iter()
+            .flat_map(|v| v.split(['/', ';']))
+            .map(str::trim)
+            .find_map(|v| Uuid::parse_str(v).ok())
+            .map(|u| u.to_string())
+    };
+    Some(db::music::TagMbids {
+        recording: id(ItemKey::MusicBrainzRecordingId)?,
+        release: id(ItemKey::MusicBrainzReleaseId),
+        artist: id(ItemKey::MusicBrainzArtistId),
+        release_group: id(ItemKey::MusicBrainzReleaseGroupId),
+    })
 }
 
 /// `None` on any parse failure (an unrecognized/corrupt file, or a codec
@@ -3777,4 +3867,53 @@ async fn store_temp_upload(
     .fetch_one(&mut **tx)
     .await
     .map_err(|e| AuthError::Internal(e.into()))
+}
+
+#[cfg(test)]
+mod tag_mbid_tests {
+    use super::tag_mbids;
+    use lofty::tag::ItemKey;
+
+    fn from(pairs: &'static [(ItemKey, &'static str)]) -> Option<crate::db::music::TagMbids> {
+        tag_mbids(|key| pairs.iter().find(|(k, _)| *k == key).map(|(_, v)| *v))
+    }
+
+    #[test]
+    fn reads_the_ids_picard_writes() {
+        let m = from(&[
+            (ItemKey::MusicBrainzRecordingId, "9d23c6dc-3efa-4d60-8d9f-e94f0d6fe7f5"),
+            (ItemKey::MusicBrainzReleaseId, "bc241129-1406-300b-b071-ed6310a88e10"),
+            (ItemKey::MusicBrainzArtistId, "bdacc37b-8633-4bf8-9dd5-4662ee651aec"),
+            (ItemKey::MusicBrainzReleaseGroupId, "415f4fdc-8b9c-3a83-98bc-b69cd154663b"),
+        ])
+        .expect("a recording id makes it count");
+        assert_eq!(m.recording, "9d23c6dc-3efa-4d60-8d9f-e94f0d6fe7f5");
+        assert_eq!(m.release_group.as_deref(), Some("415f4fdc-8b9c-3a83-98bc-b69cd154663b"));
+    }
+
+    #[test]
+    fn several_artists_give_the_first() {
+        let m = from(&[
+            (ItemKey::MusicBrainzRecordingId, "9d23c6dc-3efa-4d60-8d9f-e94f0d6fe7f5"),
+            (ItemKey::MusicBrainzArtistId, "bdacc37b-8633-4bf8-9dd5-4662ee651aec; 5b11f4ce-a62d-471e-81fc-a69a8278c7da"),
+        ])
+        .unwrap();
+        assert_eq!(m.artist.as_deref(), Some("bdacc37b-8633-4bf8-9dd5-4662ee651aec"));
+    }
+
+    #[test]
+    fn no_valid_recording_id_means_not_identified() {
+        assert_eq!(from(&[(ItemKey::MusicBrainzReleaseId, "bc241129-1406-300b-b071-ed6310a88e10")]), None);
+        assert_eq!(from(&[(ItemKey::MusicBrainzRecordingId, "not-a-uuid")]), None);
+    }
+
+    #[test]
+    fn a_malformed_optional_id_is_dropped_not_kept() {
+        let m = from(&[
+            (ItemKey::MusicBrainzRecordingId, "9d23c6dc-3efa-4d60-8d9f-e94f0d6fe7f5"),
+            (ItemKey::MusicBrainzReleaseId, "garbage"),
+        ])
+        .unwrap();
+        assert_eq!(m.release, None);
+    }
 }

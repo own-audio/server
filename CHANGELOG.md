@@ -7,6 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Files that carry their own MusicBrainz ids (as MusicBrainz Picard saves them: Vorbis
+  `MUSICBRAINZ_TRACKID`, ID3 `UFID`, MP4 `MusicBrainz Track Id`) arrive identified, with no
+  lookup, on upload, folder scan and rescan; the ids follow the file when it changes.
+- `POST /api/v1/music/tracks/{id}/metadata/revert` undoes an identify: the track's title,
+  artist, album, album artist, genre, track number and MusicBrainz ids go back to what they
+  were before its first identify (migration 0111 keeps them). Tracks identified earlier stay
+  identified but cannot be reverted: their previous values were never kept. Contract
+  revision 9.
+
+### Changed
+- `…/metadata/rescan` and the folder scan refuse to re-read the file only for a track this
+  server matched through MusicBrainz, no longer for one whose ids came from the file itself.
+
 ## [1.0.0-beta.8] - 2026-10-11
 
 ### Fixed
