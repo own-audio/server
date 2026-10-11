@@ -478,6 +478,7 @@ pub struct AlbumRow {
     pub artist: String,
     pub artist_id: Option<Uuid>,
     pub title: String,
+    pub release_group_id: Option<Uuid>,
     pub track_count: i64,
     pub duration_secs: Option<i64>,
     /// NULL when no track in the album has art at all: handing back a track id
@@ -499,7 +500,7 @@ pub async fn list_albums(
                 (SELECT c.contributor_id FROM credits c
                   WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.role = 'artist'
                   ORDER BY c.position LIMIT 1) AS artist_id,
-                a.title,
+                a.title, a.release_group_id,
                 COUNT(*) AS track_count,
                 SUM(t.duration_secs)::bigint AS duration_secs,
                 (array_agg(t.id ORDER BY t.created_at)
@@ -860,7 +861,7 @@ pub async fn find_artist_image(
 
 /// The household's contributor of that name, as the tags spell it in any case.
 pub async fn contributor_by_name(pool: &PgPool, family_id: Uuid, name: &str) -> anyhow::Result<Option<Uuid>> {
-    sqlx::query_scalar("SELECT contributor_id FROM contributor_keys WHERE family_id = $1 AND key = 'name:' || lower(trim($2))")
+    sqlx::query_scalar("SELECT contributor_id FROM contributor_keys WHERE family_id = $1 AND key = 'name:' || lower(trim($2)) ORDER BY position LIMIT 1")
         .bind(family_id)
         .bind(name)
         .fetch_optional(pool)

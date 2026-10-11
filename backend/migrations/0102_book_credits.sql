@@ -38,13 +38,14 @@ BEGIN
         SELECT COALESCE(max(position) + 1, 0) INTO v_pos FROM credits
          WHERE item_kind = 'book' AND item_id = NEW.id AND role = v_role;
         FOR v_rec IN SELECT * FROM book_credit_names(v_text) ORDER BY ord LOOP
-            v_cid := music_contributor(v_family, v_rec.name, NULL);
-            CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'book' AND item_id = NEW.id
-                                      AND role = v_role AND contributor_id = v_cid);
-            INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
-            VALUES (v_cid, 'book', NEW.id, v_role, v_pos)
-            ON CONFLICT DO NOTHING;
-            v_pos := v_pos + 1;
+            FOR v_cid IN SELECT c.contributor_id FROM music_contributors(v_family, v_rec.name, NULL) c ORDER BY c.part LOOP
+                CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'book' AND item_id = NEW.id
+                                          AND role = v_role AND contributor_id = v_cid);
+                INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
+                VALUES (v_cid, 'book', NEW.id, v_role, v_pos)
+                ON CONFLICT DO NOTHING;
+                v_pos := v_pos + 1;
+            END LOOP;
         END LOOP;
     END LOOP;
     PERFORM music_credit_joins('book', NEW.id);

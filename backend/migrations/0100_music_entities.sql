@@ -37,12 +37,15 @@ CREATE UNIQUE INDEX contributors_family_mbid_uq ON contributors (family_id, musi
 
 -- How tags find a contributor: 'name:<lower(trim(name))>' or 'mb:<artist id>'.
 -- Kept apart from the display name so a corrected name still matches the
--- next scan, and a merge can point several keys at one contributor.
+-- next scan, and a merge can point several keys at one contributor. A split
+-- points one key at several, in order ("A & B" → A, B; 0104).
 CREATE TABLE contributor_keys (
-    family_id      UUID NOT NULL REFERENCES families (id) ON DELETE CASCADE,
-    key            TEXT NOT NULL,
-    contributor_id UUID NOT NULL REFERENCES contributors (id) ON DELETE CASCADE,
-    PRIMARY KEY (family_id, key)
+    family_id      UUID     NOT NULL REFERENCES families (id) ON DELETE CASCADE,
+    key            TEXT     NOT NULL,
+    position       SMALLINT NOT NULL DEFAULT 0,
+    contributor_id UUID     NOT NULL REFERENCES contributors (id) ON DELETE CASCADE,
+    PRIMARY KEY (family_id, key, position),
+    UNIQUE (family_id, key, contributor_id)
 );
 CREATE INDEX contributor_keys_contributor_idx ON contributor_keys (contributor_id);
 
@@ -95,15 +98,26 @@ CREATE TABLE albums (
     barcode                TEXT,
     is_compilation         BOOLEAN     NOT NULL DEFAULT FALSE,
     musicbrainz_release_id TEXT,
-    -- 'mb:<release id>', or 'tag:<lower album artist>␟<lower album title>'.
-    match_key              TEXT        NOT NULL,
     edited_at              TIMESTAMPTZ,
+    -- Set when someone put the album in a release group by hand; tags no longer move it.
+    release_group_set_at   TIMESTAMPTZ,
     created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (family_id, match_key)
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX albums_family_title_idx ON albums (family_id, lower(title));
 CREATE INDEX albums_release_group_idx ON albums (release_group_id);
+
+-- How tags find an album: 'mb:<release id>', or 'tag:<album artists' contributor
+-- ids, ';'>␟<lower album title>' — by id, so a corrected artist keeps its
+-- albums. Several keys lead to one album once albums are merged, so the merge
+-- holds at the next scan.
+CREATE TABLE album_keys (
+    family_id UUID NOT NULL REFERENCES families (id) ON DELETE CASCADE,
+    key       TEXT NOT NULL,
+    album_id  UUID NOT NULL REFERENCES albums (id) ON DELETE CASCADE,
+    PRIMARY KEY (family_id, key)
+);
+CREATE INDEX album_keys_album_idx ON album_keys (album_id);
 
 -- The performance; several tracks on several albums can be one recording.
 -- Only made from a MusicBrainz recording id: two songs sharing a title are
@@ -196,12 +210,18 @@ BEGIN
             RETURN v_id;
         END IF;
     END IF;
-    SELECT contributor_id INTO v_id FROM contributor_keys WHERE family_id = p_family AND key = v_nkey;
+    SELECT contributor_id INTO v_id FROM contributor_keys WHERE family_id = p_family AND key = v_nkey
+     ORDER BY position LIMIT 1;
     IF v_id IS NULL THEN
         INSERT INTO contributors (family_id, name) VALUES (p_family, v_name) RETURNING id INTO v_id;
         INSERT INTO contributor_keys (family_id, key, contributor_id) VALUES (p_family, v_nkey, v_id)
-            ON CONFLICT (family_id, key) DO UPDATE SET key = EXCLUDED.key
-            RETURNING contributor_id INTO v_id;
+            ON CONFLICT DO NOTHING;
+        IF NOT FOUND THEN
+            -- Another transaction made it first.
+            DELETE FROM contributors WHERE id = v_id;
+            SELECT contributor_id INTO v_id FROM contributor_keys WHERE family_id = p_family AND key = v_nkey
+             ORDER BY position LIMIT 1;
+        END IF;
     END IF;
     IF v_mbid IS NOT NULL THEN
         -- Join the id to the name's contributor, unless that one already has another id.
@@ -212,6 +232,24 @@ BEGIN
             ON CONFLICT DO NOTHING;
     END IF;
     RETURN v_id;
+END $$;
+
+-- Every contributor a credited name stands for: the one music_contributor
+-- finds, or the parts of a split name in order.
+CREATE FUNCTION music_contributors(p_family UUID, p_name TEXT, p_mbid TEXT)
+RETURNS TABLE (contributor_id UUID, part INT)
+LANGUAGE plpgsql AS $$
+#variable_conflict use_column
+BEGIN
+    RETURN QUERY
+    SELECT k.contributor_id, (row_number() OVER (ORDER BY k.position))::int
+      FROM contributor_keys k
+     WHERE k.family_id = p_family AND k.key = 'name:' || lower(trim(p_name))
+       AND EXISTS (SELECT 1 FROM contributor_keys o
+                    WHERE o.family_id = k.family_id AND o.key = k.key AND o.position > 0);
+    IF NOT FOUND THEN
+        RETURN QUERY SELECT music_contributor(p_family, p_name, p_mbid), 1;
+    END IF;
 END $$;
 
 -- The household of a track's owner; NULL for a user in none (then nothing is linked).
@@ -246,6 +284,8 @@ DECLARE
     v_album     UUID;
     v_rg        UUID;
     v_rg_key    TEXT;
+    v_rg_set    BOOLEAN;
+    v_aa_ids    UUID[];
     v_mb_rel    TEXT := NULLIF(trim(NEW.musicbrainz_release_id), '');
     v_mb_rg     TEXT := NULLIF(trim(NEW.musicbrainz_release_group_id), '');
     v_mb_rec    TEXT := NULLIF(trim(NEW.musicbrainz_recording_id), '');
@@ -261,32 +301,51 @@ BEGIN
 
     v_aa := music_album_artist(NEW.album_artist, NEW.artist);
     v_title := music_album_title(NEW.album);
+    -- The album artists as contributors, in order, each once: the album's
+    -- credits and, without a MusicBrainz release id, its key — by id, so an
+    -- artist renamed, merged or split keeps its albums (0104).
+    SELECT array_agg(d.contributor_id ORDER BY d.ord) INTO v_aa_ids
+      FROM (SELECT DISTINCT ON (c.contributor_id) c.contributor_id, p.ord * 100 + c.part AS ord
+              FROM (SELECT trim(x) AS name, ord
+                      FROM unnest(string_to_array(v_aa, ';')) WITH ORDINALITY AS u(x, ord) WHERE trim(x) <> '') p
+             CROSS JOIN LATERAL music_contributors(v_family, p.name,
+                   CASE WHEN p.ord = 1 AND NULLIF(trim(NEW.album_artist), '') IS NULL THEN NEW.musicbrainz_artist_id END) c
+             ORDER BY c.contributor_id, p.ord, c.part) d;
     v_key := CASE WHEN v_mb_rel IS NOT NULL THEN 'mb:' || v_mb_rel
-                  ELSE 'tag:' || lower(v_aa) || chr(31) || lower(v_title) END;
-    SELECT id INTO v_album FROM albums WHERE family_id = v_family AND match_key = v_key;
+                  ELSE 'tag:' || array_to_string(v_aa_ids, ';') || chr(31) || lower(v_title) END;
+    SELECT album_id INTO v_album FROM album_keys WHERE family_id = v_family AND key = v_key;
     IF v_album IS NULL THEN
-        INSERT INTO albums (family_id, title, artist_display, is_compilation, musicbrainz_release_id, match_key)
-        VALUES (v_family, v_title, v_aa, COALESCE(NEW.is_compilation, FALSE), v_mb_rel, v_key)
-        ON CONFLICT (family_id, match_key) DO UPDATE SET match_key = EXCLUDED.match_key
+        INSERT INTO albums (family_id, title, artist_display, is_compilation, musicbrainz_release_id)
+        VALUES (v_family, v_title, v_aa, COALESCE(NEW.is_compilation, FALSE), v_mb_rel)
         RETURNING id INTO v_album;
-        -- The album artist is the album's credit (split on ';' like a track's),
-        -- set once; corrections stay.
-        INSERT INTO credits (contributor_id, item_kind, item_id, role, position, join_phrase)
-        SELECT DISTINCT ON (c.id) c.id, 'album', v_album, 'artist', (p.ord - 1)::smallint,
-               CASE WHEN p.ord < p.n THEN '; ' ELSE '' END
-          FROM (SELECT trim(x) AS name, ord, count(*) OVER () AS n
-                  FROM unnest(string_to_array(v_aa, ';')) WITH ORDINALITY AS u(x, ord) WHERE trim(x) <> '') p
-         CROSS JOIN LATERAL (SELECT music_contributor(v_family, p.name,
-                CASE WHEN p.ord = 1 AND NULLIF(trim(NEW.album_artist), '') IS NULL THEN NEW.musicbrainz_artist_id END) AS id) c
-         ORDER BY c.id, p.ord
-        ON CONFLICT DO NOTHING;
-        PERFORM music_credit_joins('album', v_album);
+        INSERT INTO album_keys (family_id, key, album_id) VALUES (v_family, v_key, v_album)
+            ON CONFLICT DO NOTHING;
+        IF NOT FOUND THEN
+            -- Another transaction made it first.
+            DELETE FROM albums WHERE id = v_album;
+            SELECT album_id INTO v_album FROM album_keys WHERE family_id = v_family AND key = v_key;
+        ELSE
+            -- The album artist is the album's credit (split on ';' like a track's),
+            -- set once; corrections stay.
+            INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
+            SELECT u.id, 'album', v_album, 'artist', (u.ord - 1)::smallint
+              FROM unnest(v_aa_ids) WITH ORDINALITY AS u(id, ord)
+            ON CONFLICT DO NOTHING;
+            PERFORM music_credit_joins('album', v_album);
+            -- The line from the credits, so a corrected (renamed, split) artist
+            -- reads the same on a new album as on the old ones.
+            UPDATE albums a SET artist_display = l.line
+              FROM (SELECT string_agg(k.name || c.join_phrase, '' ORDER BY c.position) AS line
+                      FROM credits c JOIN contributors k ON k.id = c.contributor_id
+                     WHERE c.item_kind = 'album' AND c.item_id = v_album AND c.role = 'artist') l
+             WHERE a.id = v_album AND l.line IS NOT NULL AND a.artist_display IS DISTINCT FROM l.line;
+        END IF;
     END IF;
 
-    -- Release group: by its MusicBrainz id, or one per album.
+    -- Release group: by its MusicBrainz id, or one per album; not when set by hand.
     v_rg_key := CASE WHEN v_mb_rg IS NOT NULL THEN 'mb:' || v_mb_rg ELSE 'album:' || v_album END;
-    SELECT release_group_id INTO v_rg FROM albums WHERE id = v_album;
-    IF v_rg IS NULL OR v_mb_rg IS NOT NULL THEN
+    SELECT release_group_id, release_group_set_at IS NOT NULL INTO v_rg, v_rg_set FROM albums WHERE id = v_album;
+    IF NOT v_rg_set AND (v_rg IS NULL OR v_mb_rg IS NOT NULL) THEN
         INSERT INTO release_groups (family_id, title, musicbrainz_release_group_id, match_key)
         VALUES (v_family, v_title, v_mb_rg, v_rg_key)
         ON CONFLICT (family_id, match_key) DO UPDATE SET match_key = EXCLUDED.match_key
@@ -339,28 +398,30 @@ BEGIN
     v_guests := music_guest_artists(NEW.artist);
     FOR v_i IN 1 .. v_n LOOP
         v_name := v_parts[v_i];
-        v_cid := music_contributor(v_family, v_name, CASE WHEN v_i = 1 THEN NEW.musicbrainz_artist_id END);
-        CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'track' AND item_id = NEW.id
-                                  AND role = 'artist' AND contributor_id = v_cid);
-        INSERT INTO credits (contributor_id, item_kind, item_id, role, position, join_phrase)
-        VALUES (v_cid, 'track', NEW.id, 'artist', v_pos,
-                CASE WHEN v_i < v_n THEN '; ' WHEN v_guests IS NOT NULL THEN ' feat. ' ELSE '' END)
-        ON CONFLICT DO NOTHING;
-        v_pos := v_pos + 1;
+        FOR v_cid IN SELECT c.contributor_id FROM music_contributors(v_family, v_name,
+                         CASE WHEN v_i = 1 THEN NEW.musicbrainz_artist_id END) c ORDER BY c.part LOOP
+            CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'track' AND item_id = NEW.id
+                                      AND role = 'artist' AND contributor_id = v_cid);
+            INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
+            VALUES (v_cid, 'track', NEW.id, 'artist', v_pos)
+            ON CONFLICT DO NOTHING;
+            v_pos := v_pos + 1;
+        END LOOP;
     END LOOP;
 
     IF v_guests IS NOT NULL THEN
         v_parts := array_remove(array(SELECT NULLIF(trim(x), '') FROM unnest(string_to_array(v_guests, ';')) x), NULL);
         v_n := COALESCE(array_length(v_parts, 1), 0);
         FOR v_i IN 1 .. v_n LOOP
-            v_cid := music_contributor(v_family, v_parts[v_i], NULL);
-            CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'track' AND item_id = NEW.id
-                                      AND role = 'featured' AND contributor_id = v_cid);
-            INSERT INTO credits (contributor_id, item_kind, item_id, role, position, join_phrase)
-            VALUES (v_cid, 'track', NEW.id, 'featured', v_pos,
-                    CASE WHEN v_i < v_n THEN '; ' ELSE '' END)
-            ON CONFLICT DO NOTHING;
-            v_pos := v_pos + 1;
+            FOR v_cid IN SELECT c.contributor_id FROM music_contributors(v_family, v_parts[v_i], NULL) c
+                          ORDER BY c.part LOOP
+                CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'track' AND item_id = NEW.id
+                                          AND role = 'featured' AND contributor_id = v_cid);
+                INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
+                VALUES (v_cid, 'track', NEW.id, 'featured', v_pos)
+                ON CONFLICT DO NOTHING;
+                v_pos := v_pos + 1;
+            END LOOP;
         END LOOP;
     END IF;
 
@@ -437,8 +498,9 @@ BEGIN
       FROM music_tracks_all t
       JOIN family_members fm ON fm.user_id = t.user_id
      WHERE p_user IS NULL OR t.user_id = p_user;
-    UPDATE link_src SET album_key = CASE WHEN mb_rel IS NOT NULL THEN 'mb:' || mb_rel
-                                         ELSE 'tag:' || lower(aa) || chr(31) || lower(title) END;
+    -- Keyed by release id here; by album artists and title below, once the
+    -- artists are contributors.
+    UPDATE link_src SET album_key = 'mb:' || mb_rel WHERE mb_rel IS NOT NULL;
     -- Temp tables have no statistics until analysed; without them the planner
     -- joins 600,000 rows by nested loop (the first try ran for an hour).
     ANALYZE link_src;
@@ -486,6 +548,9 @@ BEGIN
           FROM link_names n JOIN link_src s ON s.id = n.id
           JOIN contributor_keys k ON k.family_id = n.family AND k.key = 'name:' || lower(n.name)
          WHERE n.first_artist AND s.mb_artist IS NOT NULL
+           -- not the parts of a split name: the id was the combined credit's
+           AND NOT EXISTS (SELECT 1 FROM contributor_keys o
+                            WHERE o.family_id = k.family_id AND o.key = k.key AND o.position > 0)
          ORDER BY k.contributor_id, s.mb_artist
     ), unique_ids AS (
         SELECT DISTINCT ON (family, mb) contributor_id, family, mb FROM ids ORDER BY family, mb, contributor_id
@@ -500,33 +565,53 @@ BEGIN
      WHERE c.musicbrainz_artist_id IS NOT NULL AND c.family_id IN (SELECT DISTINCT family FROM link_src)
     ON CONFLICT DO NOTHING;
 
+    -- The other albums' keys: their album artists by contributor id, in order
+    -- and each once, as the row trigger makes them.
+    UPDATE link_src s SET album_key = 'tag:' || a.ids || chr(31) || lower(s.title)
+      FROM (SELECT x.family, x.aa, string_agg(x.contributor_id::text, ';' ORDER BY x.ord) AS ids
+              FROM (SELECT DISTINCT ON (d.family, d.aa, k.contributor_id) d.family, d.aa, k.contributor_id,
+                           p.ord * 100 + k.position AS ord
+                      FROM (SELECT DISTINCT family, aa FROM link_src WHERE mb_rel IS NULL) d
+                     CROSS JOIN LATERAL unnest(string_to_array(d.aa, ';')) WITH ORDINALITY AS p(name, ord)
+                      JOIN contributor_keys k ON k.family_id = d.family AND k.key = 'name:' || lower(trim(p.name))
+                     WHERE trim(p.name) <> ''
+                     ORDER BY d.family, d.aa, k.contributor_id, p.ord, k.position) x
+             GROUP BY x.family, x.aa) a
+     WHERE s.mb_rel IS NULL AND a.family = s.family AND a.aa = s.aa;
+    ANALYZE link_src;
+
     -- Albums no key knows yet, with their artist credits.
-    WITH made AS (
-        INSERT INTO albums (family_id, title, artist_display, is_compilation, musicbrainz_release_id, match_key)
-        SELECT DISTINCT ON (family, album_key) family, title, aa, COALESCE(is_compilation, FALSE), mb_rel, album_key
-          FROM link_src ORDER BY family, album_key, created_at
-        ON CONFLICT (family_id, match_key) DO NOTHING
-        RETURNING id, family_id, artist_display
-    )
+    DROP TABLE IF EXISTS link_new_albums;
+    CREATE TEMP TABLE link_new_albums ON COMMIT DROP AS
+    SELECT DISTINCT ON (family, album_key) gen_random_uuid() AS id, family, album_key, title, aa,
+           COALESCE(is_compilation, FALSE) AS is_compilation, mb_rel
+      FROM link_src s
+     WHERE NOT EXISTS (SELECT 1 FROM album_keys k WHERE k.family_id = s.family AND k.key = s.album_key)
+     ORDER BY family, album_key, created_at, id;
+    INSERT INTO albums (id, family_id, title, artist_display, is_compilation, musicbrainz_release_id)
+    SELECT id, family, title, aa, is_compilation, mb_rel FROM link_new_albums;
+    INSERT INTO album_keys (family_id, key, album_id) SELECT family, album_key, id FROM link_new_albums;
     INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
-    SELECT DISTINCT ON (m.id, k.contributor_id) k.contributor_id, 'album', m.id, 'artist', (p.ord - 1)::smallint
-      FROM made m
-     CROSS JOIN LATERAL (SELECT trim(x) AS name, ord FROM unnest(string_to_array(m.artist_display, ';')) WITH ORDINALITY AS u(x, ord)
-                          WHERE trim(x) <> '') p
-      JOIN contributor_keys k ON k.family_id = m.family_id AND k.key = 'name:' || lower(p.name)
-     ORDER BY m.id, k.contributor_id, p.ord
+    SELECT contributor_id, 'album', id, 'artist', (row_number() OVER (PARTITION BY id ORDER BY ord) - 1)::smallint
+      FROM (SELECT DISTINCT ON (m.id, k.contributor_id) k.contributor_id, m.id, p.ord * 100 + k.position AS ord
+              FROM link_new_albums m
+             CROSS JOIN LATERAL (SELECT trim(x) AS name, ord FROM unnest(string_to_array(m.aa, ';')) WITH ORDINALITY AS u(x, ord)
+                                  WHERE trim(x) <> '') p
+              JOIN contributor_keys k ON k.family_id = m.family AND k.key = 'name:' || lower(p.name)
+             ORDER BY m.id, k.contributor_id, p.ord, k.position) d
     ON CONFLICT DO NOTHING;
 
     -- Release groups: by MusicBrainz id, else one per album.
     INSERT INTO release_groups (family_id, title, musicbrainz_release_group_id, match_key)
     SELECT DISTINCT ON (family, mb_rg) family, title, mb_rg, 'mb:' || mb_rg
-      FROM link_src WHERE mb_rg IS NOT NULL ORDER BY family, mb_rg, created_at
+      FROM link_src WHERE mb_rg IS NOT NULL ORDER BY family, mb_rg, created_at, id
     ON CONFLICT (family_id, match_key) DO NOTHING;
     UPDATE albums a SET release_group_id = rg.id
       FROM (SELECT DISTINCT ON (family, album_key) family, album_key, mb_rg FROM link_src
-             WHERE mb_rg IS NOT NULL ORDER BY family, album_key, created_at DESC) s
+             WHERE mb_rg IS NOT NULL ORDER BY family, album_key, created_at DESC, id DESC) s
+      JOIN album_keys ak ON ak.family_id = s.family AND ak.key = s.album_key
       JOIN release_groups rg ON rg.family_id = s.family AND rg.match_key = 'mb:' || s.mb_rg
-     WHERE a.family_id = s.family AND a.match_key = s.album_key AND a.release_group_id IS DISTINCT FROM rg.id;
+     WHERE a.id = ak.album_id AND a.release_group_set_at IS NULL AND a.release_group_id IS DISTINCT FROM rg.id;
     -- One per album for the rest. Matched back through the unique index on
     -- (family_id, match_key): joining to the inserted rows themselves made the
     -- planner compare every album with every new group (an hour at 100,000).
@@ -541,14 +626,14 @@ BEGIN
 
     INSERT INTO recordings (family_id, title, musicbrainz_recording_id)
     SELECT DISTINCT ON (family, mb_rec) family, track_title, mb_rec
-      FROM link_src WHERE mb_rec IS NOT NULL ORDER BY family, mb_rec, created_at
+      FROM link_src WHERE mb_rec IS NOT NULL ORDER BY family, mb_rec, created_at, id
     ON CONFLICT (family_id, musicbrainz_recording_id) DO NOTHING;
 
-    UPDATE music_tracks_all t SET album_id = a.id, recording_id = r.id
+    UPDATE music_tracks_all t SET album_id = a.album_id, recording_id = r.id
       FROM link_src s
-      JOIN albums a ON a.family_id = s.family AND a.match_key = s.album_key
+      JOIN album_keys a ON a.family_id = s.family AND a.key = s.album_key
       LEFT JOIN recordings r ON r.family_id = s.family AND r.musicbrainz_recording_id = s.mb_rec
-     WHERE t.id = s.id AND (t.album_id IS DISTINCT FROM a.id OR t.recording_id IS DISTINCT FROM r.id);
+     WHERE t.id = s.id AND (t.album_id IS DISTINCT FROM a.album_id OR t.recording_id IS DISTINCT FROM r.id);
     -- A user's tracks outside any household are linked to nothing.
     UPDATE music_tracks_all SET album_id = NULL, recording_id = NULL
      WHERE (p_user IS NULL OR user_id = p_user) AND album_id IS NOT NULL
@@ -556,10 +641,11 @@ BEGIN
 
     INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
     SELECT contributor_id, 'track', id, role, (row_number() OVER (PARTITION BY id ORDER BY ord) - 1)::smallint
-      FROM (SELECT DISTINCT ON (n.id, n.role, k.contributor_id) k.contributor_id, n.id, n.role, n.ord
+      FROM (SELECT DISTINCT ON (n.id, n.role, k.contributor_id) k.contributor_id, n.id, n.role,
+                   n.ord * 100 + k.position AS ord
               FROM link_names n
               JOIN contributor_keys k ON k.family_id = n.family AND k.key = 'name:' || lower(n.name)
-             ORDER BY n.id, n.role, k.contributor_id, n.ord) d
+             ORDER BY n.id, n.role, k.contributor_id, n.ord, k.position) d
     ON CONFLICT DO NOTHING;
 
     -- Join phrases from the final lists (see music_credit_joins), for the
@@ -578,6 +664,14 @@ BEGIN
             WINDOW w AS (PARTITION BY cr.item_kind, cr.item_id, cr.role ORDER BY cr.position),
                    item AS (PARTITION BY cr.item_kind, cr.item_id)) j
      WHERE c.id = j.id AND c.join_phrase IS DISTINCT FROM j.phrase;
+    -- New albums' artist line from their credits, as the row trigger does.
+    UPDATE albums a SET artist_display = l.line
+      FROM (SELECT c.item_id, string_agg(k.name || c.join_phrase, '' ORDER BY c.position) AS line
+              FROM link_new_albums m
+              JOIN credits c ON c.item_kind = 'album' AND c.item_id = m.id AND c.role = 'artist'
+              JOIN contributors k ON k.id = c.contributor_id
+             GROUP BY c.item_id) l
+     WHERE a.id = l.item_id AND a.artist_display IS DISTINCT FROM l.line;
 
     INSERT INTO genres (family_id, name, key)
     SELECT DISTINCT ON (s.family, lower(trim(g))) s.family, trim(g), lower(trim(g))

@@ -52,6 +52,8 @@ pub struct LinkAuthorRequest {
 /// The roles a book credits (DESIGN §7.2).
 const BOOK_ROLES: &[&str] = &["author", "co_author", "narrator", "translator", "editor", "illustrator"];
 
+pub(crate) const NAME_TAKEN: &str = "another contributor already has this name; merge the two instead";
+
 fn default_author_role() -> String {
     "author".to_string()
 }
@@ -170,7 +172,8 @@ async fn get_author(
     params(("id" = Uuid, Path, description = "Author id")),
     request_body = UpdateAuthorRequest,
     responses(
-        (status = 200, body = AuthorResponse)))]
+        (status = 200, body = AuthorResponse),
+        (status = 409, description = "Another contributor already has this name: merge them instead", body = crate::http::openapi::ErrorBody)))]
 async fn update_author(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -180,7 +183,7 @@ async fn update_author(
     if body.name.trim().is_empty() {
         return Err(AuthError::BadRequest("name is required".into()));
     }
-    let author = db::authors::update_author(
+    let author = match db::authors::update_author(
         state.db(),
         family.family_id,
         id,
@@ -190,7 +193,11 @@ async fn update_author(
     )
     .await
     .map_err(AuthError::Internal)?
-    .ok_or(AuthError::ItemNotFound)?;
+    {
+        Ok(author) => author,
+        Err(db::entities::Renamed::Taken(_)) => return Err(AuthError::Conflict(NAME_TAKEN.into())),
+        Err(_) => return Err(AuthError::ItemNotFound),
+    };
     let book_count = db::authors::author_book_count(state.db(), family.viewer(), id)
         .await
         .map_err(AuthError::Internal)?;

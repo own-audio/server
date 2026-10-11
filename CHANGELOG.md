@@ -23,6 +23,18 @@ semver. Each release states the **API contract revision** it serves
   `artist_id` as well as by name. Artists are whoever is credited, so "A; B"
   lists two and a `feat.` guest is not an artist of the track; albums spelled
   in different case are one album.
+- Corrections on artists and albums, fixed once on the entity and kept when
+  the same tags are read again (migration 0104):
+  - `PATCH /music/artists/{id}` renames; the old spelling still matches, and
+    a name another artist already has is a 409 (merge them instead).
+  - `POST /music/artists/{id}/merge` makes two artists one; their albums of
+    the same title become one too.
+  - `POST /music/artists/{id}/split` turns "Hall & Oates" into its two
+    people: every credit, and every later scan of the same tags, credits both.
+  - `PATCH /music/albums/{id}` renames, `POST /music/albums/{id}/merge` joins
+    one release tagged two ways, `PUT /music/albums/{id}/release-group` groups
+    editions; albums carry `release_group_id`.
+  Merging and splitting are a family admin's.
 
 ### Changed
 - Subsonic artist and album ids are the entities' ids (migration 0101). They
@@ -42,6 +54,7 @@ semver. Each release states the **API contract revision** it serves
   the household's contributors, with photos shared with the music side.
   Roles are `author`, `co_author`, `narrator`, `translator`, `editor`,
   `illustrator`.
+  Renaming an author to a name another contributor has is a 409, as for artists.
 - Podcasts credit their hosts the same way, from the feed's author line
   (migration 0103); a refresh that brings the same author changes nothing.
 

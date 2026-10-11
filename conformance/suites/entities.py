@@ -123,3 +123,68 @@ def run(ctx: Ctx) -> None:
     ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", tok,
              {"author_id": solo_id, "role": "playwright"}, expect=(400,))
     ctx.check("a credit's role comes from the book roles", True)
+
+    # Corrections (E4): fixed once on the entity, and they hold when the same tags are read again.
+    def artist_named(name: str) -> dict | None:
+        return next((a for a in ctx.call("GET", "/api/v1/music/artists", tok) if a["artist"] == name), None)
+
+    duo_tag = f"Hall {sfx} & Oates {sfx}"
+    first = ctx.upload_track(tok, f"Rich Girl {sfx}", artist=duo_tag, album=f"Duo Album {sfx}")
+    combined = artist_named(duo_tag)
+    parts = ctx.call("POST", f"/api/v1/music/artists/{combined['id']}/split", tok,
+                     {"names": [f"Daryl {sfx}", f"John {sfx}"]})
+    ctx.check("a split answers with the artists, in order",
+              [p["name"] for p in parts] == [f"Daryl {sfx}", f"John {sfx}"], str(parts))
+    ctx.check("the split artist is gone from the list", artist_named(duo_tag) is None)
+    ctx.upload_track(tok, f"Maneater {sfx}", artist=duo_tag, album=f"Duo Album {sfx}")
+    ctx.call("PUT", f"/api/v1/music/tracks/{first['id']}", tok,
+             {"title": first["title"], "artist": duo_tag, "album": f"Duo Album {sfx}"})
+    john = artist_named(f"John {sfx}")
+    ctx.check("a new file and a retag with the split name credit every part",
+              artist_named(duo_tag) is None and john is not None and john["track_count"] == 2, str(john))
+    duo_albums = ctx.call("GET", f"/api/v1/music/albums?artist_id={parts[0]['id']}", tok)
+    ctx.check("the album credits the parts too, and reads as them",
+              [a["artist"] for a in duo_albums] == [f"Daryl {sfx}; John {sfx}"], str(duo_albums)[:160])
+
+    renamed = ctx.call("PATCH", f"/api/v1/music/artists/{parts[0]['id']}", tok, {"name": f"Daryl Hall {sfx}"})
+    ctx.check("renaming an artist answers with the new name", renamed.get("name") == f"Daryl Hall {sfx}", str(renamed))
+    ctx.upload_track(tok, f"Sara Smile {sfx}", artist=f"Daryl {sfx}", album=f"Solo Album {sfx}")
+    daryl = artist_named(f"Daryl Hall {sfx}")
+    ctx.check("the old spelling still finds the renamed artist",
+              artist_named(f"Daryl {sfx}") is None and daryl is not None and daryl["track_count"] == 3, str(daryl))
+    ctx.call("PATCH", f"/api/v1/music/artists/{parts[1]['id']}", tok, {"name": f"daryl hall {sfx}"}, expect=(409,))
+    ctx.check("a name another artist has is a merge, not a rename", True)
+
+    ctx.upload_track(tok, f"Help {sfx}", artist=f"Beatles {sfx}", album=f"Abbey {sfx}")
+    ctx.upload_track(tok, f"Come Together {sfx}", artist=f"The Beatles {sfx}", album=f"Abbey {sfx} (Remastered)")
+    beatles, the_beatles = artist_named(f"Beatles {sfx}"), artist_named(f"The Beatles {sfx}")
+    kept = ctx.call("POST", f"/api/v1/music/artists/{beatles['id']}/merge", tok, {"into": the_beatles["id"]})
+    ctx.check("a merge answers with the artist that stays", kept.get("id") == the_beatles["id"], str(kept))
+    ctx.upload_track(tok, f"Yesterday {sfx}", artist=f"Beatles {sfx}", album=f"Help {sfx}")
+    merged = artist_named(f"The Beatles {sfx}")
+    ctx.check("a merged artist's spelling finds the one that stays",
+              artist_named(f"Beatles {sfx}") is None and merged is not None and merged["track_count"] == 3, str(merged))
+
+    albums = {a["album"]: a for a in ctx.call("GET", f"/api/v1/music/albums?artist_id={the_beatles['id']}", tok)}
+    abbey, remaster = albums[f"Abbey {sfx}"], albums[f"Abbey {sfx} (Remastered)"]
+    ctx.call("PUT", f"/api/v1/music/albums/{remaster['id']}/release-group", tok,
+             {"release_group_id": abbey["release_group_id"]})
+    albums = {a["album"]: a for a in ctx.call("GET", f"/api/v1/music/albums?artist_id={the_beatles['id']}", tok)}
+    ctx.check("two editions grouped share a release group",
+              albums[f"Abbey {sfx} (Remastered)"]["release_group_id"] == abbey["release_group_id"])
+    ctx.call("POST", f"/api/v1/music/albums/{remaster['id']}/merge", tok, {"into": abbey["id"]}, expect=(204,))
+    again = ctx.upload_track(tok, f"Something {sfx}", artist=f"The Beatles {sfx}", album=f"Abbey {sfx} (Remastered)")
+    ctx.check("a merged album's tags lead to the one that stays", again.get("album_id") == abbey["id"],
+              f"{again.get('album_id')} vs {abbey['id']}")
+    ctx.call("PATCH", f"/api/v1/music/albums/{abbey['id']}", tok, {"title": f"Abbey Road {sfx}"}, expect=(204,))
+    retagged = ctx.call("PUT", f"/api/v1/music/tracks/{again['id']}", tok,
+                        {"title": again["title"], "artist": f"The Beatles {sfx}", "album": f"Abbey {sfx}"})
+    titles = [a["album"] for a in ctx.call("GET", f"/api/v1/music/albums?artist_id={the_beatles['id']}", tok)]
+    ctx.check("a renamed album keeps its tracks and its title through a retag",
+              retagged.get("album_id") == abbey["id"] and f"Abbey Road {sfx}" in titles and f"Abbey {sfx}" not in titles,
+              str(titles))
+
+    ctx.call("POST", f"/api/v1/music/artists/{the_beatles['id']}/merge", m_tok, {"into": parts[1]["id"]}, expect=(403, 404))
+    ctx.call("POST", f"/api/v1/music/artists/{the_beatles['id']}/split", m_tok, {"names": ["x", "y"]}, expect=(403, 404))
+    ctx.call("POST", f"/api/v1/music/albums/{abbey['id']}/merge", m_tok, {"into": abbey["id"]}, expect=(403, 404))
+    ctx.check("merging and splitting are a family admin's", True)

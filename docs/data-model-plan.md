@@ -49,14 +49,15 @@ the console all read. Written 2026-10-11.
 
 ## Phases
 
-Status 2026-10-11: E1 (`dfefb49`), E2a (`1d1592e`), E2b (`fac8d4c`) and E3 (books, podcast hosts) are done; E4 next.
+Status 2026-10-11: E1 (`dfefb49`), E2a (`1d1592e`), E2b (`fac8d4c`), E3 (`71d81d3`,
+`b003eed`) and E4 are done; `/api/v2` next.
 
 | Phase | Content | Test |
 |---|---|---|
 | **E1** | Schema (`contributors`, `contributor_keys`, `credits`, `release_groups`, `albums`, `recordings`, `genres`, `track_genres`; `music_tracks_all.album_id`, `recording_id`), the link function and triggers, the backfill. v1 artist and album lists gain `id`. | conformance `music`: an uploaded track has an album and its artists by id; a feat. guest is a second credit; a retag relinks |
 | **E2** | Readers move: v1 artist/album lists and details from entities (by id, name routes kept); stars, ratings, artist images on entity ids; Subsonic browsing on entity ids, `subsonic_ids` dropped; the old grouping keys removed. | conformance `smoke`/Subsonic unchanged answers; 600k scale run |
 | **E3** | Books: `audiobook_authors` → household contributors, `audiobook_book_authors` → credits (author, narrator, translator…). Podcasts: hosts from `<itunes:author>` / `<podcast:person>`. One contributor across media. | conformance: an author who also sings is one contributor |
-| **E4** | Corrections: rename, merge, split contributors; rename and re-parent albums; all as entity operations recorded in the change feed. | conformance |
+| **E4** | Corrections: rename, merge, split contributors; rename, merge and regroup albums (migration 0104). They hold because tags match through keys: `album_keys` like `contributor_keys`, and a split key names several contributors in order. An album's tag key names its album artists by contributor id, so a merge or split rewrites the keys, and two albums whose keys then agree become one (the older stays). Recording them in the change feed comes with the feed (v2). | conformance `entities` |
 
 Kind vocabulary, one progress model and the two-word sharing come with `/api/v2` (step 3),
 where they change wire shapes; the entities they name exist after E1–E3.
@@ -72,11 +73,15 @@ Measured 2026-10-11 on the generated library (600,000 tracks, 100,000 albums,
 | A new track through the triggers | 0.5 ms (a bare insert: 0.07 ms) |
 | A user moving household with 620,000 tracks (`music_link_tracks`) | 98 s, inside the request that moves them |
 | Rows added to the file-sync log by any of it | 0 |
+| Migration 0100 again after E4 (album keys by contributor id, album lines from credits) | 69 s |
+| Splitting or merging an artist, merging an album | under 1 s each |
 
 Two traps found on the way, both in the set-based function: temp tables need
 `ANALYZE` before they are joined, and `IN (subquery)` over hundreds of
 thousands of ids turns quadratic once the subquery no longer fits in
-`work_mem` — joins instead. The household move is fine for the rare big
+`work_mem` — joins instead. A third came with E4: a statement that calls a
+function cannot see the rows the function inserts, so whatever names the new
+contributors after a split reads them in a statement of its own. The household move is fine for the rare big
 library; if it ever becomes common, it moves to a job.
 
 The generated 600,000-track library (`docs/CAPACITY.md`) is the yardstick, not a migration

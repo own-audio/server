@@ -101,9 +101,8 @@ pub async fn create_author(
     find_author(pool, family_id, id).await?.context("db: author missing after create")
 }
 
-/// A correction on the entity: the name shown everywhere it is credited. The
-/// old spelling stays a key, so the next scan of a file still spelled that way
-/// finds this contributor rather than making a new one.
+/// A correction on the entity: the name (db::entities::rename_contributor),
+/// sort name and biography. `Taken` when another contributor already has the name.
 pub async fn update_author(
     pool: &PgPool,
     family_id: Uuid,
@@ -111,36 +110,22 @@ pub async fn update_author(
     name: &str,
     sort_name: Option<&str>,
     bio: Option<&str>,
-) -> anyhow::Result<Option<Author>> {
+) -> anyhow::Result<Result<Author, crate::db::entities::Renamed>> {
+    use crate::db::entities::{Renamed, rename_contributor};
     let mut tx = pool.begin().await.context("db: begin update author")?;
-    let updated = sqlx::query(
-        "UPDATE contributors SET name = $3, sort_name = $4, biography = $5, edited_at = now(), updated_at = now()
-          WHERE id = $1 AND family_id = $2",
-    )
-    .bind(id)
-    .bind(family_id)
-    .bind(name.trim())
-    .bind(sort_name)
-    .bind(bio)
-    .execute(&mut *tx)
-    .await
-    .context("db: update author")?
-    .rows_affected();
-    if updated == 0 {
-        return Ok(None);
+    match rename_contributor(&mut tx, family_id, id, name).await? {
+        Renamed::Done => {}
+        other => return Ok(Err(other)),
     }
-    sqlx::query(
-        "INSERT INTO contributor_keys (family_id, key, contributor_id) VALUES ($1, 'name:' || lower(trim($2)), $3)
-         ON CONFLICT DO NOTHING",
-    )
-    .bind(family_id)
-    .bind(name)
-    .bind(id)
-    .execute(&mut *tx)
-    .await
-    .context("db: key renamed author")?;
+    sqlx::query("UPDATE contributors SET sort_name = $2, biography = $3 WHERE id = $1")
+        .bind(id)
+        .bind(sort_name)
+        .bind(bio)
+        .execute(&mut *tx)
+        .await
+        .context("db: describe author")?;
     tx.commit().await.context("db: commit update author")?;
-    find_author(pool, family_id, id).await
+    Ok(Ok(find_author(pool, family_id, id).await?.context("db: author missing after update")?))
 }
 
 /// Removes the contributor and every credit it has — music and books alike.

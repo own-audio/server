@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Music module — tracks, playlists, streaming, cover art.
 pub mod affinity;
+pub mod corrections;
 pub mod analysis;
 pub mod intent;
 pub mod rules;
@@ -390,6 +391,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(get_artist_image_info))
         .routes(routes!(list_albums))
         .routes(routes!(list_genres))
+        .merge(corrections::router())
 }
 
 // ── Grouped browsing ──────────────────────────────────────────────────────
@@ -411,6 +413,8 @@ pub struct AlbumSummary {
     /// The album's first credited artist, as in `/music/artists`.
     pub artist_id: Option<String>,
     pub album: String,
+    /// The release group: editions of one release share it.
+    pub release_group_id: Option<String>,
     pub track_count: i64,
     pub duration_secs: Option<i64>,
     pub cover_url: Option<String>,
@@ -709,6 +713,7 @@ async fn list_albums(
                 artist: r.artist,
                 artist_id: r.artist_id.map(|id| id.to_string()),
                 album: r.title,
+                release_group_id: r.release_group_id.map(|id| id.to_string()),
                 track_count: r.track_count,
                 duration_secs: r.duration_secs,
                 cover_url: r.cover_track.map(|id| format!("/api/v1/music/tracks/{id}/cover")),

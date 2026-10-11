@@ -834,6 +834,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Another contributor already has this name: merge them instead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -7200,6 +7210,148 @@
         ]
       }
     },
+    "/api/v1/music/albums/{id}": {
+      "patch": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Rename an album",
+        "description": "Rename an album. Its tracks keep their tags and stay on it.",
+        "operationId": "music_rename_album",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Album id, from `/music/albums`",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameAlbumRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Renamed"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/albums/{id}/merge": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Merge an album into another that is the same release tagged two ways: its tracks, stars and ratings go to `into`, and so will its tracks' next scan",
+        "operationId": "music_merge_album",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The album that goes",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Merged"
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/albums/{id}/release-group": {
+      "put": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Put an album in a release group: another edition's, so the two are one release in different editions, or a group of its own",
+        "description": "Put an album in a release group: another edition's, so the two are one\nrelease in different editions, or a group of its own. Tags no longer move it.",
+        "operationId": "music_set_album_release_group",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Album id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseGroupResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/music/artists": {
       "get": {
         "tags": [
@@ -7451,6 +7603,184 @@
           },
           "400": {
             "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/{id}": {
+      "patch": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Rename an artist everywhere it is credited",
+        "description": "Rename an artist everywhere it is credited. Its files keep their tags, and\nthe next scan still finds it by the old spelling.",
+        "operationId": "music_rename_artist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Artist id, from `/music/artists`",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameArtistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributorRef"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Another artist already has this name: merge them instead",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/{id}/merge": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Merge an artist into another that is the same one: credits, the spellings it is matched by, stars, ratings and photo go to `into`, and it is removed",
+        "operationId": "music_merge_artist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The artist that goes",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The artist that stays",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContributorRef"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/artists/{id}/split": {
+      "post": {
+        "tags": [
+          "music"
+        ],
+        "summary": "Split an artist that is several (\"A & B\" read as one name) into the artists it is: every credit becomes one per name, in order, and so does every later scan of the same tags",
+        "operationId": "music_split_artist",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "The artist that goes",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitArtistRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The artists it became, in order",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ContributorRef"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin",
             "content": {
               "application/json": {
                 "schema": {
@@ -14445,6 +14775,13 @@
           "album": {
             "type": "string"
           },
+          "release_group_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The release group: editions of one release share it."
+          },
           "track_count": {
             "type": "integer",
             "format": "int64"
@@ -15694,6 +16031,21 @@
             }
           }
         ]
+      },
+      "ContributorRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
       },
       "CreateAuthorRequest": {
         "type": "object",
@@ -17789,6 +18141,19 @@
           }
         }
       },
+      "MergeRequest": {
+        "type": "object",
+        "required": [
+          "into"
+        ],
+        "properties": {
+          "into": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The one that stays."
+          }
+        }
+      },
       "MetadataCandidate": {
         "type": "object",
         "description": "One MusicBrainz recording candidate, returned from a search.",
@@ -18843,6 +19208,52 @@
           }
         }
       },
+      "ReleaseGroupRequest": {
+        "type": "object",
+        "properties": {
+          "release_group_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "Another album's `release_group_id`, to group the two as editions of one\nrelease; `null` for a group of its own."
+          }
+        }
+      },
+      "ReleaseGroupResponse": {
+        "type": "object",
+        "required": [
+          "release_group_id"
+        ],
+        "properties": {
+          "release_group_id": {
+            "type": "string"
+          }
+        }
+      },
+      "RenameAlbumRequest": {
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "RenameArtistRequest": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
       "ReorderFilesRequest": {
         "type": "object",
         "required": [
@@ -19624,6 +20035,21 @@
           },
           "updated_at": {
             "type": "string"
+          }
+        }
+      },
+      "SplitArtistRequest": {
+        "type": "object",
+        "required": [
+          "names"
+        ],
+        "properties": {
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The contributors it really is, in credit order; at least two."
           }
         }
       },

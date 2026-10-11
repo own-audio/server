@@ -28,13 +28,14 @@ BEGIN
         RETURN NULL;
     END IF;
     FOR v_rec IN SELECT * FROM book_credit_names(NEW.author) ORDER BY ord LOOP
-        v_cid := music_contributor(v_family, v_rec.name, NULL);
-        CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'podcast' AND item_id = NEW.id
-                                  AND role = 'host' AND contributor_id = v_cid);
-        INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
-        VALUES (v_cid, 'podcast', NEW.id, 'host', v_pos)
-        ON CONFLICT DO NOTHING;
-        v_pos := v_pos + 1;
+        FOR v_cid IN SELECT c.contributor_id FROM music_contributors(v_family, v_rec.name, NULL) c ORDER BY c.part LOOP
+            CONTINUE WHEN EXISTS (SELECT 1 FROM credits WHERE item_kind = 'podcast' AND item_id = NEW.id
+                                      AND role = 'host' AND contributor_id = v_cid);
+            INSERT INTO credits (contributor_id, item_kind, item_id, role, position)
+            VALUES (v_cid, 'podcast', NEW.id, 'host', v_pos)
+            ON CONFLICT DO NOTHING;
+            v_pos := v_pos + 1;
+        END LOOP;
     END LOOP;
     PERFORM music_credit_joins('podcast', NEW.id);
     RETURN NULL;
