@@ -720,6 +720,7 @@ fn resolve_member_permissions(
 async fn update_member(
     family: FamilyContext,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(user_id): Path<Uuid>,
     Json(body): Json<UpdateMemberRequest>,
 ) -> Result<StatusCode, AuthError> {
@@ -813,6 +814,10 @@ async fn update_member(
         }
     }
 
+    if body.role.is_some() || body.age_bracket.is_some() || body.can_upload.is_some() || body.can_generate.is_some() {
+        crate::auth::audit::record(&state, &meta, Some(user_id), Some(family.user_id), "family.member_changed",
+            serde_json::json!({ "role": body.role, "age_bracket": body.age_bracket, "can_upload": body.can_upload, "can_generate": body.can_generate })).await;
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -825,6 +830,7 @@ async fn update_member(
 async fn remove_member(
     family: FamilyContext,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
     let removing_self = user_id == family.user_id;
@@ -855,6 +861,7 @@ async fn remove_member(
     // Sole member leaving their own family is a no-op: they are already a
     // family of one, and the family would be deleted out from under them.
     if members.len() == 1 {
+        crate::auth::audit::record(&state, &meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
         return Ok(StatusCode::NO_CONTENT);
     }
 
@@ -875,6 +882,7 @@ async fn remove_member(
         db::users::delete_user(state.db(), user_id)
             .await
             .map_err(AuthError::Internal)?;
+        crate::auth::audit::record(&state, &meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
         return Ok(StatusCode::NO_CONTENT);
     }
 
@@ -1164,6 +1172,7 @@ async fn list_invites(
 async fn create_invite(
     family: FamilyContext,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Json(body): Json<CreateInviteRequest>,
 ) -> Result<(StatusCode, Json<InviteResponse>), AuthError> {
     family.require_family_admin()?;
@@ -1227,6 +1236,8 @@ async fn create_invite(
         send_invite_mail_best_effort(&state, &family, &invite).await;
     }
 
+    crate::auth::audit::record(&state, &meta, Some(family.user_id), None, "family.invite_created",
+        serde_json::json!({ "kind": invite.kind, "role": invite.role })).await;
     Ok((StatusCode::CREATED, Json(invite_to_response(&state, invite))))
 }
 
@@ -1237,6 +1248,7 @@ async fn create_invite(
 async fn delete_invite(
     family: FamilyContext,
     State(state): State<AppState>,
+    meta: crate::auth::audit::RequestMeta,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
     family.require_family_admin()?;
@@ -1248,6 +1260,7 @@ async fn delete_invite(
     if !deleted {
         return Err(AuthError::NotFound);
     }
+    crate::auth::audit::record(&state, &meta, Some(family.user_id), None, "family.invite_deleted", serde_json::json!({ "invite_id": id })).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
