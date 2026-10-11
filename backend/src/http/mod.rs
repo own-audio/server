@@ -4,6 +4,7 @@ pub mod json_stream;
 pub mod multipart;
 pub mod openapi;
 pub mod outbound;
+pub mod security_headers;
 pub mod router;
 pub mod media;
 pub mod rate_limit;

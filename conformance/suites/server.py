@@ -245,3 +245,16 @@ def run(ctx):
     ctx.check("a recovery code turns two-factor off", True)
     ctx.call("POST", "/api/v1/auth/login", body={"email": email, "password": "TotpTest12345!"}, expect=(200,))
     ctx.check("sign-in is a single step again", True)
+
+    # Browser-facing headers (plan §7.1) on every answer, the API's included.
+    req = urllib.request.Request(ctx.url("/api/v1/server"), headers={"User-Agent": "own-audio-conformance"})
+    try:
+        with urllib.request.urlopen(req, timeout=ctx.timeout) as r:
+            hdrs = {k.lower(): v for k, v in r.headers.items()}
+    except urllib.error.HTTPError as e:
+        hdrs = {k.lower(): v for k, v in e.headers.items()}
+    csp = hdrs.get("content-security-policy", "")
+    ctx.check("Content-Security-Policy forbids framing and inline scripts",
+              "frame-ancestors 'none'" in csp and "script-src 'self'" in csp, csp[:100])
+    ctx.check("X-Content-Type-Options is nosniff", hdrs.get("x-content-type-options") == "nosniff")
+    ctx.check("Referrer-Policy is set", bool(hdrs.get("referrer-policy")))

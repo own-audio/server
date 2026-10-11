@@ -53,6 +53,14 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- Browser-facing headers on every response: a `Content-Security-Policy` for
+  the console (its own files and the Google and Apple sign-in scripts, no
+  inline scripts, no framing; media and images from wherever this install
+  keeps them; fetches to this origin, the store and the providers),
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`,
+  `Referrer-Policy: strict-origin-when-cross-origin`, a `Permissions-Policy`
+  that leaves the camera for the console's QR scanner, and
+  `Strict-Transport-Security` when `SERVER__BASE_URL` is https.
 - Request limits on the whole API: 1200 a minute per signed-in device (by
   token) or address over `/api/v1` and `/rest`, 60 for searches, 30 for the
   routes that make the server fetch from elsewhere (subscribe, refresh,

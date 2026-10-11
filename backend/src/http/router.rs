@@ -113,6 +113,11 @@ pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) 
         .fallback_service(
             ServeDir::new("ui/dist").not_found_service(ServeFile::new("ui/dist/index.html")),
         )
+        // Browser-facing headers on everything (security hardening plan §7.1).
+        .layer(axum::middleware::from_fn_with_state(
+            crate::http::security_headers::SecurityHeaders::from_config(state.config()),
+            crate::http::security_headers::middleware,
+        ))
         .layer(TraceLayer::new_for_http())
         .layer(CompressionLayer::new())
         .with_state(state)
