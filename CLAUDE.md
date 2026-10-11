@@ -345,7 +345,9 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-08)
 
-`v1.0.0-beta.6` (contract revision 7): beta.5 with its version number set
+`v1.0.0-beta.7` (contract revision 8): music, book and podcast entities
+(contributors, credits, albums, release groups; Subsonic ids changed once) and
+`/api/v2` in draft — see CHANGELOG. `v1.0.0-beta.6` (contract revision 7): beta.5 with its version number set
 (the beta.5 image reports 1.0.0-beta.4). `v1.0.0-beta.5` (contract revision
 7): the security release — see CHANGELOG. `v1.0.0-beta.4` (contract revision 6): the demo account is read-only;
 Subsonic song ids for family-shared songs fixed. `v1.0.0-beta.3` (contract revision 6): server id and addresses in

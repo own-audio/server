@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.7] - 2026-10-11
+
 ### Added
 - `/api/v2`, in draft beside v1 (`docs/api-v2-plan.md`): its own OpenAPI
   document (`docs/api/openapi-v2.json`), errors as RFC 9457 problem details

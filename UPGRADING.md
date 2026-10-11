@@ -27,6 +27,14 @@ device and address and locks an email after five wrong passwords; if you
 run the conformance suite or a scripted client against your server, raise
 `SERVER__RATE_LIMIT__API_PER_MINUTE` and friends in `.env` as CI does.
 
+From a version before 1.0.0-beta.7 (the entities release): nothing to do,
+but three things to know. The first start links every track, book and
+podcast to the new contributors, albums and release groups — about a minute
+for 600,000 tracks, during which the server is not answering yet. Subsonic
+artist and album ids change once: Subsonic clients re-sync their library, and
+stars, ratings and artist photos are carried over by the server. Authors and
+book tags are per household now (they were one list for the whole server).
+
 ## PostgreSQL
 
 A server update never changes PostgreSQL: the compose file pins its major
