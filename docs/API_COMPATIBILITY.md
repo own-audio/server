@@ -308,7 +308,9 @@ support every server at or above their stated minimum revision.
 credentials and exercises the contract: auth, families, library sync,
 playback, uploads, trash, Subsonic — and, from `docs/api/openapi.json`,
 deny by default: every bearer-protected operation answers `401` without a
-token and the instance-admin ones `403` to a plain member (`suites/access.py`).
+token and the instance-admin ones `403` to a plain member (`suites/access.py`),
+and no operation carrying one family's ids answers `2xx` to another family
+(`suites/isolation.py`).
 It passes against the open-source compose
 stack and against the hosted canary in both repositories' CI. A `features`
 key that is `false` skips that feature's tests rather than failing them.
