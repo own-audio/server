@@ -11,6 +11,7 @@ pub mod me;
 pub mod music;
 pub mod page;
 pub mod problem;
+pub mod spoken;
 
 use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
@@ -52,6 +53,12 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(music::list_genres))
         .routes(routes!(music::list_tracks))
         .routes(routes!(music::get_track))
+        .routes(routes!(spoken::list_books))
+        .routes(routes!(spoken::get_book))
+        .routes(routes!(spoken::list_podcasts))
+        .routes(routes!(spoken::get_podcast))
+        .routes(routes!(spoken::list_episodes))
+        .routes(routes!(spoken::get_episode))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

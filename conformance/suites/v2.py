@@ -83,6 +83,7 @@ def run(ctx: Ctx) -> None:
 
     signin(ctx, problem)
     catalogue(ctx, problem)
+    shelves(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -297,3 +298,34 @@ def catalogue(ctx: Ctx, problem) -> None:
             break
     else:
         ctx.check("another account sees none of a private track, its album or its artist", True)
+
+
+def shelves(ctx: Ctx, problem) -> None:
+    """V3b: books with their credits, files and chapters; the podcast list."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2books", PW)
+    made = ctx.call("POST", "/api/v1/audiobooks", tok,
+                    {"title": f"Shelf Book {sfx}", "author": f"Shelf Writer {sfx} & Shelf Cowriter {sfx}",
+                     "narrator": f"Shelf Voice {sfx}"})
+    st, _h, body = ctx.request("GET", f"/api/v2/books?q=Shelf%20Book%20{sfx}&include=contributors", tok)
+    page = json.loads(body) if st == 200 else {}
+    items = page.get("items", [])
+    ctx.check("/books finds the book, credits in order and the contributors included",
+              [b["id"] for b in items] == [made["id"]]
+              and [(c["role"], c["position"]) for c in items[0]["credits"]] == [("author", 0), ("author", 1), ("narrator", 0)]
+              and {k["name"] for k in page.get("included", {}).get("contributors", [])}
+              == {f"Shelf Writer {sfx}", f"Shelf Cowriter {sfx}", f"Shelf Voice {sfx}"}, str(page)[:240])
+    st, _h, body = ctx.request("GET", f"/api/v2/books/{made['id']}", tok)
+    book = json.loads(body) if st == 200 else {}
+    ctx.check("a book: files, chapters and series lists, its people included",
+              st == 200 and isinstance(book.get("files"), list) and isinstance(book.get("chapters"), list)
+              and isinstance(book.get("series"), list) and len(book.get("included", {}).get("contributors", [])) == 3, str(book)[:200])
+    writer = next((c["contributor_id"] for c in book.get("credits", []) if c["role"] == "author"), None)
+    st, _h, body = ctx.request("GET", f"/api/v2/authors?q=Shelf%20Writer%20{sfx}", tok)
+    ctx.check("/authors lists the writer, and books filter by them",
+              st == 200 and [a["id"] for a in json.loads(body)["items"]] == [writer]
+              and [b["id"] for b in json.loads(ctx.request("GET", f"/api/v2/books?contributor_id={writer}", tok)[2])["items"]] == [made["id"]])
+    st, _h, body = ctx.request("GET", "/api/v2/podcasts?sort=added", tok)
+    ctx.check("/podcasts answers a page", st == 200 and isinstance(json.loads(body).get("items"), list))
+    _oid, _oemail, other = ctx.make_user("v2books-other", PW)
+    ctx.check("another account cannot see a private book", problem(ctx.request("GET", f"/api/v2/books/{made['id']}", other), 404))

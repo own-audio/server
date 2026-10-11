@@ -151,14 +151,23 @@ pub struct CreditRow {
     pub join_phrase: String,
 }
 
+/// The order roles are listed in. Positions count within a role (a book's
+/// first narrator is 0, like its first author), so the role comes first.
+const ROLE_ORDER: &[&str] = &[
+    "artist", "featured", "composer", "lyricist", "producer", "conductor", "performer", "remixer",
+    "author", "co_author", "translator", "narrator", "editor", "illustrator", "host", "co_host", "guest",
+];
+
 /// The credits of several items of one kind, in order.
 pub async fn credits(pool: &PgPool, kind: &str, ids: &[Uuid]) -> anyhow::Result<Vec<CreditRow>> {
     sqlx::query_as::<_, CreditRow>(
         "SELECT item_id, contributor_id, role, position, credited_as, join_phrase FROM credits
-          WHERE item_kind = $1 AND item_id = ANY($2) ORDER BY item_id, position",
+          WHERE item_kind = $1 AND item_id = ANY($2)
+          ORDER BY item_id, array_position($3::text[], role) NULLS LAST, role, position",
     )
     .bind(kind)
     .bind(ids)
+    .bind(ROLE_ORDER)
     .fetch_all(pool)
     .await
     .context("db: credits")
@@ -529,4 +538,264 @@ pub async fn find_track(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Resu
 /// `%` and `_` typed into a search box are letters, not wildcards.
 fn escape_like(text: &str) -> String {
     text.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+}
+
+// ── Books ────────────────────────────────────────────────────────────────────
+
+fn books() -> String {
+    visible_for("'audiobook'")
+}
+
+fn podcasts() -> String {
+    visible_for("'podcast'")
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct BookRow {
+    pub id: Uuid,
+    pub title: String,
+    pub user_id: Uuid,
+    pub family_id: Option<Uuid>,
+    pub description: Option<String>,
+    pub total_duration_secs: Option<i32>,
+    pub isbn: Option<String>,
+    pub publisher: Option<String>,
+    pub published_year: Option<i32>,
+    pub has_cover: bool,
+    pub source: String,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub sort_key: String,
+}
+
+const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
+    t.publisher, t.published_year, t.cover_object_id IS NOT NULL AS has_cover, t.source, t.created_at,
+    t.updated_at, lower(t.title) AS sort_key";
+
+/// Where a page of books or podcasts starts: after this title, or before this time.
+pub enum TitleOrAdded {
+    Title(String, Uuid),
+    Added(DateTime<Utc>, Uuid),
+}
+
+fn title_or_added(after: Option<TitleOrAdded>) -> (Option<String>, Option<DateTime<Utc>>, Option<Uuid>) {
+    match after {
+        None => (None, None, None),
+        Some(TitleOrAdded::Title(t, id)) => (Some(t), None, Some(id)),
+        Some(TitleOrAdded::Added(at, id)) => (None, Some(at), Some(id)),
+    }
+}
+
+fn title_or_added_sql(by_added: bool, title: &str, added: &str, id: &str) -> (&'static str, String) {
+    if by_added {
+        ("t.created_at DESC, t.id DESC", format!("({added}::timestamptz IS NULL OR (t.created_at, t.id) < ({added}, {id}))"))
+    } else {
+        ("lower(t.title), t.id", format!("({title}::text IS NULL OR (lower(t.title), t.id) > ({title}, {id}))"))
+    }
+}
+
+pub async fn list_books(
+    pool: &PgPool,
+    viewer: Viewer,
+    contributor_id: Option<Uuid>,
+    query: Option<&str>,
+    by_added: bool,
+    after: Option<TitleOrAdded>,
+    limit: i64,
+) -> anyhow::Result<Vec<BookRow>> {
+    let (order, keyset) = title_or_added_sql(by_added, "$6", "$7", "$8");
+    let sql = format!(
+        "SELECT {BOOK_COLS} FROM audiobook_books t
+          WHERE {} AND {keyset}
+            AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'book' AND c.item_id = t.id AND c.contributor_id = $4))
+            AND ($5::text IS NULL OR t.title ILIKE '%' || $5 || '%')
+          ORDER BY {order} LIMIT $9",
+        books()
+    );
+    let (title, added, id) = title_or_added(after);
+    viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer)
+        .bind(contributor_id)
+        .bind(query.map(escape_like))
+        .bind(title)
+        .bind(added)
+        .bind(id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: list books")
+}
+
+pub async fn find_book(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<BookRow>> {
+    let sql = format!("SELECT {BOOK_COLS} FROM audiobook_books t WHERE t.id = $4 AND {}", books());
+    viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find book")
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct BookFileRow {
+    pub id: Uuid,
+    pub position: i32,
+    pub title: Option<String>,
+    pub duration_secs: Option<i32>,
+    pub size_bytes: Option<i64>,
+    pub content_type: Option<String>,
+}
+
+pub async fn book_files(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<BookFileRow>> {
+    sqlx::query_as::<_, BookFileRow>(
+        "SELECT f.id, f.position, f.title, f.duration_secs, m.size_bytes, m.content_type
+           FROM audiobook_files f LEFT JOIN media_objects m ON m.id = f.audio_object_id
+          WHERE f.book_id = $1 ORDER BY f.position, f.id",
+    )
+    .bind(book_id)
+    .fetch_all(pool)
+    .await
+    .context("db: book files")
+}
+
+/// The series a book belongs to: (series id, name, position).
+pub async fn book_series(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<(Uuid, String, f64)>> {
+    sqlx::query_as(
+        "SELECT s.id, s.name, sb.position FROM audiobook_series_books sb JOIN audiobook_series s ON s.id = sb.series_id
+          WHERE sb.book_id = $1 ORDER BY s.name, s.id",
+    )
+    .bind(book_id)
+    .fetch_all(pool)
+    .await
+    .context("db: book series")
+}
+
+// ── Podcasts and episodes ────────────────────────────────────────────────────
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct PodcastRow {
+    pub id: Uuid,
+    pub title: String,
+    pub user_id: Uuid,
+    pub family_id: Option<Uuid>,
+    pub feed_url: String,
+    pub description: Option<String>,
+    pub link: Option<String>,
+    pub language: Option<String>,
+    pub podcast_guid: Option<String>,
+    pub categories: Vec<String>,
+    pub has_image: bool,
+    pub last_refreshed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub sort_key: String,
+}
+
+const PODCAST_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.feed_url, t.description, t.link, t.language,
+    t.podcast_guid, t.categories, (t.image_object_id IS NOT NULL OR t.image_url IS NOT NULL) AS has_image,
+    t.last_refreshed_at, t.created_at, t.updated_at, lower(t.title) AS sort_key";
+
+pub async fn list_podcasts(
+    pool: &PgPool,
+    viewer: Viewer,
+    contributor_id: Option<Uuid>,
+    query: Option<&str>,
+    by_added: bool,
+    after: Option<TitleOrAdded>,
+    limit: i64,
+) -> anyhow::Result<Vec<PodcastRow>> {
+    let (order, keyset) = title_or_added_sql(by_added, "$6", "$7", "$8");
+    let sql = format!(
+        "SELECT {PODCAST_COLS} FROM podcast_feeds t
+          WHERE {} AND {keyset}
+            AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'podcast' AND c.item_id = t.id AND c.contributor_id = $4))
+            AND ($5::text IS NULL OR t.title ILIKE '%' || $5 || '%')
+          ORDER BY {order} LIMIT $9",
+        podcasts()
+    );
+    let (title, added, id) = title_or_added(after);
+    viewer!(sqlx::query_as::<_, PodcastRow>(&sql), viewer)
+        .bind(contributor_id)
+        .bind(query.map(escape_like))
+        .bind(title)
+        .bind(added)
+        .bind(id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: list podcasts")
+}
+
+pub async fn find_podcast(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<PodcastRow>> {
+    let sql = format!("SELECT {PODCAST_COLS} FROM podcast_feeds t WHERE t.id = $4 AND {}", podcasts());
+    viewer!(sqlx::query_as::<_, PodcastRow>(&sql), viewer)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find podcast")
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct EpisodeRow {
+    pub id: Uuid,
+    pub podcast_id: Uuid,
+    pub guid: String,
+    pub title: String,
+    pub description: Option<String>,
+    pub published_at: Option<DateTime<Utc>>,
+    pub duration_secs: Option<i32>,
+    pub episode_number: Option<i32>,
+    pub season_number: Option<i32>,
+    pub audio_url: Option<String>,
+    pub stored: bool,
+    pub size_bytes: Option<i64>,
+    pub content_type: Option<String>,
+    pub has_image: bool,
+    pub transcript_url: Option<String>,
+    pub transcript_type: Option<String>,
+    pub created_at: DateTime<Utc>,
+    /// The order: published, or added when the feed gives no date.
+    pub sort_at: DateTime<Utc>,
+}
+
+const EPISODE_COLS: &str = "e.id, e.feed_id AS podcast_id, e.guid, e.title, e.description, e.published_at,
+    e.duration_secs, e.episode_number, e.season_number, e.audio_url, e.audio_object_id IS NOT NULL AS stored,
+    m.size_bytes, m.content_type, (e.image_object_id IS NOT NULL OR e.image_url IS NOT NULL) AS has_image,
+    e.transcript_url, e.transcript_type, e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
+
+/// A podcast's episodes, newest first.
+pub async fn list_episodes(
+    pool: &PgPool,
+    viewer: Viewer,
+    podcast_id: Uuid,
+    after: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<EpisodeRow>> {
+    let (at, id) = after.unzip();
+    let sql = format!(
+        "SELECT {EPISODE_COLS} FROM podcast_episodes e LEFT JOIN media_objects m ON m.id = e.audio_object_id
+          WHERE e.feed_id = $4 AND EXISTS (SELECT 1 FROM podcast_feeds t WHERE t.id = e.feed_id AND {})
+            AND ($5::timestamptz IS NULL OR (COALESCE(e.published_at, e.created_at), e.id) < ($5, $6))
+          ORDER BY COALESCE(e.published_at, e.created_at) DESC, e.id DESC LIMIT $7",
+        podcasts()
+    );
+    viewer!(sqlx::query_as::<_, EpisodeRow>(&sql), viewer)
+        .bind(podcast_id)
+        .bind(at)
+        .bind(id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: list episodes")
+}
+
+pub async fn find_episode(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<EpisodeRow>> {
+    let sql = format!(
+        "SELECT {EPISODE_COLS} FROM podcast_episodes e LEFT JOIN media_objects m ON m.id = e.audio_object_id
+          WHERE e.id = $4 AND EXISTS (SELECT 1 FROM podcast_feeds t WHERE t.id = e.feed_id AND {})",
+        podcasts()
+    );
+    viewer!(sqlx::query_as::<_, EpisodeRow>(&sql), viewer)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find episode")
 }

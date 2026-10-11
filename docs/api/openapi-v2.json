@@ -172,6 +172,214 @@
         ],
         "type": "object"
       },
+      "Book": {
+        "properties": {
+          "chapters": {
+            "items": {
+              "$ref": "#/components/schemas/Chapter"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "credits": {
+            "description": "Authors, narrators, translators… in order.",
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "files": {
+            "description": "Only on `GET /books/{id}`.",
+            "items": {
+              "$ref": "#/components/schemas/BookFile"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "has_cover": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "isbn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "owner_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "published_year": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "publisher": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "series": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesEntry"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "credits",
+          "visibility",
+          "owner_id",
+          "source",
+          "has_cover",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "BookAnswer": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Book"
+          },
+          {
+            "properties": {
+              "included": {
+                "$ref": "#/components/schemas/Included",
+                "description": "Its contributors, always: a book is shown with its people."
+              }
+            },
+            "required": [
+              "included"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "BookFile": {
+        "description": "One audio file of a book, in playing order.",
+        "properties": {
+          "content_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "position"
+        ],
+        "type": "object"
+      },
+      "Chapter": {
+        "description": "A chapter: where it starts in the whole book, across files.",
+        "properties": {
+          "file_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "start_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "title",
+          "start_ms"
+        ],
+        "type": "object"
+      },
       "Contributor": {
         "description": "Anyone credited with something: an artist, an author, a narrator, a host. The\nsame person is one contributor whatever they do.",
         "properties": {
@@ -418,6 +626,112 @@
           "modules",
           "addresses",
           "limits"
+        ],
+        "type": "object"
+      },
+      "Episode": {
+        "properties": {
+          "audio_url": {
+            "description": "The publisher's file.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "content_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "episode_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "guid": {
+            "description": "The feed's id for it.",
+            "type": "string"
+          },
+          "has_image": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "podcast_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "season_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "stored": {
+            "description": "Whether this server keeps a copy.",
+            "type": "boolean"
+          },
+          "title": {
+            "type": "string"
+          },
+          "transcript_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transcript_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "podcast_id",
+          "guid",
+          "title",
+          "stored",
+          "has_image",
+          "created_at"
         ],
         "type": "object"
       },
@@ -680,6 +994,147 @@
         ],
         "type": "object"
       },
+      "Page_Book": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "chapters": {
+                  "items": {
+                    "$ref": "#/components/schemas/Chapter"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "credits": {
+                  "description": "Authors, narrators, translators… in order.",
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "duration_ms": {
+                  "format": "int64",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "files": {
+                  "description": "Only on `GET /books/{id}`.",
+                  "items": {
+                    "$ref": "#/components/schemas/BookFile"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "has_cover": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "isbn": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "owner_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "published_year": {
+                  "format": "int32",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "publisher": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "series": {
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesEntry"
+                  },
+                  "type": [
+                    "array",
+                    "null"
+                  ]
+                },
+                "source": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "visibility": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "credits",
+                "visibility",
+                "owner_id",
+                "source",
+                "has_cover",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Contributor": {
         "description": "One page of a list.",
         "properties": {
@@ -758,6 +1213,142 @@
         ],
         "type": "object"
       },
+      "Page_Episode": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "audio_url": {
+                  "description": "The publisher's file.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "content_type": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "duration_ms": {
+                  "format": "int64",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "episode_number": {
+                  "format": "int32",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "guid": {
+                  "description": "The feed's id for it.",
+                  "type": "string"
+                },
+                "has_image": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "podcast_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "published_at": {
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "season_number": {
+                  "format": "int32",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "size_bytes": {
+                  "format": "int64",
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "stored": {
+                  "description": "Whether this server keeps a copy.",
+                  "type": "boolean"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "transcript_type": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "transcript_url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "podcast_id",
+                "guid",
+                "title",
+                "stored",
+                "has_image",
+                "created_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Genre": {
         "description": "One page of a list.",
         "properties": {
@@ -786,6 +1377,126 @@
               "required": [
                 "id",
                 "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Page_Podcast": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "categories": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "credits": {
+                  "description": "Its hosts.",
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "feed_url": {
+                  "type": "string"
+                },
+                "has_image": {
+                  "type": "boolean"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "language": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "last_refreshed_at": {
+                  "format": "date-time",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "owner_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "podcast_guid": {
+                  "description": "`<podcast:guid>`, the feed's own stable id.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "visibility": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "title",
+                "credits",
+                "feed_url",
+                "categories",
+                "has_image",
+                "visibility",
+                "owner_id",
+                "created_at",
+                "updated_at"
               ],
               "type": "object"
             },
@@ -988,6 +1699,96 @@
         ],
         "type": "object"
       },
+      "Podcast": {
+        "properties": {
+          "categories": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "credits": {
+            "description": "Its hosts.",
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "type": "array"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "feed_url": {
+            "type": "string"
+          },
+          "has_image": {
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "last_refreshed_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "owner_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "podcast_guid": {
+            "description": "`<podcast:guid>`, the feed's own stable id.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "visibility": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "credits",
+          "feed_url",
+          "categories",
+          "has_image",
+          "visibility",
+          "owner_id",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "ProblemBody": {
         "description": "The body of every v2 error.",
         "properties": {
@@ -1125,6 +1926,28 @@
         },
         "required": [
           "token"
+        ],
+        "type": "object"
+      },
+      "SeriesEntry": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "position": {
+            "description": "Fractional when the publisher numbers a book between two others (\"1.5\").",
+            "format": "double",
+            "type": "number"
+          },
+          "series_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "series_id",
+          "name",
+          "position"
         ],
         "type": "object"
       },
@@ -2190,6 +3013,179 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/books": {
+      "get": {
+        "operationId": "catalog_list_books",
+        "parameters": [
+          {
+            "description": "Credited to this contributor (an author, a narrator, a host).",
+            "in": "query",
+            "name": "contributor_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Part of the title, any case.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`title` (default) or `added`, newest first.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`contributors` to send them along.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Book"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Books the caller can see",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/books/{id}": {
+      "get": {
+        "operationId": "catalog_get_book",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookAnswer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One book, with its files, chapters, series and contributors",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/contributors": {
       "get": {
         "operationId": "catalog_list_contributors",
@@ -2337,6 +3333,75 @@
           }
         ],
         "summary": "One contributor, with the roles they have on what the caller can see",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/episodes/{id}": {
+      "get": {
+        "operationId": "catalog_get_episode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Episode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One episode",
         "tags": [
           "catalog"
         ],
@@ -2950,6 +4015,267 @@
           }
         ],
         "summary": "Contributors who narrate a book the caller can see",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/podcasts": {
+      "get": {
+        "operationId": "catalog_list_podcasts",
+        "parameters": [
+          {
+            "description": "Credited to this contributor (an author, a narrator, a host).",
+            "in": "query",
+            "name": "contributor_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Part of the title, any case.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`title` (default) or `added`, newest first.",
+            "in": "query",
+            "name": "sort",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`contributors` to send them along.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Podcast"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Podcasts the caller can see",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/podcasts/{id}": {
+      "get": {
+        "operationId": "catalog_get_podcast",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Podcast"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One podcast",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/podcasts/{id}/episodes": {
+      "get": {
+        "operationId": "catalog_list_episodes",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "How many items, 1 to 500; 100 when absent.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`next` from the previous page; absent for the first.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Episode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A podcast's episodes, newest first",
         "tags": [
           "catalog"
         ],

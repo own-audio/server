@@ -25,6 +25,9 @@ semver. Each release states the **API contract revision** it serves
   `/recordings`, `/genres`, `/tracks`. Records carry ids and credits, not
   names; `include=` sends referenced records once; lists page by cursor in
   index order (migration 0106), about 30 ms a page at 600,000 tracks.
+- Books and podcasts on v2: `/books` (one with its files, chapters, series
+  and people), `/podcasts`, `/podcasts/{id}/episodes`, `/episodes/{id}`
+  (migration 0107). Credits list by role, then position.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings
