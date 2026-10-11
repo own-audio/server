@@ -35,7 +35,8 @@ pub struct Contributor {
     /// `person`, `group`, `orchestra`, `choir`, `organisation` or `unknown`.
     pub kind: String,
     pub musicbrainz_artist_id: Option<String>,
-    pub has_image: bool,
+    /// Their photo (`GET /images/{id}`; add `w` for the size).
+    pub image: Option<String>,
     /// What they are credited as on what the caller can see; only on `GET /contributors/{id}`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,
@@ -73,6 +74,8 @@ pub struct Album {
     pub track_count: i64,
     pub duration_ms: i64,
     pub disc_count: i32,
+    /// The cover of its first track that has one.
+    pub image: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -124,7 +127,8 @@ pub struct Track {
     pub source: String,
     pub content_type: Option<String>,
     pub size_bytes: Option<i64>,
-    pub has_cover: bool,
+    /// Its cover (`GET /images/{id}`; add `w` for the size).
+    pub image: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -142,14 +146,14 @@ pub struct Included {
     pub genres: Vec<Genre>,
 }
 
-pub(crate) fn contributor(row: catalog::ContributorRow) -> Contributor {
+pub(crate) fn contributor(state: &AppState, row: catalog::ContributorRow) -> Contributor {
     Contributor {
         id: row.id,
         name: row.name,
         sort_name: row.sort_name,
         kind: row.kind,
         musicbrainz_artist_id: row.musicbrainz_artist_id,
-        has_image: row.has_image,
+        image: crate::v2::images::maybe(state, row.image_object_id),
         roles: None,
     }
 }
@@ -186,12 +190,12 @@ async fn credits_by_item(state: &AppState, kind: &str, ids: &[Uuid]) -> Result<H
 pub(crate) async fn albums(state: &AppState, viewer: Viewer, rows: Vec<catalog::AlbumRow>) -> Result<Vec<Album>, Problem> {
     let ids: Vec<Uuid> = rows.iter().map(|a| a.id).collect();
     let mut credits = credits_by_item(state, "album", &ids).await?;
-    let stats: HashMap<Uuid, (i64, i64, i32)> =
-        catalog::album_stats(state.db(), viewer, &ids).await?.into_iter().map(|(id, n, secs, discs)| (id, (n, secs, discs))).collect();
+    let stats: HashMap<Uuid, (i64, i64, i32, Option<Uuid>)> =
+        catalog::album_stats(state.db(), viewer, &ids).await?.into_iter().map(|(id, n, secs, discs, cover)| (id, (n, secs, discs, cover))).collect();
     Ok(rows
         .into_iter()
         .map(|a| {
-            let (track_count, secs, disc_count) = stats.get(&a.id).copied().unwrap_or((0, 0, 1));
+            let (track_count, secs, disc_count, cover) = stats.get(&a.id).copied().unwrap_or((0, 0, 1, None));
             Album {
                 credits: credits.remove(&a.id).unwrap_or_default(),
                 id: a.id,
@@ -206,6 +210,7 @@ pub(crate) async fn albums(state: &AppState, viewer: Viewer, rows: Vec<catalog::
                 track_count,
                 duration_ms: secs * 1000,
                 disc_count,
+                image: crate::v2::images::maybe(state, cover),
                 created_at: a.created_at,
             }
         })
@@ -236,7 +241,7 @@ pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Re
             source: t.source,
             content_type: t.content_type,
             size_bytes: t.size_bytes,
-            has_cover: t.has_cover,
+            image: crate::v2::images::maybe(state, t.cover_object_id),
             created_at: t.created_at,
             updated_at: t.updated_at,
         })
@@ -294,7 +299,7 @@ async fn included(
     }
     if w.contributors {
         let ids: Vec<Uuid> = contributor_ids.into_iter().collect();
-        out.contributors = catalog::contributors_by_ids(pool, viewer.family_id, &ids).await?.into_iter().map(contributor).collect();
+        out.contributors = catalog::contributors_by_ids(pool, viewer.family_id, &ids).await?.into_iter().map(|k| contributor(state, k)).collect();
     }
     if w.release_groups {
         let mut ids: BTreeSet<Uuid> = group_ids.collect();
@@ -332,7 +337,7 @@ async fn contributor_page(
     let limit = page.limit()?;
     let rows = catalog::list_contributors(state.db(), family.viewer(), roles.as_deref(), q, page.after()?, limit + 1).await?;
     let page = Page::from_rows(rows, limit, |r| (r.sort_key.clone(), r.id));
-    Ok(Json(Page { items: page.items.into_iter().map(contributor).collect(), next: page.next, included: None }))
+    Ok(Json(Page { items: page.items.into_iter().map(|k| contributor(state, k)).collect(), next: page.next, included: None }))
 }
 
 /// Contributors credited on what the caller can see, by name.
@@ -388,7 +393,7 @@ view!(list_hosts, "/hosts", "Contributors who host a podcast the caller can see.
     responses((status = 200, body = Contributor), (status = 404, description = "Unknown, or nothing of theirs is visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn get_contributor(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Contributor>, Problem> {
     let row = catalog::find_contributor(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    let mut answer = contributor(row);
+    let mut answer = contributor(&state, row);
     answer.roles = Some(catalog::contributor_roles(state.db(), family.viewer(), id).await?);
     Ok(Json(answer))
 }

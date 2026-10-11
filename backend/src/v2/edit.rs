@@ -171,15 +171,7 @@ pub struct ContributorPatch {
 
 async fn visible_contributor(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Contributor, Problem> {
     let row = catalog::find_contributor(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    Ok(Contributor {
-        id: row.id,
-        name: row.name,
-        sort_name: row.sort_name,
-        kind: row.kind,
-        musicbrainz_artist_id: row.musicbrainz_artist_id,
-        has_image: row.has_image,
-        roles: None,
-    })
+    Ok(crate::v2::music::contributor(state, row))
 }
 
 /// Correct a contributor: name, sort name, kind.
@@ -268,15 +260,7 @@ pub async fn split_contributor(FamilyAdmin(family): FamilyAdmin, State(state): S
     Ok(Json(
         ids.iter()
             .filter_map(|id| rows.iter().find(|r| r.id == *id))
-            .map(|r| Contributor {
-                id: r.id,
-                name: r.name.clone(),
-                sort_name: r.sort_name.clone(),
-                kind: r.kind.clone(),
-                musicbrainz_artist_id: r.musicbrainz_artist_id.clone(),
-                has_image: r.has_image,
-                roles: None,
-            })
+            .map(|r| crate::v2::music::contributor(&state, r.clone()))
             .collect(),
     ))
 }

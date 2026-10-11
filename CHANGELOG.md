@@ -53,6 +53,11 @@ semver. Each release states the **API contract revision** it serves
   user and key id, good for six hours. `GET /stream` checks the user may
   still play it, then redirects to storage for the original or streams the
   transcode. No access token in any URL.
+- Artwork on v2: records carry `image`, a link to `GET /images/{id}` signed
+  for the image and the week, not the user, so lists stay cacheable; the
+  client adds `w` (64 to 1024), the server scales once and keeps the result
+  (`derived/…`, which the storage reconcile leaves alone), answered
+  `immutable`. Replaces `has_cover`/`has_image` in the draft records.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

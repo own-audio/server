@@ -65,7 +65,7 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
         }
         "contributor" => {
             for k in catalog::visible_contributors_by_ids(pool, viewer, ids).await? {
-                let c = music::contributor(k);
+                let c = music::contributor(state, k);
                 out.push((c.id, json_of(c)?));
             }
         }
@@ -99,13 +99,13 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
             let mut credits = spoken::credits_of(state, "podcast", &row_ids).await?;
             for row in rows {
                 let c = credits.remove(&row.id).unwrap_or_default();
-                let p = spoken::podcast(row, c);
+                let p = spoken::podcast(state, row, c);
                 out.push((p.id, json_of(p)?));
             }
         }
         "episode" => {
             for row in catalog::episodes_by_ids(pool, viewer, ids).await? {
-                let e = spoken::episode(row);
+                let e = spoken::episode(state, row);
                 out.push((e.id, json_of(e)?));
             }
         }

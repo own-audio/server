@@ -88,6 +88,7 @@ def run(ctx: Ctx) -> None:
     user_state(ctx, problem)
     sync(ctx, problem)
     playback(ctx, problem)
+    images(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -630,3 +631,46 @@ def playback(ctx: Ctx, problem) -> None:
     _oid, _oe, other = ctx.make_user("v2play-other", PW)
     st, _ = info({}, other)
     ctx.check("another account cannot get a link to a private track", st == 404)
+
+
+def images(ctx: Ctx, problem) -> None:
+    """V6: artwork by signed, cacheable link; the client picks the size."""
+    import struct
+    import urllib.error
+    import urllib.request
+    import zlib
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2img", PW)
+    track = ctx.upload_track(tok, f"Cover Song {sfx}", artist=f"Cover Band {sfx}", album=f"Cover Album {sfx}")
+    side = 300
+    # A 300 px gradient as PNG: big enough that w=64 has to scale it.
+    raw = b"".join(b"\x00" + b"".join(bytes((x % 256, y % 256, 128)) for x in range(side)) for y in range(side))
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    png = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", side, side, 8, 2, 0, 0, 0)) \
+        + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+    ctx.call("POST", f"/api/v1/music/tracks/{track['id']}/upload-cover", tok, multipart={"cover": ("cover.png", png)}, expect=(200, 201))
+    st, _h, body = ctx.request("GET", f"/api/v2/tracks/{track['id']}", tok)
+    image = json.loads(body).get("image") if st == 200 else None
+    ctx.check("a track with a cover carries an image link, signed, with no token", bool(image) and "/api/v2/images/" in image
+              and "&s=" in image and "token" not in image.lower(), str(image))
+    st, _h, body = ctx.request("GET", f"/api/v2/albums/{track['album_id']}", tok)
+    ctx.check("so does its album", st == 200 and json.loads(body).get("image") == image)
+
+    def fetch(url: str):
+        url = url if url.startswith("http") else ctx.url(url)
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url), timeout=ctx.timeout) as r:
+                return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
+
+    if image:
+        st, headers, small = fetch(image + "&w=64")
+        ctx.check("w=64: a small JPEG, cacheable forever", st == 200 and headers.get("content-type") == "image/jpeg"
+                  and small[:2] == b"\xff\xd8" and "immutable" in headers.get("cache-control", "") and len(small) < len(png),
+                  f"{st} {headers.get('content-type')} {len(small)}")
+        st, _h, again = fetch(image + "&w=64")
+        ctx.check("…the same bytes the second time", st == 200 and again == small)
+        ctx.check("a size outside the set: 400 invalid_size", fetch(image + "&w=100")[0] == 400)
+        ctx.check("a link changed by hand: 403", fetch(image.replace("&s=", "&s=x"))[0] == 403)

@@ -940,7 +940,9 @@ async fn execute_storage_reconcile(
         let page_keys: Vec<String> = page.iter().map(|(k, _)| k.clone()).collect();
         let known = crate::db::media::known_object_keys(pool, &page_keys).await?;
         for (key, modified) in &page {
-            if known.contains(key) {
+            // Scaled images (/api/v2/images) have no row by design: they are
+            // made again from their original whenever they are missing.
+            if known.contains(key) || key.starts_with("derived/") {
                 continue;
             }
             unknown += 1;

@@ -263,7 +263,7 @@ pub async fn get_cover_art(
 /// Returns `None` — meaning "send the original" — when the bytes are not a
 /// decodable image, or when the request is for something at least as large as
 /// what is stored. Upscaling would cost CPU to deliver a worse picture.
-fn scale_cover(bytes: &[u8], size: u32) -> Option<Vec<u8>> {
+pub(crate) fn scale_cover(bytes: &[u8], size: u32) -> Option<Vec<u8>> {
     // A zero or absurd size is a client bug; treat it as "no preference"
     // rather than trying to honour it.
     if !(1..=2000).contains(&size) {

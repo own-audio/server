@@ -8,7 +8,7 @@ use crate::app::AppState;
 use crate::db::access::visibility_of;
 use crate::db::catalog::{self, TitleOrAdded};
 use crate::families::FamilyContext;
-use crate::v2::music::{Contributor, Credit, Included};
+use crate::v2::music::{Credit, Included};
 use crate::v2::page::{Page, PageQuery};
 use crate::v2::problem::Problem;
 use axum::Json;
@@ -33,7 +33,8 @@ pub struct Book {
     pub visibility: String,
     pub owner_id: Uuid,
     pub source: String,
-    pub has_cover: bool,
+    /// Its cover (`GET /images/{id}`; add `w` for the size).
+    pub image: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     /// Only on `GET /books/{id}`.
@@ -87,7 +88,8 @@ pub struct Podcast {
     /// `<podcast:guid>`, the feed's own stable id.
     pub podcast_guid: Option<String>,
     pub categories: Vec<String>,
-    pub has_image: bool,
+    /// The show's art: on this server (`GET /images/{id}`), or the publisher's.
+    pub image: Option<String>,
     pub visibility: String,
     pub owner_id: Uuid,
     pub last_refreshed_at: Option<DateTime<Utc>>,
@@ -113,7 +115,8 @@ pub struct Episode {
     pub stored: bool,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
-    pub has_image: bool,
+    /// The episode's own art, on this server or the publisher's.
+    pub image: Option<String>,
     pub transcript_url: Option<String>,
     pub transcript_type: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -182,20 +185,12 @@ async fn contributors_of<'a>(state: &AppState, family: &FamilyContext, credits: 
     let contributors = catalog::contributors_by_ids(state.db(), family.family_id, &ids)
         .await?
         .into_iter()
-        .map(|k| Contributor {
-            id: k.id,
-            name: k.name,
-            sort_name: k.sort_name,
-            kind: k.kind,
-            musicbrainz_artist_id: k.musicbrainz_artist_id,
-            has_image: k.has_image,
-            roles: None,
-        })
+        .map(|k| crate::v2::music::contributor(state, k))
         .collect();
     Ok(Some(Included { contributors, ..Default::default() }))
 }
 
-pub(crate) fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
+pub(crate) fn book(state: &AppState, row: catalog::BookRow, credits: Vec<Credit>) -> Book {
     Book {
         id: row.id,
         title: row.title,
@@ -208,7 +203,7 @@ pub(crate) fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
         visibility: visibility_of(row.family_id).to_string(),
         owner_id: row.user_id,
         source: row.source,
-        has_cover: row.has_cover,
+        image: crate::v2::images::maybe(state, row.cover_object_id),
         created_at: row.created_at,
         updated_at: row.updated_at,
         files: None,
@@ -217,7 +212,7 @@ pub(crate) fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
     }
 }
 
-pub(crate) fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast {
+pub(crate) fn podcast(state: &AppState, row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast {
     Podcast {
         id: row.id,
         title: row.title,
@@ -228,7 +223,7 @@ pub(crate) fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast
         language: row.language,
         podcast_guid: row.podcast_guid,
         categories: row.categories,
-        has_image: row.has_image,
+        image: crate::v2::images::maybe(state, row.image_object_id).or(row.image_url),
         visibility: visibility_of(row.family_id).to_string(),
         owner_id: row.user_id,
         last_refreshed_at: row.last_refreshed_at,
@@ -237,7 +232,7 @@ pub(crate) fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast
     }
 }
 
-pub(crate) fn episode(row: catalog::EpisodeRow) -> Episode {
+pub(crate) fn episode(state: &AppState, row: catalog::EpisodeRow) -> Episode {
     Episode {
         id: row.id,
         podcast_id: row.podcast_id,
@@ -252,7 +247,7 @@ pub(crate) fn episode(row: catalog::EpisodeRow) -> Episode {
         stored: row.stored,
         size_bytes: row.size_bytes,
         content_type: row.content_type,
-        has_image: row.has_image,
+        image: crate::v2::images::maybe(state, row.image_object_id).or(row.image_url),
         transcript_url: row.transcript_url,
         transcript_type: row.transcript_type,
         created_at: row.created_at,
@@ -280,7 +275,7 @@ pub async fn list_books(family: FamilyContext, State(state): State<AppState>, Qu
     let mut credits = credits_of(&state, "book", &ids).await?;
     let items: Vec<Book> = page.0.into_iter().map(|b| {
         let c = credits.remove(&b.id).unwrap_or_default();
-        book(b, c)
+        book(&state, b, c)
     }).collect();
     let included = if include { contributors_of(&state, &family, items.iter().flat_map(|b| b.credits.iter())).await? } else { None };
     Ok(Json(Page { items, next: page.1, included }))
@@ -327,7 +322,7 @@ pub async fn list_podcasts(family: FamilyContext, State(state): State<AppState>,
     let mut credits = credits_of(&state, "podcast", &ids).await?;
     let items: Vec<Podcast> = page.0.into_iter().map(|p| {
         let c = credits.remove(&p.id).unwrap_or_default();
-        podcast(p, c)
+        podcast(&state, p, c)
     }).collect();
     let included = if include { contributors_of(&state, &family, items.iter().flat_map(|p| p.credits.iter())).await? } else { None };
     Ok(Json(Page { items, next: page.1, included }))
@@ -341,7 +336,7 @@ pub async fn list_podcasts(family: FamilyContext, State(state): State<AppState>,
 pub async fn get_podcast(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Podcast>, Problem> {
     let row = catalog::find_podcast(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
     let credits = credits_of(&state, "podcast", &[id]).await?.remove(&id).unwrap_or_default();
-    Ok(Json(podcast(row, credits)))
+    Ok(Json(podcast(&state, row, credits)))
 }
 
 /// A podcast's episodes, newest first.
@@ -360,7 +355,7 @@ pub async fn list_episodes(
     let limit = page.limit()?;
     let rows = catalog::list_episodes(state.db(), viewer, id, page.after()?, limit + 1).await?;
     let page = Page::from_rows(rows, limit, |e| (e.sort_at, e.id));
-    Ok(Json(Page { items: page.items.into_iter().map(episode).collect(), next: page.next, included: None }))
+    Ok(Json(Page { items: page.items.into_iter().map(|e| episode(&state, e)).collect(), next: page.next, included: None }))
 }
 
 /// One episode.
@@ -370,7 +365,7 @@ pub async fn list_episodes(
     responses((status = 200, body = Episode), (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn get_episode(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Episode>, Problem> {
     let row = catalog::find_episode(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    Ok(Json(episode(row)))
+    Ok(Json(episode(&state, row)))
 }
 
 /// A book with its files, chapters and series.
@@ -378,7 +373,7 @@ pub(crate) async fn full_book(state: &AppState, row: catalog::BookRow) -> Result
     let pool = state.db();
     let id = row.id;
     let credits = credits_of(state, "book", &[id]).await?.remove(&id).unwrap_or_default();
-    let mut answer = book(row, credits);
+    let mut answer = book(state, row, credits);
     answer.files = Some(
         catalog::book_files(pool, id)
             .await?

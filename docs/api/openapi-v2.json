@@ -38,6 +38,13 @@
             "format": "uuid",
             "type": "string"
           },
+          "image": {
+            "description": "The cover of its first track that has one.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "is_compilation": {
             "type": "boolean"
           },
@@ -253,12 +260,16 @@
               "null"
             ]
           },
-          "has_cover": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "image": {
+            "description": "Its cover (`GET /images/{id}`; add `w` for the size).",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "isbn": {
             "type": [
@@ -313,7 +324,6 @@
           "visibility",
           "owner_id",
           "source",
-          "has_cover",
           "created_at",
           "updated_at"
         ],
@@ -637,12 +647,16 @@
       "Contributor": {
         "description": "Anyone credited with something: an artist, an author, a narrator, a host. The\nsame person is one contributor whatever they do.",
         "properties": {
-          "has_image": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "image": {
+            "description": "Their photo (`GET /images/{id}`; add `w` for the size).",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "kind": {
             "description": "`person`, `group`, `orchestra`, `choir`, `organisation` or `unknown`.",
@@ -677,8 +691,7 @@
         "required": [
           "id",
           "name",
-          "kind",
-          "has_image"
+          "kind"
         ],
         "type": "object"
       },
@@ -1041,12 +1054,16 @@
             "description": "The feed's id for it.",
             "type": "string"
           },
-          "has_image": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "image": {
+            "description": "The episode's own art, on this server or the publisher's.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "podcast_id": {
             "format": "uuid",
@@ -1099,7 +1116,6 @@
           "guid",
           "title",
           "stored",
-          "has_image",
           "created_at"
         ],
         "type": "object"
@@ -1354,6 +1370,13 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "image": {
+                  "description": "The cover of its first track that has one.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "is_compilation": {
                   "type": "boolean"
                 },
@@ -1479,12 +1502,16 @@
                     "null"
                   ]
                 },
-                "has_cover": {
-                  "type": "boolean"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "image": {
+                  "description": "Its cover (`GET /images/{id}`; add `w` for the size).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "isbn": {
                   "type": [
@@ -1539,7 +1566,6 @@
                 "visibility",
                 "owner_id",
                 "source",
-                "has_cover",
                 "created_at",
                 "updated_at"
               ],
@@ -1664,12 +1690,16 @@
             "items": {
               "description": "Anyone credited with something: an artist, an author, a narrator, a host. The\nsame person is one contributor whatever they do.",
               "properties": {
-                "has_image": {
-                  "type": "boolean"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "image": {
+                  "description": "Their photo (`GET /images/{id}`; add `w` for the size).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "kind": {
                   "description": "`person`, `group`, `orchestra`, `choir`, `organisation` or `unknown`.",
@@ -1704,8 +1734,7 @@
               "required": [
                 "id",
                 "name",
-                "kind",
-                "has_image"
+                "kind"
               ],
               "type": "object"
             },
@@ -1782,12 +1811,16 @@
                   "description": "The feed's id for it.",
                   "type": "string"
                 },
-                "has_image": {
-                  "type": "boolean"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "image": {
+                  "description": "The episode's own art, on this server or the publisher's.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "podcast_id": {
                   "format": "uuid",
@@ -1840,7 +1873,6 @@
                 "guid",
                 "title",
                 "stored",
-                "has_image",
                 "created_at"
               ],
               "type": "object"
@@ -2000,12 +2032,16 @@
                 "feed_url": {
                   "type": "string"
                 },
-                "has_image": {
-                  "type": "boolean"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "image": {
+                  "description": "The show's art: on this server (`GET /images/{id}`), or the publisher's.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "language": {
                   "type": [
@@ -2054,7 +2090,6 @@
                 "credits",
                 "feed_url",
                 "categories",
-                "has_image",
                 "visibility",
                 "owner_id",
                 "created_at",
@@ -2282,12 +2317,16 @@
                   },
                   "type": "array"
                 },
-                "has_cover": {
-                  "type": "boolean"
-                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "image": {
+                  "description": "Its cover (`GET /images/{id}`; add `w` for the size).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "owner_id": {
                   "format": "uuid",
@@ -2338,7 +2377,6 @@
                 "visibility",
                 "owner_id",
                 "source",
-                "has_cover",
                 "created_at",
                 "updated_at"
               ],
@@ -2587,12 +2625,16 @@
           "feed_url": {
             "type": "string"
           },
-          "has_image": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "image": {
+            "description": "The show's art: on this server (`GET /images/{id}`), or the publisher's.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "language": {
             "type": [
@@ -2641,7 +2683,6 @@
           "credits",
           "feed_url",
           "categories",
-          "has_image",
           "visibility",
           "owner_id",
           "created_at",
@@ -3219,12 +3260,16 @@
             },
             "type": "array"
           },
-          "has_cover": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
+          },
+          "image": {
+            "description": "Its cover (`GET /images/{id}`; add `w` for the size).",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "owner_id": {
             "format": "uuid",
@@ -3275,7 +3320,6 @@
           "visibility",
           "owner_id",
           "source",
-          "has_cover",
           "created_at",
           "updated_at"
         ],
@@ -5300,6 +5344,108 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/images/{id}": {
+      "get": {
+        "operationId": "media_image",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Expiry, Unix seconds.",
+            "in": "query",
+            "name": "e",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Signature.",
+            "in": "query",
+            "name": "s",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The longest edge wanted: 64, 128, 256, 512 or 1024; the original when absent.",
+            "in": "query",
+            "name": "w",
+            "required": false,
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {}
+            },
+            "description": "The image (JPEG when scaled)"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_size`"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_link`: a bad or expired signature"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No such image"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "An image behind a link from a record's `image`",
+        "tags": [
+          "media"
+        ],
+        "x-permission": "public"
       }
     },
     "/api/v2/me": {

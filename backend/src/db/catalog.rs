@@ -48,13 +48,13 @@ pub struct ContributorRow {
     pub sort_name: Option<String>,
     pub kind: String,
     pub musicbrainz_artist_id: Option<String>,
-    pub has_image: bool,
+    pub image_object_id: Option<Uuid>,
     /// The list's order: `lower(sort name or name)`.
     pub sort_key: String,
 }
 
 const CONTRIBUTOR_COLS: &str = "k.id, k.name, k.sort_name, k.kind, k.musicbrainz_artist_id,
-    k.image_object_id IS NOT NULL AS has_image, lower(COALESCE(k.sort_name, k.name)) AS sort_key";
+    k.image_object_id, lower(COALESCE(k.sort_name, k.name)) AS sort_key";
 
 /// Contributors in name order, after `after` (sort key, id).
 pub async fn list_contributors(
@@ -278,15 +278,18 @@ pub async fn albums_by_ids(pool: &PgPool, family_id: Uuid, ids: &[Uuid]) -> anyh
     .context("db: albums by ids")
 }
 
-/// Per album, what the viewer sees of it: tracks, total seconds, discs.
-pub async fn album_stats(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<(Uuid, i64, i64, i32)>> {
+/// Per album, what the viewer sees of it: tracks, total seconds, discs, and
+/// the cover of its first track that has one.
+pub async fn album_stats(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<(Uuid, i64, i64, i32, Option<Uuid>)>> {
     let sql = format!(
-        "SELECT t.album_id, count(*), COALESCE(sum(t.duration_secs), 0)::bigint, COALESCE(max(t.disc_number), 1)
+        "SELECT t.album_id, count(*), COALESCE(sum(t.duration_secs), 0)::bigint, COALESCE(max(t.disc_number), 1),
+                (array_agg(t.cover_object_id ORDER BY COALESCE(t.disc_number, 1), COALESCE(t.track_number, 0), t.id)
+                   FILTER (WHERE t.cover_object_id IS NOT NULL))[1]
            FROM music_tracks t WHERE t.album_id = ANY($4) AND {}
           GROUP BY t.album_id",
         music()
     );
-    viewer!(sqlx::query_as::<_, (Uuid, i64, i64, i32)>(&sql), viewer)
+    viewer!(sqlx::query_as::<_, (Uuid, i64, i64, i32, Option<Uuid>)>(&sql), viewer)
         .bind(ids)
         .fetch_all(pool)
         .await
@@ -434,7 +437,7 @@ pub struct TrackRow {
     pub disc_number: Option<i32>,
     pub track_number: Option<i32>,
     pub duration_secs: Option<i32>,
-    pub has_cover: bool,
+    pub cover_object_id: Option<Uuid>,
     pub source: String,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
@@ -445,7 +448,7 @@ pub struct TrackRow {
 }
 
 const TRACK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.album_id, t.recording_id, t.disc_number,
-    t.track_number, t.duration_secs, t.cover_object_id IS NOT NULL AS has_cover, t.source,
+    t.track_number, t.duration_secs, t.cover_object_id, t.source,
     (SELECT o.size_bytes FROM media_objects o WHERE o.id = t.audio_object_id) AS size_bytes,
     (SELECT o.content_type FROM media_objects o WHERE o.id = t.audio_object_id) AS content_type,
     t.created_at, t.updated_at, lower(t.title) AS sort_key";
@@ -561,7 +564,7 @@ pub struct BookRow {
     pub isbn: Option<String>,
     pub publisher: Option<String>,
     pub published_year: Option<i32>,
-    pub has_cover: bool,
+    pub cover_object_id: Option<Uuid>,
     pub source: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -569,7 +572,7 @@ pub struct BookRow {
 }
 
 const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
-    t.publisher, t.published_year, t.cover_object_id IS NOT NULL AS has_cover, t.source, t.created_at,
+    t.publisher, t.published_year, t.cover_object_id, t.source, t.created_at,
     t.updated_at, lower(t.title) AS sort_key";
 
 /// Where a page of books or podcasts starts: after this title, or before this time.
@@ -682,7 +685,8 @@ pub struct PodcastRow {
     pub language: Option<String>,
     pub podcast_guid: Option<String>,
     pub categories: Vec<String>,
-    pub has_image: bool,
+    pub image_object_id: Option<Uuid>,
+    pub image_url: Option<String>,
     pub last_refreshed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -690,7 +694,7 @@ pub struct PodcastRow {
 }
 
 const PODCAST_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.feed_url, t.description, t.link, t.language,
-    t.podcast_guid, t.categories, (t.image_object_id IS NOT NULL OR t.image_url IS NOT NULL) AS has_image,
+    t.podcast_guid, t.categories, t.image_object_id, t.image_url,
     t.last_refreshed_at, t.created_at, t.updated_at, lower(t.title) AS sort_key";
 
 pub async fn list_podcasts(
@@ -748,7 +752,8 @@ pub struct EpisodeRow {
     pub stored: bool,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
-    pub has_image: bool,
+    pub image_object_id: Option<Uuid>,
+    pub image_url: Option<String>,
     pub transcript_url: Option<String>,
     pub transcript_type: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -758,7 +763,7 @@ pub struct EpisodeRow {
 
 const EPISODE_COLS: &str = "e.id, e.feed_id AS podcast_id, e.guid, e.title, e.description, e.published_at,
     e.duration_secs, e.episode_number, e.season_number, e.audio_url, e.audio_object_id IS NOT NULL AS stored,
-    m.size_bytes, m.content_type, (e.image_object_id IS NOT NULL OR e.image_url IS NOT NULL) AS has_image,
+    m.size_bytes, m.content_type, e.image_object_id, e.image_url,
     e.transcript_url, e.transcript_type, e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
 
 /// A podcast's episodes, newest first.
