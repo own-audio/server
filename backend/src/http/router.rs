@@ -91,7 +91,7 @@ pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) 
         // paths. Without this the outer SPA fallback below would hand an API
         // client a page of HTML with status 200.
         .nest("/api/v1", limits.api.wrap(api).fallback(handlers::api_fallback).layer(api_cors.clone()))
-        .nest("/api/v2", crate::v2::mount(&limits).layer(api_cors))
+        .nest("/api/v2", crate::v2::mount(&limits, &state).layer(api_cors))
         .route("/.well-known/own-audio", get(crate::v2::discovery::well_known))
         .merge(root)
         // OpenSubsonic-compatible surface for external music clients. A

@@ -64,6 +64,14 @@ pub struct AuthMethods {
 pub struct Limits {
     pub list_limit_default: i64,
     pub list_limit_max: i64,
+    /// The largest single file `POST /uploads` takes.
+    pub upload_max_bytes: i64,
+    /// Plays, offline changes: the most in one request.
+    pub batch_max: usize,
+    /// How long an `Idempotency-Key` is remembered.
+    pub idempotency_hours: i32,
+    /// How far back `/sync/changes` reaches.
+    pub change_log_days: i64,
 }
 
 /// What this server is and offers.
@@ -97,7 +105,14 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
         },
         modules: features(&state),
         addresses: addresses(cfg.server.base_url.as_deref(), cfg.server.addresses.as_deref()),
-        limits: Limits { list_limit_default: DEFAULT_LIMIT, list_limit_max: MAX_LIMIT },
+        limits: Limits {
+            list_limit_default: DEFAULT_LIMIT,
+            list_limit_max: MAX_LIMIT,
+            upload_max_bytes: crate::uploads::MAX_UPLOAD_BYTES,
+            batch_max: 500,
+            idempotency_hours: crate::v2::idempotency::RETENTION_HOURS,
+            change_log_days: crate::db::changes::RETENTION_DAYS,
+        },
     })
 }
 

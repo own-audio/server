@@ -33,7 +33,7 @@ const UPLOAD_URL_EXPIRY_SECS: u64 = 6 * 3600;
 
 /// R2 (like S3) rejects a single `PutObject` above 5 GiB. Multipart upload
 /// would lift this; nothing in the product needs it yet.
-const MAX_UPLOAD_BYTES: i64 = 5 * 1024 * 1024 * 1024;
+pub const MAX_UPLOAD_BYTES: i64 = 5 * 1024 * 1024 * 1024;
 
 pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
@@ -89,7 +89,7 @@ pub struct CompleteResponse {
     request_body = PresignRequest,
     responses((status = 200, body = PresignResponse),
         (status = 400, description = "Missing content type, bad size or unknown kind", body = crate::http::openapi::ErrorBody)))]
-async fn presign(
+pub(crate) async fn presign(
     family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<PresignRequest>,

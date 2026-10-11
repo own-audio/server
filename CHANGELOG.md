@@ -66,6 +66,12 @@ semver. Each release states the **API contract revision** it serves
   caller's household or own state changes, its id the change log's position
   (`Last-Event-ID` resumes), a comment every 30 seconds; the records come
   from `/sync/changes`.
+- Adding to the library on v2: `POST /uploads` (the size is required, so a
+  file that cannot fit is refused before a byte is sent — security hardening
+  plan C1), then `POST /tracks` or `POST /books` from the uploads.
+  `Idempotency-Key` on every v2 write: a repeat answers what the first did
+  (kept 24 hours, migration 0110), another request under the same key is
+  `422`. Discovery states the upload, batch, idempotency and change-log limits.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

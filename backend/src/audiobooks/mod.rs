@@ -531,7 +531,7 @@ async fn upload_book(
         (status = 400, description = "No files, a bad path, a duplicate relative path, unknown visibility, or a key with nothing uploaded", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "An object key outside the caller's family", body = crate::http::openapi::ErrorBody),
         (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
-async fn create_book_from_uploads(
+pub(crate) async fn create_book_from_uploads(
     family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<FromUploadsRequest>,

@@ -10,6 +10,7 @@ pub mod discovery;
 pub mod edit;
 pub mod events;
 pub mod household;
+pub mod idempotency;
 pub mod images;
 pub mod me;
 pub mod media;
@@ -19,6 +20,7 @@ pub mod problem;
 pub mod spoken;
 pub mod state;
 pub mod sync;
+pub mod uploads;
 
 use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
@@ -58,9 +60,9 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(music::get_release_group))
         .routes(routes!(music::get_recording))
         .routes(routes!(music::list_genres))
-        .routes(routes!(music::list_tracks))
+        .routes(routes!(music::list_tracks, uploads::create_track))
         .routes(routes!(music::get_track))
-        .routes(routes!(spoken::list_books))
+        .routes(routes!(spoken::list_books, uploads::create_book))
         .routes(routes!(spoken::get_book))
         .routes(routes!(spoken::list_podcasts))
         .routes(routes!(spoken::get_podcast))
@@ -100,6 +102,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(household::set_book_visibility))
         .routes(routes!(household::set_podcast_visibility))
         .routes(routes!(events::events))
+        .routes(routes!(uploads::create_upload))
 }
 
 /// The scope a personal access token needs for an operation, from the v2
@@ -124,13 +127,15 @@ pub fn required_scope(method: &str, path: &str) -> Option<&'static str> {
     table.get(&(method.to_ascii_uppercase(), path)).copied()
 }
 
-/// `/api/v2` as served: the per-caller budget on every route, unknown paths a
-/// `404` problem, and every error answer in problem shape.
-pub fn mount(limits: &Limiters) -> axum::Router<AppState> {
+/// `/api/v2` as served: the per-caller budget on every route, `Idempotency-Key`
+/// on writes, unknown paths a `404` problem, and every error answer in problem
+/// shape.
+pub fn mount(limits: &Limiters, state: &AppState) -> axum::Router<AppState> {
     let api: axum::Router<AppState> = router(limits).into();
     limits
         .api
         .wrap(api)
+        .route_layer(axum::middleware::from_fn_with_state(state.clone(), idempotency::middleware))
         .fallback(problem::fallback)
         .layer(axum::middleware::from_fn(problem::middleware))
 }

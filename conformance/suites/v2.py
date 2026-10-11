@@ -91,6 +91,7 @@ def run(ctx: Ctx) -> None:
     images(ctx, problem)
     household(ctx, problem)
     live(ctx, problem)
+    library(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -758,3 +759,47 @@ def live(ctx: Ctx, problem) -> None:
         again: list = []
         listen(again, str(int(events["id"]) - 1))
         ctx.check("Last-Event-ID resumes after it, at once", dict((k.strip(), v.strip()) for k, v in again if k != "type").get("id") == events["id"], str(again)[:160])
+
+
+def library(ctx: Ctx, problem) -> None:
+    """V9: adding to the library by upload, with the size declared and Idempotency-Key honoured."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2add", PW)
+    audio = ctx.audio()
+
+    def upload(kind: str, name: str) -> dict:
+        st, _h, raw = ctx.request("POST", "/api/v2/uploads", tok,
+                                  {"kind": kind, "filename": name, "content_type": "audio/mpeg", "size_bytes": len(audio)})
+        made = json.loads(raw) if st == 201 else {}
+        if made:
+            ctx.put_bytes(made["url"], audio, made["headers"]["Content-Type"])
+        return made
+
+    ctx.check("an upload must say how big it is", problem(ctx.request("POST", "/api/v2/uploads", tok,
+              {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg"}), 422))
+    ctx.check("…and stay within the limit", problem(ctx.request("POST", "/api/v2/uploads", tok,
+              {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 6 * 1024 ** 3}), 400))
+    up = upload("track", f"new-{sfx}.mp3")
+    ctx.check("an upload link", bool(up.get("upload_id")) and up.get("method") == "PUT" and bool(up.get("expires_at")), str(up)[:160])
+    key = f"track-{sfx}"
+    body = {"upload_id": up.get("upload_id"), "filename": f"new-{sfx}.mp3", "title": f"Uploaded {sfx}", "artist": f"Up Band {sfx}"}
+    st, _h, first = ctx.request("POST", "/api/v2/tracks", tok, body, headers={"Idempotency-Key": key})
+    track = json.loads(first) if st == 201 else {}
+    ctx.check("a track from the upload, as a v2 record", st == 201 and track.get("title") == f"Uploaded {sfx}" and track.get("album_id"), str(track)[:160])
+    st, headers, again = ctx.request("POST", "/api/v2/tracks", tok, body, headers={"Idempotency-Key": key})
+    ctx.check("the same request with the same key answers the same, without a second track",
+              st == 201 and again == first and headers.get("idempotent-replayed") == "true")
+    ctx.check("the same key with another request: 422 idempotency_key_reused",
+              problem(ctx.request("POST", "/api/v2/tracks", tok, dict(body, title="Other"), headers={"Idempotency-Key": key}), 422, "idempotency_key_reused"))
+    st, _h, raw = ctx.request("GET", f"/api/v2/tracks?q=Uploaded%20{sfx}", tok)
+    ctx.check("…one track, not two", st == 200 and len(json.loads(raw)["items"]) == 1)
+
+    files = [upload("book_file", f"part{i}-{sfx}.mp3") for i in (1, 2)]
+    st, _h, raw = ctx.request("POST", "/api/v2/books", tok, {
+        "title": f"Uploaded Book {sfx}", "author": f"Up Writer {sfx}",
+        "files": [{"upload_id": f.get("upload_id"), "relative_path": f"0{i + 1}.mp3"} for i, f in enumerate(files)]})
+    book = json.loads(raw) if st == 201 else {}
+    ctx.check("a book from uploaded files, its files in order", st == 201 and len(book.get("files", [])) == 2
+              and [f["position"] for f in book["files"]] == sorted(f["position"] for f in book["files"]), str(book)[:200])
+    disco = json.loads(ctx.request("GET", "/.well-known/own-audio")[2])
+    ctx.check("discovery states the upload and batch limits", disco["limits"].get("upload_max_bytes", 0) > 0 and disco["limits"].get("batch_max") == 500)

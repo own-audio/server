@@ -1003,7 +1003,7 @@ pub struct TrackWithPath {
 #[utoipa::path(post, path = "/tracks/from-upload", tag = "music", security(("bearer" = [])),
     request_body = FromUploadRequest,
     responses((status = 201, body = TrackWithPath), (status = 400, body = crate::http::openapi::ErrorBody), (status = 401, description = "The key is not in the caller's family storage", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not allowed to upload", body = crate::http::openapi::ErrorBody)))]
-async fn create_track_from_upload(
+pub(crate) async fn create_track_from_upload(
     family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<FromUploadRequest>,

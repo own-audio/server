@@ -818,6 +818,11 @@ async fn execute_storage_sweep(
         Ok(n) => info!(count = n, "change log rows past retention dropped"),
         Err(e) => warn!(error = %e, "could not prune the change log"),
     }
+    match crate::v2::idempotency::prune(pool).await {
+        Ok(0) => {}
+        Ok(n) => info!(count = n, "idempotency keys past retention dropped"),
+        Err(e) => warn!(error = %e, "could not prune idempotency keys"),
+    }
     // Presigned uploads that never completed: their objects have no row, so
     // the pass above cannot see them (migration 0094).
     let mut stale = 0usize;
