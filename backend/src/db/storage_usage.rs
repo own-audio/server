@@ -25,7 +25,6 @@ use uuid::Uuid;
 const AUDIOBOOK_REFS: &[(&str, &str)] = &[
     ("audiobook_books", "cover_object_id"),
     ("audiobook_files f JOIN audiobook_books b ON b.id = f.book_id", "f.audio_object_id"),
-    ("audiobook_authors", "image_object_id"),
     ("audiobook_collections", "cover_object_id"),
 ];
 
@@ -39,6 +38,8 @@ const MUSIC_REFS: &[(&str, &str)] = &[
     ("music_tracks", "audio_object_id"),
     ("music_tracks", "cover_object_id"),
     ("music_playlists", "cover_object_id"),
+    // Photos of artists, authors, narrators and hosts alike (migration 0102
+    // moved the authors' here): one contributor per person.
     ("contributors", "image_object_id"),
 ];
 
@@ -85,7 +86,6 @@ const INSTANCE_AUDIO_REFS: &[(&str, &str)] = &[
 
 const INSTANCE_OTHER_REFS: &[(&str, &str)] = &[
     ("audiobook_books", "cover_object_id"),
-    ("audiobook_authors", "image_object_id"),
     ("audiobook_collections", "cover_object_id"),
     ("podcast_feeds", "image_object_id"),
     ("podcast_episodes", "image_object_id"),
