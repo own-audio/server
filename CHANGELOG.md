@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.9] - 2026-10-11
+
 ### Added
 - Identify runs (`features.identify_library`, contract revision 10; endpoints in the
   draft `/api/v2/identify/*`): match your library, a library folder, an album, a
