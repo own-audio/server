@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.6] - 2026-10-11
+
+Contract revision 7. Beta.5 with its version number set: the beta.5 release
+did not bump it, so its image reports `1.0.0-beta.4` in `GET /api/v1/server`
+and the compose file still pulled beta.4. Nothing else changed.
+
+### Fixed
+- `docker-compose.yml`, `.env.example` and `INSTALL.md` name this image, and
+  the server reports its own version.
+
 ## [1.0.0-beta.5] - 2026-10-11
 
 Contract revision 7. The security release: phases 1–3 of the hardening plan,

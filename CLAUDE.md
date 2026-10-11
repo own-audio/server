@@ -345,7 +345,9 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
 
 ## 9. Where we left off (2026-10-08)
 
-`v1.0.0-beta.4` (contract revision 6): the demo account is read-only;
+`v1.0.0-beta.6` (contract revision 7): beta.5 with its version number set
+(the beta.5 image reports 1.0.0-beta.4). `v1.0.0-beta.5` (contract revision
+7): the security release — see CHANGELOG. `v1.0.0-beta.4` (contract revision 6): the demo account is read-only;
 Subsonic song ids for family-shared songs fixed. `v1.0.0-beta.3` (contract revision 6): server id and addresses in
 `GET /server`, smaller streams from Subsonic `stream`. `v1.0.0-beta.2` (contract revision 5): identify through the public
 MusicBrainz API, podcast search through Apple's directory, getStarred and
