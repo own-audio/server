@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Music entities: contributors, credits, release groups, albums, recordings
+  and genres, per household, following MusicBrainz (migration 0100,
+  `docs/data-model-plan.md`). The server derives them from the tags and keeps
+  them in step on every write; the tag strings on a track stay as read.
+  Artists are split on `;` and on the guest markers (`feat.`, `ft.`,
+  `featuring`) — never on `&` or `,`, which belong to names like "Simon &
+  Garfunkel". Tracks in `/api/v1/music` carry `album_id` and `recording_id`;
+  tracks on one album share its id however the tag is spelled. Linking an
+  existing library of 600,000 tracks takes about a minute at the first start.
+  Entities nothing refers to any more are removed by the daily sweep.
+
 ## [1.0.0-beta.6] - 2026-10-11
 
 Contract revision 7. Beta.5 with its version number set: the beta.5 release

@@ -27,6 +27,13 @@ pub struct MusicTrack {
     pub album_artist: Option<String>,
     pub is_compilation: bool,
     pub musicbrainz_release_group_id: Option<String>,
+    /// The album entity this track sits on (migration 0100); `None` only for
+    /// an owner outside any household.
+    #[sqlx(default)]
+    pub album_id: Option<Uuid>,
+    /// The recording entity, when the tags carry a MusicBrainz recording id.
+    #[sqlx(default)]
+    pub recording_id: Option<Uuid>,
     /// `NULL` = never parsed yet; `Some("")` = parsed, the file had no
     /// embedded lyrics tag; `Some(text)` = the parsed lyrics. See
     /// `db::music::update_track_lyrics`'s own doc comment.

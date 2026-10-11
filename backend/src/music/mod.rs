@@ -187,6 +187,11 @@ pub struct TrackResponse {
     pub cover_url: Option<String>,
     /// Set once this track has been matched via the metadata search+apply
     /// flow — lets the client grey out "Identify" / show a matched badge.
+    /// The album entity (`/music/albums/{album_id}` once albums are entities);
+    /// tracks on one album share it however their tags are spelled.
+    pub album_id: Option<String>,
+    /// The recording entity: the same performance on several albums shares it.
+    pub recording_id: Option<String>,
     pub musicbrainz_recording_id: Option<String>,
     /// `private` or `family` — which folder this item lives in.
     pub visibility: String,
@@ -3584,6 +3589,8 @@ fn track_to_response(t: models::MusicTrack, viewer_id: Uuid) -> TrackResponse {
         cover_url: t
             .cover_object_id
             .map(|_| format!("/api/v1/music/tracks/{}/cover", t.id)),
+        album_id: t.album_id.map(|id| id.to_string()),
+        recording_id: t.recording_id.map(|id| id.to_string()),
         musicbrainz_recording_id: t.musicbrainz_recording_id,
         visibility: access::visibility_of(t.family_id).to_string(),
         is_owner: t.user_id == viewer_id,

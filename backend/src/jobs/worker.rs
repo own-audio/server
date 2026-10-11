@@ -802,6 +802,11 @@ async fn execute_storage_sweep(
     }
 
     // Presigned uploads that never completed: their objects have no row, so
+    match crate::db::entities::sweep_orphans(pool).await {
+        Ok(0) => {}
+        Ok(n) => info!(count = n, "orphaned music entities removed"),
+        Err(e) => warn!(error = %e, "could not sweep orphaned music entities"),
+    }
     // The security trail keeps a year (security hardening plan §9).
     match crate::db::security_events::purge_older_than(pool, crate::auth::audit::RETENTION_DAYS).await {
         Ok(0) => {}

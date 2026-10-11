@@ -20003,12 +20003,25 @@
               "null"
             ]
           },
-          "musicbrainz_recording_id": {
+          "album_id": {
             "type": [
               "string",
               "null"
             ],
-            "description": "Set once this track has been matched via the metadata search+apply\nflow — lets the client grey out \"Identify\" / show a matched badge."
+            "description": "Set once this track has been matched via the metadata search+apply\nflow — lets the client grey out \"Identify\" / show a matched badge.\nThe album entity (`/music/albums/{album_id}` once albums are entities);\ntracks on one album share it however their tags are spelled."
+          },
+          "recording_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The recording entity: the same performance on several albums shares it."
+          },
+          "musicbrainz_recording_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "visibility": {
             "type": "string",
