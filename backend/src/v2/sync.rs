@@ -334,9 +334,11 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
         }
         let _ = tx.send(line(json!({ "type": "end", "cursor": encoded }))).await;
     });
-    let body = Body::from_stream(futures_util::stream::unfold(rx, |mut rx| async move {
+    // Fused: the compression layer polls once more after the end, and a bare
+    // `unfold` panics on that (see `http::json_stream`).
+    let body = Body::from_stream(futures_util::StreamExt::fuse(futures_util::stream::unfold(rx, |mut rx| async move {
         rx.recv().await.map(|b| (Ok::<_, std::io::Error>(b), rx))
-    }));
+    })));
     Ok(([(header::CONTENT_TYPE, "application/x-ndjson")], body).into_response())
 }
 

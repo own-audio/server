@@ -561,7 +561,11 @@ def sync(ctx: Ctx, problem) -> None:
 
     kept = ctx.upload_track(tok, f"Snap Song {sfx}", artist=f"Snap Band {sfx}", album=f"Snap Album {sfx}")
     ctx.request("PUT", f"/api/v2/me/favourites/track/{kept['id']}", tok)
-    st, headers, raw = ctx.request("GET", "/api/v2/sync/snapshot?kinds=track,favourite", tok)
+    # Compressed, as apps ask for it: the stream must reach its `end` line through gzip.
+    import gzip
+    st, headers, raw = ctx.request("GET", "/api/v2/sync/snapshot?kinds=track,favourite", tok, headers={"Accept-Encoding": "gzip"})
+    if headers.get("content-encoding") == "gzip":
+        raw = gzip.decompress(raw)
     lines = [json.loads(l) for l in raw.decode().splitlines() if l.strip()]
     records = {(l["kind"], l["id"]) for l in lines if l.get("type") == "record"}
     ctx.check("a snapshot: begin, records, end with the cursor",

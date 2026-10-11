@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+- `GET /api/v2/sync/snapshot` was cut after its first line for a client that
+  accepts gzip (every app): the stream panicked when the compression layer
+  polled it after its end.
+
 ## [1.0.0-beta.7] - 2026-10-11
 
 ### Added
