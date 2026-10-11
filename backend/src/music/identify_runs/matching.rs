@@ -124,8 +124,16 @@ pub fn album_proposals(
     if (c.matched as usize) < n {
         group_reasons.push("partial");
     }
+    // Another release group is a rival only when it is as good on both counts:
+    // the box sets and collections that hold every song of an album (a 43-track
+    // vinyl box, a 163-track collection) are not, when the album has exactly as
+    // many tracks as the files.
+    let exact = |x: &AlbumCandidate| x.track_count as usize == n;
     let rival = candidates.iter().enumerate().any(|(i, o)| {
-        i != chosen && o.mb_release_group_id != c.mb_release_group_id && o.matched >= c.matched
+        i != chosen
+            && o.mb_release_group_id != c.mb_release_group_id
+            && o.matched >= c.matched
+            && (exact(o) || !exact(c))
     });
     if rival {
         group_reasons.push("ambiguous");
@@ -359,6 +367,19 @@ mod tests {
         let cands = [release("bob", &[3], 3), other];
         let (props, _) = album_proposals(&files(3), &cands, 0);
         assert!(props.iter().all(|p| p.reasons.contains(&"ambiguous")));
+    }
+
+    #[test]
+    fn a_box_set_holding_the_album_is_no_rival() {
+        // What the hosted mirror answers for Master of Puppets: the album, then a
+        // 43-track box and a 163-track collection that hold all eight songs too.
+        let mut box_set = release("box", &[43], 8);
+        box_set.title = "Limited Edition Vinyl Box Set".into();
+        let mut collection = release("coll", &[163], 8);
+        collection.title = "The Metallica Collection".into();
+        let cands = [release("bob", &[8], 8), box_set, collection];
+        let (props, _) = album_proposals(&files(8), &cands, 0);
+        assert!(props.iter().all(|p| p.class == Class::Sure), "{:?}", props[0].reasons);
     }
 
     #[test]
