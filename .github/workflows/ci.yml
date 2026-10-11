@@ -109,6 +109,9 @@ jobs:
           # The suite signs in a few hundred times from one address; the per-IP
           # login limit is not what it tests (the per-account lock is).
           echo 'SERVER__RATE_LIMIT__LOGIN_PER_MINUTE=1000' >> .env
+          echo 'SERVER__RATE_LIMIT__API_PER_MINUTE=100000' >> .env
+          echo 'SERVER__RATE_LIMIT__SEARCH_PER_MINUTE=10000' >> .env
+          echo 'SERVER__RATE_LIMIT__OUTBOUND_PER_MINUTE=10000' >> .env
           files="-f docker-compose.yml"
           if [ "${{ matrix.storage }}" = s3 ]; then
             printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env

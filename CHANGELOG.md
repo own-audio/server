@@ -53,6 +53,12 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- Request limits on the whole API: 1200 a minute per signed-in device (by
+  token) or address over `/api/v1` and `/rest`, 60 for searches, 30 for the
+  routes that make the server fetch from elsewhere (subscribe, refresh,
+  identify, metadata lookups), and the provider sign-ins under the sign-in
+  limit (`SERVER__RATE_LIMIT__API_PER_MINUTE`, `…SEARCH…`, `…OUTBOUND…`).
+  `429` with `Retry-After`, as before.
 - Two-factor sign-in with an authenticator app (TOTP, RFC 6238) and eight
   one-time recovery codes, per user, off by default: `GET /auth/totp`,
   `POST /auth/totp/setup`, `POST /auth/totp/enable`, `DELETE /auth/totp`

@@ -302,7 +302,7 @@ pub struct ProgressResponse {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> OpenApiRouter<AppState> {
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
     use crate::http::openapi::map;
     OpenApiRouter::new()
         // Deduplication (DEDUPLICATION_PLAN.md) — before "Tracks" since it's conceptually a
@@ -322,9 +322,9 @@ pub fn router() -> OpenApiRouter<AppState> {
         .routes(routes!(get_track_file_tags))
         .routes(routes!(rescan_track_tags))
         .routes(routes!(read_discs))
-        .routes(routes!(search_track_metadata))
+        .routes(crate::http::openapi::map(routes!(search_track_metadata), |m| limits.outbound.apply(m)))
         .routes(routes!(apply_track_metadata))
-        .routes(routes!(identify_album))
+        .routes(crate::http::openapi::map(routes!(identify_album), |m| limits.outbound.apply(m)))
         // Track playback progress
         .routes(routes!(get_track_progress, upsert_track_progress))
 

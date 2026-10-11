@@ -46,10 +46,10 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
         // FamilyContext/AuthUser extractor on these handlers, matching
         // /auth/register and /auth/login's own unauthenticated routes.
         .nest("/join", crate::families::join_router(limits))
-        .nest("/library", crate::library::router())
-        .nest("/podcasts", crate::podcasts::router())
-        .nest("/audiobooks", crate::audiobooks::router())
-        .nest("/music", crate::music::router())
+        .nest("/library", crate::library::router(limits))
+        .nest("/podcasts", crate::podcasts::router(limits))
+        .nest("/audiobooks", crate::audiobooks::router(limits))
+        .nest("/music", crate::music::router(limits))
         .nest("/playback", crate::playback::router())
         .nest("/jobs", crate::jobs::router())
         .nest("/uploads", crate::uploads::router())
@@ -82,19 +82,22 @@ pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
 /// hosted edition's Stripe landing pages); the core passes an empty router.
 pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) -> Router {
     let api_cors = api_cors(&state.config().server.cors_origins());
+    // One budget per caller over everything (security hardening plan §6);
+    // the stricter buckets sit on their routes inside `api_router`.
+    let limits = crate::http::rate_limit::Limiters::from_config(&state.config().server.rate_limit);
     Router::new()
         .route("/health", get(handlers::health))
         // The API answers 404 (or 501 for hosted-only paths) for its own unknown
         // paths. Without this the outer SPA fallback below would hand an API
         // client a page of HTML with status 200.
-        .nest("/api/v1", api.fallback(handlers::api_fallback).layer(api_cors))
+        .nest("/api/v1", limits.api.wrap(api).fallback(handlers::api_fallback).layer(api_cors))
         .merge(root)
         // OpenSubsonic-compatible surface for external music clients. A
         // sibling of /api/v1 (not nested under it) because Subsonic clients
         // call fixed paths like /rest/ping.view.
         .nest(
             "/rest",
-            crate::subsonic::router()
+            limits.api.wrap(crate::subsonic::router())
                 .layer(axum::middleware::from_fn(
                     crate::subsonic::form::merge_post_form,
                 ))

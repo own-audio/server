@@ -244,7 +244,7 @@ pub struct UpdateFileRequest {
     pub title: String,
 }
 
-pub fn router() -> OpenApiRouter<AppState> {
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
     use crate::http::openapi::map;
     OpenApiRouter::new()
         .routes(routes!(list_books, create_book))
@@ -261,7 +261,7 @@ pub fn router() -> OpenApiRouter<AppState> {
         .routes(routes!(reorder_files))
         .routes(routes!(list_chapters))
         .routes(routes!(set_book_visibility))
-        .routes(routes!(search_book_metadata))
+        .routes(crate::http::openapi::map(routes!(search_book_metadata), |m| limits.outbound.apply(m)))
         .routes(routes!(apply_book_metadata))
         // Sub-module routers
         .nest("/authors", authors::router())

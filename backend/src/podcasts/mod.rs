@@ -180,21 +180,22 @@ pub struct PodcastSearchResult {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> OpenApiRouter<AppState> {
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
+    use crate::http::openapi::map;
     OpenApiRouter::new()
         .routes(routes!(list_feeds))
-        .routes(routes!(search_podcasts))
-        .routes(routes!(discover_categories))
-        .routes(routes!(discover_browse))
+        .routes(map(routes!(search_podcasts), |m| limits.search.apply(m)))
+        .routes(map(routes!(discover_categories), |m| limits.search.apply(m)))
+        .routes(map(routes!(discover_browse), |m| limits.search.apply(m)))
         .routes(routes!(similar_feeds))
         .routes(routes!(unplayed_counts))
-        .routes(routes!(discover_similar))
-        .routes(routes!(discover_preview_episodes))
-        .routes(routes!(subscribe))
+        .routes(map(routes!(discover_similar), |m| limits.search.apply(m)))
+        .routes(map(routes!(discover_preview_episodes), |m| limits.outbound.apply(m)))
+        .routes(map(routes!(subscribe), |m| limits.outbound.apply(m)))
         .routes(routes!(get_feed, unsubscribe))
         .routes(routes!(get_feed_image))
         .routes(routes!(list_episodes))
-        .routes(routes!(refresh_feed))
+        .routes(map(routes!(refresh_feed), |m| limits.outbound.apply(m)))
         .routes(routes!(sync_images))
         .routes(routes!(set_feed_visibility))
         .routes(routes!(set_auto_store))

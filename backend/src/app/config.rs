@@ -155,6 +155,15 @@ pub struct RateLimitConfig {
     pub device_per_minute: u32,
     pub join_per_minute: u32,
     pub setup_per_minute: u32,
+    /// Every `/api/v1` and `/rest` request, per signed-in device (by token)
+    /// or per address. Generous: a library sync or a screen of covers is a
+    /// burst, a scraper is not.
+    pub api_per_minute: u32,
+    /// Searches (library, catalogue).
+    pub search_per_minute: u32,
+    /// Routes that make the server fetch from elsewhere (subscribe, refresh,
+    /// identify, metadata lookups) — each one costs a third party something.
+    pub outbound_per_minute: u32,
     pub trust_proxy_headers: bool,
 }
 
@@ -167,6 +176,9 @@ impl Default for RateLimitConfig {
             device_per_minute: 60,
             join_per_minute: 30,
             setup_per_minute: 10,
+            api_per_minute: 1200,
+            search_per_minute: 60,
+            outbound_per_minute: 30,
             trust_proxy_headers: false,
         }
     }

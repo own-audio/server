@@ -92,10 +92,10 @@ pub enum SearchResult {
 
 // ── Router ────────────────────────────────────────────────────────────────
 
-pub fn router() -> OpenApiRouter<AppState> {
+pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(continue_listening))
-        .routes(routes!(search))
+        .routes(crate::http::openapi::map(routes!(search), |m| limits.search.apply(m)))
         .routes(routes!(private_library))
         .routes(routes!(changes))
         .nest("/folders", crate::library_folders::routes::router())
