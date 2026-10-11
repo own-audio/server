@@ -5609,6 +5609,65 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/events": {
+      "get": {
+        "operationId": "sync_events",
+        "parameters": [
+          {
+            "description": "The id of the last event received, to resume",
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; a comment every 30 s"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Live updates for the caller",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/family": {
       "get": {
         "operationId": "household_get_family",

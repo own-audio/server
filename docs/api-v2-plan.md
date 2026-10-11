@@ -34,7 +34,7 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
 
 ## Phases
 
-Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`), V3c (`1459cff`) V4 (`e6b1021`), V5 (`2854060`) and V6 (`c504a49`, plus images) and V7 (household) are done; V8 (events) next. Per-member media policies and item grants stay on v1 until a client needs them on v2. Images are addressed by their stored object, which never changes once written, rather than by content hash: same caching, without waiting for the checksum job. Series and collections as resources of their own wait for V7, with the household. V4 keeps v1's tables (one or two per medium) behind one model; they become one table each when v1 is removed. Favourites and ratings pushed offline apply in the order sent; only progress compares timestamps.
+Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`), V3c (`1459cff`) V4 (`e6b1021`), V5 (`2854060`) and V6 (`c504a49`, plus images) V7 (household) and V8 (events: `library` only — jobs carry no owner yet) are done; V9 (uploads, idempotency, limits) next. Per-member media policies and item grants stay on v1 until a client needs them on v2. Images are addressed by their stored object, which never changes once written, rather than by content hash: same caching, without waiting for the checksum job. Series and collections as resources of their own wait for V7, with the household. V4 keeps v1's tables (one or two per medium) behind one model; they become one table each when v1 is removed. Favourites and ratings pushed offline apply in the order sent; only progress compares timestamps.
 
 | Phase | Content | Test |
 |---|---|---|

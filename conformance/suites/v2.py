@@ -90,6 +90,7 @@ def run(ctx: Ctx) -> None:
     playback(ctx, problem)
     images(ctx, problem)
     household(ctx, problem)
+    live(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -716,3 +717,44 @@ def household(ctx: Ctx, problem) -> None:
         ctx.check("kept private again, the member no longer sees it", problem(ctx.request("GET", f"/api/v2/tracks/{track['id']}", member), 404))
     else:
         ctx.skip("members of one household", "each account has its own household on this server")
+
+
+def live(ctx: Ctx, problem) -> None:
+    """V8: a change made elsewhere arrives as an event."""
+    import threading
+    import time
+    import urllib.request
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2live", PW)
+    track = ctx.upload_track(tok, f"Live Song {sfx}", artist=f"Live Band {sfx}", album=f"Live Album {sfx}")
+
+    def listen(out: list, last_id: str | None = None) -> None:
+        headers = {"Authorization": f"Bearer {tok}", "Accept": "text/event-stream"}
+        if last_id:
+            headers["Last-Event-ID"] = last_id
+        try:
+            with urllib.request.urlopen(urllib.request.Request(ctx.url("/api/v2/events"), headers=headers), timeout=20) as r:
+                out.append(("type", r.headers.get("Content-Type", "")))
+                for raw in r:
+                    line = raw.decode().strip()
+                    if line.startswith("event:") or line.startswith("id:"):
+                        out.append(tuple(line.split(":", 1)))
+                    if line.startswith("id:"):
+                        return
+        except Exception as e:  # noqa: BLE001 — a timeout means no event came
+            out.append(("error", str(e)))
+
+    got: list = []
+    t = threading.Thread(target=listen, args=(got,), daemon=True)
+    t.start()
+    time.sleep(1.5)
+    ctx.request("PUT", f"/api/v2/me/favourites/track/{track['id']}", tok)
+    t.join(15)
+    events = dict((k.strip(), v.strip()) for k, v in got if k != "type")
+    ctx.check("a change made elsewhere arrives as a library event, with an id",
+              ("type", "text/event-stream") in [(k, v.split(";")[0]) for k, v in got] and events.get("event") == "library"
+              and events.get("id", "").isdigit(), str(got)[:200])
+    if events.get("id", "").isdigit():
+        again: list = []
+        listen(again, str(int(events["id"]) - 1))
+        ctx.check("Last-Event-ID resumes after it, at once", dict((k.strip(), v.strip()) for k, v in again if k != "type").get("id") == events["id"], str(again)[:160])

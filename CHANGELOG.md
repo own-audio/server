@@ -62,6 +62,10 @@ semver. Each release states the **API contract revision** it serves
   `admin` / `member`, rights, age bracket, label; removing), `/family/invites`,
   `/family/join`, `/family/storage`, and `PUT /tracks|books|podcasts/{id}/visibility`
   with `private` or `family`. The rules are v1's, called rather than copied.
+- `GET /api/v2/events` (Server-Sent Events): a `library` event whenever the
+  caller's household or own state changes, its id the change log's position
+  (`Last-Event-ID` resumes), a comment every 30 seconds; the records come
+  from `/sync/changes`.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings
