@@ -53,6 +53,9 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- A sign-in from a device unlike any the account used in the last 90 days
+  (by kind and name) is announced to the owner by mail, when mail is
+  configured; the demo account is exempt.
 - Subsonic API keys are encrypted in the database (AES-256-GCM under a key
   derived from `AUTH__SESSION_SECRET`); the protocol needs them readable, so
   they could not be hashed like passwords. Existing keys are encrypted at the

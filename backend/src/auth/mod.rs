@@ -474,6 +474,17 @@ pub(crate) async fn issue_tokens(
     let refresh_expires =
         chrono::Utc::now() + chrono::Duration::seconds(cfg.auth.refresh_ttl_secs as i64);
 
+    // A new chain from a device unlike any the account had in the last 90
+    // days is news for the owner (security hardening plan §5.2) — decided
+    // before this chain is recorded. Not for the published demo account.
+    let mail_configured = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some());
+    let notify = existing_chain.is_none()
+        && mail_configured
+        && !crate::demo::is_read_only_account(state, &user.email)
+        && !db::refresh_tokens::device_is_familiar(pool, user.id, device_kind, device_name, 90)
+            .await
+            .map_err(AuthError::Internal)?;
+
     db::refresh_tokens::create(
         pool,
         user.id,
@@ -485,6 +496,16 @@ pub(crate) async fn issue_tokens(
     )
     .await
     .map_err(AuthError::Internal)?;
+
+    if notify {
+        let mail = cfg.mail.clone();
+        let to = user.email.clone();
+        let device = format!("{} ({device_kind})", device_name.filter(|n| !n.trim().is_empty()).unwrap_or("Unknown device"));
+        let when = chrono::Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
+        tokio::spawn(async move {
+            crate::mail::new_device::send_new_device_notice(mail.as_ref(), &to, &device, &when).await;
+        });
+    }
 
     let claims =
         SessionClaims::new(user.id, &user.role, cfg.auth.access_ttl()).with_chain(chain_id);

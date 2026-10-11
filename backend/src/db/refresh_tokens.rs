@@ -182,3 +182,30 @@ pub async fn list_devices(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Vec<De
     .await
     .context("db: list device sessions")
 }
+
+/// Whether the account has signed in from a device like this one (same kind
+/// and name) in the last `days` days, or has never signed in at all — the
+/// cases where a sign-in is not news worth a mail (`mail::new_device`).
+pub async fn device_is_familiar(
+    pool: &PgPool,
+    user_id: Uuid,
+    device_kind: &str,
+    device_name: Option<&str>,
+    days: i64,
+) -> anyhow::Result<bool> {
+    let (any, same): (bool, bool) = sqlx::query_as(
+        "SELECT EXISTS (SELECT 1 FROM refresh_tokens WHERE user_id = $1),
+                EXISTS (SELECT 1 FROM refresh_tokens
+                         WHERE user_id = $1 AND device_kind = $2
+                           AND COALESCE(device_name, '') = COALESCE($3, '')
+                           AND created_at > now() - make_interval(days => $4::int))",
+    )
+    .bind(user_id)
+    .bind(device_kind)
+    .bind(device_name)
+    .bind(days)
+    .fetch_one(pool)
+    .await
+    .context("db: familiar device")?;
+    Ok(!any || same)
+}
