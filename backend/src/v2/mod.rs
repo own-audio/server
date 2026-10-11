@@ -130,8 +130,8 @@ pub fn required_scope(method: &str, path: &str) -> Option<&'static str> {
 /// `/api/v2` as served: the per-caller budget on every route, `Idempotency-Key`
 /// on writes, unknown paths a `404` problem, and every error answer in problem
 /// shape.
-pub fn mount(limits: &Limiters, state: &AppState) -> axum::Router<AppState> {
-    let api: axum::Router<AppState> = router(limits).into();
+pub fn mount(limits: &Limiters, state: &AppState, edition: axum::Router<AppState>) -> axum::Router<AppState> {
+    let api: axum::Router<AppState> = axum::Router::from(router(limits)).merge(edition);
     limits
         .api
         .wrap(api)

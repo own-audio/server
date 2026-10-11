@@ -72,6 +72,10 @@ semver. Each release states the **API contract revision** it serves
   `Idempotency-Key` on every v2 write: a repeat answers what the first did
   (kept 24 hours, migration 0110), another request under the same key is
   `422`. Discovery states the upload, batch, idempotency and change-log limits.
+- `http::router::finalize_with` lets an edition add routes under `/api/v2`,
+  where they get v2's problem details, rate limit and `Idempotency-Key`. A
+  server without the hosted edition answers its v2 paths (`/family/billing`,
+  `/narration`, `/translation`) with `501 feature_unavailable`, as on v1.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

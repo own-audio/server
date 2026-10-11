@@ -238,9 +238,15 @@ pub async fn middleware(request: Request, next: Next) -> Response {
     answer
 }
 
-/// Unknown paths under `/api/v2`.
-pub async fn fallback() -> Problem {
-    Problem::not_found()
+/// Unknown paths under `/api/v2`. A path of the hosted edition's, on a server
+/// without it, is `501 feature_unavailable` with the feature named, as on v1.
+pub async fn fallback(axum::extract::OriginalUri(uri): axum::extract::OriginalUri) -> Problem {
+    match crate::http::router::hosted_feature_for(uri.path()) {
+        Some(feature) => Problem::new(StatusCode::NOT_IMPLEMENTED, "feature_unavailable")
+            .detail(format!("this server does not offer {feature}"))
+            .with("feature", feature),
+        None => Problem::not_found(),
+    }
 }
 
 #[cfg(test)]

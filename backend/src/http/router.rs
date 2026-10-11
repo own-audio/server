@@ -63,6 +63,18 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
 /// unaware client gets a stable, actionable error (API_COMPATIBILITY.md §6).
 /// `billing::routes()` is the other half of this list.
 pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
+    if let Some(p) = path.strip_prefix("/api/v2") {
+        // v2 names them by what they are: billing, narration, translation.
+        return if p.starts_with("/family/billing") {
+            Some("billing")
+        } else if p.starts_with("/narration") {
+            Some("narration")
+        } else if p.starts_with("/translation") {
+            Some("translation")
+        } else {
+            None
+        };
+    }
     let p = path.strip_prefix("/api/v1").unwrap_or(path);
     let admin_credit = p.starts_with("/admin/families/") && p.trim_end_matches('/').ends_with("/credit");
     if p.starts_with("/billing") || p.starts_with("/family/billing") || admin_credit {
@@ -81,6 +93,12 @@ pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
 /// `root` is merged at the site root for an edition's non-API pages (the
 /// hosted edition's Stripe landing pages); the core passes an empty router.
 pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) -> Router {
+    finalize_with(api, Router::new(), root, state)
+}
+
+/// [`finalize`] with an edition's own routes under `/api/v2` (`edition_v2`):
+/// they get v2's error shape, rate limit and `Idempotency-Key` like the core's.
+pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: Router<AppState>, state: AppState) -> Router {
     let api_cors = api_cors(&state.config().server.cors_origins());
     // One budget per caller over everything (security hardening plan §6);
     // the stricter buckets sit on their routes inside `api_router`.
@@ -91,7 +109,7 @@ pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) 
         // paths. Without this the outer SPA fallback below would hand an API
         // client a page of HTML with status 200.
         .nest("/api/v1", limits.api.wrap(api).fallback(handlers::api_fallback).layer(api_cors.clone()))
-        .nest("/api/v2", crate::v2::mount(&limits, &state).layer(api_cors))
+        .nest("/api/v2", crate::v2::mount(&limits, &state, edition_v2).layer(api_cors))
         .route("/.well-known/own-audio", get(crate::v2::discovery::well_known))
         .merge(root)
         // OpenSubsonic-compatible surface for external music clients. A
@@ -160,6 +178,10 @@ mod tests {
         assert_eq!(hosted_feature_for("/api/v1/family/billing/topup"), Some("billing"));
         assert_eq!(hosted_feature_for("/api/v1/billing/stripe/webhook"), Some("billing"));
         assert_eq!(hosted_feature_for("/api/v1/admin/families/abc/credit"), Some("billing"));
+        assert_eq!(hosted_feature_for("/api/v2/family/billing/topup"), Some("billing"));
+        assert_eq!(hosted_feature_for("/api/v2/narration/jobs"), Some("narration"));
+        assert_eq!(hosted_feature_for("/api/v2/translation/recent"), Some("translation"));
+        assert_eq!(hosted_feature_for("/api/v2/family/members"), None);
         assert_eq!(hosted_feature_for("/api/v1/audiobook-gen/jobs"), Some("narration"));
         assert_eq!(hosted_feature_for("/api/v1/podcast-translate/episodes/x"), Some("translation"));
         assert_eq!(hosted_feature_for("/api/v1/family"), None);

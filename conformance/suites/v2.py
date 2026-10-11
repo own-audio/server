@@ -57,6 +57,10 @@ def run(ctx: Ctx) -> None:
               problem(ctx.request("GET", "/api/v2/me", token="not.a.token"), 401))
     _id, _email, tok = ctx.make_family_admin("v2", PW)
     ctx.check("an unknown path: 404 problem", problem(ctx.request("GET", "/api/v2/nowhere", tok), 404, "not_found"))
+    if not ctx.feature("narration"):
+        got = ctx.request("GET", "/api/v2/narration/voices", tok)
+        ctx.check("a hosted feature this server lacks: 501 feature_unavailable, named",
+                  problem(got, 501, "feature_unavailable") and json.loads(got[2]).get("feature") == "narration")
 
     status, _h, body = ctx.request("GET", "/api/v2/me", tok)
     me = json.loads(body) if status == 200 else {}
