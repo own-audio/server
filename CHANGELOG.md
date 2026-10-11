@@ -58,6 +58,10 @@ semver. Each release states the **API contract revision** it serves
   client adds `w` (64 to 1024), the server scales once and keeps the result
   (`derived/…`, which the storage reconcile leaves alone), answered
   `immutable`. Replaces `has_cover`/`has_image` in the draft records.
+- The household on v2: `/family` (and renaming it), `/family/members` (roles
+  `admin` / `member`, rights, age bracket, label; removing), `/family/invites`,
+  `/family/join`, `/family/storage`, and `PUT /tracks|books|podcasts/{id}/visibility`
+  with `private` or `family`. The rules are v1's, called rather than copied.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

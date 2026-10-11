@@ -294,7 +294,7 @@ pub fn join_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<
 /// GET /api/v1/family — the caller's family, members, and own role.
 #[utoipa::path(get, path = "/", tag = "family", security(("bearer" = [])),
     responses((status = 200, body = FamilyResponse), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
-async fn get_family(
+pub(crate) async fn get_family(
     family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<FamilyResponse>, AuthError> {
@@ -324,7 +324,7 @@ async fn get_family(
 #[utoipa::path(put, path = "/", tag = "family", security(("bearer" = [])),
     request_body = UpdateFamilyRequest,
     responses((status = 204, description = "Renamed"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
-async fn update_family(
+pub(crate) async fn update_family(
     family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<UpdateFamilyRequest>,
@@ -567,7 +567,7 @@ async fn audio_analysis_status(
 /// GET /api/v1/family/members — everyone in the caller's family.
 #[utoipa::path(get, path = "/members", tag = "family", security(("bearer" = [])),
     responses((status = 200, body = Vec<MemberResponse>), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
-async fn list_members(
+pub(crate) async fn list_members(
     family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<MemberResponse>>, AuthError> {
@@ -717,7 +717,7 @@ fn resolve_member_permissions(
     params(("user_id" = Uuid, Path, description = "The member's user id")),
     request_body = UpdateMemberRequest,
     responses((status = 204, description = "Updated"), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
-async fn update_member(
+pub(crate) async fn update_member(
     family: FamilyContext,
     State(state): State<AppState>,
     meta: crate::auth::audit::RequestMeta,
@@ -827,7 +827,7 @@ async fn update_member(
 #[utoipa::path(delete, path = "/members/{user_id}", tag = "family", security(("bearer" = [])),
     params(("user_id" = Uuid, Path, description = "The member's user id")),
     responses((status = 204, description = "Removed, or left"), (status = 400, description = "Would remove the last family admin", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in, or no such member in this family", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin, removing someone else", body = crate::http::openapi::ErrorBody), (status = 409, description = "The server has one family: block or delete the account instead", body = crate::http::openapi::ErrorBody)))]
-async fn remove_member(
+pub(crate) async fn remove_member(
     family: FamilyContext,
     State(state): State<AppState>,
     meta: crate::auth::audit::RequestMeta,
@@ -1147,7 +1147,7 @@ async fn provision_member(
 /// GET /api/v1/family/invites — pending invites (family_admin only).
 #[utoipa::path(get, path = "/invites", tag = "family", security(("bearer" = [])),
     responses((status = 200, body = Vec<InviteResponse>), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
-async fn list_invites(
+pub(crate) async fn list_invites(
     family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<InviteResponse>>, AuthError> {
@@ -1169,7 +1169,7 @@ async fn list_invites(
 #[utoipa::path(post, path = "/invites", tag = "family", security(("bearer" = [])),
     request_body = CreateInviteRequest,
     responses((status = 201, body = InviteResponse), (status = 400, description = "Invalid request", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
-async fn create_invite(
+pub(crate) async fn create_invite(
     family: FamilyContext,
     State(state): State<AppState>,
     meta: crate::auth::audit::RequestMeta,
@@ -1245,7 +1245,7 @@ async fn create_invite(
 #[utoipa::path(delete, path = "/invites/{id}", tag = "family", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "The invite's id")),
     responses((status = 204, description = "Revoked"), (status = 401, description = "Not signed in, or no such invite", body = crate::http::openapi::ErrorBody), (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
-async fn delete_invite(
+pub(crate) async fn delete_invite(
     family: FamilyContext,
     State(state): State<AppState>,
     meta: crate::auth::audit::RequestMeta,
@@ -1311,7 +1311,7 @@ async fn regenerate_invite(
 #[utoipa::path(post, path = "/invites/accept", tag = "family", security(("bearer" = [])),
     request_body = AcceptInviteRequest,
     responses((status = 200, body = FamilyResponse), (status = 400, description = "Code not valid, used, expired, or issued to another address", body = crate::http::openapi::ErrorBody), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
-async fn accept_invite(
+pub(crate) async fn accept_invite(
     auth: AuthUser,
     State(state): State<AppState>,
     Json(body): Json<AcceptInviteRequest>,
@@ -1771,7 +1771,7 @@ async fn require_member(
 /// in the hosted edition; a client that only needs bytes asks here.
 #[utoipa::path(get, path = "/storage", tag = "family", security(("bearer" = [])),
     responses((status = 200, body = BillingStorage), (status = 401, description = "Not signed in", body = crate::http::openapi::ErrorBody)))]
-async fn get_family_storage(
+pub(crate) async fn get_family_storage(
     family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<BillingStorage>, AuthError> {

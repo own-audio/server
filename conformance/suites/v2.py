@@ -89,6 +89,7 @@ def run(ctx: Ctx) -> None:
     sync(ctx, problem)
     playback(ctx, problem)
     images(ctx, problem)
+    household(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -674,3 +675,44 @@ def images(ctx: Ctx, problem) -> None:
         ctx.check("…the same bytes the second time", st == 200 and again == small)
         ctx.check("a size outside the set: 400 invalid_size", fetch(image + "&w=100")[0] == 400)
         ctx.check("a link changed by hand: 403", fetch(image.replace("&s=", "&s=x"))[0] == 403)
+
+
+def household(ctx: Ctx, problem) -> None:
+    """V7: the household in v2 shapes; sharing in two words."""
+    sfx = ctx.sfx
+    uid, _email, tok = ctx.make_family_admin("v2home", PW)
+    mid, _me, member = ctx.make_user("v2home-member", PW)
+
+    def req(method: str, path: str, body=None, token: str = tok):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    st, fam = req("GET", "/api/v2/family")
+    ctx.check("the household, and the caller's place in it", st == 200 and fam["me"]["user_id"] == uid and fam["me"]["role"] == "admin", str(fam)[:160])
+    st, members = req("GET", "/api/v2/family/members")
+    ctx.check("its members, roles as admin or member", st == 200 and any(m["user_id"] == uid and m["role"] == "admin" for m in members)
+              and all(m["role"] in ("admin", "member") for m in members))
+    st, inv = req("POST", "/api/v2/family/invites", {"kind": "link", "role": "member", "max_uses": 2, "label": f"fridge {sfx}"})
+    ctx.check("an invitation link", st == 201 and inv.get("code") and inv.get("role") == "member", str(inv)[:160])
+    ctx.check("…listed, then withdrawn", any(i["id"] == inv.get("id") for i in req("GET", "/api/v2/family/invites")[1])
+              and req("DELETE", f"/api/v2/family/invites/{inv.get('id')}")[0] == 204)
+    ctx.check("a role that is not admin or member: 400", problem(ctx.request("POST", "/api/v2/family/invites", tok, {"kind": "link", "role": "owner"}), 400))
+    st, storage = req("GET", "/api/v2/family/storage")
+    ctx.check("the household's storage", st == 200 and "total_bytes" in storage)
+
+    track = ctx.upload_track(tok, f"Shared Later {sfx}", artist=f"Home Band {sfx}", album=f"Home Album {sfx}")
+    st, vis = req("PUT", f"/api/v2/tracks/{track['id']}/visibility", {"visibility": "family"})
+    ctx.check("an owner shares a track with the household", st == 200 and vis == {"visibility": "family"})
+    ctx.check("a third word: 400", problem(ctx.request("PUT", f"/api/v2/tracks/{track['id']}/visibility", tok, {"visibility": "public"}), 400))
+    if ctx.feature("one_family"):
+        ctx.check("…and a member sees it", req("GET", f"/api/v2/tracks/{track['id']}", token=member)[0] == 200)
+        ctx.check("a member cannot rename the household", problem(ctx.request("PATCH", "/api/v2/family", member, {"name": "x"}), 403))
+        ctx.check("…nor share someone else's track", req("PUT", f"/api/v2/tracks/{track['id']}/visibility", {"visibility": "private"}, member)[0] == 404)
+        st, _ = req("PATCH", f"/api/v2/family/members/{mid}", {"can_upload": False, "label": f"Kid {sfx}"})
+        st2, members = req("GET", "/api/v2/family/members")
+        me = next((m for m in members if m["user_id"] == mid), {})
+        ctx.check("an admin changes a member's rights and label", st == 204 and me.get("can_upload") is False and me.get("label") == f"Kid {sfx}", str(me)[:160])
+        req("PUT", f"/api/v2/tracks/{track['id']}/visibility", {"visibility": "private"})
+        ctx.check("kept private again, the member no longer sees it", problem(ctx.request("GET", f"/api/v2/tracks/{track['id']}", member), 404))
+    else:
+        ctx.skip("members of one household", "each account has its own household on this server")

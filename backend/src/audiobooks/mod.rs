@@ -1571,7 +1571,7 @@ async fn get_cover(
         (status = 200, body = BookResponse),
         (status = 400, description = "Unknown visibility", body = crate::http::openapi::ErrorBody),
         (status = 404, description = "No such book owned by the caller", body = crate::http::openapi::ErrorBody)))]
-async fn set_book_visibility(
+pub(crate) async fn set_book_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

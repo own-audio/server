@@ -835,7 +835,7 @@ async fn get_track(
     params(("id" = Uuid, Path, description = "Track id")),
     request_body = SetVisibilityRequest,
     responses((status = 200, body = TrackResponse), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
-async fn set_track_visibility(
+pub(crate) async fn set_track_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

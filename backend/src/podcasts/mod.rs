@@ -1319,7 +1319,7 @@ async fn refresh_youtube_feed_inner(
     params(("id" = Uuid, Path, description = "Feed id")),
     request_body = SetVisibilityRequest,
     responses((status = 200, body = FeedResponse), (status = 400, description = "visibility is not `private` or `family`", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed owned by the caller", body = crate::http::openapi::ErrorBody)))]
-async fn set_feed_visibility(
+pub(crate) async fn set_feed_visibility(
     family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,

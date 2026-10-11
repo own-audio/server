@@ -8,6 +8,7 @@
 pub mod auth;
 pub mod discovery;
 pub mod edit;
+pub mod household;
 pub mod images;
 pub mod me;
 pub mod media;
@@ -87,6 +88,16 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(media::playback_info))
         .routes(routes!(media::stream))
         .routes(routes!(images::image))
+        .routes(routes!(household::get_family, household::patch_family))
+        .routes(routes!(household::list_members))
+        .routes(routes!(household::patch_member, household::remove_member))
+        .routes(routes!(household::list_invites, household::create_invite))
+        .routes(routes!(household::delete_invite))
+        .routes(routes!(household::join))
+        .routes(routes!(household::storage))
+        .routes(routes!(household::set_track_visibility))
+        .routes(routes!(household::set_book_visibility))
+        .routes(routes!(household::set_podcast_visibility))
 }
 
 /// The scope a personal access token needs for an operation, from the v2
