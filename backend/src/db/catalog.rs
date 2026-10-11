@@ -904,3 +904,312 @@ pub async fn visible_ids_after(pool: &PgPool, viewer: Viewer, kind: &str, after:
         .await
         .context("db: snapshot ids")
 }
+
+// ── Playlists (V10) ──────────────────────────────────────────────────────────
+//
+// A playlist is its owner's, private or shared with the household, and is
+// seen through the viewer's `music` policy like a track. Its entries are kept
+// whoever can see their tracks; each reader is shown, and counted, only the
+// entries whose tracks they can see.
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct PlaylistRow {
+    pub id: Uuid,
+    pub user_id: Uuid,
+    pub family_id: Option<Uuid>,
+    pub name: String,
+    pub description: Option<String>,
+    pub cover_object_id: Option<Uuid>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    /// What the viewer sees of it.
+    pub track_count: i64,
+    pub duration_secs: i64,
+    /// The first visible entry's cover, for a playlist without its own.
+    pub first_cover: Option<Uuid>,
+    /// `lower(name)`, for the cursor.
+    pub sort_key: String,
+}
+
+/// Visible playlists in name order after `after`, or the one with `id`.
+pub async fn list_playlists(
+    pool: &PgPool,
+    viewer: Viewer,
+    id: Option<Uuid>,
+    after: Option<(String, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<PlaylistRow>> {
+    let music = music();
+    // The playlist is `t` for the visibility rule, and so is each track inside
+    // the lateral count, hence the CTE between them.
+    let sql = format!(
+        "WITH pl AS (
+            SELECT t.id, t.user_id, t.family_id, t.name, t.description, t.cover_object_id, t.created_at, t.updated_at
+              FROM music_playlists t
+             WHERE {music} AND ($4::uuid IS NULL OR t.id = $4)
+               AND ($5::text IS NULL OR (lower(t.name), t.id) > ($5, $6))
+             ORDER BY lower(t.name), t.id
+             LIMIT $7)
+         SELECT pl.*, s.n AS track_count, s.secs AS duration_secs, s.cover AS first_cover, lower(pl.name) AS sort_key
+           FROM pl
+           LEFT JOIN LATERAL (
+                SELECT count(*) AS n, COALESCE(sum(t.duration_secs), 0)::bigint AS secs,
+                       (array_agg(t.cover_object_id ORDER BY e.position) FILTER (WHERE t.cover_object_id IS NOT NULL))[1] AS cover
+                  FROM music_playlist_tracks e JOIN music_tracks t ON t.id = e.track_id
+                 WHERE e.playlist_id = pl.id AND {music}) s ON true
+          ORDER BY lower(pl.name), pl.id"
+    );
+    let (name, after_id) = after.map_or((None, None), |(n, i)| (Some(n), Some(i)));
+    viewer!(sqlx::query_as::<_, PlaylistRow>(&sql), viewer)
+        .bind(id)
+        .bind(name)
+        .bind(after_id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: list playlists")
+}
+
+pub async fn find_playlist(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<PlaylistRow>> {
+    Ok(list_playlists(pool, viewer, Some(id), None, 1).await?.into_iter().next())
+}
+
+/// A playlist's entries the viewer can see, in order, after position `after`.
+pub async fn playlist_entries(
+    pool: &PgPool,
+    viewer: Viewer,
+    playlist_id: Uuid,
+    after: Option<i32>,
+    limit: i64,
+) -> anyhow::Result<Vec<(Uuid, i32, DateTime<Utc>, TrackRow)>> {
+    #[derive(sqlx::FromRow)]
+    struct Row {
+        entry_id: Uuid,
+        position: i32,
+        added_at: DateTime<Utc>,
+        #[sqlx(flatten)]
+        track: TrackRow,
+    }
+    let sql = format!(
+        "SELECT e.id AS entry_id, e.position, e.added_at, {TRACK_COLS}
+           FROM music_playlist_tracks e JOIN music_tracks t ON t.id = e.track_id
+          WHERE e.playlist_id = $4 AND ($5::int IS NULL OR e.position > $5) AND {}
+          ORDER BY e.position
+          LIMIT $6",
+        music()
+    );
+    let rows = viewer!(sqlx::query_as::<_, Row>(&sql), viewer)
+        .bind(playlist_id)
+        .bind(after)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: playlist entries")?;
+    Ok(rows.into_iter().map(|r| (r.entry_id, r.position, r.added_at, r.track)).collect())
+}
+
+/// Name, description and sharing at once; the owner's only.
+pub async fn update_playlist(
+    pool: &PgPool,
+    id: Uuid,
+    user_id: Uuid,
+    name: &str,
+    description: Option<&str>,
+    family_id: Option<Uuid>,
+) -> anyhow::Result<bool> {
+    let done = sqlx::query(
+        "UPDATE music_playlists SET name = $3, description = $4, family_id = $5, updated_at = now()
+          WHERE id = $1 AND user_id = $2",
+    )
+    .bind(id)
+    .bind(user_id)
+    .bind(name)
+    .bind(description)
+    .bind(family_id)
+    .execute(pool)
+    .await
+    .context("db: update playlist")?;
+    Ok(done.rows_affected() > 0)
+}
+
+pub async fn touch_playlist(pool: &PgPool, id: Uuid) -> anyhow::Result<()> {
+    sqlx::query("UPDATE music_playlists SET updated_at = now() WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .context("db: touch playlist")?;
+    Ok(())
+}
+
+pub async fn remove_playlist_entry(pool: &PgPool, playlist_id: Uuid, entry_id: Uuid) -> anyhow::Result<bool> {
+    let done = sqlx::query("DELETE FROM music_playlist_tracks WHERE id = $1 AND playlist_id = $2")
+        .bind(entry_id)
+        .bind(playlist_id)
+        .execute(pool)
+        .await
+        .context("db: remove playlist entry")?;
+    Ok(done.rows_affected() > 0)
+}
+
+/// Puts `first` at the front in that order, the other entries after them as
+/// they were, and numbers them 1…n. `false` when an id is not this playlist's.
+pub async fn order_playlist(pool: &PgPool, playlist_id: Uuid, first: &[Uuid]) -> anyhow::Result<bool> {
+    let mut tx = pool.begin().await.context("db: begin playlist order")?;
+    // Taken in turn with every other writer of this playlist's order.
+    sqlx::query("SELECT 1 FROM music_playlists_all WHERE id = $1 FOR UPDATE")
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await
+        .context("db: lock playlist")?;
+    let known: i64 = sqlx::query_scalar("SELECT count(*) FROM music_playlist_tracks WHERE playlist_id = $1 AND id = ANY($2)")
+        .bind(playlist_id)
+        .bind(first)
+        .fetch_one(&mut *tx)
+        .await
+        .context("db: check playlist entries")?;
+    let distinct: std::collections::HashSet<&Uuid> = first.iter().collect();
+    if known != first.len() as i64 || distinct.len() != first.len() {
+        return Ok(false);
+    }
+    sqlx::query("UPDATE music_playlist_tracks SET position = -position WHERE playlist_id = $1")
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await
+        .context("db: clear playlist positions")?;
+    sqlx::query(
+        "UPDATE music_playlist_tracks e SET position = o.n
+           FROM (SELECT e2.id, row_number() OVER (ORDER BY x.ord NULLS LAST, -e2.position) AS n
+                   FROM music_playlist_tracks e2
+                   LEFT JOIN unnest($2::uuid[]) WITH ORDINALITY AS x(id, ord) ON x.id = e2.id
+                  WHERE e2.playlist_id = $1) o
+          WHERE e.id = o.id",
+    )
+    .bind(playlist_id)
+    .bind(first)
+    .execute(&mut *tx)
+    .await
+    .context("db: order playlist")?;
+    sqlx::query("UPDATE music_playlists_all SET updated_at = now() WHERE id = $1")
+        .bind(playlist_id)
+        .execute(&mut *tx)
+        .await
+        .context("db: touch playlist")?;
+    tx.commit().await.context("db: commit playlist order")?;
+    Ok(true)
+}
+
+// ── Search, random tracks, plays (V10) ───────────────────────────────────────
+
+/// Contributors credited as artists on something visible whose name holds `q`;
+/// names that start with it first.
+pub async fn search_artists(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<ContributorRow>> {
+    let sql = format!(
+        "SELECT {CONTRIBUTOR_COLS} FROM contributors k
+          WHERE k.family_id = $2 AND k.name ILIKE '%' || $4 || '%' AND {}
+          ORDER BY (k.name ILIKE $4 || '%') DESC, lower(COALESCE(k.sort_name, k.name)), k.id
+          LIMIT $5",
+        credited_visibly("ARRAY['artist','featured']")
+    );
+    viewer!(sqlx::query_as::<_, ContributorRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search artists")
+}
+
+/// Albums with a visible track whose title holds `q`.
+pub async fn search_albums(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<AlbumRow>> {
+    let sql = format!(
+        "SELECT {ALBUM_COLS} FROM albums a
+          WHERE a.family_id = $2 AND a.title ILIKE '%' || $4 || '%'
+            AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {})
+          ORDER BY (a.title ILIKE $4 || '%') DESC, lower(a.title), a.id
+          LIMIT $5",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search albums")
+}
+
+/// Visible tracks whose title, album title or a credited name holds `q`;
+/// title matches first.
+pub async fn search_tracks(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<TrackRow>> {
+    let sql = format!(
+        // Matching titles, albums and names are each found once and then
+        // joined, rather than every track looking up its album and credits.
+        "SELECT {TRACK_COLS} FROM music_tracks t
+          WHERE t.id IN (SELECT x.id FROM music_tracks x WHERE x.title ILIKE '%' || $4 || '%'
+                         UNION SELECT x.id FROM albums a JOIN music_tracks x ON x.album_id = a.id
+                                WHERE a.family_id = $2 AND a.title ILIKE '%' || $4 || '%'
+                         UNION SELECT c.item_id FROM contributors k JOIN credits c ON c.contributor_id = k.id AND c.item_kind = 'track'
+                                WHERE k.family_id = $2 AND k.name ILIKE '%' || $4 || '%')
+            AND {}
+          ORDER BY (t.title ILIKE $4 || '%') DESC, (t.title ILIKE '%' || $4 || '%') DESC, lower(t.title), t.id
+          LIMIT $5",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, TrackRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search tracks")
+}
+
+/// Visible tracks in random order, from one genre when given.
+pub async fn random_tracks(pool: &PgPool, viewer: Viewer, genre_id: Option<Uuid>, limit: i64) -> anyhow::Result<Vec<TrackRow>> {
+    let sql = format!(
+        "SELECT {TRACK_COLS} FROM music_tracks t
+          WHERE {} AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM track_genres g WHERE g.track_id = t.id AND g.genre_id = $4))
+          ORDER BY random()
+          LIMIT $5",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, TrackRow>(&sql), viewer)
+        .bind(genre_id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: random tracks")
+}
+
+/// The viewer's own plays of what they can still see, per track or per album:
+/// (id, plays, last played), most recent or most played first.
+pub async fn played(
+    pool: &PgPool,
+    viewer: Viewer,
+    per_album: bool,
+    most: bool,
+    limit: i64,
+) -> anyhow::Result<Vec<(Uuid, i64, DateTime<Utc>)>> {
+    let key = if per_album { "t.album_id" } else { "t.id" };
+    let order = if most { "count(*) DESC, max(COALESCE(s.ended_at, s.started_at)) DESC" } else { "max(COALESCE(s.ended_at, s.started_at)) DESC" };
+    let sql = format!(
+        "SELECT {key}, count(*), max(COALESCE(s.ended_at, s.started_at))
+           FROM listening_sessions s JOIN music_tracks t ON t.id = s.item_id
+          WHERE s.user_id = $1 AND s.media_kind = 'music' AND {key} IS NOT NULL AND {}
+          GROUP BY {key}
+          ORDER BY {order}, {key}
+          LIMIT $4",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, (Uuid, i64, DateTime<Utc>)>(&sql), viewer)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: played")
+}
+
+/// The track's lyrics as stored: `None` never looked for, `""` none found.
+pub async fn track_lyrics(pool: &PgPool, id: Uuid) -> anyhow::Result<(Option<String>, Option<Uuid>)> {
+    sqlx::query_as::<_, (Option<String>, Option<Uuid>)>("SELECT lyrics, audio_object_id FROM music_tracks WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .context("db: track lyrics")
+}

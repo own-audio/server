@@ -7,6 +7,7 @@
 
 pub mod identify;
 pub mod auth;
+pub mod discover;
 pub mod discovery;
 pub mod edit;
 pub mod events;
@@ -17,6 +18,7 @@ pub mod me;
 pub mod media;
 pub mod music;
 pub mod page;
+pub mod playlists;
 pub mod problem;
 pub mod spoken;
 pub mod state;
@@ -63,6 +65,15 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(music::list_genres))
         .routes(routes!(music::list_tracks, uploads::create_track))
         .routes(routes!(music::get_track))
+        .routes(routes!(discover::random_tracks))
+        .routes(routes!(discover::lyrics))
+        .routes(routes!(discover::search))
+        .routes(routes!(discover::played))
+        .routes(routes!(playlists::list_playlists, playlists::create_playlist))
+        .routes(routes!(playlists::get_playlist, playlists::patch_playlist, playlists::delete_playlist))
+        .routes(routes!(playlists::list_entries, playlists::add_entries))
+        .routes(routes!(playlists::remove_entry))
+        .routes(routes!(playlists::order_entries))
         .routes(routes!(spoken::list_books, uploads::create_book))
         .routes(routes!(spoken::get_book))
         .routes(routes!(spoken::list_podcasts))

@@ -2224,7 +2224,7 @@ fn tag_mbids<'a>(get: impl Fn(lofty::tag::ItemKey) -> Option<&'a str>) -> Option
 /// unreadable tags should read back as "no lyrics found", not fail the
 /// whole request, and it still gets cached as `""` by the caller so a
 /// broken file isn't re-parsed on every subsequent request either.
-fn parse_lyrics_tag(path: &std::path::Path) -> Option<String> {
+pub(crate) fn parse_lyrics_tag(path: &std::path::Path) -> Option<String> {
     use lofty::file::TaggedFileExt;
     use lofty::probe::Probe;
     use lofty::tag::ItemKey;

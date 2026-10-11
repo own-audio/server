@@ -619,7 +619,7 @@ pub async fn get_lyrics_by_song_id(
 /// up with `[Verse 1]` and `[Chorus]` are extremely common, and reading those
 /// as timestamps would collapse a whole song onto one mistimed line — worse
 /// than serving it as plain text.
-fn parse_lrc(raw: &str) -> Vec<(i64, String)> {
+pub(crate) fn parse_lrc(raw: &str) -> Vec<(i64, String)> {
     let mut out: Vec<(i64, String)> = Vec::new();
 
     for line in raw.lines() {

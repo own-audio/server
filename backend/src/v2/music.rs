@@ -251,14 +251,14 @@ pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Re
 // ── include= ─────────────────────────────────────────────────────────────────
 
 #[derive(Default)]
-struct Wanted {
+pub(crate) struct Wanted {
     contributors: bool,
     albums: bool,
     release_groups: bool,
     genres: bool,
 }
 
-fn wanted(include: Option<&str>, allowed: &[&str]) -> Result<Wanted, Problem> {
+pub(crate) fn wanted(include: Option<&str>, allowed: &[&str]) -> Result<Wanted, Problem> {
     let mut w = Wanted::default();
     for part in include.unwrap_or("").split(',').map(str::trim).filter(|p| !p.is_empty()) {
         if !allowed.contains(&part) {
@@ -275,7 +275,7 @@ fn wanted(include: Option<&str>, allowed: &[&str]) -> Result<Wanted, Problem> {
     Ok(w)
 }
 
-async fn included(
+pub(crate) async fn included(
     state: &AppState,
     viewer: Viewer,
     w: &Wanted,

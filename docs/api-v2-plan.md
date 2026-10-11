@@ -34,13 +34,15 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
 
 ## Phases
 
-Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`), V3c (`1459cff`) V4 (`e6b1021`), V5 (`2854060`) and V6 (`c504a49`, plus images) V7 (household) and V8 (events: `library` only — jobs carry no owner yet) and V9 (uploads with a required size, `Idempotency-Key`, limits in discovery) are done. The hosted edition mounts its billing, narration and translation handlers under `/api/v2` through `finalize_with` (`6c48864`); their bodies are still v1's. Next: step 4, the apps. Per-member media policies and item grants stay on v1 until a client needs them on v2. Images are addressed by their stored object, which never changes once written, rather than by content hash: same caching, without waiting for the checksum job. Series and collections as resources of their own wait for V7, with the household. V4 keeps v1's tables (one or two per medium) behind one model; they become one table each when v1 is removed. Favourites and ratings pushed offline apply in the order sent; only progress compares timestamps.
+Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`), V3c (`1459cff`) V4 (`e6b1021`), V5 (`2854060`) and V6 (`c504a49`, plus images) V7 (household) and V8 (events: `library` only — jobs carry no owner yet) and V9 (uploads with a required size, `Idempotency-Key`, limits in discovery) and V10 (playlists, search, random tracks, plays, lyrics) are done. The hosted edition mounts its billing, narration and translation handlers under `/api/v2` through `finalize_with` (`6c48864`); their bodies are still v1's. Next: step 4, the apps. Per-member media policies and item grants stay on v1 until a client needs them on v2. Images are addressed by their stored object, which never changes once written, rather than by content hash: same caching, without waiting for the checksum job. Series and collections as resources of their own wait for V7, with the household. V4 keeps v1's tables (one or two per medium) behind one model; they become one table each when v1 is removed. Favourites and ratings pushed offline apply in the order sent; only progress compares timestamps.
 
-What the first app (own.audio Music) still needs from v2, so it can stop using the server's
-Subsonic API for own.audio: playlists (list, create, edit, order), one search across artists,
-albums and tracks, random tracks, play counts and "recently played" / "most played" orders,
-lyrics, and similar tracks (instant mix). Until then the app takes those from Subsonic, whose
-ids are v2's ids.
+What the first app (own.audio Music) needed from v2 to stop using the server's Subsonic API
+for own.audio is V10: playlists, one search, random tracks, the caller's plays, lyrics. Similar
+tracks (instant mix) are not in it: the server has nothing to compute them from (its Subsonic
+answers are empty), so the app hides the action for own.audio. Playlists are not in the change
+feed yet (no migration in V10); a client reads them when it shows them. Search is a substring
+match without an index: about 45 ms per scanned column at 600,000 tracks, worth a trigram
+index when that stops being enough.
 
 | Phase | Content | Test |
 |---|---|---|
@@ -53,6 +55,7 @@ ids are v2's ids.
 | **V7** | Household: family, members, invites, permissions; visibility in two words (`private`, `family`) | conformance `isolation` on v2 ids |
 | **V8** | Events: `GET /events` (SSE) from the change log, heartbeat, `Last-Event-ID` | conformance: a change made elsewhere arrives |
 | **V9** | Writes and limits: uploads in v2, `Idempotency-Key` on creates and paid work, the required size on uploads (hardening C1), documented maxima | conformance: a repeated key answers the first result |
+| **V10** | What the music app needs: `/playlists` with entries, `/search`, `/tracks/random`, `/me/played`, `/tracks/{id}/lyrics` | conformance: entries by id, owner-only changes, what a member sees of a shared playlist; search, plays and lyrics |
 
 The hosted edition's routes (billing, narration, translation) follow in `audio2` once V2 is in.
 Then step 4: own.audio Music on v2, the book and podcast apps, the console; v1 removed after.

@@ -96,6 +96,8 @@ def run(ctx: Ctx) -> None:
     household(ctx, problem)
     live(ctx, problem)
     library(ctx, problem)
+    playlists(ctx, problem)
+    finding(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -811,3 +813,131 @@ def library(ctx: Ctx, problem) -> None:
               and [f["position"] for f in book["files"]] == sorted(f["position"] for f in book["files"]), str(book)[:200])
     disco = json.loads(ctx.request("GET", "/.well-known/own-audio")[2])
     ctx.check("discovery states the upload and batch limits", disco["limits"].get("upload_max_bytes", 0) > 0 and disco["limits"].get("batch_max") == 500)
+
+
+def playlists(ctx: Ctx, problem) -> None:
+    """V10: playlists — entries with their own ids, the owner's changes, what others see."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2lists", PW)
+    _mid, _me, member = ctx.make_user("v2lists-member", PW)
+
+    def req(method: str, path: str, body=None, token: str = tok):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    a, b, c = (ctx.upload_track(tok, f"List Song {n} {sfx}", artist=f"List Band {sfx}", album=f"List Album {sfx}")["id"] for n in "ABC")
+    st, made = req("POST", "/api/v2/playlists", {"name": f"  Road {sfx} ", "track_ids": [a, b, a, str(uuid.uuid4())]})
+    pid = (made or {}).get("id")
+    ctx.check("a playlist made with tracks, a repeat kept, an unknown one left out",
+              st == 201 and made["name"] == f"Road {sfx}" and made["track_count"] == 3 and made["visibility"] == "private", str(made)[:200])
+    ctx.check("…listed, and found by id", any(p["id"] == pid for p in req("GET", "/api/v2/playlists?limit=500")[1]["items"])
+              and req("GET", f"/api/v2/playlists/{pid}")[0] == 200)
+    st, page = req("GET", f"/api/v2/playlists/{pid}/entries?include=albums,contributors")
+    entries = (page or {}).get("items", [])
+    ctx.check("entries in order, each with its own id and its track",
+              st == 200 and [e["track"]["id"] for e in entries] == [a, b, a] and [e["position"] for e in entries] == [1, 2, 3]
+              and len({e["id"] for e in entries}) == 3 and page.get("included", {}).get("albums"), str(page)[:200])
+    st, two = req("GET", f"/api/v2/playlists/{pid}/entries?limit=2")
+    st2, rest = req("GET", f"/api/v2/playlists/{pid}/entries?limit=2&cursor={two.get('next')}")
+    ctx.check("entries page by cursor", [e["position"] for e in two["items"] + rest["items"]] == [1, 2, 3] and "next" not in rest)
+
+    st, after = req("POST", f"/api/v2/playlists/{pid}/entries", {"track_ids": [c]})
+    ctx.check("tracks added to the end", st == 200 and after["track_count"] == 4)
+    ids = [e["id"] for e in req("GET", f"/api/v2/playlists/{pid}/entries")[1]["items"]]
+    st, _ = req("PUT", f"/api/v2/playlists/{pid}/entries/order", {"entry_ids": [ids[3], ids[1]]})
+    order = [e["id"] for e in req("GET", f"/api/v2/playlists/{pid}/entries")[1]["items"]]
+    ctx.check("reordered: those named first, the rest after them as they were", st == 204 and order == [ids[3], ids[1], ids[0], ids[2]], str(order))
+    ctx.check("an entry named twice, or not this playlist's: 400 invalid_entry",
+              problem(ctx.request("PUT", f"/api/v2/playlists/{pid}/entries/order", tok, {"entry_ids": [ids[0], ids[0]]}), 400, "invalid_entry")
+              and problem(ctx.request("PUT", f"/api/v2/playlists/{pid}/entries/order", tok, {"entry_ids": [str(uuid.uuid4())]}), 400, "invalid_entry"))
+    st, _ = req("DELETE", f"/api/v2/playlists/{pid}/entries/{ids[0]}")
+    ctx.check("one entry taken out; the same again is 404",
+              st == 204 and req("GET", f"/api/v2/playlists/{pid}")[1]["track_count"] == 3
+              and problem(ctx.request("DELETE", f"/api/v2/playlists/{pid}/entries/{ids[0]}", tok), 404))
+
+    st, renamed = req("PATCH", f"/api/v2/playlists/{pid}", {"name": f"Drive {sfx}", "description": "for the car"})
+    ctx.check("renamed and described", st == 200 and renamed["name"] == f"Drive {sfx}" and renamed["description"] == "for the car")
+    st, cleared = req("PATCH", f"/api/v2/playlists/{pid}", {"description": None})
+    ctx.check("null clears the description, the name stays", st == 200 and cleared["description"] is None and cleared["name"] == f"Drive {sfx}")
+    ctx.check("an empty name, or a third visibility: 400",
+              problem(ctx.request("PATCH", f"/api/v2/playlists/{pid}", tok, {"name": "  "}), 400)
+              and problem(ctx.request("PATCH", f"/api/v2/playlists/{pid}", tok, {"visibility": "public"}), 400))
+
+    ctx.check("a private playlist is not another member's to see", problem(ctx.request("GET", f"/api/v2/playlists/{pid}", member), 404))
+    if ctx.feature("one_family"):
+        req("PATCH", f"/api/v2/playlists/{pid}", {"visibility": "family"})
+        st, seen = req("GET", f"/api/v2/playlists/{pid}", token=member)
+        ctx.check("shared: a member sees it, counting only the tracks they can see",
+                  st == 200 and seen["visibility"] == "family" and seen["track_count"] == 0, str(seen)[:200])
+        ctx.check("…and its entries: none of the private tracks", req("GET", f"/api/v2/playlists/{pid}/entries", token=member)[1]["items"] == [])
+        ctx.check("a member cannot rename, fill or reorder it",
+                  problem(ctx.request("PATCH", f"/api/v2/playlists/{pid}", member, {"name": "mine"}), 403)
+                  and problem(ctx.request("POST", f"/api/v2/playlists/{pid}/entries", member, {"track_ids": [a]}), 403)
+                  and problem(ctx.request("PUT", f"/api/v2/playlists/{pid}/entries/order", member, {"entry_ids": []}), 403))
+        ctx.check("…nor delete it", problem(ctx.request("DELETE", f"/api/v2/playlists/{pid}", member), 403))
+    else:
+        ctx.skip("a shared playlist seen by a member", "each account has its own household on this server")
+    st, _ = req("DELETE", f"/api/v2/playlists/{pid}")
+    ctx.check("deleted by its owner (to the trash), then gone", st == 204 and problem(ctx.request("GET", f"/api/v2/playlists/{pid}", tok), 404))
+    ctx.check("a playlist without a name: 400", problem(ctx.request("POST", "/api/v2/playlists", tok, {"name": ""}), 400))
+
+
+def finding(ctx: Ctx, problem) -> None:
+    """V10: search, random tracks, the caller's plays, lyrics."""
+    import datetime as dt
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2find", PW)
+    _oid, _oe, other = ctx.make_user("v2find-other", PW)
+
+    def req(method: str, path: str, body=None, token: str = tok):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    band, album, genre = f"Seeker{sfx}", f"Findable{sfx}", f"Genre{sfx}"
+    one, two, three = (ctx.upload_track(tok, f"Quest {n} {sfx}", artist=band, album=album, genre=genre)["id"] for n in ("One", "Two", "Three"))
+
+    st, found = req("GET", f"/api/v2/search?q=quest%20one%20{sfx}&include=albums,contributors")
+    ctx.check("search finds a track by its title, any case, with what it refers to",
+              st == 200 and [t["id"] for t in found["tracks"]] == [one] and found.get("included", {}).get("albums"), str(found)[:200])
+    st, by_band = req("GET", f"/api/v2/search?q={band}")
+    ctx.check("…an artist by name, and the tracks credited to them",
+              st == 200 and [k["name"] for k in by_band["artists"]] == [band] and {t["id"] for t in by_band["tracks"]} == {one, two, three}, str(by_band)[:200])
+    st, by_album = req("GET", f"/api/v2/search?q={album}&types=albums")
+    ctx.check("…an album, and only what was asked for",
+              st == 200 and [x["title"] for x in by_album["albums"]] == [album] and by_album["tracks"] == [] and by_album["artists"] == [], str(by_album)[:200])
+    ctx.check("% is a letter, not a wildcard", one not in [t["id"] for t in req("GET", "/api/v2/search?q=%25&types=tracks&limit=100")[1]["tracks"]])
+    ctx.check("nothing private of someone else", req("GET", f"/api/v2/search?q={band}", token=other)[1] == {"artists": [], "albums": [], "tracks": []})
+    ctx.check("an empty search, or an unknown type: 400",
+              problem(ctx.request("GET", "/api/v2/search?q=%20", tok), 400, "invalid_query")
+              and problem(ctx.request("GET", "/api/v2/search?q=x&types=books", tok), 400, "invalid_type"))
+
+    genre_id = req("GET", f"/api/v2/tracks/{one}")[1]["genre_ids"][0]
+    st, drawn = req("GET", f"/api/v2/tracks/random?genre_id={genre_id}&limit=10")
+    ctx.check("random tracks of a genre: all of them, no next page",
+              st == 200 and sorted(t["id"] for t in drawn["items"]) == sorted([one, two, three]) and "next" not in drawn, str(drawn)[:200])
+    ctx.check("a limit of 0: 400", problem(ctx.request("GET", "/api/v2/tracks/random?limit=0", tok), 400, "invalid_limit"))
+
+    now = dt.datetime.now(dt.timezone.utc)
+    def play(tid: str, minutes_ago: int, n: int) -> dict:
+        end = now - dt.timedelta(minutes=minutes_ago)
+        return {"client_id": f"find-{sfx}-{tid}-{n}", "kind": "track", "id": tid, "started_at": (end - dt.timedelta(minutes=3)).isoformat(),
+                "ended_at": end.isoformat(), "listened_ms": 180000, "ended_reason": "finished"}
+    st, results = req("POST", "/api/v2/me/plays", {"plays": [play(one, 30, 1), play(one, 20, 2), play(two, 10, 1)]})
+    ctx.check("plays with an ended_reason the database does not know are kept (the reason dropped)",
+              st == 200 and [r["status"] for r in results] == ["ok", "ok", "ok"], str(results))
+    most = req("GET", "/api/v2/me/played?kind=track&order=most")[1]["items"]
+    recent = req("GET", "/api/v2/me/played?kind=track")[1]["items"]
+    ctx.check("most played first, with the counts", [(p["id"], p["play_count"]) for p in most[:2]] == [(one, 2), (two, 1)], str(most)[:200])
+    ctx.check("most recently played first", [p["id"] for p in recent[:2]] == [two, one], str(recent)[:200])
+    albums = req("GET", "/api/v2/me/played?kind=album&order=most")[1]["items"]
+    ctx.check("per album: its tracks' plays together", albums and albums[0]["play_count"] == 3 and albums[0]["kind"] == "album", str(albums)[:200])
+    ctx.check("another account's plays are its own", req("GET", "/api/v2/me/played?kind=track", token=other)[1]["items"] == [])
+    ctx.check("a kind without plays here: 400", problem(ctx.request("GET", "/api/v2/me/played?kind=book", tok), 400, "unsupported_kind"))
+
+    ctx.call("PUT", f"/api/v1/music/tracks/{one}/lyrics", tok, {"lyrics": "[00:01.00]Hello\n[00:02.50]World"})
+    st, words = req("GET", f"/api/v2/tracks/{one}/lyrics")
+    ctx.check("synced lyrics, line by line with their times",
+              st == 200 and words["synced"] and [(l.get("start_ms"), l["text"]) for l in words["lines"]] == [(1000, "Hello"), (2500, "World")], str(words)[:200])
+    st, none = req("GET", f"/api/v2/tracks/{three}/lyrics")
+    ctx.check("a track without lyrics: text null, no lines", st == 200 and none["text"] is None and none["lines"] == [], str(none)[:200])
+    ctx.check("someone else's private track: 404", problem(ctx.request("GET", f"/api/v2/tracks/{one}/lyrics", other), 404))

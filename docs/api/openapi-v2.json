@@ -25,6 +25,22 @@
         ],
         "type": "object"
       },
+      "AddEntries": {
+        "properties": {
+          "track_ids": {
+            "description": "Appended in this order; a track the caller cannot see is left out.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "track_ids"
+        ],
+        "type": "object"
+      },
       "Album": {
         "description": "A release: one edition of an album.",
         "properties": {
@@ -782,6 +798,38 @@
         },
         "type": "object"
       },
+      "CreatePlaylist": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "track_ids": {
+            "description": "Tracks to start with, in order; those the caller cannot see are left out.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "visibility": {
+            "description": "`private` (the default) or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
       "CreateTokenRequest": {
         "properties": {
           "expires_in_days": {
@@ -1157,6 +1205,35 @@
         },
         "required": [
           "index"
+        ],
+        "type": "object"
+      },
+      "Entry": {
+        "description": "One place in a playlist.",
+        "properties": {
+          "added_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "description": "The entry's own id, for removing or moving it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "position": {
+            "description": "1-based, in order; positions of entries the caller cannot see are skipped.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "track": {
+            "$ref": "#/components/schemas/Track"
+          }
+        },
+        "required": [
+          "id",
+          "position",
+          "added_at",
+          "track"
         ],
         "type": "object"
       },
@@ -1610,6 +1687,51 @@
         ],
         "type": "object"
       },
+      "Line": {
+        "properties": {
+          "start_ms": {
+            "description": "Where the line starts; absent for lyrics without timing.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
+      "Lyrics": {
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/Line"
+            },
+            "type": "array"
+          },
+          "synced": {
+            "description": "True when the lines carry their times.",
+            "type": "boolean"
+          },
+          "text": {
+            "description": "The lyrics as stored (LRC timing kept); `null` when the track has none.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "synced",
+          "lines"
+        ],
+        "type": "object"
+      },
       "Me": {
         "properties": {
           "display_name": {
@@ -1964,6 +2086,22 @@
         "required": [
           "upload_id",
           "filename"
+        ],
+        "type": "object"
+      },
+      "OrderEntries": {
+        "properties": {
+          "entry_ids": {
+            "description": "Entry ids in their new order. Entries left out follow them in the order\nthey had, so a client that sees only some entries can still reorder those.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "entry_ids"
         ],
         "type": "object"
       },
@@ -2402,6 +2540,65 @@
         ],
         "type": "object"
       },
+      "Page_Entry": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "description": "One place in a playlist.",
+              "properties": {
+                "added_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "id": {
+                  "description": "The entry's own id, for removing or moving it.",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "position": {
+                  "description": "1-based, in order; positions of entries the caller cannot see are skipped.",
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "track": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              },
+              "required": [
+                "id",
+                "position",
+                "added_at",
+                "track"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Episode": {
         "description": "One page of a list.",
         "properties": {
@@ -2620,6 +2817,153 @@
               "required": [
                 "id",
                 "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Page_Played": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "last_played_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "play_count": {
+                  "description": "How many times the caller played it (an album: its tracks' plays together).",
+                  "format": "int64",
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "play_count",
+                "last_played_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Page_Playlist": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "duration_ms": {
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "image": {
+                  "description": "Its cover, or its first track's (`GET /images/{id}`; add `w` for the size).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "name": {
+                  "type": "string"
+                },
+                "owner_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "track_count": {
+                  "description": "Of the entries the caller can see.",
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "visibility": {
+                  "description": "`private` or `family`.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "visibility",
+                "owner_id",
+                "track_count",
+                "duration_ms",
+                "created_at",
+                "updated_at"
               ],
               "type": "object"
             },
@@ -3227,6 +3571,30 @@
         ],
         "type": "object"
       },
+      "PatchPlaylist": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "description": "`private` or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "PersonalToken": {
         "properties": {
           "created_at": {
@@ -3290,7 +3658,7 @@
             "type": "string"
           },
           "ended_reason": {
-            "description": "Why it stopped, when known: `finished`, `skipped`, `paused`…",
+            "description": "Why it stopped, when known: `completed`, `skipped`, `stopped` or `replaced`; anything else is dropped.",
             "type": [
               "string",
               "null"
@@ -3409,6 +3777,93 @@
         "required": [
           "kind",
           "id"
+        ],
+        "type": "object"
+      },
+      "Played": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "last_played_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "play_count": {
+            "description": "How many times the caller played it (an album: its tracks' plays together).",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "play_count",
+          "last_played_at"
+        ],
+        "type": "object"
+      },
+      "Playlist": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "image": {
+            "description": "Its cover, or its first track's (`GET /images/{id}`; add `w` for the size).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "track_count": {
+            "description": "Of the entries the caller can see.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "`private` or `family`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "visibility",
+          "owner_id",
+          "track_count",
+          "duration_ms",
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
@@ -4238,6 +4693,46 @@
         },
         "required": [
           "kind"
+        ],
+        "type": "object"
+      },
+      "SearchAnswer": {
+        "properties": {
+          "albums": {
+            "items": {
+              "$ref": "#/components/schemas/Album"
+            },
+            "type": "array"
+          },
+          "artists": {
+            "description": "Contributors credited as artists.",
+            "items": {
+              "$ref": "#/components/schemas/Contributor"
+            },
+            "type": "array"
+          },
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included"
+              }
+            ]
+          },
+          "tracks": {
+            "description": "Whose title, album or a credited name matches.",
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "artists",
+          "albums",
+          "tracks"
         ],
         "type": "object"
       },
@@ -9005,6 +9500,94 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/me/played": {
+      "get": {
+        "operationId": "state_played",
+        "parameters": [
+          {
+            "description": "`track` or `album`.",
+            "in": "query",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`recent` (the default) or `most`.",
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to 500; 100 by default.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Played"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`unsupported_kind`, `invalid_order`, `invalid_limit`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the caller played, most recently or most often first: the tops of their own history, not a page through it",
+        "tags": [
+          "state"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/me/plays": {
       "post": {
         "operationId": "state_post_plays",
@@ -10040,6 +10623,743 @@
         "x-scope": "playback"
       }
     },
+    "/api/v2/playlists": {
+      "get": {
+        "operationId": "playlists_list_playlists",
+        "parameters": [
+          {
+            "description": "How many items, 1 to 500; 100 when absent.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`next` from the previous page; absent for the first.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Playlist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Playlists the caller can see: their own and those shared with them, by name",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "post": {
+        "operationId": "playlists_create_playlist",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlaylist"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`, `too_many`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make a playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/playlists/{id}": {
+      "delete": {
+        "description": "Delete a playlist: it goes to the trash, as on v1. Its owner may, and a\nfamily admin for one shared with the household.",
+        "operationId": "playlists_delete_playlist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "In the trash"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Neither its owner nor, for a shared one, a family admin"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a playlist: it goes to the trash, as on v1",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "get": {
+        "operationId": "playlists_get_playlist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "patch": {
+        "operationId": "playlists_patch_playlist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchPlaylist"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename a playlist, describe it, share it or stop sharing it",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/playlists/{id}/entries": {
+      "get": {
+        "operationId": "playlists_list_entries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`albums`, `contributors`, `genres`, comma-separated.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Entry"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A playlist's entries in order, each with its track",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "post": {
+        "operationId": "playlists_add_entries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddEntries"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": "The playlist now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`too_many`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Add tracks to the end of a playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/playlists/{id}/entries/order": {
+      "put": {
+        "operationId": "playlists_order_entries",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrderEntries"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Reordered"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_entry`: an id twice, or not this playlist's"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reorder a playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/playlists/{id}/entries/{entry_id}": {
+      "delete": {
+        "operationId": "playlists_remove_entry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "entry_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown playlist or entry"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take one entry out of a playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/podcasts": {
       "get": {
         "operationId": "catalog_list_podcasts",
@@ -10613,6 +11933,103 @@
           }
         ],
         "summary": "One release group, with its editions the caller can see",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/search": {
+      "get": {
+        "operationId": "catalog_search",
+        "parameters": [
+          {
+            "description": "What to look for: part of a name or title, any case.",
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "What to look in, comma-separated: `artists`, `albums`, `tracks` (all three by default).",
+            "in": "query",
+            "name": "types",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "At most this many of each, 1 to 100; 20 by default.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "For the tracks: `albums`, `contributors`, `genres`.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchAnswer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_query` (empty), `invalid_type`, `invalid_limit`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search the music the caller can see",
         "tags": [
           "catalog"
         ],
@@ -11202,6 +12619,85 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/tracks/random": {
+      "get": {
+        "operationId": "catalog_random_tracks",
+        "parameters": [
+          {
+            "description": "Only from this genre.",
+            "in": "query",
+            "name": "genre_id",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "1 to 500; 50 by default.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`albums`, `contributors`, `genres`.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Track"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tracks the caller can see, in random order; a new draw on every call, so the answer has no next page",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/tracks/{id}": {
       "get": {
         "operationId": "catalog_get_track",
@@ -11380,6 +12876,75 @@
         ],
         "x-permission": "owner",
         "x-scope": "library:write"
+      }
+    },
+    "/api/v2/tracks/{id}/lyrics": {
+      "get": {
+        "operationId": "catalog_lyrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lyrics"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A track's lyrics: the owner's, a sidecar `.lrc`, or the file's own tag (read the first time they are asked for)",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
       }
     },
     "/api/v2/tracks/{id}/visibility": {

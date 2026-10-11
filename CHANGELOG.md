@@ -7,6 +7,25 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- What an app needs from `/api/v2` to stop using the Subsonic API for music
+  (docs/api-v2-plan.md, V10):
+  - `/playlists`: list, read, make, rename, describe, share, delete (to the trash),
+    and their entries — each with its own id, as a track may be in a playlist
+    twice — added, removed and reordered. A reader sees, and counts, only the
+    entries whose tracks they can see. Not in the change feed yet.
+  - `GET /search`: artists, albums and tracks in one answer; a track matches by
+    its title, its album or a credited name.
+  - `GET /tracks/random`, from one genre if asked.
+  - `GET /me/played`: the caller's own most played and most recently played
+    tracks or albums, with their play counts.
+  - `GET /tracks/{id}/lyrics`: line by line, with times when the lyrics have them.
+
+### Fixed
+- A play reported on v2 with an `ended_reason` other than `completed`,
+  `skipped`, `stopped` or `replaced` failed to be recorded; the reason is now
+  dropped instead (the documentation suggested `finished`).
+
 ## [1.0.0-beta.9] - 2026-10-11
 
 ### Added

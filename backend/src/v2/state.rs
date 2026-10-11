@@ -388,7 +388,7 @@ pub struct Play {
     pub speed: Option<f64>,
     /// `ios`, `android`, `web`, `macos`, `windows`, `tvos` or `other`.
     pub device_kind: Option<String>,
-    /// Why it stopped, when known: `finished`, `skipped`, `paused`…
+    /// Why it stopped, when known: `completed`, `skipped`, `stopped` or `replaced`; anything else is dropped.
     pub ended_reason: Option<String>,
 }
 
@@ -445,7 +445,8 @@ async fn apply_play(state: &AppState, family: &FamilyContext, play: &Play) -> Re
         playback_speed: play.speed,
         device_kind,
         client_session_id: Some(play.client_id.clone()),
-        ended_reason: play.ended_reason.clone(),
+        // The column takes only these (migration 0068); anything else is no reason.
+        ended_reason: play.ended_reason.as_deref().map(str::trim).filter(|r| matches!(*r, "completed" | "skipped" | "stopped" | "replaced")).map(str::to_string),
     };
     let new = db::stats::record_sessions(state.db(), family.user_id, std::slice::from_ref(&session)).await?;
     Ok(if new == 0 { "duplicate" } else { "ok" })
