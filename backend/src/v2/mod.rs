@@ -7,6 +7,7 @@
 
 pub mod auth;
 pub mod discovery;
+pub mod edit;
 pub mod me;
 pub mod music;
 pub mod page;
@@ -41,13 +42,13 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(me::tokens, me::create_token))
         .routes(routes!(me::delete_token))
         .routes(routes!(music::list_contributors))
-        .routes(routes!(music::get_contributor))
+        .routes(routes!(music::get_contributor, edit::patch_contributor))
         .routes(routes!(music::list_artists))
         .routes(routes!(music::list_authors))
         .routes(routes!(music::list_narrators))
         .routes(routes!(music::list_hosts))
         .routes(routes!(music::list_albums))
-        .routes(routes!(music::get_album))
+        .routes(routes!(music::get_album, edit::patch_album))
         .routes(routes!(music::get_release_group))
         .routes(routes!(music::get_recording))
         .routes(routes!(music::list_genres))
@@ -59,6 +60,14 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(spoken::get_podcast))
         .routes(routes!(spoken::list_episodes))
         .routes(routes!(spoken::get_episode))
+        .routes(routes!(edit::set_track_credits))
+        .routes(routes!(edit::set_book_credits))
+        .routes(routes!(edit::set_podcast_credits))
+        .routes(routes!(edit::set_album_credits))
+        .routes(routes!(edit::merge_contributor))
+        .routes(routes!(edit::split_contributor))
+        .routes(routes!(edit::set_release_group))
+        .routes(routes!(edit::merge_album))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

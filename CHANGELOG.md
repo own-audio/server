@@ -28,6 +28,12 @@ semver. Each release states the **API contract revision** it serves
 - Books and podcasts on v2: `/books` (one with its files, chapters, series
   and people), `/podcasts`, `/podcasts/{id}/episodes`, `/episodes/{id}`
   (migration 0107). Credits list by role, then position.
+- Corrections on v2: `PUT /tracks|books|podcasts|albums/{id}/credits` sets
+  an item's credits by hand — a role set this way stays whatever the tags
+  later say, which is how two people of one name are told apart; `PATCH
+  /contributors/{id}` and `/albums/{id}`, merge and split of contributors,
+  merge and regrouping of albums. Merging and splitting answer `403` before
+  reading the body (v1's too).
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

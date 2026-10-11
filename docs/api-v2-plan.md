@@ -34,7 +34,7 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
 
 ## Phases
 
-Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`) V3a (music) and V3b (books, podcasts) are done; V3c (credit editing, the corrections in v2 shape) next. Series and collections as their own resources come with V3c too.
+Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`) and V3c (credit editing, corrections) are done; V4 next. Series and collections as resources of their own wait for V7, with the household.
 
 | Phase | Content | Test |
 |---|---|---|

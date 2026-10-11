@@ -7,7 +7,7 @@
 pub mod admin;
 pub mod context;
 
-pub use context::FamilyContext;
+pub use context::{FamilyAdmin, FamilyContext};
 
 use crate::app::AppState;
 use crate::auth::error::AuthError;

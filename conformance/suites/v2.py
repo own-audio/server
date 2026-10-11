@@ -84,6 +84,7 @@ def run(ctx: Ctx) -> None:
     signin(ctx, problem)
     catalogue(ctx, problem)
     shelves(ctx, problem)
+    corrections(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -329,3 +330,85 @@ def shelves(ctx: Ctx, problem) -> None:
     ctx.check("/podcasts answers a page", st == 200 and isinstance(json.loads(body).get("items"), list))
     _oid, _oemail, other = ctx.make_user("v2books-other", PW)
     ctx.check("another account cannot see a private book", problem(ctx.request("GET", f"/api/v2/books/{made['id']}", other), 404))
+
+
+def corrections(ctx: Ctx, problem) -> None:
+    """V3c: credits corrected by hand hold through retags and rescans; contributors and albums
+    corrected on the entity; merging and splitting are a family admin's."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2fix", PW)
+
+    def req(method: str, path: str, body=None, token: str = tok):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    def artists_of(track_id: str) -> list[str]:
+        st, t = req("GET", f"/api/v2/tracks/{track_id}?include=contributors")
+        names = {c["id"]: c["name"] for c in (t or {}).get("included", {}).get("contributors", [])}
+        return [names.get(c["contributor_id"], "?") for c in (t or {}).get("credits", []) if c["role"] == "artist"]
+
+    # Two people of one name: the second track's credit is corrected, and stays corrected.
+    ctx.upload_track(tok, f"Smith One {sfx}", artist=f"John Smith {sfx}", album=f"Smith A {sfx}")
+    two = ctx.upload_track(tok, f"Smith Two {sfx}", artist=f"John Smith {sfx}", album=f"Smith B {sfx}")
+    st, credits = req("PUT", f"/api/v2/tracks/{two['id']}/credits",
+                      {"credits": [{"name": f"John Smith (guitarist) {sfx}", "role": "artist"}]})
+    ctx.check("a track's credits corrected by hand", st == 200 and artists_of(two["id"]) == [f"John Smith (guitarist) {sfx}"], str(credits)[:160])
+    ctx.call("PUT", f"/api/v1/music/tracks/{two['id']}", tok,
+             {"title": two["title"], "artist": f"John Smith {sfx}", "album": f"Smith B {sfx}"})
+    ctx.check("…and they hold when the tags are written again", artists_of(two["id"]) == [f"John Smith (guitarist) {sfx}"],
+              str(artists_of(two["id"])))
+    req("PUT", f"/api/v2/tracks/{two['id']}/credits", {"credits": []})
+    ctx.check("an empty list gives the credits back to the tags", artists_of(two["id"]) == [f"John Smith {sfx}"], str(artists_of(two["id"])))
+    ctx.check("a role a track does not have: 400 invalid_role",
+              problem(ctx.request("PUT", f"/api/v2/tracks/{two['id']}/credits", tok, {"credits": [{"name": "x", "role": "narrator"}]}), 400, "invalid_role"))
+    ctx.check("another household's contributor: 400 unknown_contributor",
+              problem(ctx.request("PUT", f"/api/v2/tracks/{two['id']}/credits", tok,
+                                  {"credits": [{"contributor_id": str(uuid.uuid4()), "role": "artist"}]}), 400, "unknown_contributor"))
+
+    # A book's narrator corrected; the author text still drives the authors.
+    book = ctx.call("POST", "/api/v1/audiobooks", tok, {"title": f"Fix Book {sfx}", "author": f"Fix Writer {sfx}", "narrator": f"Wrong Voice {sfx}"})
+    req("PUT", f"/api/v2/books/{book['id']}/credits", {"credits": [{"name": f"Right Voice {sfx}", "role": "narrator"}]})
+    ctx.call("PUT", f"/api/v1/audiobooks/{book['id']}", tok,
+             {"title": book["title"], "author": f"New Writer {sfx}", "narrator": f"Wrong Voice {sfx}"})
+    st, b = req("GET", f"/api/v2/books/{book['id']}")
+    people = {c["id"]: c["name"] for c in (b or {}).get("included", {}).get("contributors", [])}
+    by_role = sorted((c["role"], people.get(c["contributor_id"])) for c in (b or {}).get("credits", []))
+    ctx.check("a corrected role stays; the others follow the text",
+              by_role == [("author", f"New Writer {sfx}"), ("narrator", f"Right Voice {sfx}")], str(by_role))
+
+    # Contributors and albums.
+    st, artists = req("GET", f"/api/v2/artists?q=John%20Smith%20{sfx}")
+    smith = next((a for a in (artists or {}).get("items", []) if a["name"] == f"John Smith {sfx}"), {})
+    st, renamed = req("PATCH", f"/api/v2/contributors/{smith.get('id')}", {"name": f"Johnny Smith {sfx}", "kind": "person", "sort_name": f"Smith, Johnny {sfx}"})
+    ctx.check("a contributor corrected: name, kind, sort name",
+              st == 200 and renamed.get("name") == f"Johnny Smith {sfx}" and renamed.get("kind") == "person"
+              and renamed.get("sort_name") == f"Smith, Johnny {sfx}", str(renamed)[:160])
+    guitarist = next((a for a in req("GET", f"/api/v2/contributors?q=guitarist%29%20{sfx}")[1].get("items", [])), None)
+    ctx.check("a name another contributor has: 409 name_taken", problem(
+        ctx.request("PATCH", f"/api/v2/contributors/{smith.get('id')}", tok, {"name": f"John Smith (guitarist) {sfx}"}), 409, "name_taken")
+        if guitarist else True)
+    st, albums = req("GET", f"/api/v2/albums?contributor_id={smith.get('id')}")
+    album = (albums or {}).get("items", [{}])[0]
+    req("PATCH", f"/api/v2/albums/{album.get('id')}", {"title": f"Smith Best {sfx}", "label": "Own Label"})
+    req("PUT", f"/api/v2/albums/{album.get('id')}/credits", {"credits": [{"contributor_id": smith.get("id"), "role": "artist"},
+                                                                            {"name": f"Smith Partner {sfx}", "role": "artist"}]})
+    st, fixed = req("GET", f"/api/v2/albums/{album.get('id')}")
+    ctx.check("an album corrected: title, label, credits",
+              st == 200 and fixed.get("title") == f"Smith Best {sfx}" and fixed.get("label") == "Own Label"
+              and len([c for c in fixed.get("credits", []) if c["role"] == "artist"]) == 2, str(fixed)[:200])
+
+    st, parts = req("POST", f"/api/v2/contributors/{smith.get('id')}/split", {"names": [f"Jo {sfx}", f"Hn {sfx}"]})
+    ctx.check("a split answers the contributors it became", st == 200 and [p["name"] for p in parts] == [f"Jo {sfx}", f"Hn {sfx}"], str(parts)[:160])
+    if st == 200:
+        st, kept = req("POST", f"/api/v2/contributors/{parts[1]['id']}/merge", {"into": parts[0]["id"]})
+        ctx.check("a merge answers the one that stays", st == 200 and kept.get("id") == parts[0]["id"])
+    _mid, _memail, member = ctx.make_user("v2fix-member", PW)
+    ctx.check("merging and splitting are a family admin's", all(
+        ctx.request("POST", path, member, body)[0] in (403, 404) for path, body in [
+            (f"/api/v2/contributors/{uuid.uuid4()}/merge", {"into": str(uuid.uuid4())}),
+            (f"/api/v2/contributors/{uuid.uuid4()}/split", {"names": ["a", "b"]}),
+            (f"/api/v2/albums/{uuid.uuid4()}/merge", {"into": str(uuid.uuid4())})]))
+    shared = ctx.upload_track(tok, f"Shared {sfx}", artist=f"Share Artist {sfx}", album=f"Share Album {sfx}", visibility="family")
+    expected = 403 if ctx.feature("one_family") else 404
+    ctx.check(f"only a track's owner corrects its credits ({expected} for another account)", problem(
+        ctx.request("PUT", f"/api/v2/tracks/{shared['id']}/credits", member, {"credits": []}), expected))

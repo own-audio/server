@@ -109,6 +109,21 @@ impl FromRequestParts<AppState> for FamilyContext {
     }
 }
 
+/// The caller administers their household, or the request stops here with
+/// `403` before any body is read (security hardening plan §5.3). Routes that
+/// rewrite what the whole household sees take this instead of [`FamilyContext`].
+pub struct FamilyAdmin(pub FamilyContext);
+
+impl FromRequestParts<AppState> for FamilyAdmin {
+    type Rejection = AuthError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &AppState) -> Result<Self, Self::Rejection> {
+        let family = FamilyContext::from_request_parts(parts, state).await?;
+        family.require_family_admin()?;
+        Ok(FamilyAdmin(family))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

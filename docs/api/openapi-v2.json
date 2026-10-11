@@ -110,6 +110,42 @@
           }
         ]
       },
+      "AlbumPatch": {
+        "properties": {
+          "barcode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "country": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "label": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_date": {
+            "description": "`null` clears any of these.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "ApiVersion": {
         "properties": {
           "path": {
@@ -428,6 +464,31 @@
         ],
         "type": "object"
       },
+      "ContributorPatch": {
+        "properties": {
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "Shown everywhere they are credited; the old spelling keeps matching tags.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_name": {
+            "description": "`null` clears it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "CreateTokenRequest": {
         "properties": {
           "expires_in_days": {
@@ -488,6 +549,54 @@
           "role",
           "position",
           "join_phrase"
+        ],
+        "type": "object"
+      },
+      "CreditEntry": {
+        "properties": {
+          "contributor_id": {
+            "description": "An existing contributor of the household…",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credited_as": {
+            "description": "The name as printed on this item, when it differs.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "description": "…or a name: the household's contributor of that name, made if new.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "role": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "type": "object"
+      },
+      "CreditsRequest": {
+        "properties": {
+          "credits": {
+            "description": "The corrected roles, complete and in order. A role corrected before and\nleft out goes back to what the tags say; `[]` gives every role back.",
+            "items": {
+              "$ref": "#/components/schemas/CreditEntry"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "credits"
         ],
         "type": "object"
       },
@@ -874,6 +983,19 @@
           "role",
           "can_upload",
           "can_generate"
+        ],
+        "type": "object"
+      },
+      "MergeRequest": {
+        "properties": {
+          "into": {
+            "description": "The one that stays.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "into"
         ],
         "type": "object"
       },
@@ -1911,6 +2033,19 @@
         ],
         "type": "object"
       },
+      "ReleaseGroupRequest": {
+        "properties": {
+          "release_group_id": {
+            "description": "Another album's `release_group_id`, so the two are editions of one\nrelease; `null` for a group of its own.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "RevokeRequest": {
         "properties": {
           "token": {
@@ -1989,6 +2124,21 @@
           "signed_in_at",
           "expires_at",
           "current"
+        ],
+        "type": "object"
+      },
+      "SplitRequest": {
+        "properties": {
+          "names": {
+            "description": "Who it really is, in credit order; at least two.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "names"
         ],
         "type": "object"
       },
@@ -2248,6 +2398,18 @@
             "type": "object"
           }
         ]
+      },
+      "Updated": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {
@@ -2503,6 +2665,336 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "patch": {
+        "description": "Correct an album: title, release date, country, label, barcode. Its tracks\nstay on it whatever their tags say.",
+        "operationId": "corrections_patch_album",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Updated"
+                }
+              }
+            },
+            "description": "Corrected; read it back with `GET /albums/{id}`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct an album: title, release date, country, label, barcode",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/albums/{id}/credits": {
+      "put": {
+        "operationId": "corrections_set_album_credits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The album's credits now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_role`, `unknown_contributor`, or no credits"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct an album's credits; the album artist line follows",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/albums/{id}/merge": {
+      "post": {
+        "operationId": "corrections_merge_album",
+        "parameters": [
+          {
+            "description": "The one that goes",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Updated"
+                }
+              }
+            },
+            "description": "The album that stays"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Either is not the household's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two albums are one release tagged two ways: `id`'s tracks, stars and ratings go to `into`, and so will the same tags at every later scan",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "family_admin",
+        "x-scope": "family:admin"
+      }
+    },
+    "/api/v2/albums/{id}/release-group": {
+      "put": {
+        "description": "Put an album in a release group. Tags no longer move it.",
+        "operationId": "corrections_set_release_group",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseGroupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Updated"
+                }
+              }
+            },
+            "description": "The album's release group now"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "The album or group is not visible or not the household's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put an album in a release group",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/artists": {
@@ -3186,6 +3678,108 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/books/{id}/credits": {
+      "put": {
+        "operationId": "corrections_set_book_credits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The book's credits now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_role`, `unknown_contributor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the book's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a book's credits",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/contributors": {
       "get": {
         "operationId": "catalog_list_contributors",
@@ -3338,6 +3932,256 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "patch": {
+        "operationId": "corrections_patch_contributor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContributorPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contributor"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`name_taken`: another contributor has the name; merge them instead"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a contributor: name, sort name, kind",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/contributors/{id}/merge": {
+      "post": {
+        "operationId": "corrections_merge_contributor",
+        "parameters": [
+          {
+            "description": "The one that goes",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Contributor"
+                }
+              }
+            },
+            "description": "The one that stays"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Either is not the household's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Two contributors are one: everything `id` has goes to `into`, and it goes",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "family_admin",
+        "x-scope": "family:admin"
+      }
+    },
+    "/api/v2/contributors/{id}/split": {
+      "post": {
+        "operationId": "corrections_split_contributor",
+        "parameters": [
+          {
+            "description": "The one that goes",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SplitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Contributor"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The contributors it became, in order"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the household's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One contributor is several (\"A & B\" read as one name): every credit, now and at every later scan, becomes one per name",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "family_admin",
+        "x-scope": "family:admin"
       }
     },
     "/api/v2/episodes/{id}": {
@@ -4195,6 +5039,108 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/podcasts/{id}/credits": {
+      "put": {
+        "operationId": "corrections_set_podcast_credits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The podcast's credits now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_role`, `unknown_contributor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the podcast's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a podcast's credits",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/podcasts/{id}/episodes": {
       "get": {
         "operationId": "catalog_list_episodes",
@@ -4628,6 +5574,108 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/tracks/{id}/credits": {
+      "put": {
+        "operationId": "corrections_set_track_credits",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreditsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Credit"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The track's credits now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_role`, `unknown_contributor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a track's credits",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
       }
     }
   },

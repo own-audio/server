@@ -34,6 +34,8 @@ BEGIN
         RETURN NULL;
     END IF;
     FOREACH v_role IN ARRAY ARRAY['author', 'narrator'] LOOP
+        -- A role corrected by hand is left alone (music_role_corrected).
+        CONTINUE WHEN music_role_corrected('book', NEW.id, v_role);
         v_text := CASE v_role WHEN 'author' THEN NEW.author ELSE NEW.narrator END;
         SELECT COALESCE(max(position) + 1, 0) INTO v_pos FROM credits
          WHERE item_kind = 'book' AND item_id = NEW.id AND role = v_role;
@@ -99,14 +101,6 @@ UPDATE contributors c SET
          ORDER BY k.contributor_id, (a.image_object_id IS NOT NULL) DESC, a.updated_at DESC) a
  WHERE c.id = a.contributor_id;
 
-INSERT INTO credits (contributor_id, item_kind, item_id, role, position, source)
-SELECT k.contributor_id, 'book', l.book_id, l.role, l.pos::smallint, 'user'
-  FROM book_links l
-  JOIN contributor_keys k ON k.family_id = l.family AND k.key = 'name:' || lower(trim(l.name))
-ON CONFLICT DO NOTHING;
-
-DROP TABLE audiobook_book_authors;
-DROP TABLE audiobook_authors;
 
 -- ── From here on, the text fields keep their credits ─────────────────────
 
@@ -121,6 +115,28 @@ CREATE TRIGGER audiobook_books_unlink
 -- the row trigger is fast enough). `author` is not watched by the file-sync
 -- log (0078), so this writes nothing there.
 UPDATE audiobook_books_all SET author = author;
+
+-- Then the links made by hand, after the text's credits in their role. A role
+-- with a hand-made link counts as corrected from here on (music_role_corrected),
+-- so its credits from the text become part of the correction: the book keeps
+-- every name it had, and a later change to the text leaves that role alone.
+INSERT INTO credits (contributor_id, item_kind, item_id, role, position, source)
+SELECT k.contributor_id, 'book', l.book_id, l.role,
+       (COALESCE((SELECT max(c.position) + 1 FROM credits c
+                   WHERE c.item_kind = 'book' AND c.item_id = l.book_id AND c.role = l.role), 0) + l.pos)::smallint,
+       'user'
+  FROM book_links l
+  JOIN contributor_keys k ON k.family_id = l.family AND k.key = 'name:' || lower(trim(l.name))
+ WHERE NOT EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'book' AND c.item_id = l.book_id
+                      AND c.role = l.role AND c.contributor_id = k.contributor_id)
+ON CONFLICT DO NOTHING;
+UPDATE credits c SET source = 'user'
+ WHERE c.item_kind = 'book' AND c.source = 'tag'
+   AND EXISTS (SELECT 1 FROM book_links l WHERE l.book_id = c.item_id AND l.role = c.role);
+SELECT music_credit_joins('book', b.book_id) FROM (SELECT DISTINCT book_id FROM book_links) b;
+
+DROP TABLE audiobook_book_authors;
+DROP TABLE audiobook_authors;
 
 -- A user moving household: their books' hand-made credits follow them to the
 -- new household's contributor of the same name, and the text credits are

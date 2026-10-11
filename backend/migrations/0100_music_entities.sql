@@ -258,6 +258,13 @@ LANGUAGE sql STABLE AS $$
     SELECT family_id FROM family_members WHERE user_id = p_user
 $$;
 
+-- Whether someone corrected this role on the item by hand (credits with
+-- source 'user'): then the tags no longer write it (docs/api-v2-plan.md, V3c).
+CREATE FUNCTION music_role_corrected(p_kind TEXT, p_item UUID, p_role TEXT) RETURNS BOOLEAN
+LANGUAGE sql STABLE AS $$
+    SELECT EXISTS (SELECT 1 FROM credits WHERE item_kind = p_kind AND item_id = p_item AND role = p_role AND source = 'user')
+$$;
+
 -- Join phrases from the final list, per role: '; ' between names in one role,
 -- ' feat. ' after a track's last artist when guests follow, nothing after
 -- the last name of a role. Computed after duplicates are dropped, so no
@@ -396,6 +403,10 @@ BEGIN
     v_parts := array_remove(array(SELECT NULLIF(trim(x), '') FROM unnest(string_to_array(v_primary, ';')) x), NULL);
     v_n := COALESCE(array_length(v_parts, 1), 0);
     v_guests := music_guest_artists(NEW.artist);
+    -- A role someone corrected by hand is theirs: the tags no longer write it.
+    IF music_role_corrected('track', NEW.id, 'artist') THEN
+        v_n := 0;
+    END IF;
     FOR v_i IN 1 .. v_n LOOP
         v_name := v_parts[v_i];
         FOR v_cid IN SELECT c.contributor_id FROM music_contributors(v_family, v_name,
@@ -409,7 +420,7 @@ BEGIN
         END LOOP;
     END LOOP;
 
-    IF v_guests IS NOT NULL THEN
+    IF v_guests IS NOT NULL AND NOT music_role_corrected('track', NEW.id, 'featured') THEN
         v_parts := array_remove(array(SELECT NULLIF(trim(x), '') FROM unnest(string_to_array(v_guests, ';')) x), NULL);
         v_n := COALESCE(array_length(v_parts, 1), 0);
         FOR v_i IN 1 .. v_n LOOP
@@ -645,6 +656,9 @@ BEGIN
                    n.ord * 100 + k.position AS ord
               FROM link_names n
               JOIN contributor_keys k ON k.family_id = n.family AND k.key = 'name:' || lower(n.name)
+              -- not a role corrected by hand
+             WHERE NOT EXISTS (SELECT 1 FROM credits u WHERE u.item_kind = 'track' AND u.item_id = n.id
+                                  AND u.role = n.role AND u.source = 'user')
              ORDER BY n.id, n.role, k.contributor_id, n.ord, k.position) d
     ON CONFLICT DO NOTHING;
 

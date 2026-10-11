@@ -24,7 +24,7 @@ BEGIN
         RETURN NULL;
     END IF;
     DELETE FROM credits WHERE item_kind = 'podcast' AND item_id = NEW.id AND source = 'tag';
-    IF v_family IS NULL THEN
+    IF v_family IS NULL OR music_role_corrected('podcast', NEW.id, 'host') THEN
         RETURN NULL;
     END IF;
     FOR v_rec IN SELECT * FROM book_credit_names(NEW.author) ORDER BY ord LOOP
@@ -60,11 +60,15 @@ UPDATE podcast_feeds SET author = author;
 CREATE OR REPLACE FUNCTION music_relink_member() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
-    PERFORM music_link_tracks(NEW.user_id);
+    -- Credits corrected by hand follow the user to the new household's
+    -- contributor of the same name, on every kind of item they own.
     UPDATE credits c SET contributor_id = music_contributor(NEW.family_id, k.name, k.musicbrainz_artist_id)
-      FROM contributors k, audiobook_books_all b
-     WHERE c.item_kind = 'book' AND c.source = 'user' AND c.item_id = b.id AND b.user_id = NEW.user_id
-       AND k.id = c.contributor_id AND k.family_id <> NEW.family_id;
+      FROM contributors k
+     WHERE c.source = 'user' AND k.id = c.contributor_id AND k.family_id <> NEW.family_id
+       AND ((c.item_kind = 'track' AND c.item_id IN (SELECT id FROM music_tracks_all WHERE user_id = NEW.user_id))
+         OR (c.item_kind = 'book' AND c.item_id IN (SELECT id FROM audiobook_books_all WHERE user_id = NEW.user_id))
+         OR (c.item_kind = 'podcast' AND c.item_id IN (SELECT id FROM podcast_feeds WHERE user_id = NEW.user_id)));
+    PERFORM music_link_tracks(NEW.user_id);
     UPDATE audiobook_books_all SET author = author WHERE user_id = NEW.user_id;
     UPDATE podcast_feeds SET author = author WHERE user_id = NEW.user_id;
     RETURN NULL;

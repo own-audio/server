@@ -246,3 +246,180 @@ pub async fn merge_albums(pool: &PgPool, family_id: Uuid, from: Uuid, into: Uuid
     tx.commit().await.context("db: commit merge albums")?;
     Ok(true)
 }
+
+/// One credit as someone set it by hand.
+pub struct CreditInput {
+    pub contributor_id: Uuid,
+    pub role: String,
+    pub credited_as: Option<String>,
+}
+
+/// The household's contributor of that name, made if new and kept by the
+/// orphan sweep (someone chose it).
+pub async fn contributor_named(pool: &PgPool, family_id: Uuid, name: &str) -> anyhow::Result<Uuid> {
+    let id: Uuid = sqlx::query_scalar("SELECT music_contributor($1, $2, NULL)")
+        .bind(family_id)
+        .bind(name.trim())
+        .fetch_one(pool)
+        .await
+        .context("db: contributor by name")?;
+    Ok(id)
+}
+
+/// Whether every one of `ids` is a contributor of the household.
+pub async fn all_in_household(pool: &PgPool, family_id: Uuid, ids: &[Uuid]) -> anyhow::Result<bool> {
+    let n: i64 = sqlx::query_scalar("SELECT count(DISTINCT id) FROM contributors WHERE family_id = $1 AND id = ANY($2)")
+        .bind(family_id)
+        .bind(ids)
+        .fetch_one(pool)
+        .await
+        .context("db: contributors in household")?;
+    let distinct: std::collections::HashSet<&Uuid> = ids.iter().collect();
+    Ok(n == distinct.len() as i64)
+}
+
+/// An item's credits set by hand (docs/api-v2-plan.md, V3c). Every role in
+/// `credits` becomes exactly what is given and stays so whatever the tags say
+/// (`music_role_corrected`); a role corrected before and absent now goes back
+/// to the tags. Albums have no tags to go back to: their credits are replaced
+/// whole.
+pub async fn set_credits(pool: &PgPool, kind: &str, item: Uuid, credits: &[CreditInput]) -> anyhow::Result<()> {
+    let roles: Vec<String> = {
+        let mut r: Vec<String> = credits.iter().map(|c| c.role.clone()).collect();
+        r.sort();
+        r.dedup();
+        r
+    };
+    let mut tx = pool.begin().await.context("db: begin set credits")?;
+    if kind == "album" {
+        sqlx::query("DELETE FROM credits WHERE item_kind = 'album' AND item_id = $1")
+            .bind(item)
+            .execute(&mut *tx)
+            .await
+            .context("db: clear album credits")?;
+    } else {
+        sqlx::query(
+            "DELETE FROM credits WHERE item_kind = $1 AND item_id = $2 AND (role = ANY($3) OR source = 'user')",
+        )
+        .bind(kind)
+        .bind(item)
+        .bind(&roles)
+        .execute(&mut *tx)
+        .await
+        .context("db: clear corrected roles")?;
+    }
+    let mut positions: std::collections::HashMap<&str, i16> = std::collections::HashMap::new();
+    for c in credits {
+        let position = positions.entry(c.role.as_str()).or_insert(0);
+        sqlx::query(
+            "INSERT INTO credits (contributor_id, item_kind, item_id, role, position, credited_as, source)
+             VALUES ($1, $2, $3, $4, $5, $6, 'user') ON CONFLICT DO NOTHING",
+        )
+        .bind(c.contributor_id)
+        .bind(kind)
+        .bind(item)
+        .bind(&c.role)
+        .bind(*position)
+        .bind(c.credited_as.as_deref().map(str::trim).filter(|s| !s.is_empty()))
+        .execute(&mut *tx)
+        .await
+        .context("db: set credit")?;
+        *position += 1;
+    }
+    // Roles given back to the tags are rewritten from them now.
+    let relink = match kind {
+        "track" => Some("UPDATE music_tracks_all SET artist = artist WHERE id = $1"),
+        "book" => Some("UPDATE audiobook_books_all SET author = author WHERE id = $1"),
+        "podcast" => Some("UPDATE podcast_feeds SET author = author WHERE id = $1"),
+        _ => None,
+    };
+    if let Some(sql) = relink {
+        sqlx::query(sql).bind(item).execute(&mut *tx).await.context("db: relink after credits")?;
+    }
+    sqlx::query("SELECT music_credit_joins($1, $2)")
+        .bind(kind)
+        .bind(item)
+        .execute(&mut *tx)
+        .await
+        .context("db: join phrases")?;
+    if kind == "album" {
+        sqlx::query(
+            "UPDATE albums a SET artist_display = l.line, edited_at = now(), updated_at = now()
+               FROM (SELECT string_agg(k.name || c.join_phrase, '' ORDER BY c.position) AS line
+                       FROM credits c JOIN contributors k ON k.id = c.contributor_id
+                      WHERE c.item_kind = 'album' AND c.item_id = $1 AND c.role = 'artist') l
+              WHERE a.id = $1 AND l.line IS NOT NULL",
+        )
+        .bind(item)
+        .execute(&mut *tx)
+        .await
+        .context("db: album line")?;
+    }
+    tx.commit().await.context("db: commit set credits")?;
+    Ok(())
+}
+
+/// What a correction may change on an album besides its title.
+#[derive(Default)]
+pub struct AlbumDetails {
+    pub title: Option<String>,
+    pub release_date: Option<Option<String>>,
+    pub country: Option<Option<String>>,
+    pub label: Option<Option<String>>,
+    pub barcode: Option<Option<String>>,
+}
+
+/// Sets what is given; `Some(None)` clears. Marks the album corrected.
+pub async fn update_album(pool: &PgPool, family_id: Uuid, id: Uuid, d: &AlbumDetails) -> anyhow::Result<bool> {
+    Ok(sqlx::query(
+        "UPDATE albums SET
+            title        = COALESCE($3, title),
+            release_date = CASE WHEN $4 THEN $5 ELSE release_date END,
+            country      = CASE WHEN $6 THEN $7 ELSE country END,
+            label        = CASE WHEN $8 THEN $9 ELSE label END,
+            barcode      = CASE WHEN $10 THEN $11 ELSE barcode END,
+            edited_at = now(), updated_at = now()
+          WHERE id = $1 AND family_id = $2",
+    )
+    .bind(id)
+    .bind(family_id)
+    .bind(d.title.as_deref().map(str::trim))
+    .bind(d.release_date.is_some())
+    .bind(d.release_date.clone().flatten())
+    .bind(d.country.is_some())
+    .bind(d.country.clone().flatten())
+    .bind(d.label.is_some())
+    .bind(d.label.clone().flatten())
+    .bind(d.barcode.is_some())
+    .bind(d.barcode.clone().flatten())
+    .execute(pool)
+    .await
+    .context("db: update album")?
+    .rows_affected()
+        == 1)
+}
+
+/// A contributor's sort name and kind, corrected by hand.
+pub async fn describe_contributor(
+    pool: &PgPool,
+    family_id: Uuid,
+    id: Uuid,
+    sort_name: Option<Option<&str>>,
+    kind: Option<&str>,
+) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE contributors SET
+            sort_name = CASE WHEN $3 THEN $4 ELSE sort_name END,
+            kind = COALESCE($5, kind), edited_at = now(), updated_at = now()
+          WHERE id = $1 AND family_id = $2",
+    )
+    .bind(id)
+    .bind(family_id)
+    .bind(sort_name.is_some())
+    .bind(sort_name.flatten().map(str::trim).filter(|s| !s.is_empty()))
+    .bind(kind)
+    .execute(pool)
+    .await
+    .context("db: describe contributor")?;
+    Ok(())
+}

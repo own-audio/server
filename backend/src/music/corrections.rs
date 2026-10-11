@@ -11,7 +11,7 @@ use crate::app::AppState;
 use crate::auth::error::AuthError;
 use crate::db;
 use crate::db::entities::Renamed;
-use crate::families::FamilyContext;
+use crate::families::{FamilyAdmin, FamilyContext};
 use axum::extract::{Json, Path, State};
 use axum::http::StatusCode;
 use serde::{Deserialize, Serialize};
@@ -127,12 +127,11 @@ async fn rename_artist(
         (status = 200, description = "The artist that stays", body = ContributorRef),
         (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn merge_artist(
-    family: FamilyContext,
+    FamilyAdmin(family): FamilyAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<MergeRequest>,
 ) -> Result<Json<ContributorRef>, AuthError> {
-    family.require_family_admin()?;
     if body.into == id {
         return Err(AuthError::BadRequest("an artist cannot be merged into itself".into()));
     }
@@ -160,12 +159,11 @@ async fn merge_artist(
         (status = 200, description = "The artists it became, in order", body = Vec<ContributorRef>),
         (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn split_artist(
-    family: FamilyContext,
+    FamilyAdmin(family): FamilyAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<SplitArtistRequest>,
 ) -> Result<Json<Vec<ContributorRef>>, AuthError> {
-    family.require_family_admin()?;
     let mut names: Vec<String> = Vec::new();
     for name in body.names.iter().map(|n| n.trim()).filter(|n| !n.is_empty()) {
         if !names.iter().any(|seen| seen.to_lowercase() == name.to_lowercase()) {
@@ -240,12 +238,11 @@ async fn set_album_release_group(
         (status = 204, description = "Merged"),
         (status = 403, description = "Not a family admin", body = crate::http::openapi::ErrorBody)))]
 async fn merge_album(
-    family: FamilyContext,
+    FamilyAdmin(family): FamilyAdmin,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<MergeRequest>,
 ) -> Result<StatusCode, AuthError> {
-    family.require_family_admin()?;
     if body.into == id {
         return Err(AuthError::BadRequest("an album cannot be merged into itself".into()));
     }
