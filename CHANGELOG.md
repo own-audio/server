@@ -7,7 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-Contract revision 7.
+## [1.0.0-beta.5] - 2026-10-11
+
+Contract revision 7. The security release: phases 1–3 of the hardening plan,
+with the apps' side still to come (a client must handle the two-factor
+`202`, see `docs/API_COMPATIBILITY.md` §7, before anyone turns it on).
 
 ### Security
 - Access tokens live one hour by default, not seven days (`AUTH__ACCESS_TTL_SECS`);
