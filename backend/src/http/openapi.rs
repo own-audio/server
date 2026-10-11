@@ -96,7 +96,7 @@ pub fn document() -> utoipa::openapi::OpenApi {
 /// in the document the method and path are already there. The first
 /// paragraph becomes the summary, the rest the description. Operation ids
 /// get their tag in front, since handler names repeat across modules.
-fn tidy(op: &mut utoipa::openapi::path::Operation) {
+pub(crate) fn tidy(op: &mut utoipa::openapi::path::Operation) {
     let text = [op.summary.take(), op.description.take()].into_iter().flatten().collect::<Vec<_>>().join("\n\n");
     let text = text.trim_start();
     let text = match text.split_once(' ') {

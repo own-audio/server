@@ -1,0 +1,371 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "own.audio API v2",
+    "description": "The own.audio API (own-audio/api design/DESIGN.md). Draft until our apps ship on it: it may change in any way until then.",
+    "license": {
+      "name": "AGPL-3.0-or-later",
+      "identifier": "AGPL-3.0-or-later"
+    },
+    "version": "2.0-draft"
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This server"
+    }
+  ],
+  "paths": {
+    "/.well-known/own-audio": {
+      "get": {
+        "tags": [
+          "discovery"
+        ],
+        "summary": "What this server is and offers",
+        "operationId": "discovery_well_known",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Discovery"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
+        ],
+        "x-permission": "public"
+      }
+    },
+    "/api/v2/me": {
+      "get": {
+        "tags": [
+          "me"
+        ],
+        "summary": "The signed-in account and its household",
+        "operationId": "me_me",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "x-permission": "user"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ApiVersion": {
+        "type": "object",
+        "required": [
+          "version",
+          "path",
+          "revision",
+          "status"
+        ],
+        "properties": {
+          "version": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "status": {
+            "type": "string",
+            "description": "`stable`, or `draft` while the version may still change in any way."
+          }
+        }
+      },
+      "AuthMethods": {
+        "type": "object",
+        "required": [
+          "password",
+          "providers",
+          "device_grant",
+          "totp",
+          "password_reset"
+        ],
+        "properties": {
+          "password": {
+            "type": "boolean",
+            "description": "Email and password (`grant_type=password`)."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Identity providers whose id token the server accepts."
+          },
+          "device_grant": {
+            "type": "boolean",
+            "description": "TVs and cars: the device authorization grant (RFC 8628)."
+          },
+          "totp": {
+            "type": "boolean",
+            "description": "A second factor from an authenticator app."
+          },
+          "password_reset": {
+            "type": "boolean"
+          }
+        }
+      },
+      "Discovery": {
+        "type": "object",
+        "required": [
+          "name",
+          "edition",
+          "version",
+          "api",
+          "auth",
+          "modules",
+          "addresses",
+          "limits"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The server's stable id: a client trusts a server by it, whichever address answered."
+          },
+          "name": {
+            "type": "string"
+          },
+          "edition": {
+            "type": "string",
+            "description": "`core` for the open-source server; editions name themselves."
+          },
+          "version": {
+            "type": "string"
+          },
+          "api": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ApiVersion"
+            },
+            "description": "Every API this server speaks."
+          },
+          "auth": {
+            "$ref": "#/components/schemas/AuthMethods"
+          },
+          "modules": {
+            "type": "object",
+            "description": "Optional capabilities, one key each; a missing key reads as `false`."
+          },
+          "addresses": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Where the server answers, `scope` one of `public`, `lan`, `vpn`. A client\nraces them and keeps the fastest that answers with the same `id`."
+          },
+          "limits": {
+            "$ref": "#/components/schemas/Limits"
+          }
+        }
+      },
+      "FieldError": {
+        "type": "object",
+        "required": [
+          "field",
+          "code"
+        ],
+        "properties": {
+          "field": {
+            "type": "string",
+            "description": "The field, as a JSON Pointer into the request body or the query parameter's name."
+          },
+          "code": {
+            "type": "string"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Limits": {
+        "type": "object",
+        "required": [
+          "list_limit_default",
+          "list_limit_max"
+        ],
+        "properties": {
+          "list_limit_default": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "list_limit_max": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Me": {
+        "type": "object",
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "email_verified",
+          "instance_role",
+          "family"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "display_name": {
+            "type": "string"
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "instance_role": {
+            "type": "string",
+            "description": "`admin` runs the server; `user` is everyone else."
+          },
+          "family": {
+            "$ref": "#/components/schemas/MeFamily"
+          }
+        }
+      },
+      "MeFamily": {
+        "type": "object",
+        "required": [
+          "id",
+          "role",
+          "can_upload",
+          "can_generate"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string",
+            "description": "`admin` or `member`."
+          },
+          "can_upload": {
+            "type": "boolean",
+            "description": "What the caller may do in it, family admins' rights included."
+          },
+          "can_generate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ProblemBody": {
+        "type": "object",
+        "description": "The body of every v2 error.",
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "`urn:own-audio:problem:<code>`."
+          },
+          "title": {
+            "type": "string",
+            "description": "The status's reason phrase."
+          },
+          "status": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "code": {
+            "type": "string",
+            "description": "Stable and machine-readable: `not_found`, `invalid_body`, `rate_limited`…"
+          },
+          "detail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What went wrong, in English, for people; not meant to be matched on."
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FieldError"
+            },
+            "description": "One entry per invalid field."
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "An access token from `POST /api/v2/auth/token`."
+      }
+    }
+  }
+}

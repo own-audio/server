@@ -32,6 +32,38 @@ pub const API_REVISION: u32 = 8;
     responses((status = 200, description = "`id`, `name`, `edition`, `version`, `api` {version, revision}, `addresses` [{url, scope}], `features`, `deprecations`, optional `demo`", body = Object)))]
 pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     let cfg = state.config();
+    let features = features(&state);
+
+    // Only a public demo sets this; everywhere else the key is absent.
+    let demo = cfg.server.demo.as_ref().map(|d| json!({ "email": d.email, "password": d.password }));
+
+    // A database without the row is a broken install; the key is then
+    // absent rather than the whole endpoint failing, since clients ask this
+    // before anything else.
+    let id = crate::db::instance::id(state.db()).await.ok();
+
+    let mut body = json!({
+        "name": "own.audio",
+        "edition": state.hooks().edition(),
+        "version": env!("CARGO_PKG_VERSION"),
+        "api": { "version": API_VERSION, "revision": API_REVISION },
+        "addresses": addresses(cfg.server.base_url.as_deref(), cfg.server.addresses.as_deref()),
+        "features": Value::Object(features),
+        "deprecations": [],
+    });
+    if let Some(id) = id {
+        body["id"] = json!(id);
+    }
+    if let Some(demo) = demo {
+        body["demo"] = demo;
+    }
+    Json(body)
+}
+
+/// What this server offers, one key per optional capability (`features` in
+/// `/api/v1/server`, `modules` in `/.well-known/own-audio`).
+pub fn features(state: &AppState) -> Map<String, Value> {
+    let cfg = state.config();
     let providers = crate::auth::providers_response(&cfg.auth);
 
     let mut features = Map::new();
@@ -78,38 +110,14 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
     for (k, v) in state.hooks().features() {
         features.insert(k, v);
     }
-
-    // Only a public demo sets this; everywhere else the key is absent.
-    let demo = cfg.server.demo.as_ref().map(|d| json!({ "email": d.email, "password": d.password }));
-
-    // A database without the row is a broken install; the key is then
-    // absent rather than the whole endpoint failing, since clients ask this
-    // before anything else.
-    let id = crate::db::instance::id(state.db()).await.ok();
-
-    let mut body = json!({
-        "name": "own.audio",
-        "edition": state.hooks().edition(),
-        "version": env!("CARGO_PKG_VERSION"),
-        "api": { "version": API_VERSION, "revision": API_REVISION },
-        "addresses": addresses(cfg.server.base_url.as_deref(), cfg.server.addresses.as_deref()),
-        "features": Value::Object(features),
-        "deprecations": [],
-    });
-    if let Some(id) = id {
-        body["id"] = json!(id);
-    }
-    if let Some(demo) = demo {
-        body["demo"] = demo;
-    }
-    Json(body)
+    features
 }
 
 /// `base_url` first, then `SERVER__ADDRESSES`, each once, with where it is
 /// reachable from. A client races them and keeps the fastest that answers with
 /// the same `id`; `scope` only tells it what to expect (a `lan` address is
 /// worth trying at home, a `vpn` one when a VPN is up).
-fn addresses(base_url: Option<&str>, extra: Option<&str>) -> Value {
+pub fn addresses(base_url: Option<&str>, extra: Option<&str>) -> Value {
     let mut seen = Vec::<String>::new();
     let candidates = base_url.into_iter().chain(extra.unwrap_or_default().split(','));
     for raw in candidates {

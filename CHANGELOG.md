@@ -8,6 +8,13 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- `/api/v2`, in draft beside v1 (`docs/api-v2-plan.md`): its own OpenAPI
+  document (`docs/api/openapi-v2.json`), errors as RFC 9457 problem details
+  with a stable `code`, cursor-paged lists, every operation declaring who may
+  call it (`x-permission`, checked by the conformance suite), `GET /me`. Draft
+  means it may still change in any way until our apps ship on it.
+- `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
+  methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings
   and genres, per household, following MusicBrainz (migration 0100,
   `docs/data-model-plan.md`). The server derives them from the tags and keeps

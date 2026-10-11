@@ -150,6 +150,32 @@ class Ctx:
             return out
         return json.loads(out) if out and status != 204 else None
 
+    def request(
+        self,
+        method: str,
+        path: str,
+        token: str | None = None,
+        body: Any = None,
+        headers: dict[str, str] | None = None,
+    ) -> tuple[int, dict[str, str], bytes]:
+        """One HTTP call, whatever its status: (status, headers with lower-case names, body)."""
+        hdrs = {"Accept": "application/json", "User-Agent": USER_AGENT}
+        hdrs.update(headers or {})
+        if token:
+            hdrs["Authorization"] = f"Bearer {token}"
+        data = None
+        if isinstance(body, bytes):
+            data = body
+        elif body is not None:
+            data = json.dumps(body).encode()
+            hdrs.setdefault("Content-Type", "application/json")
+        req = urllib.request.Request(self.url(path), data=data, headers=hdrs, method=method.upper())
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
+        except urllib.error.HTTPError as e:
+            return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
+
     def status_of(self, method: str, path: str, token: str | None = None, body: Any = None) -> int:
         """The status code of a call, whatever it is."""
         try:

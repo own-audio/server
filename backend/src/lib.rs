@@ -40,4 +40,5 @@ pub mod subsonic;
 pub mod trash;
 pub mod uploads;
 pub mod users;
+pub mod v2;
 pub mod youtube;
