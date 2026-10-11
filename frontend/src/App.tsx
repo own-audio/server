@@ -16,6 +16,7 @@ const AudiobooksPage = lazyPage(() => import("./pages/audiobooks/AudiobooksPage"
 const OrganizeRedirect = lazyPage(() => import("./pages/audiobooks/Organize").then((m) => ({ default: m.OrganizeRedirect })));
 const MusicPage = lazyPage(() => import("./pages/music/MusicPage"));
 const DuplicatesPage = lazyPage(() => import("./pages/music/MusicTools"));
+const IdentifyRunsPage = lazyPage(() => import("./pages/music/IdentifyRuns"));
 const SettingsPage = lazyPage(() => import("./pages/settings/SettingsPage"));
 const PlaybackSettingsPage = lazyPage(() => import("./pages/settings/PlaybackSettingsPage"));
 const PrivatePage = lazyPage(() => import("./pages/library/PrivatePage"));
@@ -104,6 +105,8 @@ export default function App({ extraRoutes }: AppProps = {}) {
           <Route path="music/playlists/:playlistId" element={<MusicPage />} />
           {/* Its own page, not a MusicPage mode, so it needs the section colour set here. */}
           <Route path="music/duplicates" element={<SectionTheme cloud="music"><DuplicatesPage /></SectionTheme>} />
+          <Route path="music/identify" element={<FeatureGate feature="identify_library"><SectionTheme cloud="music"><IdentifyRunsPage /></SectionTheme></FeatureGate>} />
+          <Route path="music/identify/:runId" element={<FeatureGate feature="identify_library"><SectionTheme cloud="music"><IdentifyRunsPage /></SectionTheme></FeatureGate>} />
           <Route path="music/downloads" element={<MusicPage />} />
 
           {/* Hosted-only features: on a server that reports them false these routes go home. */}

@@ -21,6 +21,8 @@ export interface ServerFeatures {
   };
   uploads: { presigned: boolean; multipart_max_bytes: number | null };
   music_identify: boolean;
+  /** Revision 10: identify runs over a library, folder or album (`/api/v2/identify`). */
+  identify_library: boolean;
   podcast_discovery: boolean;
   /** Revision 5: search works (maybe Apple's directory, without discovery's catalogue). */
   podcast_search: boolean;
@@ -52,6 +54,7 @@ export const NO_FEATURES: ServerFeatures = {
   auth: { local: true, google: false, apple: false, microsoft: false },
   uploads: { presigned: true, multipart_max_bytes: null },
   music_identify: false,
+  identify_library: false,
   podcast_discovery: false,
   podcast_search: false,
   file_sync: true,

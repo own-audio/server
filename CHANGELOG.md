@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Web console: Music → Identify library. Start a run for the whole library or
+  one folder, accept the sure matches at once, review the rest song by song or
+  album by album, pick another edition, undo a run. Songs matched to another
+  artist are left out of "accept album".
+
 ## [1.0.0-beta.10] - 2026-10-11
 
 ### Added

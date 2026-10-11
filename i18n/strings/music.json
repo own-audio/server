@@ -1151,5 +1151,280 @@
   "music.share.nobody": {
     "en": "There is nobody else in your family yet.",
     "cs": "Ve vaší rodině zatím nikdo další není."
+  },
+  "music.browse.identifyLibrary": {
+    "en": "Identify library",
+    "cs": "Identifikovat knihovnu",
+    "note": "Music header button that opens identify runs."
+  },
+  "music.identifyRuns.title": {
+    "en": "Identify library",
+    "cs": "Identifikace knihovny"
+  },
+  "music.identifyRuns.intro": {
+    "en": "Matches your songs against MusicBrainz in the background, then shows what it found: accept the sure matches at once, look at the rest one by one. Your files are never changed, and a run can be undone. Against the public MusicBrainz service it does about one album a second, so a large library takes a while.",
+    "cs": "Porovná vaše skladby s MusicBrainz na pozadí a pak ukáže, co našel: jisté shody přijmete najednou, ostatní projdete jednu po druhé. Vaše soubory se nikdy nemění a běh jde vrátit. S veřejnou službou MusicBrainz zvládne zhruba jedno album za sekundu, takže velká knihovna chvíli trvá."
+  },
+  "music.identifyRuns.scope.label": {
+    "en": "What to identify",
+    "cs": "Co identifikovat"
+  },
+  "music.identifyRuns.scope.library": {
+    "en": "Whole library",
+    "cs": "Celá knihovna"
+  },
+  "music.identifyRuns.scope.folder": {
+    "en": "Folder {path}",
+    "cs": "Složka {path}",
+    "note": "A read-only library folder on the server."
+  },
+  "music.identifyRuns.scope.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.identifyRuns.scope.playlist": {
+    "en": "Playlist",
+    "cs": "Playlist"
+  },
+  "music.identifyRuns.scope.artist": {
+    "en": "Artist",
+    "cs": "Interpret"
+  },
+  "music.identifyRuns.scope.tracks": {
+    "en": "Selected songs",
+    "cs": "Vybrané skladby"
+  },
+  "music.identifyRuns.start": {
+    "en": "Start",
+    "cs": "Spustit",
+    "note": "Button: starts an identify run."
+  },
+  "music.identifyRuns.startFailed": {
+    "en": "Couldn't start identifying",
+    "cs": "Identifikaci se nepodařilo spustit"
+  },
+  "music.identifyRuns.emptyTitle": {
+    "en": "No runs yet",
+    "cs": "Zatím žádné běhy"
+  },
+  "music.identifyRuns.emptyDescription": {
+    "en": "Start one above. Only songs that are not identified yet are looked at.",
+    "cs": "Spusťte běh výše. Prochází jen skladby, které ještě nejsou identifikované."
+  },
+  "music.identifyRuns.summary": {
+    "en": "{sure, number} sure · {review, number} to review · {none, number} not found · {accepted, number} accepted",
+    "cs": "{sure, number} jistých · {review, number} ke kontrole · {none, number} nenalezeno · {accepted, number} přijato"
+  },
+  "music.identifyRuns.progress": {
+    "en": "{done, number} of {total, number} albums and songs looked up ({tracks, number} songs)",
+    "cs": "Prohledáno {done, number} z {total, number} alb a skladeb ({tracks, number} skladeb)"
+  },
+  "music.identifyRuns.status.queued": {
+    "en": "Queued",
+    "cs": "Ve frontě"
+  },
+  "music.identifyRuns.status.running": {
+    "en": "Identifying",
+    "cs": "Identifikuje se"
+  },
+  "music.identifyRuns.status.waiting": {
+    "en": "Waiting",
+    "cs": "Čeká",
+    "note": "MusicBrainz asked us to slow down; the run resumes by itself."
+  },
+  "music.identifyRuns.status.ready": {
+    "en": "Ready",
+    "cs": "Hotovo"
+  },
+  "music.identifyRuns.status.failed": {
+    "en": "Failed",
+    "cs": "Selhalo"
+  },
+  "music.identifyRuns.status.cancelled": {
+    "en": "Cancelled",
+    "cs": "Zrušeno"
+  },
+  "music.identifyRuns.waiting": {
+    "en": "MusicBrainz is busy. The run waits and carries on by itself.",
+    "cs": "MusicBrainz je přetížený. Běh počká a pokračuje sám."
+  },
+  "music.identifyRuns.nothingToDo": {
+    "en": "Every song here is already identified.",
+    "cs": "Všechny skladby tady už jsou identifikované."
+  },
+  "music.identifyRuns.tab.review": {
+    "en": "To review",
+    "cs": "Ke kontrole"
+  },
+  "music.identifyRuns.tab.sure": {
+    "en": "Sure",
+    "cs": "Jisté"
+  },
+  "music.identifyRuns.tab.none": {
+    "en": "Not found",
+    "cs": "Nenalezeno"
+  },
+  "music.identifyRuns.tab.decided": {
+    "en": "Done",
+    "cs": "Vyřízené"
+  },
+  "music.identifyRuns.empty.review": {
+    "en": "Nothing to review",
+    "cs": "Nic ke kontrole"
+  },
+  "music.identifyRuns.empty.sure": {
+    "en": "No sure matches waiting",
+    "cs": "Žádné jisté shody nečekají"
+  },
+  "music.identifyRuns.empty.none": {
+    "en": "Nothing left unfound",
+    "cs": "Nic nezůstalo nenalezeno"
+  },
+  "music.identifyRuns.empty.decided": {
+    "en": "Nothing accepted or rejected yet",
+    "cs": "Zatím nic přijato ani odmítnuto"
+  },
+  "music.identifyRuns.stillLooking": {
+    "en": "Still looking — more will appear as the run goes on.",
+    "cs": "Pořád se hledá — další přibudou, jak běh pokračuje."
+  },
+  "music.identifyRuns.more": {
+    "en": "Show more",
+    "cs": "Zobrazit další"
+  },
+  "music.identifyRuns.acceptAllSure": {
+    "en": "{count, plural, one {Accept # sure match} other {Accept # sure matches}}",
+    "cs": "{count, plural, one {Přijmout # jistou shodu} few {Přijmout # jisté shody} other {Přijmout # jistých shod}}"
+  },
+  "music.identifyRuns.acceptedSure": {
+    "en": "{count, plural, one {# song identified} other {# songs identified}}",
+    "cs": "{count, plural, one {Identifikována # skladba} few {Identifikovány # skladby} other {Identifikováno # skladeb}}"
+  },
+  "music.identifyRuns.acceptGroup": {
+    "en": "{count, plural, one {Accept # song} other {Accept all # songs}}",
+    "cs": "{count, plural, one {Přijmout # skladbu} few {Přijmout všechny # skladby} other {Přijmout všech # skladeb}}"
+  },
+  "music.identifyRuns.revert": {
+    "en": "Undo run",
+    "cs": "Vrátit běh"
+  },
+  "music.identifyRuns.revertConfirm": {
+    "en": "Put every song this run identified back the way it was?",
+    "cs": "Vrátit všechny skladby, které tento běh identifikoval, do původního stavu?"
+  },
+  "music.identifyRuns.reverted": {
+    "en": "{count, plural, one {# song put back} other {# songs put back}}",
+    "cs": "{count, plural, one {Vrácena # skladba} few {Vráceny # skladby} other {Vráceno # skladeb}}"
+  },
+  "music.identifyRuns.delete": {
+    "en": "Delete run",
+    "cs": "Smazat běh"
+  },
+  "music.identifyRuns.deleteConfirm": {
+    "en": "Delete this run and its proposals? What you accepted stays.",
+    "cs": "Smazat tento běh a jeho návrhy? Co jste přijali, zůstane."
+  },
+  "music.identifyRuns.actionFailed": {
+    "en": "That didn't work",
+    "cs": "Nepodařilo se"
+  },
+  "music.identifyRuns.otherEdition": {
+    "en": "Other edition",
+    "cs": "Jiná edice",
+    "note": "Pick another release (CD, vinyl, remaster…) of the same album."
+  },
+  "music.identifyRuns.noEditions": {
+    "en": "No other editions were found.",
+    "cs": "Jiné edice se nenašly."
+  },
+  "music.identifyRuns.editionDetail": {
+    "en": "{tracks, number} tracks, {matched, number} matched",
+    "cs": "{tracks, number} skladeb, {matched, number} spárováno"
+  },
+  "music.identifyRuns.chosen": {
+    "en": "In use",
+    "cs": "Použitá",
+    "note": "The edition the proposals are on."
+  },
+  "music.identifyRuns.noChosenEdition": {
+    "en": "No one release fits all these songs, so each was matched on its own. Pick a release to match the whole album to it.",
+    "cs": "Žádné jedno vydání nesedí na všechny tyto skladby, proto se každá párovala zvlášť. Vyberte vydání, ke kterému se má spárovat celé album.",
+    "note": "Shown above the edition list when the album's songs matched different releases, as on a compilation."
+  },
+  "music.identifyRuns.useEdition": {
+    "en": "Use",
+    "cs": "Použít"
+  },
+  "music.identifyRuns.nothingFound": {
+    "en": "Nothing found",
+    "cs": "Nic nenalezeno"
+  },
+  "music.identifyRuns.keepAlbum": {
+    "en": "Keep it on “{album}”",
+    "cs": "Ponechat v albu „{album}“",
+    "note": "For a song from a compilation: identify the song, keep its album."
+  },
+  "music.identifyRuns.accept": {
+    "en": "Accept",
+    "cs": "Přijmout"
+  },
+  "music.identifyRuns.reject": {
+    "en": "Reject",
+    "cs": "Odmítnout"
+  },
+  "music.identifyRuns.decision.pending": {
+    "en": "Pending",
+    "cs": "Čeká"
+  },
+  "music.identifyRuns.decision.accepted": {
+    "en": "Accepted",
+    "cs": "Přijato"
+  },
+  "music.identifyRuns.decision.rejected": {
+    "en": "Rejected",
+    "cs": "Odmítnuto"
+  },
+  "music.identifyRuns.reason.incomplete": {
+    "en": "Part of the album",
+    "cs": "Část alba",
+    "note": "The files are fewer than the release's tracks."
+  },
+  "music.identifyRuns.reason.partial": {
+    "en": "Some songs not on it",
+    "cs": "Některé skladby chybí"
+  },
+  "music.identifyRuns.reason.layout": {
+    "en": "Different numbering",
+    "cs": "Jiné číslování",
+    "note": "Discs or track numbers differ from the files'."
+  },
+  "music.identifyRuns.reason.duplicate": {
+    "en": "Two files, one track",
+    "cs": "Dva soubory, jedna skladba"
+  },
+  "music.identifyRuns.reason.ambiguous": {
+    "en": "Another match as good",
+    "cs": "Stejně dobrá jiná shoda"
+  },
+  "music.identifyRuns.reason.albumDiffers": {
+    "en": "Other album",
+    "cs": "Jiné album",
+    "note": "E.g. a compilation's song matched on its original album."
+  },
+  "music.identifyRuns.reason.artistDiffers": {
+    "en": "Other artist",
+    "cs": "Jiný interpret"
+  },
+  "music.identifyRuns.reason.weak": {
+    "en": "Weak match",
+    "cs": "Slabá shoda"
+  },
+  "music.identifyRuns.reason.notFound": {
+    "en": "Not found",
+    "cs": "Nenalezeno"
+  },
+  "music.identifyRuns.reason.notOnRelease": {
+    "en": "Not on this edition",
+    "cs": "Na této edici není"
   }
 }

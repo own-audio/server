@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Disc3, Download, ListMusic, ListPlus, Plus, Sparkles, Tag, User } from "lucide-react";
+import { Copy, Disc3, Download, ListMusic, ListPlus, Plus, ScanSearch, Sparkles, Tag, User } from "lucide-react";
 import { MusicIcon } from "../../components/ui/CloudIcon";
 import { artistImageUrl, listAlbums, listArtists, listGenres, listPlaylists, listTracks } from "../../api/music";
 import { SplitView, ColumnHeader } from "../../components/shell/SplitView";
@@ -10,6 +10,7 @@ import SectionTheme from "../../components/shell/SectionTheme";
 import { MediaCard, MediaGrid, MediaRow } from "../../components/library/MediaCard";
 import { ViewToggle, SortMenu, FilterField, FilterChips, MoreMenuTrigger } from "../../components/library/BrowseControls";
 import { usePersistedState } from "../../lib/persistedState";
+import { useServerFeatures } from "../../lib/features";
 import { Button, EmptyState, IconButton, Skeleton } from "../../components/ui";
 import SmartPlaylists from "./SmartPlaylists";
 import DownloadsView, { TrackTrailing } from "./Downloads";
@@ -47,6 +48,7 @@ export default function MusicPage() {
   const { pathname } = useLocation();
   const uploading = pathname === "/music/upload";
   const navigate = useNavigate();
+  const { features } = useServerFeatures();
   const [savedMode, setMode] = usePersistedState<MusicMode>("own-audio-music-mode", "songs");
   // Its own URL, so the offline banner can link straight to it.
   const mode: MusicMode = pathname === "/music/downloads" ? "downloads" : savedMode;
@@ -218,6 +220,11 @@ export default function MusicPage() {
         title={t("common.kind.music")}
         actions={
           <>
+            {features.identify_library && (
+              <IconButton size="sm" label={t("music.browse.identifyLibrary")} onClick={() => navigate("/music/identify")}>
+                <ScanSearch className="h-4 w-4" />
+              </IconButton>
+            )}
             <IconButton size="sm" label={t("music.browse.findDuplicates")} onClick={() => navigate("/music/duplicates")}>
               <Copy className="h-4 w-4" />
             </IconButton>
