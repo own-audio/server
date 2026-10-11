@@ -3105,6 +3105,16 @@
               }
             }
           },
+          "202": {
+            "description": "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallenge"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed",
             "content": {
@@ -3626,6 +3636,16 @@
               }
             }
           },
+          "202": {
+            "description": "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallenge"
+                }
+              }
+            }
+          },
           "400": {
             "description": "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed",
             "content": {
@@ -3697,6 +3717,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The password is right and the account has two-factor sign-in on: finish with `POST /auth/totp/verify`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallenge"
                 }
               }
             }
@@ -3827,6 +3857,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaChallenge"
                 }
               }
             }
@@ -4251,6 +4291,257 @@
           {
             "bearer": []
           }
+        ]
+      }
+    },
+    "/api/v1/auth/totp": {
+      "get": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Whether two-factor sign-in is on for this account",
+        "operationId": "auth_status",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TotpStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "delete": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "Turns two-factor sign-in off",
+        "description": "turns two-factor sign-in off. Needs a current\ncode or a recovery code: a stolen session alone cannot remove it.",
+        "operationId": "auth_disable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Two-factor sign-in is off"
+          },
+          "400": {
+            "description": "Not on, or the code is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/totp/enable": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The first code from the app proves it holds the secret; two-factor is switched on and the recovery codes are returned, this once",
+        "operationId": "auth_enable",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No setup pending, or the code is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/totp/setup": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "A fresh secret, pending until the first code confirms it",
+        "description": "a fresh secret, pending until the first\ncode confirms it. `409` while two-factor is already on (turn it off first).",
+        "operationId": "auth_setup",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TotpSetup"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Two-factor sign-in is already on",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/auth/totp/verify": {
+      "post": {
+        "tags": [
+          "auth"
+        ],
+        "summary": "The second step of a sign-in",
+        "operationId": "auth_verify",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The code is wrong",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "The challenge is unknown, spent or expired: sign in again",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited; see `Retry-After`",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {}
         ]
       }
     },
@@ -14948,6 +15239,18 @@
           }
         }
       },
+      "CodeRequest": {
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "The six digits from the app (or, where allowed, a recovery code)."
+          }
+        }
+      },
       "CollectionResponse": {
         "type": "object",
         "required": [
@@ -17484,6 +17787,36 @@
           }
         }
       },
+      "MfaChallenge": {
+        "type": "object",
+        "required": [
+          "mfa_required",
+          "mfa_token",
+          "expires_in_secs",
+          "methods"
+        ],
+        "properties": {
+          "mfa_required": {
+            "type": "boolean",
+            "description": "Always `true`; the field a client switches on."
+          },
+          "mfa_token": {
+            "type": "string",
+            "description": "Presented to `POST /auth/totp/verify` with the code; five minutes."
+          },
+          "expires_in_secs": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "methods": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What finishes it: `totp` (the app's code) or `recovery` (a recovery code)."
+          }
+        }
+      },
       "MicrosoftProviderInfo": {
         "type": "object",
         "description": "Shaped like [`GoogleProviderInfo`]: the desktop client id is all a native\nclient needs, because this side holds the secret and does the exchange.",
@@ -18312,6 +18645,21 @@
           "updated_at": {
             "type": "string",
             "description": "Echo this back on the next write to detect a concurrent change."
+          }
+        }
+      },
+      "RecoveryCodes": {
+        "type": "object",
+        "required": [
+          "recovery_codes"
+        ],
+        "properties": {
+          "recovery_codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Shown once; each works once. Keep them somewhere safe."
           }
         }
       },
@@ -19428,6 +19776,40 @@
           }
         }
       },
+      "TotpSetup": {
+        "type": "object",
+        "required": [
+          "secret",
+          "otpauth_uri"
+        ],
+        "properties": {
+          "secret": {
+            "type": "string",
+            "description": "Base32, for typing into an app by hand."
+          },
+          "otpauth_uri": {
+            "type": "string",
+            "description": "For the QR code the app scans."
+          }
+        }
+      },
+      "TotpStatus": {
+        "type": "object",
+        "required": [
+          "enabled",
+          "recovery_codes_left"
+        ],
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "recovery_codes_left": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Recovery codes not used yet; 0 when two-factor is off."
+          }
+        }
+      },
       "TrackFeedbackRequest": {
         "type": "object",
         "required": [
@@ -20478,6 +20860,23 @@
           "token": {
             "type": "string",
             "description": "The secret from the mailed link."
+          }
+        }
+      },
+      "VerifyRequest": {
+        "type": "object",
+        "required": [
+          "mfa_token",
+          "code"
+        ],
+        "properties": {
+          "mfa_token": {
+            "type": "string",
+            "description": "From the `202` answer of the sign-in call."
+          },
+          "code": {
+            "type": "string",
+            "description": "The six digits from the app, or a recovery code."
           }
         }
       },

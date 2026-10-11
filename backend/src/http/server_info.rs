@@ -47,6 +47,9 @@ pub async fn server_info(State(state): State<AppState>) -> Json<Value> {
             // accounts get a confirmation link (`me.email_verified`).
             "password_reset": crate::auth::password_reset_offered(cfg),
             "email_verification": crate::auth::verification::offered(cfg),
+            // Revision 7: two-factor sign-in with an authenticator app
+            // (`/auth/totp/*`; sign-in answers `202` when it is on).
+            "totp": true,
         }),
     );
     features.insert("uploads".into(), json!({ "presigned": true, "multipart_max_bytes": Value::Null }));

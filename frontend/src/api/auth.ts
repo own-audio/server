@@ -2,9 +2,51 @@
 import api from "./client";
 import type { LoginResponse } from "./types";
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  const { data } = await api.post<LoginResponse>("/auth/login", { email, password, device_kind: "web" });
+/** The password step answers `202` with a challenge when the account has two-factor sign-in on. */
+export interface MfaChallenge {
+  mfa_required: true;
+  mfa_token: string;
+  expires_in_secs: number;
+  methods: string[];
+}
+
+export function isMfaChallenge(r: LoginResponse | MfaChallenge): r is MfaChallenge {
+  return (r as MfaChallenge).mfa_required === true;
+}
+
+export async function login(email: string, password: string): Promise<LoginResponse | MfaChallenge> {
+  const { data } = await api.post<LoginResponse | MfaChallenge>("/auth/login", { email, password, device_kind: "web" });
   return data;
+}
+
+export async function verifyTotp(mfaToken: string, code: string): Promise<LoginResponse> {
+  const { data } = await api.post<LoginResponse>("/auth/totp/verify", { mfa_token: mfaToken, code });
+  return data;
+}
+
+export interface TotpStatus {
+  enabled: boolean;
+  recovery_codes_left: number;
+}
+export interface TotpSetup {
+  secret: string;
+  otpauth_uri: string;
+}
+
+export async function getTotp(): Promise<TotpStatus> {
+  const { data } = await api.get<TotpStatus>("/auth/totp");
+  return data;
+}
+export async function setupTotp(): Promise<TotpSetup> {
+  const { data } = await api.post<TotpSetup>("/auth/totp/setup");
+  return data;
+}
+export async function enableTotp(code: string): Promise<{ recovery_codes: string[] }> {
+  const { data } = await api.post<{ recovery_codes: string[] }>("/auth/totp/enable", { code });
+  return data;
+}
+export async function disableTotp(code: string): Promise<void> {
+  await api.delete("/auth/totp", { data: { code } });
 }
 
 export async function register(

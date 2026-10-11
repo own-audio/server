@@ -124,6 +124,12 @@ Rules:
   show a banner with "resend" (`POST /auth/email/resend`) while it is false
   and treat `403` with `code: email_unverified` (inviting people) as "confirm
   your address first". False: every account is born verified.
+- `auth.totp` (revision 7): two-factor sign-in with an authenticator app is
+  available (`/auth/totp/*`). A client must handle `202` from the sign-in
+  calls — `{ mfa_required: true, mfa_token, expires_in_secs, methods }` — by
+  asking for the six-digit code (or a recovery code) and posting it with the
+  token to `POST /auth/totp/verify`, which answers the usual sign-in body.
+  Accounts without it on never see the `202`.
 - `demo` (revision 2, optional) is present only on a public demo server:
   `{ "email": "…", "password": "…" }`, the shared account a visitor may sign
   in with. Clients may show it on their sign-in screen and offer to fill it
@@ -262,6 +268,9 @@ lives. Clients never parse it, never persist it, and never assume its host.
   email (`error: account_locked`, `Retry-After` in seconds) as well as for
   the per-IP limit (`error: rate_limited`). Treat both as "wait", show the
   seconds; neither says whether the email exists.
+- **Two-factor sign-in** (revision 7): a sign-in call may answer `202`
+  with an `mfa_token`; see §3 `auth.totp`. A client that does not handle it
+  cannot sign such an account in, so handle it before anyone turns it on.
 - **Password reset** (revision 7): `POST /auth/password/forgot` and
   `POST /auth/password/reset`, see §3. A reset signs every session of the
   account out, refresh tokens included; the app signs in again.

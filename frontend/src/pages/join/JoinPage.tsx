@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Users } from "lucide-react";
 import { acceptInvite, claimAccount, previewJoin } from "../../api/family";
-import { login, register } from "../../api/auth";
+import { login, register, isMfaChallenge } from "../../api/auth";
 import { useAuthStore } from "../../store/authStore";
 import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
 import { Button, Input, PasswordInput, Skeleton, toast } from "../../components/ui";
@@ -73,6 +73,11 @@ export default function JoinPage() {
         setAuth(result.token, result.user, result.refresh_token);
       } else {
         const result = await login(email.trim(), password);
+        if (isMfaChallenge(result)) {
+          // The second factor lives on the sign-in page; it comes back here afterwards.
+          navigate(`/auth/login?next=${encodeURIComponent(`/join/${code}`)}`);
+          return;
+        }
         setAuth(result.token, result.user, result.refresh_token);
         // Signing in doesn't redeem the code, so accept it explicitly.
         await acceptInvite(code);

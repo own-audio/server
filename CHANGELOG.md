@@ -53,6 +53,15 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- Two-factor sign-in with an authenticator app (TOTP, RFC 6238) and eight
+  one-time recovery codes, per user, off by default: `GET /auth/totp`,
+  `POST /auth/totp/setup`, `POST /auth/totp/enable`, `DELETE /auth/totp`
+  (needs a code). With it on, `POST /auth/login` and the provider sign-ins
+  answer `202` with an `mfa_token` instead of tokens, and
+  `POST /auth/totp/verify` with the code finishes the sign-in. A code works
+  once; the secret is encrypted at rest. The console's Settings page sets it
+  up (QR code) and the sign-in page asks for the code. `features.auth.totp`.
+  Migration 0098.
 - A sign-in from a device unlike any the account used in the last 90 days
   (by kind and name) is announced to the owner by mail, when mail is
   configured; the demo account is exempt.

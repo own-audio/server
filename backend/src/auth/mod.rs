@@ -8,6 +8,7 @@ pub mod middleware;
 pub mod oidc;
 pub mod password;
 pub mod session;
+pub mod totp;
 pub mod verification;
 
 use crate::app::AppState;
@@ -235,6 +236,10 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(map(routes!(reset_password), |m| limits.login.apply(m)))
         .routes(map(routes!(verification::verify_email), |m| limits.login.apply(m)))
         .routes(map(routes!(verification::resend_verification), |m| limits.login.apply(m)))
+        .routes(routes!(totp::status, totp::disable))
+        .routes(routes!(totp::setup))
+        .routes(routes!(totp::enable))
+        .routes(map(routes!(totp::verify), |m| limits.login.apply(m)))
         .routes(routes!(list_sessions))
         .routes(routes!(delete_session))
         .routes(routes!(admin_create_user))
@@ -254,12 +259,13 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
     request_body = LoginRequest,
     responses(
         (status = 200, body = LoginResponse),
+        (status = 202, description = "The password is right and the account has two-factor sign-in on: finish with `POST /auth/totp/verify`", body = totp::MfaChallenge),
         (status = 401, description = "Unknown account, inactive account or wrong password — deliberately not told apart", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited, or too many wrong passwords for this email (`account_locked`); see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 async fn login(
     State(state): State<AppState>,
     Json(body): Json<LoginRequest>,
-) -> Result<Json<LoginResponse>, AuthError> {
+) -> Result<totp::SignIn, AuthError> {
     let pool = state.db();
 
     // Wrong passwords in a row lock the email for a growing while, whether
@@ -299,17 +305,8 @@ async fn login(
         }
     }
 
-    // Mint access JWT + refresh token (new device chain)
-    let issued = issue_tokens(
-        &state,
-        &user,
-        body.device_name.as_deref(),
-        body.device_kind.as_deref(),
-        None,
-    )
-    .await?;
-
-    Ok(Json(login_response(issued, user)))
+    // Tokens (a new device chain), or the second factor first.
+    totp::finish_sign_in(&state, user, body.device_name.as_deref(), body.device_kind.as_deref(), StatusCode::OK).await
 }
 
 /// How long a mailed reset link works.
@@ -891,6 +888,7 @@ async fn register(
     responses(
         (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
         (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 202, description = "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`", body = totp::MfaChallenge),
         (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
         (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
@@ -898,7 +896,7 @@ async fn register(
 async fn google_sign_in(
     State(state): State<AppState>,
     Json(body): Json<GoogleSignInRequest>,
-) -> Result<(StatusCode, Json<LoginResponse>), AuthError> {
+) -> Result<totp::SignIn, AuthError> {
     let cfg = state
         .config()
         .auth
@@ -931,7 +929,7 @@ async fn google_sign_in(
     };
 
     let identity = oidc::verify_google_id_token(cfg, &id_token).await?;
-    let (status, response) = sso_sign_in(
+    sso_sign_in(
         &state,
         "google",
         identity,
@@ -939,8 +937,7 @@ async fn google_sign_in(
         body.device_kind.as_deref(),
         body.invite_code.as_deref(),
     )
-    .await?;
-    Ok((status, Json(response)))
+    .await
 }
 
 /// POST /api/v1/auth/microsoft
@@ -954,6 +951,7 @@ async fn google_sign_in(
     responses(
         (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
         (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 202, description = "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`", body = totp::MfaChallenge),
         (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
         (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
@@ -961,7 +959,7 @@ async fn google_sign_in(
 async fn microsoft_sign_in(
     State(state): State<AppState>,
     Json(body): Json<GoogleSignInRequest>,
-) -> Result<(StatusCode, Json<LoginResponse>), AuthError> {
+) -> Result<totp::SignIn, AuthError> {
     let cfg = state
         .config()
         .auth
@@ -994,7 +992,7 @@ async fn microsoft_sign_in(
     };
 
     let identity = oidc::verify_microsoft_id_token(cfg, &id_token).await?;
-    let (status, response) = sso_sign_in(
+    sso_sign_in(
         &state,
         "microsoft",
         identity,
@@ -1002,8 +1000,7 @@ async fn microsoft_sign_in(
         body.device_kind.as_deref(),
         body.invite_code.as_deref(),
     )
-    .await?;
-    Ok((status, Json(response)))
+    .await
 }
 
 /// POST /api/v1/auth/apple
@@ -1014,6 +1011,7 @@ async fn microsoft_sign_in(
     responses(
         (status = 200, description = "Signed in to an existing or newly linked account", body = LoginResponse),
         (status = 201, description = "A new account was created", body = LoginResponse),
+        (status = 202, description = "The account has two-factor sign-in on: finish with `POST /auth/totp/verify`", body = totp::MfaChallenge),
         (status = 400, description = "Missing fields, a non-loopback `redirect_uri`, an invalid invite, or registration closed", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "The provider token did not verify, or the account is inactive", body = crate::http::openapi::ErrorBody),
         (status = 409, description = "An account with this email exists and the provider did not verify the address", body = crate::http::openapi::ErrorBody),
@@ -1021,7 +1019,7 @@ async fn microsoft_sign_in(
 async fn apple_sign_in(
     State(state): State<AppState>,
     Json(body): Json<AppleSignInRequest>,
-) -> Result<(StatusCode, Json<LoginResponse>), AuthError> {
+) -> Result<totp::SignIn, AuthError> {
     let cfg = state
         .config()
         .auth
@@ -1035,7 +1033,7 @@ async fn apple_sign_in(
         identity.display_name = Some(full_name.to_string());
     }
 
-    let (status, response) = sso_sign_in(
+    sso_sign_in(
         &state,
         "apple",
         identity,
@@ -1043,8 +1041,7 @@ async fn apple_sign_in(
         body.device_kind.as_deref(),
         body.invite_code.as_deref(),
     )
-    .await?;
-    Ok((status, Json(response)))
+    .await
 }
 
 /// Shared by [`google_sign_in`] and [`apple_sign_in`]: find an existing
@@ -1058,7 +1055,7 @@ async fn sso_sign_in(
     device_name: Option<&str>,
     device_kind: Option<&str>,
     invite_code: Option<&str>,
-) -> Result<(StatusCode, LoginResponse), AuthError> {
+) -> Result<totp::SignIn, AuthError> {
     let pool = state.db();
 
     // 1. Already linked — sign in.
@@ -1073,8 +1070,7 @@ async fn sso_sign_in(
         if !user.is_active {
             return Err(AuthError::InvalidCredentials);
         }
-        let issued = issue_tokens(state, &user, device_name, device_kind, None).await?;
-        return Ok((StatusCode::OK, login_response(issued, user)));
+        return totp::finish_sign_in(state, user, device_name, device_kind, StatusCode::OK).await;
     }
 
     let email = identity.email.trim().to_lowercase();
@@ -1102,8 +1098,7 @@ async fn sso_sign_in(
         db::users::insert_oidc_identity(pool, user.id, provider, &identity.subject)
             .await
             .map_err(AuthError::Internal)?;
-        let issued = issue_tokens(state, &user, device_name, device_kind, None).await?;
-        return Ok((StatusCode::OK, login_response(issued, user)));
+        return totp::finish_sign_in(state, user, device_name, device_kind, StatusCode::OK).await;
     }
 
     // 3. No match — create a fresh account, gated exactly like /auth/register.
@@ -1127,7 +1122,7 @@ async fn sso_sign_in(
     verification::born(state, &user, family_id, proven).await?;
 
     let issued = issue_tokens(state, &user, device_name, device_kind, None).await?;
-    Ok((StatusCode::CREATED, login_response(issued, user)))
+    Ok(totp::SignIn::Tokens(StatusCode::CREATED, login_response(issued, user)))
 }
 
 /// Authorize creating a new account: either open registration, or a valid

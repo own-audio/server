@@ -209,3 +209,39 @@ def run(ctx):
     ctx.check("email/verify refuses a made-up link with 400", True)
     resent = ctx.call("POST", "/api/v1/auth/email/resend", ctx.admin_token)
     ctx.check("email/resend answers sent/verified booleans", isinstance(resent.get("sent"), bool) and isinstance(resent.get("verified"), bool), str(resent))
+
+    # Two-factor sign-in (plan §5.1): set up, enable with a code computed here (RFC 6238, the
+    # same arithmetic an authenticator app does), then a password sign-in answers 202 with a
+    # challenge, a wrong code is refused, the right one signs in, a recovery code turns it off.
+    import base64 as _b64, hmac as _hmac, struct as _struct, time as _time
+    def _totp(secret_b32: str, at: float | None = None) -> str:
+        key = _b64.b32decode(secret_b32 + "=" * (-len(secret_b32) % 8))
+        step = int((at or _time.time()) // 30)
+        digest = _hmac.new(key, _struct.pack(">Q", step), "sha1").digest()
+        off = digest[19] & 0x0F
+        code = (int.from_bytes(digest[off:off + 4], "big") & 0x7FFFFFFF) % 1_000_000
+        return f"{code:06d}"
+    uid, email, tok = ctx.make_user("totp", "TotpTest12345!")
+    st = ctx.call("GET", "/api/v1/auth/totp", tok)
+    ctx.check("two-factor is off for a new account", st.get("enabled") is False, str(st))
+    setup = ctx.call("POST", "/api/v1/auth/totp/setup", tok)
+    ctx.check("totp/setup returns a base32 secret and an otpauth URI",
+              bool(setup.get("secret")) and str(setup.get("otpauth_uri", "")).startswith("otpauth://totp/"), str(setup)[:80])
+    ctx.call("POST", "/api/v1/auth/totp/enable", tok, {"code": "000000"}, expect=(400,))
+    enabled = ctx.call("POST", "/api/v1/auth/totp/enable", tok, {"code": _totp(setup["secret"])})
+    codes = enabled.get("recovery_codes") or []
+    ctx.check("totp/enable with the app's code returns recovery codes", len(codes) == 8, str(len(codes)))
+    st = ctx.call("GET", "/api/v1/auth/totp", tok)
+    ctx.check("two-factor is on with 8 recovery codes left", st.get("enabled") is True and st.get("recovery_codes_left") == 8, str(st))
+    challenge = ctx.call("POST", "/api/v1/auth/login", body={"email": email, "password": "TotpTest12345!"}, expect=(202,))
+    ctx.check("sign-in answers 202 with an mfa_token", challenge.get("mfa_required") is True and bool(challenge.get("mfa_token")), str(challenge)[:80])
+    ctx.call("POST", "/api/v1/auth/totp/verify", body={"mfa_token": challenge["mfa_token"], "code": "000000"}, expect=(400,))
+    # The code used to enable belongs to the current step and works once; the next step is 30 s away.
+    signed = ctx.call("POST", "/api/v1/auth/totp/verify", body={"mfa_token": challenge["mfa_token"], "code": _totp(setup["secret"], _time.time() + 30)})
+    ctx.check("totp/verify with the next code signs in", bool(signed.get("token")) and bool(signed.get("refresh_token")))
+    ctx.call("POST", "/api/v1/auth/totp/verify", body={"mfa_token": challenge["mfa_token"], "code": _totp(setup["secret"], _time.time() + 60)}, expect=(401,))
+    ctx.check("a challenge is spent by one sign-in", True)
+    ctx.call("DELETE", "/api/v1/auth/totp", signed["token"], {"code": codes[0]}, expect=(204,))
+    ctx.check("a recovery code turns two-factor off", True)
+    ctx.call("POST", "/api/v1/auth/login", body={"email": email, "password": "TotpTest12345!"}, expect=(200,))
+    ctx.check("sign-in is a single step again", True)

@@ -2,7 +2,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { login, register, forgotPassword, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
+import { login, register, forgotPassword, verifyTotp, isMfaChallenge, checkRegistrationStatus, getAuthProviders } from "../../api/auth";
 import { getServerInfo } from "../../api/server";
 import GoogleSignInButton from "../../components/GoogleSignInButton";
 import AppleSignInButton from "../../components/AppleSignInButton";
@@ -25,6 +25,9 @@ export default function AuthPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [resetSent, setResetSent] = useState(false);
+  // The password was right and the account has two-factor sign-in on.
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [mfaCode, setMfaCode] = useState("");
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const { setAuth, token } = useAuthStore();
@@ -74,6 +77,11 @@ export default function AuthPage() {
         mode === "login"
           ? await login(email, password)
           : await register(email, password, displayName.trim(), inviteCode.trim() || undefined);
+      if (isMfaChallenge(result)) {
+        setMfaToken(result.mfa_token);
+        setMfaCode("");
+        return;
+      }
       setAuth(result.token, result.user, result.refresh_token);
     } catch (err) {
       if (isRateLimited(err)) return setError(t("auth.error.tooManyAttempts"));
@@ -81,6 +89,57 @@ export default function AuthPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleMfa(e: FormEvent) {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setError(null);
+    setLoading(true);
+    try {
+      const result = await verifyTotp(mfaToken, mfaCode);
+      setAuth(result.token, result.user, result.refresh_token);
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 401) {
+        setMfaToken(null);
+        setError(t("auth.mfa.expired"));
+      } else if (isRateLimited(err)) {
+        setError(t("auth.error.tooManyAttempts"));
+      } else {
+        setError(t("auth.mfa.wrong"));
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (mfaToken) {
+    return (
+      <AuthLayout>
+        <AuthHeading title={t("auth.mfa.title")} subtitle={t("auth.mfa.body")} />
+        <form onSubmit={handleMfa} className="space-y-4" noValidate>
+          <Input
+            label={t("auth.mfa.code")}
+            autoComplete="one-time-code"
+            inputMode="numeric"
+            autoFocus
+            required
+            value={mfaCode}
+            onChange={(e) => setMfaCode(e.target.value)}
+          />
+          <FormError>{error}</FormError>
+          <Button type="submit" size="lg" className="w-full" loading={loading}>
+            {t("auth.mfa.submit")}
+          </Button>
+        </form>
+        <p className="mt-6 text-center text-sm text-muted">
+          <button type="button" onClick={() => setMfaToken(null)} className="font-medium text-accent hover:underline">
+            {t("auth.forgot.back")}
+          </button>
+        </p>
+      </AuthLayout>
+    );
   }
 
   return (

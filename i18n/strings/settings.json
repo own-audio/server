@@ -19,6 +19,26 @@
     "en": "Password",
     "cs": "Heslo"
   },
+  "settings.section.totp": { "en": "Two-factor sign-in", "cs": "Dvoufázové přihlášení" },
+  "settings.section.totpDescription": {
+    "en": "A code from an authenticator app on top of your password.",
+    "cs": "Kód z ověřovací aplikace navíc k heslu."
+  },
+  "settings.totp.offIntro": { "en": "Off. With it on, signing in needs your password and a six-digit code from an app such as Google Authenticator, 1Password or Aegis.", "cs": "Vypnuto. Po zapnutí bude k přihlášení potřeba heslo a šestimístný kód z aplikace jako Google Authenticator, 1Password nebo Aegis." },
+  "settings.totp.setUp": { "en": "Set up", "cs": "Nastavit" },
+  "settings.totp.scanIntro": { "en": "Scan the code with your authenticator app, then enter the six digits it shows.", "cs": "Naskenujte kód ověřovací aplikací a zadejte šest číslic, které ukáže." },
+  "settings.totp.manualEntry": { "en": "Can't scan? Enter this key by hand:", "cs": "Nejde skenovat? Zadejte tento klíč ručně:" },
+  "settings.totp.firstCode": { "en": "Code from the app", "cs": "Kód z aplikace" },
+  "settings.totp.turnOn": { "en": "Turn on", "cs": "Zapnout" },
+  "settings.totp.onIntro": { "en": "On. {left, plural, one {# recovery code} other {# recovery codes}} left — each signs you in once if you lose the app.", "cs": "Zapnuto. Zbývá {left, plural, one {# záložní kód} few {# záložní kódy} other {# záložních kódů}} – každý vás jednou přihlásí, pokud o aplikaci přijdete." },
+  "settings.totp.codeToDisable": { "en": "Code from the app, or a recovery code", "cs": "Kód z aplikace nebo záložní kód" },
+  "settings.totp.turnOff": { "en": "Turn off", "cs": "Vypnout" },
+  "settings.totp.disabled": { "en": "Two-factor sign-in is off.", "cs": "Dvoufázové přihlášení je vypnuté." },
+  "settings.totp.wrongCode": { "en": "That code isn't right.", "cs": "Tento kód není správný." },
+  "settings.totp.error": { "en": "Couldn't change two-factor sign-in.", "cs": "Dvoufázové přihlášení se nepodařilo změnit." },
+  "settings.totp.recoveryTitle": { "en": "Your recovery codes", "cs": "Vaše záložní kódy" },
+  "settings.totp.recoveryBody": { "en": "Shown only now. Keep them somewhere safe; each signs you in once without the app.", "cs": "Zobrazí se jen teď. Uložte si je na bezpečné místo; každý vás jednou přihlásí bez aplikace." },
+  "settings.totp.recoverySaved": { "en": "I've saved them", "cs": "Mám je uložené" },
   "settings.section.devices": {
     "en": "Devices",
     "cs": "Zařízení"

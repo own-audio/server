@@ -18,14 +18,21 @@ struct Inner {
     pub storage: ObjectStore,
     pub hooks: Arc<dyn Hooks>,
     pub at_rest: Cipher,
+    pub totp_cipher: Cipher,
 }
 
 impl AppState {
     pub fn new(config: AppConfig, db: PgPool, storage: ObjectStore, hooks: Arc<dyn Hooks>) -> Self {
         let at_rest = Cipher::derive(&config.auth.session_secret, "subsonic-api-key");
+        let totp_cipher = Cipher::derive(&config.auth.session_secret, "totp-secret");
         Self {
-            inner: Arc::new(Inner { config, db, storage, hooks, at_rest }),
+            inner: Arc::new(Inner { config, db, storage, hooks, at_rest, totp_cipher }),
         }
+    }
+
+    /// Seals authenticator secrets (`auth::totp`), apart from the Subsonic keys.
+    pub fn totp_cipher(&self) -> &Cipher {
+        &self.inner.totp_cipher
     }
 
     /// Encrypts what the database must not hold in the clear (`auth::at_rest`).

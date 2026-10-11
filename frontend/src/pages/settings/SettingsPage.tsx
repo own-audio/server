@@ -25,6 +25,7 @@ import { apiErrorMessage } from "../../lib/apiError";
 import { timeAgo } from "../../lib/format";
 import { cn } from "../../lib/cn";
 import { clearDownloads } from "../../lib/offline/downloads";
+import TotpSection from "./TotpSection";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -431,6 +432,9 @@ export default function SettingsPage() {
       </Section>
       <Section title={t("settings.section.password")}>
         <Password />
+      </Section>
+      <Section title={t("settings.section.totp")} description={t("settings.section.totpDescription")}>
+        <TotpSection />
       </Section>
       <Section title={t("settings.section.devices")} description={t("settings.section.devicesDescription")}>
         <Devices />

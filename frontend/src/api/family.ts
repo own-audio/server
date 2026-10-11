@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import type { LoginResponse } from "./types";
 import api from "./client";
 
 /* The family surface. W6 builds the management UI on top of this; W5 needs
@@ -172,7 +173,7 @@ export async function claimAccount(code: string, password: string) {
     password,
     device_kind: "web",
   });
-  return data as { token: string; refresh_token: string; user: { id: string; email: string; display_name: string; role: string } };
+  return data as LoginResponse;
 }
 
 // ── Age brackets and permissions ──────────────────────────────────────────
