@@ -220,18 +220,18 @@ LANGUAGE sql STABLE AS $$
     SELECT family_id FROM family_members WHERE user_id = p_user
 $$;
 
--- Join phrases from the final list: '; ' between names in one role, ' feat. '
--- where artists give way to guests, nothing after the last. Computed after
--- duplicates are dropped, so no credit ends in a dangling separator.
+-- Join phrases from the final list, per role: '; ' between names in one role,
+-- ' feat. ' after a track's last artist when guests follow, nothing after
+-- the last name of a role. Computed after duplicates are dropped, so no
+-- credit ends in a dangling separator.
 CREATE FUNCTION music_credit_joins(p_kind TEXT, p_item UUID) RETURNS void
 LANGUAGE sql AS $$
     UPDATE credits c SET join_phrase = j.phrase
-      FROM (SELECT id, CASE WHEN lead(role) OVER w IS NULL THEN ''
-                            WHEN lead(role) OVER w = role THEN '; '
-                            WHEN role = 'artist' AND lead(role) OVER w = 'featured' THEN ' feat. '
-                            ELSE '; ' END AS phrase
+      FROM (SELECT id, CASE WHEN lead(role) OVER w IS NOT NULL THEN '; '
+                            WHEN role = 'artist' AND bool_or(role = 'featured') OVER () THEN ' feat. '
+                            ELSE '' END AS phrase
               FROM credits WHERE item_kind = p_kind AND item_id = p_item
-            WINDOW w AS (ORDER BY position)) j
+            WINDOW w AS (PARTITION BY role ORDER BY position)) j
      WHERE c.id = j.id AND c.join_phrase IS DISTINCT FROM j.phrase
 $$;
 
@@ -571,12 +571,12 @@ BEGIN
     SELECT 'album', t.album_id FROM music_tracks_all t JOIN link_src s ON s.id = t.id WHERE t.album_id IS NOT NULL;
     ANALYZE link_items;
     UPDATE credits c SET join_phrase = j.phrase
-      FROM (SELECT cr.id, CASE WHEN lead(cr.role) OVER w IS NULL THEN ''
-                               WHEN lead(cr.role) OVER w = cr.role THEN '; '
-                               WHEN cr.role = 'artist' AND lead(cr.role) OVER w = 'featured' THEN ' feat. '
-                               ELSE '; ' END AS phrase
+      FROM (SELECT cr.id, CASE WHEN lead(cr.role) OVER w IS NOT NULL THEN '; '
+                               WHEN cr.role = 'artist' AND bool_or(cr.role = 'featured') OVER item THEN ' feat. '
+                               ELSE '' END AS phrase
               FROM credits cr JOIN link_items li ON li.kind = cr.item_kind AND li.id = cr.item_id
-            WINDOW w AS (PARTITION BY cr.item_kind, cr.item_id ORDER BY cr.position)) j
+            WINDOW w AS (PARTITION BY cr.item_kind, cr.item_id, cr.role ORDER BY cr.position),
+                   item AS (PARTITION BY cr.item_kind, cr.item_id)) j
      WHERE c.id = j.id AND c.join_phrase IS DISTINCT FROM j.phrase;
 
     INSERT INTO genres (family_id, name, key)

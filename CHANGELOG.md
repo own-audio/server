@@ -34,6 +34,22 @@ semver. Each release states the **API contract revision** it serves
 - Stars, ratings and photos of artists and albums belong to the entities:
   per household, kept across retags and spelling. `GET/POST/DELETE
   /music/artists/image*` take `artist_id` as well as `artist` (the name).
+- Books credit the same contributors as music (migration 0102): authors and
+  narrators come from a book's `author` / `narrator` text (`;` or ` & `
+  between names — "Terry Pratchett & Neil Gaiman" is two authors) and links
+  made by hand are kept. Someone who narrates and sings is one contributor.
+  `audiobook_authors` is gone; `/audiobooks/authors` lists, edits and links
+  the household's contributors, with photos shared with the music side.
+  Roles are `author`, `co_author`, `narrator`, `translator`, `editor`,
+  `illustrator`.
+
+### Security
+- `/audiobooks/authors` was one list for the whole server: every household
+  saw every other's authors and tags, could edit or delete any author by id,
+  and could link authors to or set tags on any book by id. Authors and tags
+  are per household now; reading a book's credits or tags needs the book to
+  be visible, changing them needs its owner, and deleting a contributor
+  needs a family admin.
   Entities nothing refers to any more are removed by the daily sweep.
 
 ## [1.0.0-beta.6] - 2026-10-11

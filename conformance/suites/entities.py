@@ -92,3 +92,34 @@ def run(ctx: Ctx) -> None:
     rest("unstar", albumId=album_id, artistId=solo_id)
     starred = rest("getStarred2")["starred2"]
     ctx.check("unstar removes both", not starred.get("album") and not starred.get("artist"), str(starred)[:120])
+
+    # Books credit the same contributors (E3): authors and narrators from the text fields,
+    # "A & B" as two authors; changing a book's credits or tags is its owner's.
+    book = ctx.call("POST", "/api/v1/audiobooks", tok,
+                    {"title": f"Credits Book {sfx}", "author": f"Writer {sfx} & Cowriter {sfx}",
+                     "narrator": f"Solo {sfx}", "visibility": "family"})
+    credits = ctx.call("GET", f"/api/v1/audiobooks/authors/book/{book['id']}", tok)
+    roles = sorted((c["role"], c["author_name"]) for c in credits)
+    ctx.check("a book's author text becomes credits, 'A & B' as two authors",
+              roles == sorted([("author", f"Writer {sfx}"), ("author", f"Cowriter {sfx}"), ("narrator", f"Solo {sfx}")]), str(roles))
+    narrator = next((c for c in credits if c["role"] == "narrator"), {})
+    ctx.check("the singer who narrates is one contributor", narrator.get("author_id") == solo_id,
+              f"{narrator.get('author_id')} vs {solo_id}")
+    authors = ctx.call("GET", "/api/v1/audiobooks/authors", tok)
+    ctx.check("the author list holds the book's contributors", {f"Writer {sfx}", f"Solo {sfx}"} <= {a["name"] for a in authors})
+
+    _m_id, _m_email, m_tok = ctx.make_user("member", PW)
+    if not ctx.feature("one_family"):
+        ctx.skip("member edits", "the member is not in the owner's household on this server")
+    else:
+        writer = next(c for c in credits if c["author_name"] == f"Writer {sfx}")
+        ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", m_tok,
+                 {"author_id": writer["author_id"], "role": "editor"}, expect=(403, 404))
+        ctx.call("DELETE", f"/api/v1/audiobooks/authors/book/{book['id']}/{writer['author_id']}/author", m_tok, expect=(403, 404))
+        ctx.call("PUT", f"/api/v1/audiobooks/authors/tags/book/{book['id']}", m_tok, {"tags": ["x"]}, expect=(403, 404))
+        ctx.check("only a book's owner changes its credits and tags", True)
+        ctx.call("DELETE", f"/api/v1/audiobooks/authors/{writer['author_id']}", m_tok, expect=(403,))
+        ctx.check("deleting a contributor is a family admin's", True)
+    ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", tok,
+             {"author_id": solo_id, "role": "playwright"}, expect=(400,))
+    ctx.check("a credit's role comes from the book roles", True)

@@ -4,259 +4,198 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::audiobooks::models::{Author, BookAuthor, Tag};
+use crate::db::access::{AUDIOBOOK, VISIBLE, Viewer};
 
 // ── Authors ─────────────────────────────────────────────────────────────────
+//
+// Authors, narrators and translators are household contributors (migrations
+// 0100, 0102), credited on books with a role. Every function here is scoped
+// to a household; there is no server-wide author list any more.
 
-pub async fn list_authors(pool: &PgPool) -> anyhow::Result<Vec<Author>> {
-    sqlx::query_as::<_, Author>(
-        "SELECT id, name, sort_name, bio, image_object_id, created_at, updated_at
-         FROM audiobook_authors ORDER BY COALESCE(sort_name, name) ASC",
-    )
-    .fetch_all(pool)
-    .await
-    .context("db: list authors")
+const AUTHOR_COLS: &str = "k.id, k.name, k.sort_name, k.biography AS bio, k.image_object_id, k.created_at, k.updated_at";
+
+/// Contributors credited on a book the viewer can see, with how many such books.
+pub async fn list_authors(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<(Author, i64)>> {
+    let sql = format!(
+        "SELECT {AUTHOR_COLS}, COUNT(DISTINCT t.id) AS book_count
+           FROM audiobook_books t
+           JOIN credits c ON c.item_kind = 'book' AND c.item_id = t.id
+           JOIN contributors k ON k.id = c.contributor_id
+          WHERE {VISIBLE}
+          GROUP BY k.id
+          ORDER BY lower(COALESCE(k.sort_name, k.name)), k.id"
+    );
+    let rows: Vec<AuthorWithCount> = sqlx::query_as(&sql)
+        .bind(viewer.user_id)
+        .bind(viewer.family_id)
+        .bind(viewer.is_family_admin)
+        .bind(AUDIOBOOK)
+        .fetch_all(pool)
+        .await
+        .context("db: list authors")?;
+    Ok(rows.into_iter().map(|r| (r.author(), r.book_count)).collect())
 }
 
-pub async fn find_author(pool: &PgPool, id: Uuid) -> anyhow::Result<Option<Author>> {
-    sqlx::query_as::<_, Author>(
-        "SELECT id, name, sort_name, bio, image_object_id, created_at, updated_at
-         FROM audiobook_authors WHERE id = $1",
-    )
-    .bind(id)
-    .fetch_optional(pool)
-    .await
-    .context("db: find author")
+#[derive(sqlx::FromRow)]
+struct AuthorWithCount {
+    id: Uuid,
+    name: String,
+    sort_name: Option<String>,
+    bio: Option<String>,
+    image_object_id: Option<Uuid>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
+    book_count: i64,
 }
 
-pub async fn find_author_by_name(pool: &PgPool, name: &str) -> anyhow::Result<Option<Author>> {
-    sqlx::query_as::<_, Author>(
-        "SELECT id, name, sort_name, bio, image_object_id, created_at, updated_at
-         FROM audiobook_authors WHERE lower(name) = lower($1)",
-    )
-    .bind(name)
-    .fetch_optional(pool)
-    .await
-    .context("db: find author by name")
+impl AuthorWithCount {
+    fn author(&self) -> Author {
+        Author {
+            id: self.id,
+            name: self.name.clone(),
+            sort_name: self.sort_name.clone(),
+            bio: self.bio.clone(),
+            image_object_id: self.image_object_id,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
+        }
+    }
 }
 
+/// A contributor of this household.
+pub async fn find_author(pool: &PgPool, family_id: Uuid, id: Uuid) -> anyhow::Result<Option<Author>> {
+    sqlx::query_as::<_, Author>(&format!("SELECT {AUTHOR_COLS} FROM contributors k WHERE k.id = $1 AND k.family_id = $2"))
+        .bind(id)
+        .bind(family_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find author")
+}
+
+/// The household's contributor of that name, made if there is none. Marked
+/// edited, so the orphan sweep keeps it while no book credits it yet.
 pub async fn create_author(
     pool: &PgPool,
+    family_id: Uuid,
     name: &str,
     sort_name: Option<&str>,
     bio: Option<&str>,
 ) -> anyhow::Result<Author> {
-    sqlx::query_as::<_, Author>(
-        "INSERT INTO audiobook_authors (name, sort_name, bio)
-         VALUES ($1, $2, $3)
-         RETURNING id, name, sort_name, bio, image_object_id, created_at, updated_at",
+    let id: Uuid = sqlx::query_scalar("SELECT music_contributor($1, $2, NULL)")
+        .bind(family_id)
+        .bind(name.trim())
+        .fetch_one(pool)
+        .await
+        .context("db: create author")?;
+    sqlx::query(
+        "UPDATE contributors SET sort_name = COALESCE($2, sort_name), biography = COALESCE($3, biography),
+                edited_at = now(), updated_at = now()
+          WHERE id = $1",
     )
-    .bind(name)
+    .bind(id)
     .bind(sort_name)
     .bind(bio)
-    .fetch_one(pool)
+    .execute(pool)
     .await
-    .context("db: create author")
+    .context("db: describe author")?;
+    find_author(pool, family_id, id).await?.context("db: author missing after create")
 }
 
+/// A correction on the entity: the name shown everywhere it is credited. The
+/// old spelling stays a key, so the next scan of a file still spelled that way
+/// finds this contributor rather than making a new one.
 pub async fn update_author(
     pool: &PgPool,
+    family_id: Uuid,
     id: Uuid,
     name: &str,
     sort_name: Option<&str>,
     bio: Option<&str>,
-) -> anyhow::Result<Author> {
-    sqlx::query_as::<_, Author>(
-        "UPDATE audiobook_authors SET name = $2, sort_name = $3, bio = $4, updated_at = CURRENT_TIMESTAMP
-         WHERE id = $1
-         RETURNING id, name, sort_name, bio, image_object_id, created_at, updated_at",
+) -> anyhow::Result<Option<Author>> {
+    let mut tx = pool.begin().await.context("db: begin update author")?;
+    let updated = sqlx::query(
+        "UPDATE contributors SET name = $3, sort_name = $4, biography = $5, edited_at = now(), updated_at = now()
+          WHERE id = $1 AND family_id = $2",
     )
     .bind(id)
-    .bind(name)
+    .bind(family_id)
+    .bind(name.trim())
     .bind(sort_name)
     .bind(bio)
-    .fetch_one(pool)
+    .execute(&mut *tx)
     .await
-    .context("db: update author")
+    .context("db: update author")?
+    .rows_affected();
+    if updated == 0 {
+        return Ok(None);
+    }
+    sqlx::query(
+        "INSERT INTO contributor_keys (family_id, key, contributor_id) VALUES ($1, 'name:' || lower(trim($2)), $3)
+         ON CONFLICT DO NOTHING",
+    )
+    .bind(family_id)
+    .bind(name)
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .context("db: key renamed author")?;
+    tx.commit().await.context("db: commit update author")?;
+    find_author(pool, family_id, id).await
 }
 
-pub async fn delete_author(pool: &PgPool, id: Uuid) -> anyhow::Result<()> {
-    sqlx::query("DELETE FROM audiobook_authors WHERE id = $1")
+/// Removes the contributor and every credit it has — music and books alike.
+/// A tag that still names it recreates it at the next scan.
+pub async fn delete_author(pool: &PgPool, family_id: Uuid, id: Uuid) -> anyhow::Result<bool> {
+    Ok(sqlx::query("DELETE FROM contributors WHERE id = $1 AND family_id = $2")
         .bind(id)
+        .bind(family_id)
         .execute(pool)
         .await
-        .context("db: delete author")?;
-    Ok(())
+        .context("db: delete author")?
+        .rows_affected()
+        > 0)
 }
 
-// How many books does this author have?
-// ── Author photos ────────────────────────────────────────────────────────────
-//
-// Same shape as music_artist_images (see db/music.rs), just keyed by the
-// author's own id instead of (user_id, artist_name) — an author is already
-// one global row, unlike a music artist, which has none of its own.
-
-/// A remembered miss expires after this many days; a picture we hold does
-/// not. Same constant and same reasoning as music's MISS_TTL_DAYS: Commons
-/// gains photographs of long-tail people all the time.
-const MISS_TTL_DAYS: i32 = 30;
-
-/// Three-state, which is the point: `None` means never looked up, `Some(None)`
-/// means looked up and nothing was found, `Some(Some(..))` means we have one.
-pub async fn find_author_image(
-    pool: &PgPool,
-    author_id: Uuid,
-) -> anyhow::Result<Option<Option<(String, String)>>> {
-    let row = sqlx::query_as::<_, (Option<String>, Option<String>)>(
-        "SELECT mo.object_key, mo.content_type
-         FROM audiobook_authors a
-         LEFT JOIN media_objects mo ON mo.id = a.image_object_id
-         WHERE a.id = $1
-           AND (a.image_object_id IS NOT NULL
-                OR a.is_user_set
-                OR a.image_fetched_at > now() - make_interval(days => $2))",
-    )
-    .bind(author_id)
-    .bind(MISS_TTL_DAYS)
-    .fetch_optional(pool)
-    .await
-    .context("db: find author image")?;
-
-    Ok(row.map(|(key, content_type)| match (key, content_type) {
-        (Some(key), Some(content_type)) => Some((key, content_type)),
-        _ => None,
-    }))
+/// How many books the viewer can see credit this contributor.
+pub async fn author_book_count(pool: &PgPool, viewer: Viewer, author_id: Uuid) -> anyhow::Result<i64> {
+    let sql = format!(
+        "SELECT COUNT(DISTINCT t.id) FROM audiobook_books t
+           JOIN credits c ON c.item_kind = 'book' AND c.item_id = t.id
+          WHERE {VISIBLE} AND c.contributor_id = $5"
+    );
+    sqlx::query_scalar(&sql)
+        .bind(viewer.user_id)
+        .bind(viewer.family_id)
+        .bind(viewer.is_family_admin)
+        .bind(AUDIOBOOK)
+        .bind(author_id)
+        .fetch_one(pool)
+        .await
+        .context("db: author book count")
 }
 
-/// The automatic path — records a miss (`image_object_id = NULL`) too, so an
-/// author nothing has a picture of stops costing a network round trip on
-/// every render. Never overwrites a user-set image.
-pub async fn upsert_author_image(
-    pool: &PgPool,
-    author_id: Uuid,
-    image_object_id: Option<Uuid>,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        "UPDATE audiobook_authors
-         SET image_object_id = $2, image_fetched_at = now()
-         WHERE id = $1 AND NOT is_user_set",
-    )
-    .bind(author_id)
-    .bind(image_object_id)
-    .execute(pool)
-    .await
-    .context("db: upsert author image")?;
-    Ok(())
-}
-
-/// The automatic path, with the attribution its licence requires.
-pub async fn upsert_fetched_author_image(
-    pool: &PgPool,
-    author_id: Uuid,
-    image_object_id: Uuid,
-    attribution: &crate::metadata::wikimedia::Attribution,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        "UPDATE audiobook_authors
-         SET image_object_id = $2, image_fetched_at = now(),
-             image_source = 'Wikimedia Commons', image_author = $3,
-             image_license = $4, image_license_url = $5, image_source_url = $6
-         WHERE id = $1 AND NOT is_user_set",
-    )
-    .bind(author_id)
-    .bind(image_object_id)
-    .bind(attribution.author.as_deref())
-    .bind(attribution.license.as_deref())
-    .bind(attribution.license_url.as_deref())
-    .bind(&attribution.source_url)
-    .execute(pool)
-    .await
-    .context("db: upsert fetched author image")?;
-    Ok(())
-}
-
-/// What a client must display alongside the image. `None` for a user's own
-/// upload, which has nothing to attribute.
-pub async fn find_author_image_attribution(
-    pool: &PgPool,
-    author_id: Uuid,
-) -> anyhow::Result<Option<(Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> {
-    Ok(sqlx::query_as(
-        "SELECT image_source, image_author, image_license, image_license_url, image_source_url, is_user_set
-         FROM audiobook_authors
-         WHERE id = $1 AND image_object_id IS NOT NULL",
-    )
-    .bind(author_id)
-    .fetch_optional(pool)
-    .await?)
-}
-
-/// The user's own picture. Unconditional, unlike the automatic path above:
-/// choosing one is exactly the act that should win, and it clears whatever
-/// attribution a previous automatic fetch had recorded.
-pub async fn set_user_author_image(
-    pool: &PgPool,
-    author_id: Uuid,
-    image_object_id: Uuid,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        "UPDATE audiobook_authors
-         SET image_object_id = $2, image_fetched_at = now(), is_user_set = TRUE,
-             image_source = NULL, image_author = NULL, image_license = NULL,
-             image_license_url = NULL, image_source_url = NULL
-         WHERE id = $1",
-    )
-    .bind(author_id)
-    .bind(image_object_id)
-    .execute(pool)
-    .await
-    .context("db: set user author image")?;
-    Ok(())
-}
-
-/// Clears the image back to nothing (not just unpicks `is_user_set`) so the
-/// automatic lookup runs fresh rather than being suppressed by a stale
-/// cached-miss timestamp — the row itself stays, unlike music's cache-only
-/// table, since this is the author.
-pub async fn clear_author_image(pool: &PgPool, author_id: Uuid) -> anyhow::Result<()> {
-    sqlx::query(
-        "UPDATE audiobook_authors
-         SET image_object_id = NULL, image_fetched_at = NULL, is_user_set = FALSE,
-             image_source = NULL, image_author = NULL, image_license = NULL,
-             image_license_url = NULL, image_source_url = NULL
-         WHERE id = $1",
-    )
-    .bind(author_id)
-    .execute(pool)
-    .await
-    .context("db: clear author image")?;
-    Ok(())
-}
-
-pub async fn author_book_count(pool: &PgPool, author_id: Uuid) -> anyhow::Result<i64> {
-    sqlx::query_scalar::<_, i64>(
-        "SELECT COUNT(DISTINCT book_id) FROM audiobook_book_authors WHERE author_id = $1",
-    )
-    .bind(author_id)
-    .fetch_one(pool)
-    .await
-    .context("db: author book count")
-}
-
-// ── Book ↔ Author links ────────────────────────────────────────────────────
-
-pub async fn list_book_authors(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<BookAuthor>> {
-    sqlx::query_as::<_, BookAuthor>(
-        "SELECT book_id, author_id, role FROM audiobook_book_authors WHERE book_id = $1",
+/// A book's credits, by role and position.
+pub async fn list_book_authors(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<(BookAuthor, String)>> {
+    let rows: Vec<(Uuid, Uuid, String, String)> = sqlx::query_as(
+        "SELECT c.item_id, c.contributor_id, c.role, k.name
+           FROM credits c JOIN contributors k ON k.id = c.contributor_id
+          WHERE c.item_kind = 'book' AND c.item_id = $1
+          ORDER BY c.role, c.position",
     )
     .bind(book_id)
     .fetch_all(pool)
     .await
-    .context("db: list book authors")
+    .context("db: list book authors")?;
+    Ok(rows
+        .into_iter()
+        .map(|(book_id, author_id, role, name)| (BookAuthor { book_id, author_id, role }, name))
+        .collect())
 }
 
+/// The books crediting this contributor (visibility is the caller's to check).
 pub async fn list_author_books(pool: &PgPool, author_id: Uuid) -> anyhow::Result<Vec<Uuid>> {
-    sqlx::query_scalar::<_, Uuid>(
-        "SELECT DISTINCT book_id FROM audiobook_book_authors WHERE author_id = $1",
+    sqlx::query_scalar(
+        "SELECT DISTINCT c.item_id FROM credits c WHERE c.item_kind = 'book' AND c.contributor_id = $1",
     )
     .bind(author_id)
     .fetch_all(pool)
@@ -264,15 +203,14 @@ pub async fn list_author_books(pool: &PgPool, author_id: Uuid) -> anyhow::Result
     .context("db: list author books")
 }
 
-pub async fn link_book_author(
-    pool: &PgPool,
-    book_id: Uuid,
-    author_id: Uuid,
-    role: &str,
-) -> anyhow::Result<()> {
+/// A credit made by hand; kept when the book's text fields change.
+pub async fn link_book_author(pool: &PgPool, book_id: Uuid, author_id: Uuid, role: &str) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO audiobook_book_authors (book_id, author_id, role)
-         VALUES ($1, $2, $3) ON CONFLICT DO NOTHING",
+        "INSERT INTO credits (contributor_id, item_kind, item_id, role, position, source)
+         SELECT $2, 'book', $1, $3,
+                COALESCE((SELECT max(position) + 1 FROM credits WHERE item_kind = 'book' AND item_id = $1 AND role = $3), 0),
+                'user'
+          WHERE NOT EXISTS (SELECT 1 FROM credits WHERE item_kind = 'book' AND item_id = $1 AND role = $3 AND contributor_id = $2)",
     )
     .bind(book_id)
     .bind(author_id)
@@ -280,39 +218,41 @@ pub async fn link_book_author(
     .execute(pool)
     .await
     .context("db: link book author")?;
+    sqlx::query("SELECT music_credit_joins('book', $1)")
+        .bind(book_id)
+        .execute(pool)
+        .await
+        .context("db: book credit joins")?;
     Ok(())
 }
 
-pub async fn unlink_book_author(
-    pool: &PgPool,
-    book_id: Uuid,
-    author_id: Uuid,
-    role: &str,
-) -> anyhow::Result<()> {
-    sqlx::query(
-        "DELETE FROM audiobook_book_authors WHERE book_id = $1 AND author_id = $2 AND role = $3",
-    )
-    .bind(book_id)
-    .bind(author_id)
-    .bind(role)
-    .execute(pool)
-    .await
-    .context("db: unlink book author")?;
+pub async fn unlink_book_author(pool: &PgPool, book_id: Uuid, author_id: Uuid, role: &str) -> anyhow::Result<()> {
+    sqlx::query("DELETE FROM credits WHERE item_kind = 'book' AND item_id = $1 AND contributor_id = $2 AND role = $3")
+        .bind(book_id)
+        .bind(author_id)
+        .bind(role)
+        .execute(pool)
+        .await
+        .context("db: unlink book author")?;
     Ok(())
-}
-
-/// Get or create an author by name (case-insensitive).
-pub async fn get_or_create_author(pool: &PgPool, name: &str) -> anyhow::Result<Author> {
-    if let Some(existing) = find_author_by_name(pool, name).await? {
-        return Ok(existing);
-    }
-    create_author(pool, name, None, None).await
 }
 
 // ── Tags ────────────────────────────────────────────────────────────────────
 
-pub async fn list_tags(pool: &PgPool) -> anyhow::Result<Vec<Tag>> {
-    sqlx::query_as::<_, Tag>("SELECT id, name FROM audiobook_tags ORDER BY name ASC")
+/// Tags on books the viewer can see; another household's tags stay theirs.
+pub async fn list_tags(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<Tag>> {
+    let sql = format!(
+        "SELECT DISTINCT g.id, g.name FROM audiobook_tags g
+           JOIN audiobook_book_tags bt ON bt.tag_id = g.id
+           JOIN audiobook_books t ON t.id = bt.book_id
+          WHERE {VISIBLE}
+          ORDER BY g.name ASC"
+    );
+    sqlx::query_as::<_, Tag>(&sql)
+        .bind(viewer.user_id)
+        .bind(viewer.family_id)
+        .bind(viewer.is_family_admin)
+        .bind(AUDIOBOOK)
         .fetch_all(pool)
         .await
         .context("db: list tags")

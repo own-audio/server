@@ -25,6 +25,9 @@ PREFIXES = {
     "/api/v1/music/playlists/{id}": "playlist",
     "/api/v1/family/members/{user_id}": "member",
     "/api/v1/users/{id}": "member",
+    "/api/v1/audiobooks/authors/book/{book_id}": "book",
+    "/api/v1/audiobooks/authors/tags/book/{book_id}": "book",
+    "/api/v1/audiobooks/authors/{id}": "author",
 }
 
 
@@ -49,7 +52,9 @@ def run(ctx: Ctx) -> None:
 
     track = ctx.upload_track(a_tok, f"A private {ctx.sfx}")
     playlist = ctx.call("POST", "/api/v1/music/playlists", a_tok, {"name": f"A list {ctx.sfx}"})
-    ids = {"track": track["id"], "playlist": playlist["id"], "member": a_id}
+    book = ctx.call("POST", "/api/v1/audiobooks", a_tok, {"title": f"A book {ctx.sfx}", "author": f"A author {ctx.sfx}"})
+    author = ctx.call("GET", f"/api/v1/audiobooks/authors/book/{book['id']}", a_tok)[0]
+    ids = {"track": track["id"], "playlist": playlist["id"], "member": a_id, "book": book["id"], "author": author["author_id"]}
 
     reached = []
     checked = 0
@@ -57,7 +62,7 @@ def run(ctx: Ctx) -> None:
         for prefix, kind in PREFIXES.items():
             if not path.startswith(prefix) or kind not in ids:
                 continue
-            filled = path.replace("{id}", ids[kind]).replace("{user_id}", ids[kind])
+            filled = path.replace("{id}", ids[kind]).replace("{user_id}", ids[kind]).replace("{book_id}", ids[kind])
             # Routes that still carry another parameter cannot be filled meaningfully.
             if "{" in filled:
                 continue
@@ -67,7 +72,7 @@ def run(ctx: Ctx) -> None:
             if 200 <= status < 300:
                 reached.append(f"{method} {path} → {status}")
             break
-    ctx.check(f"no operation on family A's track, playlist or members answers 2xx to family B ({checked} checked)",
+    ctx.check(f"no operation on family A's track, playlist, members, book or author answers 2xx to family B ({checked} checked)",
               not reached, "; ".join(reached[:12]))
 
     # The same from the other side of the fence: A's track is not in B's library or search.

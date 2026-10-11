@@ -49,6 +49,9 @@ pub struct LinkAuthorRequest {
     pub role: String,
 }
 
+/// The roles a book credits (DESIGN §7.2).
+const BOOK_ROLES: &[&str] = &["author", "co_author", "narrator", "translator", "editor", "illustrator"];
+
 fn default_author_role() -> String {
     "author".to_string()
 }
@@ -107,21 +110,13 @@ pub fn router() -> OpenApiRouter<AppState> {
     responses(
         (status = 200, body = Vec<AuthorResponse>)))]
 async fn list_authors(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<AuthorResponse>>, AuthError> {
-    let authors = db::authors::list_authors(state.db())
+    let authors = db::authors::list_authors(state.db(), family.viewer())
         .await
         .map_err(AuthError::Internal)?;
-
-    let mut responses = Vec::with_capacity(authors.len());
-    for a in authors {
-        let book_count = db::authors::author_book_count(state.db(), a.id)
-            .await
-            .map_err(AuthError::Internal)?;
-        responses.push(author_to_response(a, book_count));
-    }
-    Ok(Json(responses))
+    Ok(Json(authors.into_iter().map(|(a, n)| author_to_response(a, n)).collect()))
 }
 
 /// Create an author.
@@ -130,21 +125,26 @@ async fn list_authors(
     responses(
         (status = 201, body = AuthorResponse)))]
 async fn create_author(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<CreateAuthorRequest>,
 ) -> Result<(StatusCode, Json<AuthorResponse>), AuthError> {
+    if body.name.trim().is_empty() {
+        return Err(AuthError::BadRequest("name is required".into()));
+    }
     let author = db::authors::create_author(
         state.db(),
+        family.family_id,
         &body.name,
         body.sort_name.as_deref(),
         body.bio.as_deref(),
     )
     .await
     .map_err(AuthError::Internal)?;
-
-    let resp = author_to_response(author, 0);
-    Ok((StatusCode::CREATED, Json(resp)))
+    let book_count = db::authors::author_book_count(state.db(), family.viewer(), author.id)
+        .await
+        .map_err(AuthError::Internal)?;
+    Ok((StatusCode::CREATED, Json(author_to_response(author, book_count))))
 }
 
 /// One author.
@@ -154,21 +154,15 @@ async fn create_author(
         (status = 200, body = AuthorResponse),
         (status = 404, description = "No such author", body = crate::http::openapi::ErrorBody)))]
 async fn get_author(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AuthorResponse>, AuthError> {
-    let author = db::authors::find_author(state.db(), id)
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::ItemNotFound)?;
-
-    let book_count = db::authors::author_book_count(state.db(), id)
+    let author = household_author(&state, &family, id).await?;
+    let book_count = db::authors::author_book_count(state.db(), family.viewer(), id)
         .await
         .map_err(AuthError::Internal)?;
-
-    let resp = author_to_response(author, book_count);
-    Ok(Json(resp))
+    Ok(Json(author_to_response(author, book_count)))
 }
 
 /// Edit an author.
@@ -178,27 +172,29 @@ async fn get_author(
     responses(
         (status = 200, body = AuthorResponse)))]
 async fn update_author(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     Json(body): Json<UpdateAuthorRequest>,
 ) -> Result<Json<AuthorResponse>, AuthError> {
+    if body.name.trim().is_empty() {
+        return Err(AuthError::BadRequest("name is required".into()));
+    }
     let author = db::authors::update_author(
         state.db(),
+        family.family_id,
         id,
         &body.name,
         body.sort_name.as_deref(),
         body.bio.as_deref(),
     )
     .await
-    .map_err(AuthError::Internal)?;
-
-    let book_count = db::authors::author_book_count(state.db(), id)
+    .map_err(AuthError::Internal)?
+    .ok_or(AuthError::ItemNotFound)?;
+    let book_count = db::authors::author_book_count(state.db(), family.viewer(), id)
         .await
         .map_err(AuthError::Internal)?;
-
-    let resp = author_to_response(author, book_count);
-    Ok(Json(resp))
+    Ok(Json(author_to_response(author, book_count)))
 }
 
 /// Delete an author.
@@ -207,13 +203,19 @@ async fn update_author(
     responses(
         (status = 204, description = "Deleted")))]
 async fn delete_author(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    db::authors::delete_author(state.db(), id)
+    // A contributor is the household's, credited on everyone's books and
+    // music: removing it is a family admin's call.
+    family.require_family_admin()?;
+    if !db::authors::delete_author(state.db(), family.family_id, id)
         .await
-        .map_err(AuthError::Internal)?;
+        .map_err(AuthError::Internal)?
+    {
+        return Err(AuthError::ItemNotFound);
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -227,10 +229,10 @@ async fn list_author_books(
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<Vec<serde_json::Value>>, AuthError> {
+    household_author(&state, &family, id).await?;
     let book_ids = db::authors::list_author_books(state.db(), id)
         .await
         .map_err(AuthError::Internal)?;
-
     let mut books = Vec::new();
     for bid in book_ids {
         if let Some(book) = db::audiobooks::find_book(state.db(), bid, family.viewer()).await.map_err(AuthError::Internal)? {
@@ -253,25 +255,20 @@ async fn list_author_books(
     responses(
         (status = 200, body = Vec<BookAuthorResponse>)))]
 async fn list_book_authors(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(book_id): Path<Uuid>,
 ) -> Result<Json<Vec<BookAuthorResponse>>, AuthError> {
+    visible_book(&state, &family, book_id).await?;
     let links = db::authors::list_book_authors(state.db(), book_id)
         .await
         .map_err(AuthError::Internal)?;
-
-    let mut responses = Vec::new();
-    for link in links {
-        if let Some(author) = db::authors::find_author(state.db(), link.author_id).await.map_err(AuthError::Internal)? {
-            responses.push(BookAuthorResponse {
-                author_id: author.id.to_string(),
-                author_name: author.name,
-                role: link.role,
-            });
-        }
-    }
-    Ok(Json(responses))
+    Ok(Json(
+        links
+            .into_iter()
+            .map(|(link, name)| BookAuthorResponse { author_id: link.author_id.to_string(), author_name: name, role: link.role })
+            .collect(),
+    ))
 }
 
 /// Link an author to a book in a role.
@@ -282,7 +279,7 @@ async fn list_book_authors(
         (status = 204, description = "Linked"),
         (status = 400, description = "`author_id` is not a UUID", body = crate::http::openapi::ErrorBody)))]
 async fn link_author_to_book(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(book_id): Path<Uuid>,
     Json(body): Json<LinkAuthorRequest>,
@@ -291,7 +288,11 @@ async fn link_author_to_book(
         .author_id
         .parse()
         .map_err(|_| AuthError::BadRequest("invalid author_id".into()))?;
-
+    if !BOOK_ROLES.contains(&body.role.as_str()) {
+        return Err(AuthError::BadRequest(format!("role must be one of {}", BOOK_ROLES.join(", "))));
+    }
+    owned_book(&state, &family, book_id).await?;
+    household_author(&state, &family, author_id).await?;
     db::authors::link_book_author(state.db(), book_id, author_id, &body.role)
         .await
         .map_err(AuthError::Internal)?;
@@ -304,14 +305,42 @@ async fn link_author_to_book(
     responses(
         (status = 204, description = "Unlinked")))]
 async fn unlink_author_from_book(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path((book_id, author_id, role)): Path<(Uuid, Uuid, String)>,
 ) -> Result<StatusCode, AuthError> {
+    owned_book(&state, &family, book_id).await?;
     db::authors::unlink_book_author(state.db(), book_id, author_id, &role)
         .await
         .map_err(AuthError::Internal)?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// The book, if the viewer can see it; `ItemNotFound` otherwise.
+async fn visible_book(state: &AppState, family: &FamilyContext, book_id: Uuid) -> Result<(), AuthError> {
+    db::audiobooks::find_book(state.db(), book_id, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?
+        .map(|_| ())
+        .ok_or(AuthError::ItemNotFound)
+}
+
+/// The book, if the viewer owns it: changing who is credited on a book is
+/// editing the book, which only its owner does (like `PUT /audiobooks/{id}`).
+async fn owned_book(state: &AppState, family: &FamilyContext, book_id: Uuid) -> Result<(), AuthError> {
+    db::audiobooks::find_book_owned(state.db(), book_id, family.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .map(|_| ())
+        .ok_or(AuthError::ItemNotFound)
+}
+
+/// A contributor of the viewer's household.
+async fn household_author(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<crate::audiobooks::models::Author, AuthError> {
+    db::authors::find_author(state.db(), family.family_id, id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)
 }
 
 // ── Author photos ────────────────────────────────────────────────────────────
@@ -333,16 +362,13 @@ async fn unlink_author_from_book(
         (status = 200, description = "The photo, with its credit burned in", content_type = "image/*"),
         (status = 404, description = "No such author, or no usable photo", body = crate::http::openapi::ErrorBody)))]
 async fn get_author_image(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Response, AuthError> {
-    let author = db::authors::find_author(state.db(), id)
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::ItemNotFound)?;
+    let author = household_author(&state, &family, id).await?;
 
-    if let Some(cached) = db::authors::find_author_image(state.db(), id)
+    if let Some(cached) = db::music::find_artist_image(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
     {
@@ -358,7 +384,7 @@ async fn get_author_image(
     let mut image = match wikimedia::resolve_author(&author.name).await {
         Ok(image) => image,
         Err(wikimedia::Miss::Missing) => {
-            let _ = db::authors::upsert_author_image(state.db(), id, None).await;
+            let _ = db::music::upsert_artist_image(state.db(), id, None).await;
             return Err(AuthError::ItemNotFound);
         }
         // Nothing was learned, so nothing is remembered — the next render asks again.
@@ -372,7 +398,7 @@ async fn get_author_image(
         image.attribution.author.as_deref(),
         image.attribution.license.as_deref(),
     ) else {
-        let _ = db::authors::upsert_author_image(state.db(), id, None).await;
+        let _ = db::music::upsert_artist_image(state.db(), id, None).await;
         return Err(AuthError::ItemNotFound);
     };
 
@@ -384,21 +410,21 @@ async fn get_author_image(
         }
         Err(error) => {
             tracing::warn!(author = %author.name, %error, "could not watermark author image; dropping it");
-            let _ = db::authors::upsert_author_image(state.db(), id, None).await;
+            let _ = db::music::upsert_artist_image(state.db(), id, None).await;
             return Err(AuthError::ItemNotFound);
         }
     }
 
     let content_type = image.content_type.to_string();
     let bytes = image.bytes.clone();
-    store_author_image(&state, id, image).await;
+    store_author_image(&state, family.family_id, id, image).await;
     Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response())
 }
 
 /// Best-effort, like every other cover write in this codebase: the caller
 /// already has the bytes to answer with, so a storage failure just costs a
 /// re-fetch next time rather than the request.
-async fn store_author_image(state: &AppState, author_id: Uuid, image: wikimedia::ArtistImage) {
+async fn store_author_image(state: &AppState, family_id: Uuid, author_id: Uuid, image: wikimedia::ArtistImage) {
     let Ok(temp_file) = tempfile::NamedTempFile::new() else { return };
     if tokio::fs::write(temp_file.path(), &image.bytes).await.is_err() {
         return;
@@ -409,18 +435,17 @@ async fn store_author_image(state: &AppState, author_id: Uuid, image: wikimedia:
         content_type: image.content_type.to_string(),
         size_bytes: image.bytes.len() as i64,
     };
-    // Global, not family-scoped — an author is one row shared by the whole
-    // instance, so its picture is not billed to any one family's storage.
-    let key = format!("audiobooks/authors/{author_id}.{}", image.extension);
-
+    // The household's contributor, so the household's storage — the same
+    // photo the music side shows for a contributor of that name.
+    let key = crate::storage::family_key(family_id, format!("music/artists/{author_id}.{}", image.extension));
     let Ok(mut tx) = state.db().begin().await else { return };
     let Ok(media_id) = super::store_temp_upload(state.storage(), &mut tx, &key, &upload).await else {
         return;
     };
-    if tx.commit().await.is_err() {
+    if db::music::upsert_fetched_artist_image(&mut *tx, author_id, Some(media_id), &image.attribution).await.is_err() {
         return;
     }
-    let _ = db::authors::upsert_fetched_author_image(state.db(), author_id, media_id, &image.attribution).await;
+    let _ = tx.commit().await;
 }
 
 /// GET /api/v1/audiobooks/authors/:id/image-info — who to credit for the
@@ -433,15 +458,15 @@ async fn store_author_image(state: &AppState, author_id: Uuid, image: wikimedia:
         (status = 200, body = AuthorImageInfoResponse),
         (status = 404, description = "No photo recorded for this author", body = crate::http::openapi::ErrorBody)))]
 async fn get_author_image_info(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<AuthorImageInfoResponse>, AuthError> {
-    let row = db::authors::find_author_image_attribution(state.db(), id)
+    household_author(&state, &family, id).await?;
+    let row = db::music::find_artist_image_attribution(state.db(), id)
         .await
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
-
     Ok(Json(AuthorImageInfoResponse {
         source: row.0,
         author: row.1,
@@ -464,15 +489,12 @@ async fn get_author_image_info(
         (status = 400, description = "No `image` field, or a malformed upload", body = crate::http::openapi::ErrorBody),
         (status = 404, description = "No such author", body = crate::http::openapi::ErrorBody)))]
 async fn upload_author_image(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
     mut multipart: Multipart,
 ) -> Result<StatusCode, AuthError> {
-    db::authors::find_author(state.db(), id)
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::ItemNotFound)?;
+    household_author(&state, &family, id).await?;
 
     let mut upload: Option<super::TempUpload> = None;
     while let Some(field) = multipart
@@ -487,13 +509,13 @@ async fn upload_author_image(
     let upload = upload.ok_or_else(|| AuthError::BadRequest("missing image payload".to_string()))?;
 
     let ext = super::file_extension(&upload.file_name).unwrap_or("jpg");
-    let object_key = format!("audiobooks/authors/{id}-user.{ext}");
+    let object_key = crate::storage::family_key(family.family_id, format!("music/artists/{id}-user.{ext}"));
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     let media_id = super::store_temp_upload(state.storage(), &mut tx, &object_key, &upload).await?;
     tx.commit().await.map_err(|e| AuthError::Internal(e.into()))?;
 
-    db::authors::set_user_author_image(state.db(), id, media_id)
+    db::music::set_user_artist_image(state.db(), id, media_id)
         .await
         .map_err(AuthError::Internal)?;
 
@@ -507,11 +529,12 @@ async fn upload_author_image(
     responses(
         (status = 204, description = "Forgotten")))]
 async fn delete_author_image(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
-    db::authors::clear_author_image(state.db(), id)
+    household_author(&state, &family, id).await?;
+    db::music::clear_artist_image(state.db(), id)
         .await
         .map_err(AuthError::Internal)?;
     Ok(StatusCode::NO_CONTENT)
@@ -524,20 +547,13 @@ async fn delete_author_image(
     responses(
         (status = 200, body = Vec<TagResponse>)))]
 async fn list_all_tags(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
 ) -> Result<Json<Vec<TagResponse>>, AuthError> {
-    let tags = db::authors::list_tags(state.db())
+    let tags = db::authors::list_tags(state.db(), family.viewer())
         .await
         .map_err(AuthError::Internal)?;
-    Ok(Json(
-        tags.into_iter()
-            .map(|t| TagResponse {
-                id: t.id.to_string(),
-                name: t.name,
-            })
-            .collect(),
-    ))
+    Ok(Json(tags.into_iter().map(|t| TagResponse { id: t.id.to_string(), name: t.name }).collect()))
 }
 
 /// A book's tags.
@@ -546,10 +562,11 @@ async fn list_all_tags(
     responses(
         (status = 200, body = Vec<TagResponse>)))]
 async fn list_book_tags(
-    _family: FamilyContext,
+    family: FamilyContext,
     State(state): State<AppState>,
     Path(book_id): Path<Uuid>,
 ) -> Result<Json<Vec<TagResponse>>, AuthError> {
+    visible_book(&state, &family, book_id).await?;
     let tags = db::authors::list_book_tags(state.db(), book_id)
         .await
         .map_err(AuthError::Internal)?;
@@ -575,6 +592,7 @@ async fn set_book_tags(
     Path(book_id): Path<Uuid>,
     Json(body): Json<SetBookTagsRequest>,
 ) -> Result<Json<Vec<TagResponse>>, AuthError> {
+    owned_book(&state, &family, book_id).await?;
     // Get or create each tag
     let mut tag_ids = Vec::new();
     for name in &body.tags {

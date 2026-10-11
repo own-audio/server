@@ -49,6 +49,8 @@ the console all read. Written 2026-10-11.
 
 ## Phases
 
+Status 2026-10-11: E1 (`dfefb49`), E2a (`1d1592e`), E2b (`fac8d4c`) and E3 for books are done; podcast hosts (rest of E3) and E4 next.
+
 | Phase | Content | Test |
 |---|---|---|
 | **E1** | Schema (`contributors`, `contributor_keys`, `credits`, `release_groups`, `albums`, `recordings`, `genres`, `track_genres`; `music_tracks_all.album_id`, `recording_id`), the link function and triggers, the backfill. v1 artist and album lists gain `id`. | conformance `music`: an uploaded track has an album and its artists by id; a feat. guest is a second credit; a retag relinks |
