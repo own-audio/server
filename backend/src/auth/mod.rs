@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Auth module — local credentials, OIDC (Google + Microsoft), session issuance,
 /// identity linking.
+pub mod at_rest;
 pub mod device;
 pub mod error;
 pub mod middleware;
@@ -839,7 +840,7 @@ async fn register(
         .to_string();
 
     // 5. Create user + local identity
-    let user = db::users::insert(pool, &email, &display_name, "user")
+    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, "user")
         .await
         .map_err(AuthError::Internal)?;
 
@@ -1094,7 +1095,7 @@ async fn sso_sign_in(
         .map(str::to_string)
         .unwrap_or_else(|| email.split('@').next().unwrap_or(&email).to_string());
 
-    let user = db::users::insert(pool, &email, &display_name, "user")
+    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, "user")
         .await
         .map_err(AuthError::Internal)?;
     db::users::insert_oidc_identity(pool, user.id, provider, &identity.subject)
@@ -1278,7 +1279,7 @@ async fn admin_create_user(
         .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
         .to_string();
 
-    let user = db::users::insert(pool, &email, &display_name, role)
+    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, role)
         .await
         .map_err(AuthError::Internal)?;
 

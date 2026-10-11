@@ -115,7 +115,7 @@ impl FromRequestParts<AppState> for SubsonicAuthUser {
             return Err(reject(SubsonicErrorCode::NotAuthorized));
         }
 
-        let api_key = db::subsonic::get_key(state.db(), user.id)
+        let api_key = db::subsonic::get_key(state.db(), state.at_rest(), user.id)
             .await
             .map_err(|_| reject(SubsonicErrorCode::Generic))?
             .ok_or_else(|| reject(SubsonicErrorCode::WrongCredentials))?;

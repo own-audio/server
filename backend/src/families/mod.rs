@@ -1086,7 +1086,7 @@ async fn provision_member(
         ));
     }
 
-    let user = db::users::insert(state.db(), &login_email, &display_name, "user")
+    let user = db::users::insert(state.db(), state.at_rest(), &login_email, &display_name, "user")
         .await
         .map_err(AuthError::Internal)?;
 

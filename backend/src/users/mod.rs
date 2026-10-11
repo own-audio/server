@@ -293,7 +293,7 @@ async fn get_subsonic_key(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::NotFound)?;
 
-    let api_key = db::subsonic::get_or_create_key(state.db(), auth.user_id)
+    let api_key = db::subsonic::get_or_create_key(state.db(), state.at_rest(), auth.user_id)
         .await
         .map_err(AuthError::Internal)?;
 
@@ -313,7 +313,7 @@ async fn regenerate_subsonic_key(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::NotFound)?;
 
-    let api_key = db::subsonic::regenerate_key(state.db(), auth.user_id)
+    let api_key = db::subsonic::regenerate_key(state.db(), state.at_rest(), auth.user_id)
         .await
         .map_err(AuthError::Internal)?;
 

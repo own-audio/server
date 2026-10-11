@@ -12,52 +12,74 @@ use chrono::{DateTime, Utc};
 use rand::Rng;
 use rand::distr::Alphanumeric;
 use sqlx::PgPool;
+use crate::auth::at_rest::Cipher;
 use uuid::Uuid;
 
 const UNKNOWN_ARTIST: &str = "Unknown Artist";
 const UNKNOWN_ALBUM: &str = "Unknown Album";
 
-/// Look up the user's Subsonic API key without creating one.
-pub async fn get_key(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Option<String>> {
-    find_key(pool, user_id).await
+/// Look up the user's Subsonic API key without creating one. The key is
+/// stored encrypted (`auth::at_rest`); one written in the clear before that
+/// is rewritten encrypted on the way out.
+pub async fn get_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) -> anyhow::Result<Option<String>> {
+    let Some(stored) = find_key(pool, user_id).await? else {
+        return Ok(None);
+    };
+    let (key, sealed) = cipher.open(&stored)?;
+    if !sealed {
+        store_key(pool, user_id, &cipher.seal(&key), false).await?;
+    }
+    Ok(Some(key))
 }
 
 /// Fetch the user's Subsonic API key, creating one on first use.
-pub async fn get_or_create_key(pool: &PgPool, user_id: Uuid) -> anyhow::Result<String> {
-    if let Some(key) = find_key(pool, user_id).await? {
+pub async fn get_or_create_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) -> anyhow::Result<String> {
+    if let Some(key) = get_key(pool, cipher, user_id).await? {
         return Ok(key);
     }
-
-    let key = generate_key();
-    sqlx::query(
-        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO NOTHING",
-    )
-    .bind(user_id)
-    .bind(&key)
-    .execute(pool)
-    .await
-    .context("db: insert subsonic api key")?;
-
+    store_key(pool, user_id, &cipher.seal(&generate_key()), false).await?;
     // Another request may have raced us to creation; re-fetch to be sure.
-    find_key(pool, user_id)
+    get_key(pool, cipher, user_id)
         .await?
         .context("db: subsonic api key missing after insert")
 }
 
 /// Replace the user's Subsonic API key with a freshly generated one.
-pub async fn regenerate_key(pool: &PgPool, user_id: Uuid) -> anyhow::Result<String> {
+pub async fn regenerate_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) -> anyhow::Result<String> {
     let key = generate_key();
-    sqlx::query(
-        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key, created_at = now()",
-    )
-    .bind(user_id)
-    .bind(&key)
-    .execute(pool)
-    .await
-    .context("db: regenerate subsonic api key")?;
+    store_key(pool, user_id, &cipher.seal(&key), true).await?;
     Ok(key)
+}
+
+/// Encrypts every key still stored in the clear; returns how many. Run once
+/// at start-up, so a database dump stops carrying usable keys the moment the
+/// server is upgraded, not when each user next signs in.
+pub async fn encrypt_legacy_keys(pool: &PgPool, cipher: &Cipher) -> anyhow::Result<usize> {
+    let rows: Vec<(Uuid, String)> = sqlx::query_as("SELECT user_id, api_key FROM subsonic_api_keys WHERE api_key NOT LIKE 'enc1:%'")
+        .fetch_all(pool)
+        .await
+        .context("db: list plaintext subsonic api keys")?;
+    for (user_id, key) in &rows {
+        store_key(pool, *user_id, &cipher.seal(key), false).await?;
+    }
+    Ok(rows.len())
+}
+
+async fn store_key(pool: &PgPool, user_id: Uuid, stored: &str, replace: bool) -> anyhow::Result<()> {
+    let sql = if replace {
+        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key, created_at = now()"
+    } else {
+        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
+         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key"
+    };
+    sqlx::query(sql)
+        .bind(user_id)
+        .bind(stored)
+        .execute(pool)
+        .await
+        .context("db: store subsonic api key")?;
+    Ok(())
 }
 
 async fn find_key(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Option<String>> {

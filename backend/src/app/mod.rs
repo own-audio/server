@@ -63,13 +63,6 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
     // Run pending migrations
     db::migrate(&pool).await.context("failed to run migrations")?;
 
-    // Seed a dev admin if no users exist yet — opt-in only. On a reachable
-    // instance this would publish a documented admin@audio2.local / admin
-    // login, and it also pre-empts the /setup/complete first-admin flow.
-    if config.auth.dev_seed_admin {
-        seed_dev_admin(&pool).await;
-    }
-
     // Build storage client
     let media_links = storage::MediaLinks::new(&config.auth.session_secret, config.server.base_url.as_deref());
     let object_store = storage::connect(&config.storage, media_links)
@@ -80,6 +73,17 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
 
     // Assemble shared application state
     let state = AppState::new(config.clone(), pool.clone(), object_store.clone(), hooks.clone());
+    match db::subsonic::encrypt_legacy_keys(state.db(), state.at_rest()).await {
+        Ok(0) => {}
+        Ok(n) => tracing::info!(count = n, "Subsonic API keys encrypted at rest"),
+        Err(e) => tracing::warn!(error = %e, "could not encrypt Subsonic API keys at rest"),
+    }
+    // Seed a dev admin if no users exist yet — opt-in only. On a reachable
+    // instance this would publish a documented admin@audio2.local / admin
+    // login, and it also pre-empts the /setup/complete first-admin flow.
+    if config.auth.dev_seed_admin {
+        seed_dev_admin(&pool, state.at_rest()).await;
+    }
 
     // Read-only library folders: register them and scan in the background.
     match crate::library_folders::configured(&config) {
@@ -129,7 +133,7 @@ pub async fn serve(app: axum::Router, config: &AppConfig) -> anyhow::Result<()> 
 ///
 /// Only runs when `AUTH__DEV_SEED_ADMIN=true` and the `users` table is empty.
 /// Never enable it on a reachable instance.
-async fn seed_dev_admin(pool: &sqlx::PgPool) {
+async fn seed_dev_admin(pool: &sqlx::PgPool, cipher: &crate::auth::at_rest::Cipher) {
     use argon2::password_hash::{PasswordHasher, SaltString, rand_core::OsRng};
     use argon2::Argon2;
 
@@ -151,7 +155,7 @@ async fn seed_dev_admin(pool: &sqlx::PgPool) {
         }
     };
 
-    let user = match db::users::insert(pool, "admin@audio2.local", "Admin", "admin").await {
+    let user = match db::users::insert(pool, cipher, "admin@audio2.local", "Admin", "admin").await {
         Ok(u) => u,
         Err(e) => {
             tracing::error!("failed to create dev admin user: {e}");

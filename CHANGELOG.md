@@ -53,6 +53,10 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- Subsonic API keys are encrypted in the database (AES-256-GCM under a key
+  derived from `AUTH__SESSION_SECRET`); the protocol needs them readable, so
+  they could not be hashed like passwords. Existing keys are encrypted at the
+  first start. Changing the secret now also means regenerating Subsonic keys.
 - Instance-admin routes decide on the caller before reading the body
   (`InstanceAdmin` extractor): a plain member gets `403` with nothing else,
   where `POST /auth/admin-create-user` used to answer a validation error

@@ -59,6 +59,7 @@ pub async fn find_by_email_ci(pool: &PgPool, email: &str) -> anyhow::Result<Opti
 
 pub async fn insert(
     pool: &PgPool,
+    cipher: &crate::auth::at_rest::Cipher,
     email: &str,
     display_name: &str,
     role: &str,
@@ -79,7 +80,7 @@ pub async fn insert(
     // first settings-page visit meant an account that had never opened that
     // page could not authenticate against `/rest` at all, and the protocol has
     // no error for "no key has been issued" — the client just saw error 40.
-    crate::db::subsonic::get_or_create_key(pool, user.id).await?;
+    crate::db::subsonic::get_or_create_key(pool, cipher, user.id).await?;
 
     Ok(user)
 }

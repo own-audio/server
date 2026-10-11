@@ -131,7 +131,7 @@ async fn complete_setup(
         .to_string();
 
     // 4. Create admin user
-    let user = db::users::insert(pool, &email, &display_name, "admin")
+    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, "admin")
         .await
         .map_err(AuthError::Internal)?;
 
