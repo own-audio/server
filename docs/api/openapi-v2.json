@@ -515,6 +515,34 @@
         ],
         "type": "object"
       },
+      "Capabilities": {
+        "properties": {
+          "direct": {
+            "description": "Content types played as they are (`audio/flac`, `audio/mpeg`, `audio/mp4`…).\nEmpty: anything, the original is always fine.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "max_bitrate_kbps": {
+            "description": "The most the connection should carry, kbps.",
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "transcode": {
+            "description": "Formats the server may make instead, in order of preference: `aac`, `mp3`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "Change": {
         "properties": {
           "id": {
@@ -2440,6 +2468,79 @@
           "started_at",
           "ended_at",
           "listened_ms"
+        ],
+        "type": "object"
+      },
+      "PlaybackInfo": {
+        "properties": {
+          "bitrate_kbps": {
+            "description": "For a transcode, the bitrate it is made at.",
+            "format": "int32",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "content_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "decision": {
+            "description": "`direct` (the original) or `transcode`.",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "reasons": {
+            "description": "Why: `client_plays_original`, `over_bitrate_limit`, `format_not_playable`,\n`no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "url": {
+            "description": "What to play: signed, no header needed, good until `expires_at`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "decision",
+          "url",
+          "expires_at",
+          "reasons"
+        ],
+        "type": "object"
+      },
+      "PlaybackInfoRequest": {
+        "properties": {
+          "capabilities": {
+            "$ref": "#/components/schemas/Capabilities"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track`, `book_file` (one file of a book) or `episode`.",
+            "type": "string"
+          },
+          "start_ms": {
+            "description": "Where to start, for a transcode (the original is seeked by range).",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind",
+          "id"
         ],
         "type": "object"
       },
@@ -6722,6 +6823,74 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/playback-info": {
+      "post": {
+        "operationId": "playback_playback_info",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaybackInfoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlaybackInfo"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, not visible, or not stored"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "How to play an item: the original or a stream the server makes, and a link a player can follow without a header",
+        "tags": [
+          "playback"
+        ],
+        "x-permission": "member",
+        "x-scope": "playback"
+      }
+    },
     "/api/v2/podcasts": {
       "get": {
         "operationId": "catalog_list_podcasts",
@@ -7221,6 +7390,138 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/stream": {
+      "get": {
+        "description": "The audio behind a link from `POST /playback-info`. The signature is the\nauthorisation; the user must still be able to play the item.",
+        "operationId": "playback_stream",
+        "parameters": [
+          {
+            "description": "The item, `kind:id`.",
+            "in": "query",
+            "name": "i",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`orig`, `mp3` or `aac`.",
+            "in": "query",
+            "name": "f",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "b",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "o",
+            "required": true,
+            "schema": {
+              "format": "int32",
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "u",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Expiry, Unix seconds.",
+            "in": "query",
+            "name": "e",
+            "required": true,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Key id.",
+            "in": "query",
+            "name": "k",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Signature over all of the above.",
+            "in": "query",
+            "name": "s",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "audio/mpeg": {}
+            },
+            "description": "A transcode, streamed"
+          },
+          "302": {
+            "description": "The original, from storage (ranges work there)"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_link`: a bad or expired signature"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "The item is gone or no longer the user's to play"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "The audio behind a link from `POST /playback-info`",
+        "tags": [
+          "playback"
+        ],
+        "x-permission": "public"
       }
     },
     "/api/v2/sync/changes": {

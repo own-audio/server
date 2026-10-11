@@ -9,6 +9,7 @@ pub mod auth;
 pub mod discovery;
 pub mod edit;
 pub mod me;
+pub mod media;
 pub mod music;
 pub mod page;
 pub mod problem;
@@ -82,6 +83,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(state::push))
         .routes(routes!(sync::changes))
         .routes(routes!(sync::snapshot))
+        .routes(routes!(media::playback_info))
+        .routes(routes!(media::stream))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

@@ -87,6 +87,7 @@ def run(ctx: Ctx) -> None:
     corrections(ctx, problem)
     user_state(ctx, problem)
     sync(ctx, problem)
+    playback(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -568,3 +569,64 @@ def sync(ctx: Ctx, problem) -> None:
                   st == 200 and all(r.get("id") != after["id"] for r in resumed) and resumed[-1].get("type") == "end")
     end = changes(lines[-1].get("cursor", ""))
     ctx.check("the snapshot's cursor reads the change log", "changes" in end)
+
+
+def playback(ctx: Ctx, problem) -> None:
+    """V6: playback-info decides and signs; the link plays without a header, once checked."""
+    import urllib.error
+    import urllib.request
+    import math
+    import struct
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2play", PW)
+    # Real audio this time, which ffmpeg can decode: two seconds of a tone as WAV.
+    rate, frames = 22050, 44100
+    pcm = b"".join(struct.pack("<h", int(8000 * math.sin(2 * math.pi * 440 * i / rate))) for i in range(frames))
+    wav = b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16) \
+        + b"data" + struct.pack("<I", len(pcm)) + pcm
+    track = ctx.upload_track(tok, f"Play Song {sfx}", artist=f"Play Band {sfx}", album=f"Play Album {sfx}", content=wav)
+
+    def info(caps: dict, token: str = tok):
+        st, _h, raw = ctx.request("POST", "/api/v2/playback-info", token, {"kind": "track", "id": track["id"], "capabilities": caps})
+        return st, (json.loads(raw) if raw else {})
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *args, **kwargs):
+            return None
+
+    def fetch(url: str, follow: bool = True):
+        url = url if url.startswith("http") else ctx.url(url)
+        opener = urllib.request.build_opener() if follow else urllib.request.build_opener(NoRedirect())
+        try:
+            with opener.open(urllib.request.Request(url, headers={"Range": "bytes=0-4095"}), timeout=ctx.timeout) as r:
+                return r.status, r.headers.get("Content-Type", ""), r.read(4096)
+        except urllib.error.HTTPError as e:
+            return e.code, e.headers.get("Content-Type", ""), e.read()
+
+    st, direct = info({})
+    ctx.check("a client that plays anything gets the original, signed",
+              st == 200 and direct.get("decision") == "direct" and "/api/v2/stream?" in direct.get("url", "")
+              and "token" not in direct.get("url", "").lower() and bool(direct.get("expires_at")), str(direct)[:200])
+    code, _ct, _b = fetch(direct.get("url", ""), follow=False)
+    ctx.check("the link redirects to storage, without any header", code in (302, 307), str(code))
+    code, _ct, body = fetch(direct.get("url", ""))
+    ctx.check("…and the bytes come", code in (200, 206) and len(body) > 0, str(code))
+    url = direct.get("url", "")
+    tampered = url.replace("&b=0&", "&b=320&")
+    code, ctype, body = fetch(tampered, follow=False)
+    ctx.check("a link changed by hand: 403 invalid_link", code == 403 and b"invalid_link" in body, f"{code} {body[:80]!r}")
+
+    st, small = info({"direct": ["audio/flac"], "transcode": ["mp3"], "max_bitrate_kbps": 64})
+    ctx.check("a client that cannot play the original gets a transcode",
+              st == 200 and small.get("decision") == "transcode" and small.get("bitrate_kbps") == 64
+              and "format_not_playable" in small.get("reasons", []), str(small)[:200])
+    code, ctype, head = fetch(small.get("url", ""))
+    ctx.check("…which streams MP3", code == 200 and ctype.startswith("audio/mpeg")
+              and (head[:3] == b"ID3" or (len(head) > 1 and head[0] == 0xFF and (head[1] & 0xE0) == 0xE0)), f"{code} {ctype} {head[:8]!r}")
+    st, none = info({"direct": ["audio/flac"], "transcode": ["opus"]})
+    ctx.check("no format the server makes: the original, and why", none.get("decision") == "direct"
+              and "no_transcode_target" in none.get("reasons", []), str(none)[:160])
+
+    _oid, _oe, other = ctx.make_user("v2play-other", PW)
+    st, _ = info({}, other)
+    ctx.check("another account cannot get a link to a private track", st == 404)

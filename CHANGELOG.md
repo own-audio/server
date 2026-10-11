@@ -47,6 +47,12 @@ semver. Each release states the **API contract revision** it serves
   (migration 0109, kept 180 days): each changed item's current record or its
   removal, the listener's own state included, one row per item per
   transaction. A household move sends `reset`; an expired cursor is `410`.
+- Playback on v2: `POST /playback-info` takes what the client plays and
+  answers `direct` or `transcode` (MP3 or AAC, by the Subsonic layer's
+  planner and ffmpeg pool) with a link signed for one item, format, bitrate,
+  user and key id, good for six hours. `GET /stream` checks the user may
+  still play it, then redirects to storage for the original or streams the
+  transcode. No access token in any URL.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings
