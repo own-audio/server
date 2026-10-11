@@ -265,3 +265,17 @@ def run(ctx):
     ctx.check("the account's security trail lists its sign-ins and two-factor changes",
               "login.ok" in kinds and "totp.enabled" in kinds and "totp.disabled" in kinds, ", ".join(kinds[:8]))
     ctx.check("trail entries carry no secrets", all("password" not in str(e.get("detail", {})).lower() for e in events))
+
+    # Account deletion (plan §9, privacy): the account's own files, sessions and sign-in are gone
+    # once `DELETE /users/me` answers — not on a later sweep.
+    uid, email, tok = ctx.make_user("gone", "GoneTest12345!")
+    track = ctx.upload_track(tok, f"Gone {ctx.sfx}")
+    stream = ctx.call("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok)
+    ctx.check("the track streams before deletion", ctx.probe_media(stream["url"], expect=(200, 206)) in (200, 206))
+    ctx.call("DELETE", "/api/v1/users/me", tok, expect=(204,))
+    ctx.call("POST", "/api/v1/auth/login", body={"email": email, "password": "GoneTest12345!"}, expect=(401,))
+    ctx.check("a deleted account cannot sign in", True)
+    ctx.call("GET", "/api/v1/auth/me", tok, expect=(401,))
+    ctx.check("a deleted account's session is dead", True)
+    status = ctx.probe_media(stream["url"], expect=(200, 206, 400, 401, 403, 404, 410))
+    ctx.check("a deleted account's file is gone from storage", status not in (200, 206), str(status))

@@ -8,6 +8,9 @@ You will get an answer within a week. A fix goes into the next release, with
 credit in `CHANGELOG.md` if you want it. This is one person's project with no
 bounty, but every report is read and taken seriously.
 
+What the server protects, from whom, and how is written down in
+[`docs/THREAT_MODEL.md`](docs/THREAT_MODEL.md), known gaps included.
+
 ## Supported versions
 
 The newest release only. Until 1.0 the server is pre-release software, and
