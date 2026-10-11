@@ -371,6 +371,8 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
 
 #[derive(Serialize, ToSchema)]
 pub struct ArtistSummary {
+    /// The contributor entity; stable across retags and spelling.
+    pub id: String,
     pub artist: String,
     pub album_count: i64,
     pub track_count: i64,
@@ -378,7 +380,11 @@ pub struct ArtistSummary {
 
 #[derive(Serialize, ToSchema)]
 pub struct AlbumSummary {
+    /// The album entity — the same id the album's tracks carry as `album_id`.
+    pub id: String,
     pub artist: String,
+    /// The album's first credited artist, as in `/music/artists`.
+    pub artist_id: Option<String>,
     pub album: String,
     pub track_count: i64,
     pub duration_secs: Option<i64>,
@@ -394,9 +400,12 @@ pub struct GenreSummary {
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct AlbumsQuery {
-    /// Restrict to one artist; omit for the whole library.
+    /// Restrict to one artist by name; omit for the whole library.
     #[serde(default)]
     pub artist: Option<String>,
+    /// Restrict to one artist by id (from `/music/artists`).
+    #[serde(default)]
+    pub artist_id: Option<Uuid>,
 }
 
 /// GET /api/v1/music/artists
@@ -413,7 +422,8 @@ async fn list_artists(
 
     Ok(Json(
         rows.into_iter()
-            .map(|(artist, album_count, track_count)| ArtistSummary {
+            .map(|(id, artist, album_count, track_count)| ArtistSummary {
+                id: id.to_string(),
                 artist,
                 album_count,
                 track_count,
@@ -692,19 +702,20 @@ async fn list_albums(
     State(state): State<AppState>,
     Query(q): Query<AlbumsQuery>,
 ) -> Result<Json<Vec<AlbumSummary>>, AuthError> {
-    let rows = db::music::list_albums(state.db(), family.viewer(), q.artist.as_deref())
+    let rows = db::music::list_albums(state.db(), family.viewer(), q.artist.as_deref(), q.artist_id)
         .await
         .map_err(AuthError::Internal)?;
 
     Ok(Json(
         rows.into_iter()
-            .map(|(artist, album, track_count, duration_secs, cover_track)| AlbumSummary {
-                artist,
-                album,
-                track_count,
-                duration_secs,
-                cover_url: cover_track
-                    .map(|id| format!("/api/v1/music/tracks/{id}/cover")),
+            .map(|r| AlbumSummary {
+                id: r.id.to_string(),
+                artist: r.artist,
+                artist_id: r.artist_id.map(|id| id.to_string()),
+                album: r.title,
+                track_count: r.track_count,
+                duration_secs: r.duration_secs,
+                cover_url: r.cover_track.map(|id| format!("/api/v1/music/tracks/{id}/cover")),
             })
             .collect(),
     ))

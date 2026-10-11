@@ -37,3 +37,19 @@ def run(ctx: Ctx) -> None:
         ctx.check("two households never share an album", theirs.get("album_id") not in (None, one.get("album_id")))
     else:
         ctx.skip("two households", "one family per install")
+
+    # The lists read the entities (E2): ids that match the tracks', artists by credit.
+    duo = ctx.upload_track(tok, f"Duet {sfx}", artist=f"Solo {sfx}; Partner {sfx} feat. Visitor {sfx}", album=f"Duets {sfx}")
+    artists = ctx.call("GET", "/api/v1/music/artists", tok)
+    by_name = {a["artist"]: a for a in artists}
+    ctx.check("artists carry ids", all(a.get("id") for a in artists))
+    ctx.check("'A; B' is two artists", f"Solo {sfx}" in by_name and f"Partner {sfx}" in by_name,
+              ", ".join(n for n in by_name if sfx in n))
+    ctx.check("a guest after 'feat.' is not listed as an artist of the track", f"Visitor {sfx}" not in by_name)
+    albums = ctx.call("GET", "/api/v1/music/albums", tok)
+    duets = [a for a in albums if a.get("id") == duo.get("album_id")]
+    ctx.check("the album list's id is the tracks' album_id", len(duets) == 1 and duets[0].get("track_count") == 1, str(duets)[:120])
+    solo_id = by_name.get(f"Solo {sfx}", {}).get("id")
+    if solo_id:
+        mine = ctx.call("GET", f"/api/v1/music/albums?artist_id={solo_id}", tok)
+        ctx.check("albums filter by artist id", [a["id"] for a in mine] == [duo["album_id"]], str([a.get("album") for a in mine]))

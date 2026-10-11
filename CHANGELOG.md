@@ -18,6 +18,11 @@ semver. Each release states the **API contract revision** it serves
   tracks on one album share its id however the tag is spelled. Linking an
   existing library of 600,000 tracks takes about a minute at the first start.
   Contract revision 8.
+- `GET /music/artists` and `GET /music/albums` read the entities: each artist
+  and album carries `id`, an album its `artist_id`, and albums filter by
+  `artist_id` as well as by name. Artists are whoever is credited, so "A; B"
+  lists two and a `feat.` guest is not an artist of the track; albums spelled
+  in different case are one album.
   Entities nothing refers to any more are removed by the daily sweep.
 
 ## [1.0.0-beta.6] - 2026-10-11

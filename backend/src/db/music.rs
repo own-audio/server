@@ -439,72 +439,90 @@ pub async fn update_track_lyrics(pool: &PgPool, id: Uuid, lyrics: &str) -> anyho
 /// expression; computing it per row per query was most of an album list's time.
 pub(crate) const ALBUM_ARTIST_SQL: &str = "t.album_artist_key";
 
-/// The track's own artist without its guests — rule 3 alone, ignoring any album artist.
-/// A generated column since migration 0089.
-const PRIMARY_ARTIST_SQL: &str = "t.primary_artist_key";
 
-/// Everyone with an album of their own, plus everyone who only appears on someone else's —
-/// a singer whose one track sits on a "Various Artists" compilation. Grouping by album artist
-/// alone dropped those from the artist list entirely. `album_count` counts only albums filed
-/// under the artist; `track_count` counts their own tracks and those on their albums.
+/// Everyone credited as an artist on a visible track, or as the artist of an
+/// album holding one — a singer whose one track sits on a "Various Artists"
+/// compilation is listed too. Read from the entities (migration 0100), so
+/// "A; B" is two artists and a guest after "feat." is not an artist of the
+/// track. `album_count` counts albums credited to the artist; `track_count`
+/// their own tracks and those on their albums.
 pub async fn list_artists(
     pool: &PgPool,
     viewer: Viewer,
-) -> anyhow::Result<Vec<(String, i64, i64)>> {
+) -> anyhow::Result<Vec<(Uuid, String, i64, i64)>> {
     let sql = format!(
-        "SELECT name AS artist,
-                COUNT(DISTINCT album) FILTER (WHERE files_album) AS album_count,
-                COUNT(DISTINCT track_id) AS track_count
-         FROM (
-             SELECT t.id AS track_id, {ALBUM_ARTIST_SQL} AS name,
-                    t.album_key AS album, TRUE AS files_album
-             FROM music_tracks t
-             WHERE {VISIBLE}
+        "WITH vis AS (SELECT t.id, t.album_id FROM music_tracks t WHERE {VISIBLE}),
+         named AS (
+             SELECT c.contributor_id, v.id AS track_id, NULL::uuid AS album_id
+               FROM vis v JOIN credits c ON c.item_kind = 'track' AND c.item_id = v.id AND c.role = 'artist'
              UNION ALL
-             SELECT t.id, {PRIMARY_ARTIST_SQL}, NULL, FALSE
-             FROM music_tracks t
-             WHERE {VISIBLE} AND {PRIMARY_ARTIST_SQL} <> {ALBUM_ARTIST_SQL}
-         ) named
-         GROUP BY name
-         ORDER BY name"
+             SELECT c.contributor_id, v.id, v.album_id
+               FROM vis v JOIN credits c ON c.item_kind = 'album' AND c.item_id = v.album_id AND c.role = 'artist'
+         )
+         SELECT k.id, k.name, COUNT(DISTINCT n.album_id) AS album_count, COUNT(DISTINCT n.track_id) AS track_count
+           FROM named n JOIN contributors k ON k.id = n.contributor_id
+          GROUP BY k.id, k.name
+          ORDER BY lower(k.name), k.id"
     );
 
-    bind_viewer!(sqlx::query_as::<_, (String, i64, i64)>(&sql), viewer, MUSIC)
+    bind_viewer!(sqlx::query_as::<_, (Uuid, String, i64, i64)>(&sql), viewer, MUSIC)
         .fetch_all(pool)
         .await
         .context("db: list artists")
 }
 
+/// One album entity as the album list shows it.
+#[derive(Debug, sqlx::FromRow)]
+pub struct AlbumRow {
+    pub id: Uuid,
+    pub artist: String,
+    pub artist_id: Option<Uuid>,
+    pub title: String,
+    pub track_count: i64,
+    pub duration_secs: Option<i64>,
+    /// NULL when no track in the album has art at all: handing back a track id
+    /// regardless made every coverless album fetch a cover and get a 404.
+    pub cover_track: Option<Uuid>,
+}
+
+/// Albums with at least one visible track, optionally only one artist's —
+/// by contributor id, or by name (the album artist line, or any contributor
+/// credited on the album).
 pub async fn list_albums(
     pool: &PgPool,
     viewer: Viewer,
     artist: Option<&str>,
-) -> anyhow::Result<Vec<(String, String, i64, Option<i64>, Option<Uuid>)>> {
+    artist_id: Option<Uuid>,
+) -> anyhow::Result<Vec<AlbumRow>> {
     let sql = format!(
-        "SELECT {ALBUM_ARTIST_SQL} AS artist,
-                t.album_key AS album,
+        "SELECT a.id, a.artist_display AS artist,
+                (SELECT c.contributor_id FROM credits c
+                  WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.role = 'artist'
+                  ORDER BY c.position LIMIT 1) AS artist_id,
+                a.title,
                 COUNT(*) AS track_count,
                 SUM(t.duration_secs)::bigint AS duration_secs,
-                -- NULL when no track in the album has art at all: handing back a track id
-                -- regardless made every coverless album fetch a cover and get a 404.
                 (array_agg(t.id ORDER BY t.created_at)
                      FILTER (WHERE t.cover_object_id IS NOT NULL))[1] AS cover_track
          FROM music_tracks t
+         JOIN albums a ON a.id = t.album_id
          WHERE {VISIBLE}
-           AND ($5::text IS NULL OR {ALBUM_ARTIST_SQL} = $5)
-         GROUP BY 1, 2
-         ORDER BY 1, 2"
+           AND ($5::text IS NULL OR lower(a.artist_display) = lower($5)
+                OR EXISTS (SELECT 1 FROM credits c JOIN contributors k ON k.id = c.contributor_id
+                            WHERE c.item_kind = 'album' AND c.item_id = a.id AND lower(k.name) = lower($5)))
+           AND ($6::uuid IS NULL
+                OR EXISTS (SELECT 1 FROM credits c
+                            WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.contributor_id = $6))
+         GROUP BY a.id
+         ORDER BY lower(a.artist_display), lower(a.title), a.id"
     );
 
-    bind_viewer!(
-        sqlx::query_as::<_, (String, String, i64, Option<i64>, Option<Uuid>)>(&sql),
-        viewer,
-        MUSIC
-    )
-    .bind(artist)
-    .fetch_all(pool)
-    .await
-    .context("db: list albums")
+    bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer, MUSIC)
+        .bind(artist)
+        .bind(artist_id)
+        .fetch_all(pool)
+        .await
+        .context("db: list albums")
 }
 
 pub async fn list_genres(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<(String, i64)>> {

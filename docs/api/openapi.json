@@ -7101,10 +7101,20 @@
           {
             "name": "artist",
             "in": "query",
-            "description": "Restrict to one artist; omit for the whole library.",
+            "description": "Restrict to one artist by name; omit for the whole library.",
             "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "artist_id",
+            "in": "query",
+            "description": "Restrict to one artist by id (from `/music/artists`).",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -14368,13 +14378,25 @@
       "AlbumSummary": {
         "type": "object",
         "required": [
+          "id",
           "artist",
           "album",
           "track_count"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "The album entity — the same id the album's tracks carry as `album_id`."
+          },
           "artist": {
             "type": "string"
+          },
+          "artist_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The album's first credited artist, as in `/music/artists`."
           },
           "album": {
             "type": "string"
@@ -14593,11 +14615,16 @@
       "ArtistSummary": {
         "type": "object",
         "required": [
+          "id",
           "artist",
           "album_count",
           "track_count"
         ],
         "properties": {
+          "id": {
+            "type": "string",
+            "description": "The contributor entity; stable across retags and spelling."
+          },
           "artist": {
             "type": "string"
           },
