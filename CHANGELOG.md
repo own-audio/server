@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.10] - 2026-10-11
+
 ### Added
 - What an app needs from `/api/v2` to stop using the Subsonic API for music
   (docs/api-v2-plan.md, V10):
