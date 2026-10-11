@@ -24,6 +24,21 @@ export async function verifyTotp(mfaToken: string, code: string): Promise<LoginR
   return data;
 }
 
+export interface SecurityEvent {
+  id: string;
+  at: string;
+  kind: string;
+  detail: Record<string, unknown>;
+  actor_id: string | null;
+  ip: string | null;
+  user_agent: string | null;
+}
+
+export async function getSecurityEvents(): Promise<SecurityEvent[]> {
+  const { data } = await api.get<SecurityEvent[]>("/auth/security-events");
+  return data;
+}
+
 export interface TotpStatus {
   enabled: boolean;
   recovery_codes_left: number;

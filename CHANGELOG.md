@@ -61,7 +61,7 @@ Contract revision 7.
   changes and resets, email confirmation, sessions signed out or revoked,
   accounts created, changed or deleted by an admin — with the address and
   user agent, never a secret. Kept a year; the daily sweep drops older rows.
-  Migration 0099.
+  The console's Settings page shows it as "Recent activity". Migration 0099.
 - Browser-facing headers on every response: a `Content-Security-Policy` for
   the console (its own files and the Google and Apple sign-in scripts, no
   inline scripts, no framing; media and images from wherever this install

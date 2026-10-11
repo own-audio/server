@@ -17,6 +17,16 @@ From a version before 1.0.0-alpha.8: the server now runs as `PUID:PGID`
 first start by itself; check that it can still read your library folders
 (`INSTALL.md`, "Library folders").
 
+From a version before 1.0.0-beta.5 (the security release): nothing to do,
+but three things to know. Subsonic API keys are now encrypted in the
+database under a key derived from `SESSION_SECRET` — existing keys are
+converted at the first start, and from now on changing the secret also means
+everyone regenerates their Subsonic key in the console. New passwords must be
+12 characters (existing ones keep working). Sign-in is rate-limited per
+device and address and locks an email after five wrong passwords; if you
+run the conformance suite or a scripted client against your server, raise
+`SERVER__RATE_LIMIT__API_PER_MINUTE` and friends in `.env` as CI does.
+
 ## PostgreSQL
 
 A server update never changes PostgreSQL: the compose file pins its major

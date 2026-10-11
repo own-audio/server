@@ -26,6 +26,7 @@ import { timeAgo } from "../../lib/format";
 import { cn } from "../../lib/cn";
 import { clearDownloads } from "../../lib/offline/downloads";
 import TotpSection from "./TotpSection";
+import SecurityActivity from "./SecurityActivity";
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
@@ -438,6 +439,9 @@ export default function SettingsPage() {
       </Section>
       <Section title={t("settings.section.devices")} description={t("settings.section.devicesDescription")}>
         <Devices />
+      </Section>
+      <Section title={t("settings.section.activity")} description={t("settings.section.activityDescription")}>
+        <SecurityActivity />
       </Section>
       <Section title={t("settings.section.muted")} description={t("settings.section.mutedDescription")}>
         <MutedTracks />
