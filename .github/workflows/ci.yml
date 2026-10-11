@@ -69,6 +69,9 @@ jobs:
         working-directory: frontend
       - run: npx eslint .
         working-directory: frontend
+      # Only what ships: dev tooling advisories are noise for a static bundle.
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: frontend
       - run: npm test
         working-directory: frontend
       - run: npm run build
@@ -100,6 +103,13 @@ jobs:
           tags: ownaudio/server:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Scan the image (fixed CRITICAL/HIGH only)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: ownaudio/server:ci
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
       - name: Start the stack
         run: |
           cp .env.example .env
@@ -128,6 +138,15 @@ jobs:
           curl -fs -X POST http://localhost:8080/api/v1/setup/complete -H 'Content-Type: application/json' \
             -d '{"email":"admin@example.com","password":"CiAdmin123!-long","display_name":"CI"}'
       - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!-long' --report conformance-report.json
+      # Security hardening plan §9: the server's log of a whole conformance run
+      # never carries a password or a bearer token.
+      - name: No secrets in the server log
+        run: |
+          files="-f docker-compose.yml"
+          [ "${{ matrix.storage }}" = s3 ] || files="$files -f conformance/compose.library.yml"
+          if docker compose $files logs server 2>&1 | grep -E "CiAdmin123|FamilyTest123|Bearer [A-Za-z0-9._-]{20,}|refresh_token\"?:\s*\"[A-Za-z0-9]{20,}"; then
+            echo "a secret made it into the server log"; exit 1
+          fi
       # BACKUP.md's restore, word for word, into an emptied database; then the
       # server must work on what came back.
       - name: Backup and restore

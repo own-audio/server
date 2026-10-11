@@ -53,6 +53,9 @@ Contract revision 7.
   upgrade is taken as verified (migration 0097). The edition seam gains
   `Hooks::email_verified`, where the hosted edition grants its welcome credit
   from now on, so a stream of fresh registrations earns nothing.
+- CI scans the server image for fixed critical and high CVEs, audits the
+  console's shipped dependencies, and fails if a password or a bearer token
+  appears in the server log of a full conformance run.
 - A security trail per account (`GET /auth/security-events`, the last 100):
   sign-ins and failures, locks, two-factor steps and changes, password
   changes and resets, email confirmation, sessions signed out or revoked,
