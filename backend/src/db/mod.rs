@@ -15,6 +15,7 @@ pub mod sync;
 pub mod podcasts;
 pub mod audiobooks;
 pub mod authors;
+pub mod catalog;
 pub mod storage_usage;
 pub mod collections;
 pub mod playback;

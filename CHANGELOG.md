@@ -20,6 +20,11 @@ semver. Each release states the **API contract revision** it serves
   code), sessions under `/me/sessions` (signing a device out ends its access
   tokens at once), and personal access tokens under `/me/tokens`: scoped,
   shown once, stored hashed, good on `/api/v2` only (migration 0105).
+- The music catalogue on v2: `/contributors` (with `/artists`, `/authors`,
+  `/narrators` and `/hosts` as views of them), `/albums`, `/release-groups`,
+  `/recordings`, `/genres`, `/tracks`. Records carry ids and credits, not
+  names; `include=` sends referenced records once; lists page by cursor in
+  index order (migration 0106), about 30 ms a page at 600,000 tracks.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

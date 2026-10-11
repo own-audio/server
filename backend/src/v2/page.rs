@@ -58,6 +58,9 @@ pub struct Page<T> {
     /// The cursor for the next page; absent on the last.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub next: Option<String>,
+    /// The records the items refer to, each once, when `include=` asked for them.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub included: Option<crate::v2::music::Included>,
 }
 
 impl<T> Page<T> {
@@ -67,7 +70,7 @@ impl<T> Page<T> {
         let more = rows.len() as i64 > limit;
         rows.truncate(limit as usize);
         let next = more.then(|| rows.last().map(|last| encode(&key(last)))).flatten();
-        Page { items: rows, next }
+        Page { items: rows, next, included: None }
     }
 }
 

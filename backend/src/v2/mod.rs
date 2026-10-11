@@ -8,6 +8,7 @@
 pub mod auth;
 pub mod discovery;
 pub mod me;
+pub mod music;
 pub mod page;
 pub mod problem;
 
@@ -38,6 +39,19 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(me::delete_session))
         .routes(routes!(me::tokens, me::create_token))
         .routes(routes!(me::delete_token))
+        .routes(routes!(music::list_contributors))
+        .routes(routes!(music::get_contributor))
+        .routes(routes!(music::list_artists))
+        .routes(routes!(music::list_authors))
+        .routes(routes!(music::list_narrators))
+        .routes(routes!(music::list_hosts))
+        .routes(routes!(music::list_albums))
+        .routes(routes!(music::get_album))
+        .routes(routes!(music::get_release_group))
+        .routes(routes!(music::get_recording))
+        .routes(routes!(music::list_genres))
+        .routes(routes!(music::list_tracks))
+        .routes(routes!(music::get_track))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

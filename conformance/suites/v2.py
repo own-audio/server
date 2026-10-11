@@ -82,6 +82,7 @@ def run(ctx: Ctx) -> None:
     ctx.check("anonymous callers get 401 and members no admin operation, as declared", not wrong, "; ".join(wrong[:8]))
 
     signin(ctx, problem)
+    catalogue(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -222,3 +223,77 @@ def signin(ctx: Ctx, problem) -> None:
     st, _h, body = token({"grant_type": "urn:own-audio:params:oauth:grant-type:mfa-otp",
                           "mfa_token": challenge.get("mfa_token", ""), "otp": totp(setup["secret"], time.time() + 30)})
     ctx.check("the mfa-otp grant with the next code signs in", st == 200 and bool(json.loads(body).get("access_token")))
+
+
+def catalogue(ctx: Ctx, problem) -> None:
+    """V3: the music catalogue — normalised records, cursor pages without loss or repeats,
+    include=, and nothing of another household's or another member's private items."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2cat", PW)
+
+    def get(path: str, token: str = tok):
+        st, _h, body = ctx.request("GET", path, token)
+        return st, (json.loads(body) if body else None)
+
+    one = ctx.upload_track(tok, f"Alpha {sfx}", artist=f"Cat Band {sfx} feat. Cat Guest {sfx}", album=f"Cat Album A {sfx}", genre="Rock; Pop")
+    ctx.upload_track(tok, f"Beta {sfx}", artist=f"Cat Band {sfx}", album=f"Cat Album B {sfx}")
+    ctx.upload_track(tok, f"Gamma {sfx}", artist=f"Cat Band {sfx}", album=f"Cat Album C {sfx}")
+
+    st, track = get(f"/api/v2/tracks/{one['id']}?include=albums,contributors,genres")
+    ctx.check("a track: ids, not names, with its credits in order",
+              st == 200 and track.get("album_id") == one.get("album_id")
+              and [c["role"] for c in track.get("credits", [])] == ["artist", "featured"]
+              and track["credits"][0]["join_phrase"] == " feat. " and "artist" not in track, str(track)[:200])
+    inc = (track or {}).get("included", {})
+    ctx.check("include= sends the album, the contributors and the genres once",
+              [a["id"] for a in inc.get("albums", [])] == [one["album_id"]]
+              and {c["name"] for c in inc.get("contributors", [])} == {f"Cat Band {sfx}", f"Cat Guest {sfx}"}
+              and {g["name"] for g in inc.get("genres", [])} == {"Rock", "Pop"}, str(inc)[:200])
+    ctx.check("durations in milliseconds, never seconds", "duration_ms" in (track or {}) and "duration_secs" not in (track or {}))
+
+    st, artists = get(f"/api/v2/artists?q=Cat%20Band%20{sfx}")
+    band = next((a for a in (artists or {}).get("items", []) if a["name"] == f"Cat Band {sfx}"), None)
+    ctx.check("/artists finds the artist", st == 200 and band is not None, str(artists)[:160])
+    st, guests = get(f"/api/v2/artists?q=Cat%20Guest%20{sfx}")
+    ctx.check("…and not a featured guest, who is a contributor all the same",
+              st == 200 and not guests.get("items") and get(f"/api/v2/contributors?role=featured&q=Cat%20Guest%20{sfx}")[1]["items"])
+    if band:
+        st, detail = get(f"/api/v2/contributors/{band['id']}")
+        ctx.check("a contributor says what they are credited as", st == 200 and detail.get("roles") == ["artist"], str(detail)[:160])
+
+    seen, cursor, pages = [], None, 0
+    while pages < 10:
+        path = f"/api/v2/albums?q=Cat%20Album&limit=1&contributor_id={band['id'] if band else ''}" + (f"&cursor={cursor}" if cursor else "")
+        st, page = get(path)
+        if st != 200:
+            break
+        seen += [a["title"] for a in page["items"]]
+        pages += 1
+        cursor = page.get("next")
+        if not cursor:
+            break
+    ctx.check("albums page one at a time without loss or repeats",
+              seen == [f"Cat Album A {sfx}", f"Cat Album B {sfx}", f"Cat Album C {sfx}"], str(seen))
+    st, page = get(f"/api/v2/albums?contributor_id={band['id'] if band else uuid.uuid4()}&include=contributors,release_groups")
+    first = (page or {}).get("items", [{}])[0]
+    ctx.check("an album: credits, counts in what the caller sees, its release group included",
+              st == 200 and first.get("track_count") == 1 and first.get("credits") and first.get("release_group_id")
+              in [g["id"] for g in page.get("included", {}).get("release_groups", [])], str(first)[:200])
+    st, group = get(f"/api/v2/release-groups/{first.get('release_group_id')}")
+    ctx.check("a release group lists its editions", st == 200 and first.get("id") in group.get("album_ids", []))
+    st, tracks = get(f"/api/v2/tracks?album_id={one['album_id']}")
+    ctx.check("an album's tracks", st == 200 and [t["id"] for t in tracks["items"]] == [one["id"]])
+    st, genres = get("/api/v2/genres?limit=500")
+    ctx.check("genres of visible tracks", st == 200 and {"Rock", "Pop"} <= {g["name"] for g in genres["items"]})
+    ctx.check("a bad cursor: 400 invalid_cursor", problem(ctx.request("GET", "/api/v2/albums?cursor=bm9wZQ", tok), 400, "invalid_cursor"))
+    ctx.check("an unknown include: 400 invalid_include", problem(ctx.request("GET", "/api/v2/albums?include=tracks", tok), 400, "invalid_include"))
+    ctx.check("an unknown id: 404", problem(ctx.request("GET", f"/api/v2/albums/{uuid.uuid4()}", tok), 404, "not_found"))
+
+    # Nothing private of someone else's, from another member or another household.
+    _oid, _oemail, other = ctx.make_user("v2cat-other", PW)
+    for path in (f"/api/v2/tracks/{one['id']}", f"/api/v2/albums/{one['album_id']}", f"/api/v2/contributors/{band['id'] if band else uuid.uuid4()}"):
+        if not problem(ctx.request("GET", path, other), 404):
+            ctx.check(f"another account cannot see a private {path.split('/')[3][:-1]}", False, path)
+            break
+    else:
+        ctx.check("another account sees none of a private track, its album or its artist", True)
