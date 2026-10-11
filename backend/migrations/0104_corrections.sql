@@ -60,13 +60,14 @@ BEGIN
         ELSE
             -- The older album stays: it is the one people have seen longest.
             IF v_other <> v_album THEN
+                -- Either way the merge brings every key of the one that goes,
+                -- `v_new` included, to the one that stays; `v_key` is then stale.
                 IF (SELECT (created_at, id) < (SELECT created_at, id FROM albums WHERE id = v_other)
                       FROM albums WHERE id = v_album) THEN
                     PERFORM album_merge(v_other, v_album);
-                    UPDATE album_keys SET key = v_new WHERE family_id = p_family AND key = v_key;
-                    CONTINUE;
+                ELSE
+                    PERFORM album_merge(v_album, v_other);
                 END IF;
-                PERFORM album_merge(v_album, v_other);
             END IF;
             DELETE FROM album_keys WHERE family_id = p_family AND key = v_key;
         END IF;

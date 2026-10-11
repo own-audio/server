@@ -801,7 +801,6 @@ async fn execute_storage_sweep(
         freed += 1;
     }
 
-    // Presigned uploads that never completed: their objects have no row, so
     match crate::db::entities::sweep_orphans(pool).await {
         Ok(0) => {}
         Ok(n) => info!(count = n, "orphaned music entities removed"),
@@ -813,6 +812,13 @@ async fn execute_storage_sweep(
         Ok(n) => info!(count = n, "security events past retention dropped"),
         Err(e) => warn!(error = %e, "could not purge security events"),
     }
+    // The /api/v2 change log keeps 180 days; an older cursor snapshots again.
+    match crate::db::changes::prune(pool).await {
+        Ok(0) => {}
+        Ok(n) => info!(count = n, "change log rows past retention dropped"),
+        Err(e) => warn!(error = %e, "could not prune the change log"),
+    }
+    // Presigned uploads that never completed: their objects have no row, so
     // the pass above cannot see them (migration 0094).
     let mut stale = 0usize;
     for key in crate::db::uploads::stale_intents(pool, 24, limit).await? {

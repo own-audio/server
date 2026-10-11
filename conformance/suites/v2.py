@@ -86,6 +86,7 @@ def run(ctx: Ctx) -> None:
     shelves(ctx, problem)
     corrections(ctx, problem)
     user_state(ctx, problem)
+    sync(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -494,3 +495,76 @@ def user_state(ctx: Ctx, problem) -> None:
     ctx.check("offline changes answer one by one: ok, ok, stale, ok, unsupported_op",
               st == 200 and [r["status"] for r in pushed] == ["ok", "ok", "stale", "ok", "unsupported_op"], str(pushed))
     ctx.check("…and took effect", any(f["id"] == tid for f in req("GET", "/api/v2/me/favourites?kind=track")[1]["items"]))
+
+
+def sync(ctx: Ctx, problem) -> None:
+    """V5: the change feed and the snapshot."""
+    import base64 as b64
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2sync", PW)
+    _oid, _oe, other = ctx.make_user("v2sync-other", PW)
+
+    def changes(cursor: str, token: str = tok) -> dict:
+        st, _h, raw = ctx.request("GET", f"/api/v2/sync/changes?cursor={cursor}", token)
+        return json.loads(raw) if st == 200 else {"status": st}
+
+    st, _h, raw = ctx.request("GET", "/api/v2/sync/changes", tok)
+    start = json.loads(raw) if st == 200 else {}
+    ctx.check("no cursor: start from now, nothing yet", st == 200 and start.get("changes") == [] and bool(start.get("cursor")))
+    other_start = json.loads(ctx.request("GET", "/api/v2/sync/changes", other)[2])["cursor"]
+
+    track = ctx.upload_track(tok, f"Sync Song {sfx}", artist=f"Sync Band {sfx}", album=f"Sync Album {sfx}")
+    ctx.request("PUT", f"/api/v2/me/favourites/track/{track['id']}", tok)
+    seen, cursor = [], start.get("cursor", "")
+    for _ in range(20):
+        page = changes(cursor)
+        seen += page.get("changes", [])
+        cursor = page.get("cursor", cursor)
+        if not page.get("has_more"):
+            break
+    by = {(c["kind"], c["id"]): c for c in seen}
+    t = by.get(("track", track["id"]), {})
+    ctx.check("a new track arrives with its record, and its album and artist with it",
+              t.get("op") == "upsert" and t.get("record", {}).get("album_id") == track.get("album_id")
+              and ("album", track.get("album_id")) in by and any(k == "contributor" for k, _ in by), str(list(by))[:200])
+    ctx.check("so does the listener's favourite", by.get(("favourite.track", track["id"]), {}).get("op") == "upsert")
+    page = changes(cursor)
+    ctx.check("read again from the new cursor: nothing new", page.get("changes") == [], str(page)[:160])
+
+    band = next((c for c in seen if c["kind"] == "contributor" and c.get("record", {}).get("name") == f"Sync Band {sfx}"), None)
+    if band:
+        ctx.request("PATCH", f"/api/v2/contributors/{band['id']}", tok, {"name": f"Sync Group {sfx}"})
+        renamed = changes(cursor)
+        k = [c for c in renamed.get("changes", []) if c["kind"] == "contributor" and c["id"] == band["id"]]
+        ctx.check("a rename is one change, of the contributor", len(k) == 1 and k[0]["record"]["name"] == f"Sync Group {sfx}", str(renamed)[:200])
+        cursor = renamed.get("cursor", cursor)
+    ctx.call("DELETE", f"/api/v1/music/tracks/{track['id']}", tok, expect=(200, 204))
+    gone = changes(cursor)
+    ctx.check("a deleted track arrives as a delete", any(c["kind"] == "track" and c["id"] == track["id"] and c["op"] == "delete"
+                                                         for c in gone.get("changes", [])), str(gone)[:200])
+    theirs = changes(other_start, other)
+    ctx.check("another member is sent none of a private track's records",
+              not any(c["id"] == track["id"] and c["op"] == "upsert" for c in theirs.get("changes", [])), str(theirs)[:200])
+
+    stale = b64.urlsafe_b64encode(json.dumps({"from": 1, "seq": 0, "next": 1, "at": 0}).encode()).decode().rstrip("=")
+    ctx.check("a cursor older than the log: 410 sync_cursor_expired", problem(ctx.request("GET", f"/api/v2/sync/changes?cursor={stale}", tok), 410, "sync_cursor_expired"))
+    ctx.check("a made-up cursor: 400 invalid_cursor", problem(ctx.request("GET", "/api/v2/sync/changes?cursor=nope", tok), 400, "invalid_cursor"))
+
+    kept = ctx.upload_track(tok, f"Snap Song {sfx}", artist=f"Snap Band {sfx}", album=f"Snap Album {sfx}")
+    ctx.request("PUT", f"/api/v2/me/favourites/track/{kept['id']}", tok)
+    st, headers, raw = ctx.request("GET", "/api/v2/sync/snapshot?kinds=track,favourite", tok)
+    lines = [json.loads(l) for l in raw.decode().splitlines() if l.strip()]
+    records = {(l["kind"], l["id"]) for l in lines if l.get("type") == "record"}
+    ctx.check("a snapshot: begin, records, end with the cursor",
+              st == 200 and headers.get("content-type", "").startswith("application/x-ndjson") and lines[0].get("type") == "begin"
+              and lines[-1].get("type") == "end" and lines[0].get("cursor") == lines[-1].get("cursor")
+              and ("track", kept["id"]) in records and ("favourite.track", kept["id"]) in records
+              and ("track", track["id"]) not in records, f"{st} {len(lines)} lines")
+    after = next((l for l in lines if l.get("type") == "record" and l["kind"] == "track"), None)
+    if after:
+        st, _h, rest = ctx.request("GET", f"/api/v2/sync/snapshot?kinds=track&after=track:{after['id']}&cursor={lines[0]['cursor']}", tok)
+        resumed = [json.loads(l) for l in rest.decode().splitlines() if l.strip()]
+        ctx.check("a snapshot resumes after the last line received",
+                  st == 200 and all(r.get("id") != after["id"] for r in resumed) and resumed[-1].get("type") == "end")
+    end = changes(lines[-1].get("cursor", ""))
+    ctx.check("the snapshot's cursor reads the change log", "changes" in end)

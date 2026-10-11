@@ -492,6 +492,8 @@ CREATE FUNCTION music_link_tracks(p_user UUID) RETURNS void
 LANGUAGE plpgsql AS $$
 BEGIN
     PERFORM set_config('own_audio.bulk_link', 'on', true);
+    -- The change log (0109) takes a relink of many tracks as one reset, not row by row.
+    PERFORM set_config('own_audio.quiet', 'on', true);
     DROP TABLE IF EXISTS link_src, link_names;
 
     CREATE TEMP TABLE link_src ON COMMIT DROP AS
@@ -703,6 +705,7 @@ BEGIN
     ON CONFLICT DO NOTHING;
 
     PERFORM set_config('own_audio.bulk_link', 'off', true);
+    PERFORM set_config('own_audio.quiet', 'off', true);
 END $$;
 
 -- ── Link every existing track, then keep them linked ─────────────────────

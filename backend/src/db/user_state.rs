@@ -142,6 +142,17 @@ pub async fn list_favourites(
         .context("db: list favourites")
 }
 
+/// When the user made it a favourite, if they did.
+pub async fn favourite_at(pool: &PgPool, user_id: Uuid, kind: Kind, id: Uuid) -> anyhow::Result<Option<DateTime<Utc>>> {
+    let (table, column) = favourite_table(kind);
+    sqlx::query_scalar(&format!("SELECT created_at FROM {table} WHERE user_id = $1 AND {column} = $2"))
+        .bind(user_id)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: favourite at")
+}
+
 // ── Ratings ──────────────────────────────────────────────────────────────────
 
 /// 1 to 5, or `None` to take the rating away.
@@ -191,6 +202,21 @@ pub async fn list_ratings(
         .fetch_all(pool)
         .await
         .context("db: list ratings")
+}
+
+/// The user's rating of it, if any, and when it was set.
+pub async fn rating_of(pool: &PgPool, user_id: Uuid, kind: Kind, id: Uuid) -> anyhow::Result<Option<(i16, DateTime<Utc>)>> {
+    let (table, column) = match kind {
+        Kind::Track => ("music_track_ratings", "track_id"),
+        Kind::Album => ("music_ratings", "album_id"),
+        _ => ("music_ratings", "contributor_id"),
+    };
+    sqlx::query_as(&format!("SELECT rating, updated_at FROM {table} WHERE user_id = $1 AND {column} = $2"))
+        .bind(user_id)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: rating of")
 }
 
 // ── Progress ─────────────────────────────────────────────────────────────────

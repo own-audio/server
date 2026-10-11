@@ -517,109 +517,58 @@
       },
       "Change": {
         "properties": {
-          "at": {
-            "description": "When it happened, by the device's clock.",
-            "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "client_id": {
-            "description": "The device's id for this change, echoed in its result.",
-            "type": "string"
-          },
-          "device_kind": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "ended_at": {
-            "format": "date-time",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "ended_reason": {
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "file_id": {
-            "format": "uuid",
-            "type": [
-              "string",
-              "null"
-            ]
-          },
-          "file_position_ms": {
-            "format": "int64",
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "finished": {
-            "type": "boolean"
-          },
           "id": {
             "format": "uuid",
             "type": "string"
           },
           "kind": {
+            "description": "`track`, `album`, …, `favourite.track`, `progress.book`, `bookmark`.",
             "type": "string"
-          },
-          "listened_ms": {
-            "format": "int64",
-            "type": [
-              "integer",
-              "null"
-            ]
           },
           "op": {
-            "description": "`favourite`, `unfavourite`, `rate`, `progress` or `play`.",
+            "description": "`upsert` (here is the record now) or `delete` (gone, or no longer visible to you).",
             "type": "string"
           },
-          "position_ms": {
-            "description": "`progress`: as `PUT /me/progress`.",
-            "format": "int64",
+          "record": {
             "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "rating": {
-            "description": "`rate`: 0 to 5.",
-            "format": "int32",
-            "type": [
-              "integer",
-              "null"
-            ]
-          },
-          "speed": {
-            "format": "double",
-            "type": [
-              "number",
-              "null"
-            ]
-          },
-          "started_at": {
-            "description": "`play`: as `POST /me/plays`.",
-            "format": "date-time",
-            "type": [
-              "string",
+              "object",
               "null"
             ]
           }
         },
         "required": [
-          "client_id",
-          "op",
           "kind",
-          "id"
+          "id",
+          "op"
+        ],
+        "type": "object"
+      },
+      "ChangesAnswer": {
+        "properties": {
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/Change"
+            },
+            "type": "array"
+          },
+          "cursor": {
+            "description": "For the next call.",
+            "type": "string"
+          },
+          "has_more": {
+            "description": "More is waiting: call again at once.",
+            "type": "boolean"
+          },
+          "reset": {
+            "description": "The household's library changed too much to send as changes: drop\nwhat you have and take a new snapshot.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "changes",
+          "cursor",
+          "has_more",
+          "reset"
         ],
         "type": "object"
       },
@@ -7274,6 +7223,95 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/sync/changes": {
+      "get": {
+        "operationId": "sync_changes",
+        "parameters": [
+          {
+            "description": "From the snapshot's `end` line or the previous answer; absent to start\nfrom now (with nothing to send yet).",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Log rows to read, 1 to 1000; 500 when absent.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChangesAnswer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_cursor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "410": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`sync_cursor_expired`: take a new snapshot"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What changed since the cursor",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/sync/push": {
       "post": {
         "operationId": "sync_push",
@@ -7343,6 +7381,89 @@
         ],
         "x-permission": "member",
         "x-scope": "playback"
+      }
+    },
+    "/api/v2/sync/snapshot": {
+      "get": {
+        "operationId": "sync_snapshot",
+        "parameters": [
+          {
+            "description": "Comma-separated kinds; all of them when absent: `contributor`,\n`release_group`, `album`, `genre`, `track`, `book`, `podcast`,\n`episode`, `favourite`, `rating`, `progress`, `bookmark`.",
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "To resume a broken snapshot: the last line's `kind` and `id`, as `kind:id`…",
+            "in": "query",
+            "name": "after",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "…with the `begin` line's cursor, so the changes after it still follow on.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/x-ndjson": {}
+            },
+            "description": "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines, then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`."
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`, `invalid_cursor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything the caller can see, as NDJSON: a `begin` line with the cursor, one `record` line per item, an `end` line with the same cursor for `GET /sync/changes`",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
       }
     },
     "/api/v2/tracks": {

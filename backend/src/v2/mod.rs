@@ -14,6 +14,7 @@ pub mod page;
 pub mod problem;
 pub mod spoken;
 pub mod state;
+pub mod sync;
 
 use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
@@ -79,6 +80,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(state::list_bookmarks, state::create_bookmark))
         .routes(routes!(state::patch_bookmark, state::delete_bookmark))
         .routes(routes!(state::push))
+        .routes(routes!(sync::changes))
+        .routes(routes!(sync::snapshot))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

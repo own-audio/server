@@ -41,6 +41,12 @@ semver. Each release states the **API contract revision** it serves
   (idempotent by the client's id), `/me/bookmarks`, and `POST /sync/push`
   for what a device changed offline, answered change by change. Stored in
   the tables v1 writes, so both versions see the same state.
+- Sync on v2: `GET /sync/snapshot` streams everything the caller can see as
+  NDJSON between a `begin` and an `end` line carrying the cursor (resumable
+  with `after`), and `GET /sync/changes` reads a change log fed by triggers
+  (migration 0109, kept 180 days): each changed item's current record or its
+  removal, the listener's own state included, one row per item per
+  transaction. A household move sends `reset`; an expired cursor is `410`.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

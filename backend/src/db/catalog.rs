@@ -799,3 +799,103 @@ pub async fn find_episode(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Re
         .await
         .context("db: find episode")
 }
+
+// ── By id, for the change feed and the snapshot ──────────────────────────────
+
+pub async fn tracks_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<TrackRow>> {
+    let sql = format!("SELECT {TRACK_COLS} FROM music_tracks t WHERE t.id = ANY($4) AND {} ORDER BY t.id", music());
+    viewer!(sqlx::query_as::<_, TrackRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: tracks by ids")
+}
+
+pub async fn visible_albums_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<AlbumRow>> {
+    let sql = format!(
+        "SELECT {ALBUM_COLS} FROM albums a WHERE a.id = ANY($4) AND a.family_id = $2
+            AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {}) ORDER BY a.id",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: visible albums by ids")
+}
+
+pub async fn visible_contributors_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<ContributorRow>> {
+    let sql = format!(
+        "SELECT {CONTRIBUTOR_COLS} FROM contributors k WHERE k.id = ANY($4) AND k.family_id = $2 AND {} ORDER BY k.id",
+        credited_visibly("NULL")
+    );
+    viewer!(sqlx::query_as::<_, ContributorRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: visible contributors by ids")
+}
+
+pub async fn visible_release_groups_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<ReleaseGroupRow>> {
+    let sql = format!(
+        "SELECT g.id, g.title, g.kind, g.first_release_date, g.musicbrainz_release_group_id FROM release_groups g
+          WHERE g.id = ANY($4) AND g.family_id = $2
+            AND EXISTS (SELECT 1 FROM albums a JOIN music_tracks t ON t.album_id = a.id WHERE a.release_group_id = g.id AND {})
+          ORDER BY g.id",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, ReleaseGroupRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: visible release groups by ids")
+}
+
+pub async fn visible_genres_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<GenreRow>> {
+    let sql = format!(
+        "SELECT g.id, g.name, lower(g.name) AS sort_key FROM genres g WHERE g.id = ANY($4) AND g.family_id = $2
+            AND EXISTS (SELECT 1 FROM track_genres tg JOIN music_tracks t ON t.id = tg.track_id WHERE tg.genre_id = g.id AND {})
+          ORDER BY g.id",
+        music()
+    );
+    viewer!(sqlx::query_as::<_, GenreRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: visible genres by ids")
+}
+
+pub async fn books_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<BookRow>> {
+    let sql = format!("SELECT {BOOK_COLS} FROM audiobook_books t WHERE t.id = ANY($4) AND {} ORDER BY t.id", books());
+    viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: books by ids")
+}
+
+pub async fn podcasts_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<PodcastRow>> {
+    let sql = format!("SELECT {PODCAST_COLS} FROM podcast_feeds t WHERE t.id = ANY($4) AND {} ORDER BY t.id", podcasts());
+    viewer!(sqlx::query_as::<_, PodcastRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: podcasts by ids")
+}
+
+pub async fn episodes_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<EpisodeRow>> {
+    let sql = format!(
+        "SELECT {EPISODE_COLS} FROM podcast_episodes e LEFT JOIN media_objects m ON m.id = e.audio_object_id
+          WHERE e.id = ANY($4) AND EXISTS (SELECT 1 FROM podcast_feeds t WHERE t.id = e.feed_id AND {}) ORDER BY e.id",
+        podcasts()
+    );
+    viewer!(sqlx::query_as::<_, EpisodeRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: episodes by ids")
+}
+
+/// The next ids of a kind the viewer can see, in id order: the snapshot's walk.
+pub async fn visible_ids_after(pool: &PgPool, viewer: Viewer, kind: &str, after: Uuid, limit: i64) -> anyhow::Result<Vec<Uuid>> {
+    let source = match kind {
+        "track" => format!("SELECT t.id FROM music_tracks t WHERE {} AND t.id > $4", music()),
+        "album" => format!(
+            "SELECT a.id FROM albums a WHERE a.family_id = $2 AND a.id > $4 AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {})",
+            music()
+        ),
+        "contributor" => format!("SELECT k.id FROM contributors k WHERE k.family_id = $2 AND k.id > $4 AND {}", credited_visibly("NULL")),
+        "release_group" => format!(
+            "SELECT g.id FROM release_groups g WHERE g.family_id = $2 AND g.id > $4
+                AND EXISTS (SELECT 1 FROM albums a JOIN music_tracks t ON t.album_id = a.id WHERE a.release_group_id = g.id AND {})",
+            music()
+        ),
+        "genre" => format!(
+            "SELECT g.id FROM genres g WHERE g.family_id = $2 AND g.id > $4
+                AND EXISTS (SELECT 1 FROM track_genres tg JOIN music_tracks t ON t.id = tg.track_id WHERE tg.genre_id = g.id AND {})",
+            music()
+        ),
+        "book" => format!("SELECT t.id FROM audiobook_books t WHERE {} AND t.id > $4", books()),
+        "podcast" => format!("SELECT t.id FROM podcast_feeds t WHERE {} AND t.id > $4", podcasts()),
+        "episode" => format!(
+            "SELECT e.id FROM podcast_episodes e JOIN podcast_feeds t ON t.id = e.feed_id WHERE {} AND e.id > $4",
+            podcasts()
+        ),
+        _ => anyhow::bail!("no snapshot of {kind}"),
+    };
+    let sql = format!("{source} ORDER BY 1 LIMIT $5");
+    viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
+        .bind(after)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: snapshot ids")
+}

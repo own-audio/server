@@ -163,7 +163,7 @@ impl ShelfQuery {
     }
 }
 
-async fn credits_of(state: &AppState, kind: &str, ids: &[Uuid]) -> Result<HashMap<Uuid, Vec<Credit>>, Problem> {
+pub(crate) async fn credits_of(state: &AppState, kind: &str, ids: &[Uuid]) -> Result<HashMap<Uuid, Vec<Credit>>, Problem> {
     let mut out: HashMap<Uuid, Vec<Credit>> = HashMap::new();
     for row in catalog::credits(state.db(), kind, ids).await? {
         out.entry(row.item_id).or_default().push(Credit {
@@ -195,7 +195,7 @@ async fn contributors_of<'a>(state: &AppState, family: &FamilyContext, credits: 
     Ok(Some(Included { contributors, ..Default::default() }))
 }
 
-fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
+pub(crate) fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
     Book {
         id: row.id,
         title: row.title,
@@ -217,7 +217,7 @@ fn book(row: catalog::BookRow, credits: Vec<Credit>) -> Book {
     }
 }
 
-fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast {
+pub(crate) fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast {
     Podcast {
         id: row.id,
         title: row.title,
@@ -237,7 +237,7 @@ fn podcast(row: catalog::PodcastRow, credits: Vec<Credit>) -> Podcast {
     }
 }
 
-fn episode(row: catalog::EpisodeRow) -> Episode {
+pub(crate) fn episode(row: catalog::EpisodeRow) -> Episode {
     Episode {
         id: row.id,
         podcast_id: row.podcast_id,
@@ -300,38 +300,8 @@ pub struct BookAnswer {
     params(("id" = Uuid, Path)),
     responses((status = 200, body = BookAnswer), (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn get_book(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<BookAnswer>, Problem> {
-    let pool = state.db();
-    let row = catalog::find_book(pool, family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    let credits = credits_of(&state, "book", &[id]).await?.remove(&id).unwrap_or_default();
-    let mut answer = book(row, credits);
-    answer.files = Some(
-        catalog::book_files(pool, id)
-            .await?
-            .into_iter()
-            .map(|f| BookFile {
-                id: f.id,
-                position: f.position,
-                title: f.title,
-                duration_ms: f.duration_secs.map(|s| i64::from(s) * 1000),
-                size_bytes: f.size_bytes,
-                content_type: f.content_type,
-            })
-            .collect(),
-    );
-    answer.chapters = Some(
-        crate::db::audiobooks::list_chapters(pool, id)
-            .await?
-            .into_iter()
-            .map(|c| Chapter { id: c.id, position: c.position, title: c.title, start_ms: (c.start_time_secs * 1000.0).round() as i64, file_id: c.file_id })
-            .collect(),
-    );
-    answer.series = Some(
-        catalog::book_series(pool, id)
-            .await?
-            .into_iter()
-            .map(|(series_id, name, position)| SeriesEntry { series_id, name, position })
-            .collect(),
-    );
+    let row = catalog::find_book(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    let answer = full_book(&state, row).await?;
     let included = contributors_of(&state, &family, answer.credits.iter()).await?.unwrap_or_default();
     Ok(Json(BookAnswer { book: answer, included }))
 }
@@ -401,4 +371,41 @@ pub async fn list_episodes(
 pub async fn get_episode(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Episode>, Problem> {
     let row = catalog::find_episode(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
     Ok(Json(episode(row)))
+}
+
+/// A book with its files, chapters and series.
+pub(crate) async fn full_book(state: &AppState, row: catalog::BookRow) -> Result<Book, Problem> {
+    let pool = state.db();
+    let id = row.id;
+    let credits = credits_of(state, "book", &[id]).await?.remove(&id).unwrap_or_default();
+    let mut answer = book(row, credits);
+    answer.files = Some(
+        catalog::book_files(pool, id)
+            .await?
+            .into_iter()
+            .map(|f| BookFile {
+                id: f.id,
+                position: f.position,
+                title: f.title,
+                duration_ms: f.duration_secs.map(|s| i64::from(s) * 1000),
+                size_bytes: f.size_bytes,
+                content_type: f.content_type,
+            })
+            .collect(),
+    );
+    answer.chapters = Some(
+        crate::db::audiobooks::list_chapters(pool, id)
+            .await?
+            .into_iter()
+            .map(|c| Chapter { id: c.id, position: c.position, title: c.title, start_ms: (c.start_time_secs * 1000.0).round() as i64, file_id: c.file_id })
+            .collect(),
+    );
+    answer.series = Some(
+        catalog::book_series(pool, id)
+            .await?
+            .into_iter()
+            .map(|(series_id, name, position)| SeriesEntry { series_id, name, position })
+            .collect(),
+    );
+    Ok(answer)
 }

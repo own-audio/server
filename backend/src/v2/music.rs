@@ -142,7 +142,7 @@ pub struct Included {
     pub genres: Vec<Genre>,
 }
 
-fn contributor(row: catalog::ContributorRow) -> Contributor {
+pub(crate) fn contributor(row: catalog::ContributorRow) -> Contributor {
     Contributor {
         id: row.id,
         name: row.name,
@@ -164,7 +164,7 @@ fn credit(row: &catalog::CreditRow) -> Credit {
     }
 }
 
-fn release_group(row: catalog::ReleaseGroupRow) -> ReleaseGroup {
+pub(crate) fn release_group(row: catalog::ReleaseGroupRow) -> ReleaseGroup {
     ReleaseGroup {
         id: row.id,
         title: row.title,
@@ -183,7 +183,7 @@ async fn credits_by_item(state: &AppState, kind: &str, ids: &[Uuid]) -> Result<H
     Ok(by_item)
 }
 
-async fn albums(state: &AppState, viewer: Viewer, rows: Vec<catalog::AlbumRow>) -> Result<Vec<Album>, Problem> {
+pub(crate) async fn albums(state: &AppState, viewer: Viewer, rows: Vec<catalog::AlbumRow>) -> Result<Vec<Album>, Problem> {
     let ids: Vec<Uuid> = rows.iter().map(|a| a.id).collect();
     let mut credits = credits_by_item(state, "album", &ids).await?;
     let stats: HashMap<Uuid, (i64, i64, i32)> =
@@ -212,7 +212,7 @@ async fn albums(state: &AppState, viewer: Viewer, rows: Vec<catalog::AlbumRow>) 
         .collect())
 }
 
-async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Result<Vec<Track>, Problem> {
+pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Result<Vec<Track>, Problem> {
     let ids: Vec<Uuid> = rows.iter().map(|t| t.id).collect();
     let mut credits = credits_by_item(state, "track", &ids).await?;
     let mut genres: HashMap<Uuid, Vec<Uuid>> = HashMap::new();

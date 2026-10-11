@@ -199,7 +199,7 @@ pub struct DevicePosition {
     pub current: bool,
 }
 
-fn progress(k: Kind, p: user_state::Progress) -> Progress {
+pub(crate) fn progress(k: Kind, p: user_state::Progress) -> Progress {
     Progress {
         kind: k.as_str().into(),
         id: p.item_id,
@@ -278,7 +278,7 @@ pub struct ProgressAnswer {
 }
 
 /// This device's session (its refresh chain), or a personal token.
-fn device_id(auth: &AuthUser) -> Uuid {
+pub(crate) fn device_id(auth: &AuthUser) -> Uuid {
     auth.chain_id.unwrap_or(auth.session_id)
 }
 
@@ -486,7 +486,7 @@ pub struct Bookmark {
     pub created_at: DateTime<Utc>,
 }
 
-async fn bookmark(state: &AppState, row: user_state::BookmarkRow) -> Result<Bookmark, Problem> {
+pub(crate) async fn bookmark(state: &AppState, row: user_state::BookmarkRow) -> Result<Bookmark, Problem> {
     let (k, item) = match (row.track_id, row.book_id, row.episode_id) {
         (Some(t), _, _) => (Kind::Track, t),
         (_, Some(b), _) => (Kind::Book, b),
