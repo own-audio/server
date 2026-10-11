@@ -15,8 +15,6 @@ use sqlx::PgPool;
 use crate::auth::at_rest::Cipher;
 use uuid::Uuid;
 
-const UNKNOWN_ARTIST: &str = "Unknown Artist";
-const UNKNOWN_ALBUM: &str = "Unknown Album";
 
 /// Look up the user's Subsonic API key without creating one. The key is
 /// stored encrypted (`auth::at_rest`); one written in the clear before that
@@ -100,10 +98,8 @@ fn generate_key() -> String {
 
 // ── ID3 browsing (Subsonic) ──────────────────────────────────────────────────
 //
-// `music_tracks` has no normalized artist/album tables (denormalized string
-// columns), so these queries aggregate on the fly. Fine at self-hosted-library
-// scale; the Subsonic route layer derives stable synthetic IDs for the
-// distinct (artist) / (artist, album) values these return.
+// Artists and albums are the entities of migration 0100; their ids are the
+// Subsonic ids (docs/data-model-plan.md, E2).
 //
 // All of them apply the same visibility rule as the REST API, so a Subsonic
 // client shows exactly the library the web UI does and never another member's
@@ -119,29 +115,28 @@ macro_rules! bind_viewer {
     };
 }
 
+/// An artist as Subsonic lists it: a contributor credited on a visible track
+/// or album (`db::music::list_artists`), with the albums credited to it.
 #[derive(sqlx::FromRow)]
 pub struct ArtistRow {
+    pub id: Uuid,
     pub artist: String,
     pub album_count: i64,
 }
 
 pub async fn list_distinct_artists(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<ArtistRow>> {
-    let sql = format!(
-        "SELECT COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') AS artist,
-                COUNT(DISTINCT COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}')) AS album_count
-         FROM music_tracks t
-         WHERE {VISIBLE}
-         GROUP BY 1
-         ORDER BY 1"
-    );
-    bind_viewer!(sqlx::query_as::<_, ArtistRow>(&sql), viewer)
-        .fetch_all(pool)
-        .await
-        .context("db: list distinct artists")
+    Ok(crate::db::music::list_artists(pool, viewer)
+        .await?
+        .into_iter()
+        .map(|(id, artist, album_count, _)| ArtistRow { id, artist, album_count })
+        .collect())
 }
 
+/// An album entity with its visible tracks' totals.
 #[derive(sqlx::FromRow)]
 pub struct AlbumRow {
+    pub id: Uuid,
+    pub artist_id: Option<Uuid>,
     pub artist: String,
     pub album: String,
     pub song_count: i64,
@@ -150,18 +145,25 @@ pub struct AlbumRow {
     pub created_at: DateTime<Utc>,
 }
 
+/// The album columns over `albums a` joined to its visible tracks `t`; the
+/// caller adds conditions after `{VISIBLE}` and groups by `a.id`.
+const ALBUM_ROW_COLS: &str = "a.id,
+       (SELECT c.contributor_id FROM credits c
+         WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.role = 'artist'
+         ORDER BY c.position LIMIT 1) AS artist_id,
+       a.artist_display AS artist, a.title AS album,
+       COUNT(*) AS song_count,
+       SUM(t.duration_secs)::bigint AS duration_secs,
+       (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
+       MIN(t.created_at) AS created_at";
+
 pub async fn list_distinct_albums(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<AlbumRow>> {
     let sql = format!(
-        "SELECT COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') AS artist,
-                COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') AS album,
-                COUNT(*) AS song_count,
-                SUM(t.duration_secs)::bigint AS duration_secs,
-                (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
-                MIN(t.created_at) AS created_at
-         FROM music_tracks t
+        "SELECT {ALBUM_ROW_COLS}
+         FROM music_tracks t JOIN albums a ON a.id = t.album_id
          WHERE {VISIBLE}
-         GROUP BY 1, 2
-         ORDER BY MIN(t.created_at) DESC"
+         GROUP BY a.id
+         ORDER BY MIN(t.created_at) DESC, a.id"
     );
     bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
         .fetch_all(pool)
@@ -169,82 +171,70 @@ pub async fn list_distinct_albums(pool: &PgPool, viewer: Viewer) -> anyhow::Resu
         .context("db: list distinct albums")
 }
 
-const ARTIST_EXPR: &str = "COALESCE(NULLIF(trim(t.artist), ''), 'Unknown Artist')";
-const ALBUM_EXPR: &str = "COALESCE(NULLIF(trim(t.album), ''), 'Unknown Album')";
-
-/// One album as [`list_distinct_albums`] would list it, found by its names
-/// through `music_tracks_subsonic_group_idx`.
-pub async fn find_album(pool: &PgPool, viewer: Viewer, artist: &str, album: &str) -> anyhow::Result<Option<AlbumRow>> {
+/// One album by id, if the viewer can see at least one of its tracks.
+pub async fn find_album(pool: &PgPool, viewer: Viewer, album_id: Uuid) -> anyhow::Result<Option<AlbumRow>> {
     let sql = format!(
-        "SELECT {ARTIST_EXPR} AS artist, {ALBUM_EXPR} AS album,
-                COUNT(*) AS song_count,
-                SUM(t.duration_secs)::bigint AS duration_secs,
-                (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
-                MIN(t.created_at) AS created_at
-         FROM music_tracks t
-         WHERE {VISIBLE} AND {ARTIST_EXPR} = $5 AND {ALBUM_EXPR} = $6
-         GROUP BY 1, 2"
+        "SELECT {ALBUM_ROW_COLS}
+         FROM music_tracks t JOIN albums a ON a.id = t.album_id
+         WHERE {VISIBLE} AND a.id = $5
+         GROUP BY a.id"
     );
     bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
-        .bind(artist)
-        .bind(album)
+        .bind(album_id)
         .fetch_optional(pool)
         .await
         .context("db: find album")
 }
 
-/// An artist's albums, newest first, as [`list_distinct_albums`] lists them.
-pub async fn list_artist_albums(pool: &PgPool, viewer: Viewer, artist: &str) -> anyhow::Result<Vec<AlbumRow>> {
+/// The albums credited to a contributor, newest first.
+pub async fn list_artist_albums(pool: &PgPool, viewer: Viewer, contributor_id: Uuid) -> anyhow::Result<Vec<AlbumRow>> {
     let sql = format!(
-        "SELECT {ARTIST_EXPR} AS artist, {ALBUM_EXPR} AS album,
-                COUNT(*) AS song_count,
-                SUM(t.duration_secs)::bigint AS duration_secs,
-                (array_agg(t.cover_object_id ORDER BY (t.cover_object_id IS NULL), t.created_at))[1] AS cover_object_id,
-                MIN(t.created_at) AS created_at
-         FROM music_tracks t
-         WHERE {VISIBLE} AND {ARTIST_EXPR} = $5
-         GROUP BY 1, 2
-         ORDER BY MIN(t.created_at) DESC"
+        "SELECT {ALBUM_ROW_COLS}
+         FROM music_tracks t JOIN albums a ON a.id = t.album_id
+         WHERE {VISIBLE}
+           AND EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.contributor_id = $5)
+         GROUP BY a.id
+         ORDER BY MIN(t.created_at) DESC, a.id"
     );
     bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer)
-        .bind(artist)
+        .bind(contributor_id)
         .fetch_all(pool)
         .await
         .context("db: list artist albums")
 }
 
-/// The names a Subsonic album or artist id stands for, if this viewer has
-/// been handed it before (`subsonic::resolve`). `album` is `None` for an artist.
-pub async fn cached_names(pool: &PgPool, user_id: Uuid, id: Uuid) -> anyhow::Result<Option<(String, Option<String>)>> {
-    sqlx::query_as::<_, (String, Option<String>)>("SELECT artist, album FROM subsonic_ids WHERE user_id = $1 AND id = $2")
-        .bind(user_id)
-        .bind(id)
+/// A contributor's name, if it is credited on a track or album the viewer can see.
+pub async fn find_artist(pool: &PgPool, viewer: Viewer, contributor_id: Uuid) -> anyhow::Result<Option<String>> {
+    let sql = format!(
+        "SELECT k.name FROM contributors k
+         WHERE k.id = $5 AND EXISTS (
+             SELECT 1 FROM music_tracks t
+              WHERE {VISIBLE}
+                AND (EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'track' AND c.item_id = t.id AND c.contributor_id = k.id)
+                     OR EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'album' AND c.item_id = t.album_id AND c.contributor_id = k.id)))"
+    );
+    bind_viewer!(sqlx::query_scalar::<_, String>(&sql), viewer)
+        .bind(contributor_id)
         .fetch_optional(pool)
         .await
-        .context("db: cached subsonic id")
+        .context("db: find artist")
 }
 
-/// Remember ids and their names; already known ones are left alone.
-pub async fn remember_names(
-    pool: &PgPool,
-    user_id: Uuid,
-    ids: &[Uuid],
-    artists: &[String],
-    albums: &[Option<String>],
-) -> anyhow::Result<()> {
-    sqlx::query(
-        "INSERT INTO subsonic_ids (user_id, id, artist, album)
-         SELECT $1, * FROM unnest($2::uuid[], $3::text[], $4::text[])
-         ON CONFLICT DO NOTHING",
+/// Each track's first credited artist, for a song's `artistId`.
+pub async fn track_artist_ids(pool: &PgPool, track_ids: &[Uuid]) -> anyhow::Result<Vec<(Uuid, Uuid)>> {
+    if track_ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    sqlx::query_as::<_, (Uuid, Uuid)>(
+        "SELECT DISTINCT ON (c.item_id) c.item_id, c.contributor_id
+           FROM credits c
+          WHERE c.item_kind = 'track' AND c.item_id = ANY($1) AND c.role = 'artist'
+          ORDER BY c.item_id, c.position",
     )
-    .bind(user_id)
-    .bind(ids)
-    .bind(artists)
-    .bind(albums)
-    .execute(pool)
+    .bind(track_ids)
+    .fetch_all(pool)
     .await
-    .context("db: remember subsonic ids")?;
-    Ok(())
+    .context("db: track artist ids")
 }
 
 /// Fetch many tracks by id at once, applying the same visibility rule as
@@ -330,8 +320,7 @@ pub async fn library_last_modified(
 /// than closing out a session) still evidences a recent play.
 #[derive(sqlx::FromRow)]
 pub struct AlbumPlayStats {
-    pub artist: String,
-    pub album: String,
+    pub album_id: Uuid,
     pub play_count: i64,
     pub last_played: Option<DateTime<Utc>>,
 }
@@ -341,8 +330,7 @@ pub async fn album_play_stats(
     viewer: Viewer,
 ) -> anyhow::Result<Vec<AlbumPlayStats>> {
     let sql = format!(
-        "SELECT COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') AS artist,
-                COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') AS album,
+        "SELECT t.album_id,
                 COALESCE(SUM(s.plays), 0)::bigint AS play_count,
                 MAX(GREATEST(s.last_session, pr.updated_at)) AS last_played
          FROM music_tracks t
@@ -353,8 +341,8 @@ pub async fn album_play_stats(
              GROUP BY item_id
          ) s ON s.item_id = t.id
          LEFT JOIN music_progress pr ON pr.track_id = t.id AND pr.user_id = $1
-         WHERE {VISIBLE}
-         GROUP BY 1, 2"
+         WHERE {VISIBLE} AND t.album_id IS NOT NULL
+         GROUP BY t.album_id"
     );
     bind_viewer!(sqlx::query_as::<_, AlbumPlayStats>(&sql), viewer)
         .fetch_all(pool)
@@ -362,47 +350,41 @@ pub async fn album_play_stats(
         .context("db: album play stats")
 }
 
-/// The `(artist, album)` keys of every album holding at least one track of
-/// `genre`, for `getAlbumList&type=byGenre`.
-///
-/// Case-insensitive to match `db::music::list_tracks_by_genre`, so the genre
-/// string a client echoes back from `getGenres` resolves identically whether
-/// it asks for songs or for albums.
-pub async fn album_keys_for_genre(
+/// Every album holding at least one visible track of `genre`, for
+/// `getAlbumList&type=byGenre`. Case-insensitive, by the genre entities
+/// (a track tagged "Rock; Pop" is in both).
+pub async fn album_ids_for_genre(
     pool: &PgPool,
     viewer: Viewer,
     genre: &str,
-) -> anyhow::Result<Vec<(String, String)>> {
+) -> anyhow::Result<Vec<Uuid>> {
     let sql = format!(
-        "SELECT DISTINCT COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') AS artist,
-                COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') AS album
+        "SELECT DISTINCT t.album_id
          FROM music_tracks t
-         WHERE {VISIBLE} AND lower(trim(t.genre)) = lower($5)"
+         JOIN track_genres tg ON tg.track_id = t.id
+         JOIN genres g ON g.id = tg.genre_id
+         WHERE {VISIBLE} AND g.key = lower(trim($5)) AND t.album_id IS NOT NULL"
     );
-    bind_viewer!(sqlx::query_as::<_, (String, String)>(&sql), viewer)
+    bind_viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
         .bind(genre)
         .fetch_all(pool)
         .await
-        .context("db: album keys for genre")
+        .context("db: albums for genre")
 }
 
 pub async fn list_album_tracks(
     pool: &PgPool,
     viewer: Viewer,
-    artist: &str,
-    album: &str,
+    album_id: Uuid,
 ) -> anyhow::Result<Vec<MusicTrack>> {
     let sql = format!(
         "SELECT {TRACK_COLS}
          FROM music_tracks t
-         WHERE {VISIBLE}
-           AND COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') = $5
-           AND COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') = $6
+         WHERE {VISIBLE} AND t.album_id = $5
          ORDER BY t.disc_number NULLS FIRST, t.track_number NULLS LAST, t.title"
     );
     bind_viewer!(sqlx::query_as::<_, MusicTrack>(&sql), viewer)
-        .bind(artist)
-        .bind(album)
+        .bind(album_id)
         .fetch_all(pool)
         .await
         .context("db: list album tracks")
@@ -494,45 +476,30 @@ pub async fn media_object_key_and_type(
     .context("db: media object key and content type")
 }
 
-/// Any one track's `cover_object_id` for a given (artist, album) or artist
-/// bucket, used to satisfy `getCoverArt` for synthetic album/artist ids.
+/// A cover for an album id (any of its visible tracks' covers) or an artist
+/// id (one of the artist's albums'), for `getCoverArt`.
 pub async fn representative_cover(
     pool: &PgPool,
     viewer: Viewer,
-    artist: &str,
-    album: Option<&str>,
+    album_id: Option<Uuid>,
+    contributor_id: Option<Uuid>,
 ) -> anyhow::Result<Option<Uuid>> {
     // cover_object_id IS NOT NULL in the WHERE clause guarantees a non-null
     // value whenever a row is returned, so decoding straight into `Uuid` is safe.
-    if let Some(album) = album {
-        let sql = format!(
-            "SELECT t.cover_object_id FROM music_tracks t
-             WHERE {VISIBLE}
-               AND COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') = $5
-               AND COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}') = $6
-               AND t.cover_object_id IS NOT NULL
-             LIMIT 1"
-        );
-        bind_viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
-            .bind(artist)
-            .bind(album)
-            .fetch_optional(pool)
-            .await
-            .context("db: representative album cover")
-    } else {
-        let sql = format!(
-            "SELECT t.cover_object_id FROM music_tracks t
-             WHERE {VISIBLE}
-               AND COALESCE(NULLIF(trim(t.artist), ''), '{UNKNOWN_ARTIST}') = $5
-               AND t.cover_object_id IS NOT NULL
-             LIMIT 1"
-        );
-        bind_viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
-            .bind(artist)
-            .fetch_optional(pool)
-            .await
-            .context("db: representative artist cover")
-    }
+    let sql = format!(
+        "SELECT t.cover_object_id FROM music_tracks t
+         WHERE {VISIBLE} AND t.cover_object_id IS NOT NULL
+           AND ($5::uuid IS NULL OR t.album_id = $5)
+           AND ($6::uuid IS NULL OR EXISTS (
+                SELECT 1 FROM credits c WHERE c.item_kind = 'album' AND c.item_id = t.album_id AND c.contributor_id = $6))
+         LIMIT 1"
+    );
+    bind_viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
+        .bind(album_id)
+        .bind(contributor_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: representative cover")
 }
 
 /// Genres with both counts Subsonic's `getGenres` asks for.
@@ -547,7 +514,7 @@ pub async fn list_genres_with_counts(
     let sql = format!(
         "SELECT trim(t.genre) AS genre,
                 COUNT(*) AS song_count,
-                COUNT(DISTINCT COALESCE(NULLIF(trim(t.album), ''), '{UNKNOWN_ALBUM}')) AS album_count
+                COUNT(DISTINCT t.album_id) AS album_count
          FROM music_tracks t
          WHERE {VISIBLE} AND NULLIF(trim(t.genre), '') IS NOT NULL
          GROUP BY 1

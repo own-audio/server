@@ -14,7 +14,7 @@ use crate::subsonic::auth::SubsonicAuthUser;
 use crate::subsonic::browsing::{self, AlbumListParams, GroupContext, SongContext, song_json};
 use crate::subsonic::extract::SubsonicQuery;
 use crate::subsonic::envelope::{self, SubsonicErrorCode};
-use crate::subsonic::ids;
+use crate::db::music::MusicEntity;
 use axum::extract::State;
 use axum::response::Response;
 use serde::Deserialize;
@@ -46,10 +46,9 @@ pub async fn get_album_list(
     let albums: Vec<Value> = rows
         .iter()
         .map(|row| {
-            let album_id = ids::album_id(auth.user_id, &row.artist, &row.album);
             json!({
-                "id": album_id.to_string(),
-                "parent": ids::artist_id(auth.user_id, &row.artist).to_string(),
+                "id": row.id.to_string(),
+                "parent": row.artist_id.map(|id| id.to_string()),
                 "isDir": true,
                 "title": row.album,
                 "album": row.album,
@@ -57,7 +56,7 @@ pub async fn get_album_list(
                 "songCount": row.song_count,
                 "duration": row.duration_secs.unwrap_or(0),
                 "created": row.created_at.to_rfc3339(),
-                "coverArt": row.cover_object_id.map(|_| album_id.to_string()),
+                "coverArt": row.cover_object_id.map(|_| row.id.to_string()),
             })
         })
         .collect();
@@ -149,7 +148,7 @@ async fn starred_payload(auth: &SubsonicAuthUser, state: &AppState, id3: bool) -
     let starred_tracks = db::music::starred_track_ids(state.db(), auth.user_id)
         .await
         .map_err(|_| ())?;
-    let groups = db::music::starred_groups(state.db(), auth.user_id)
+    let groups = db::music::starred_entities(state.db(), auth.user_id)
         .await
         .map_err(|_| ())?;
 
@@ -167,44 +166,44 @@ async fn starred_payload(auth: &SubsonicAuthUser, state: &AppState, id3: bool) -
     let ctx = SongContext::load(state.db(), auth.user_id, &tracks).await;
     let songs: Vec<Value> = tracks.iter().map(|t| song_json(t, &ctx)).collect();
 
+    // Albums and artists re-checked against what the viewer can still see,
+    // like the tracks; kept in the order they were starred.
     let mut album_json = Vec::new();
     let mut artist_json = Vec::new();
-    for (kind, artist_name, album_name, created) in &groups {
-        match kind.as_str() {
-            "album" => {
-                // By name through the grouping index, one starred album at a time.
-                if let Ok(Some(row)) = db::subsonic::find_album(state.db(), auth.viewer(), artist_name, album_name).await {
-                    let id = ids::album_id(auth.user_id, &row.artist, &row.album);
+    for (entity, created) in &groups {
+        match *entity {
+            MusicEntity::Album(id) => {
+                if let Ok(Some(row)) = db::subsonic::find_album(state.db(), auth.viewer(), id).await {
                     album_json.push(json!({
-                        "id": id.to_string(),
+                        "id": row.id.to_string(),
                         "name": row.album,
                         "title": row.album,
                         "album": row.album,
                         "artist": row.artist,
-                        "artistId": ids::artist_id(auth.user_id, &row.artist).to_string(),
+                        "artistId": row.artist_id.map(|id| id.to_string()),
                         "songCount": row.song_count,
                         "duration": row.duration_secs.unwrap_or(0),
                         "created": row.created_at.to_rfc3339(),
                         "starred": created.to_rfc3339(),
                         "isDir": !id3,
-                        "coverArt": row.cover_object_id.map(|_| id.to_string()),
+                        "coverArt": row.cover_object_id.map(|_| row.id.to_string()),
                     }));
                 }
             }
-            "artist" => {
-                let albums = db::subsonic::list_artist_albums(state.db(), auth.viewer(), artist_name)
+            MusicEntity::Contributor(id) => {
+                let Ok(Some(name)) = db::subsonic::find_artist(state.db(), auth.viewer(), id).await else {
+                    continue;
+                };
+                let albums = db::subsonic::list_artist_albums(state.db(), auth.viewer(), id)
                     .await
                     .map_err(|_| ())?;
-                if let Some(first) = albums.first() {
-                    artist_json.push(json!({
-                        "id": ids::artist_id(auth.user_id, &first.artist).to_string(),
-                        "name": first.artist,
-                        "albumCount": albums.len(),
-                        "starred": created.to_rfc3339(),
-                    }));
-                }
+                artist_json.push(json!({
+                    "id": id.to_string(),
+                    "name": name,
+                    "albumCount": albums.len(),
+                    "starred": created.to_rfc3339(),
+                }));
             }
-            _ => {}
         }
     }
 
@@ -290,7 +289,7 @@ pub async fn search2(
                 .take(artist_limit)
                 .map(|a| {
                     json!({
-                        "id": ids::artist_id(auth.user_id, &a.artist).to_string(),
+                        "id": a.id.to_string(),
                         "name": a.artist,
                         "isDir": true,
                     })
@@ -309,10 +308,9 @@ pub async fn search2(
                 .filter(|a| a.album.to_lowercase().contains(&needle))
                 .take(album_limit)
                 .map(|a| {
-                    let id = ids::album_id(auth.user_id, &a.artist, &a.album);
                     json!({
-                        "id": id.to_string(),
-                        "parent": ids::artist_id(auth.user_id, &a.artist).to_string(),
+                        "id": a.id.to_string(),
+                        "parent": a.artist_id.map(|id| id.to_string()),
                         "title": a.album,
                         "album": a.album,
                         "artist": a.artist,
@@ -320,7 +318,7 @@ pub async fn search2(
                         "songCount": a.song_count,
                         "duration": a.duration_secs.unwrap_or(0),
                         "created": a.created_at.to_rfc3339(),
-                        "coverArt": a.cover_object_id.map(|_| id.to_string()),
+                        "coverArt": a.cover_object_id.map(|_| a.id.to_string()),
                     })
                 })
                 .collect(),

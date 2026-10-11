@@ -5,6 +5,10 @@ a retag moves a track to another id; two households never share one.
 """
 from __future__ import annotations
 
+import hashlib
+import urllib.parse
+import uuid
+
 from core import Ctx
 
 NAME = "entities"
@@ -53,3 +57,38 @@ def run(ctx: Ctx) -> None:
     if solo_id:
         mine = ctx.call("GET", f"/api/v1/music/albums?artist_id={solo_id}", tok)
         ctx.check("albums filter by artist id", [a["id"] for a in mine] == [duo["album_id"]], str([a.get("album") for a in mine]))
+
+    # Subsonic speaks the same ids (E2b): no name-derived ids, stars and ratings on entities.
+    key = ctx.call("GET", "/api/v1/users/me/subsonic-key", tok)
+    salt = uuid.uuid4().hex[:8]
+    auth = urllib.parse.urlencode({"u": key["username"], "t": hashlib.md5((key["api_key"] + salt).encode()).hexdigest(),
+                                   "s": salt, "v": "1.16.1", "c": "entities", "f": "json"})
+
+    def rest(endpoint: str, **params: str) -> dict:
+        q = urllib.parse.urlencode(params)
+        root = ctx.call("GET", f"/rest/{endpoint}.view?{auth}&{q}")["subsonic-response"]
+        if root.get("status") != "ok":
+            raise AssertionError(f"{endpoint}: {root.get('error')}")
+        return root
+
+    album_id = duo["album_id"]
+    album = rest("getAlbum", id=album_id)["album"]
+    ctx.check("Subsonic getAlbum takes the album's entity id", album.get("id") == album_id
+              and [x.get("id") for x in album.get("song", [])] == [duo["id"]], str(album)[:120])
+    ctx.check("a Subsonic song carries the entity ids", album["song"][0].get("albumId") == album_id
+              and album["song"][0].get("artistId") == solo_id, str(album["song"][0])[:160])
+    sub_artists = [a for i in rest("getArtists")["artists"].get("index", []) for a in i.get("artist", [])]
+    ctx.check("Subsonic artist ids are the entity ids", any(a.get("id") == solo_id for a in sub_artists))
+    ctx.check("Subsonic getArtist lists the artist's albums",
+              [a.get("id") for a in rest("getArtist", id=solo_id)["artist"].get("album", [])] == [album_id])
+
+    rest("star", albumId=album_id, artistId=solo_id)
+    rest("setRating", id=album_id, rating="4")
+    starred = rest("getStarred2")["starred2"]
+    ctx.check("starring an album and an artist by id shows in getStarred2",
+              any(a.get("id") == album_id for a in starred.get("album", []))
+              and any(a.get("id") == solo_id for a in starred.get("artist", [])), str(starred)[:160])
+    ctx.check("an album rating reads back on the album", rest("getAlbum", id=album_id)["album"].get("userRating") == 4)
+    rest("unstar", albumId=album_id, artistId=solo_id)
+    starred = rest("getStarred2")["starred2"]
+    ctx.check("unstar removes both", not starred.get("album") and not starred.get("artist"), str(starred)[:120])

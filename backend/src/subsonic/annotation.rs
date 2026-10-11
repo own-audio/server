@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Favourites, ratings and bookmarks.
 ///
-/// Songs are addressed by their real row id. Artists and albums arrive as the
-/// synthetic UUID v5 values `subsonic::ids` derives, which have no rows behind
-/// them, so they are resolved back to the artist/album names they were built
-/// from and stored by name — see `migrations/0036`.
+/// Songs, albums and artists are all addressed by their entities' ids
+/// (migration 0100); album and artist stars and ratings live in
+/// `music_stars` / `music_ratings` (migration 0101).
 use crate::app::AppState;
 use crate::db;
+use crate::db::music::MusicEntity;
 use crate::subsonic::auth::SubsonicAuthUser;
 use crate::subsonic::extract::SubsonicQuery;
 use crate::subsonic::envelope::{self, SubsonicErrorCode};
@@ -91,15 +91,15 @@ async fn apply_stars(
     if !params.album_id.is_empty() {
         for raw in &params.album_id {
             let Ok(target) = raw.parse::<Uuid>() else { continue };
-            let (artist, album) = match resolve::resolve(state.db(), auth.viewer(), target).await {
-                Ok(Some(resolve::Named::Album { artist, album })) => (artist, album),
+            let entity = match resolve::resolve(state.db(), auth.viewer(), target).await {
+                Ok(Some(resolve::Named::Album(album))) => MusicEntity::Album(album.id),
                 Ok(_) => continue,
                 Err(_) => return err(auth, SubsonicErrorCode::Generic),
             };
             let result = if starred {
-                db::music::star_group(state.db(), auth.user_id, "album", &artist, &album).await
+                db::music::star_entity(state.db(), auth.user_id, entity).await
             } else {
-                db::music::unstar_group(state.db(), auth.user_id, "album", &artist, &album).await
+                db::music::unstar_entity(state.db(), auth.user_id, entity).await
             };
             if result.is_err() {
                 return err(auth, SubsonicErrorCode::Generic);
@@ -110,15 +110,15 @@ async fn apply_stars(
     if !params.artist_id.is_empty() {
         for raw in &params.artist_id {
             let Ok(target) = raw.parse::<Uuid>() else { continue };
-            let artist = match resolve::resolve(state.db(), auth.viewer(), target).await {
-                Ok(Some(resolve::Named::Artist(artist))) => artist,
+            let entity = match resolve::resolve(state.db(), auth.viewer(), target).await {
+                Ok(Some(resolve::Named::Artist { id, .. })) => MusicEntity::Contributor(id),
                 Ok(_) => continue,
                 Err(_) => return err(auth, SubsonicErrorCode::Generic),
             };
             let result = if starred {
-                db::music::star_group(state.db(), auth.user_id, "artist", &artist, "").await
+                db::music::star_entity(state.db(), auth.user_id, entity).await
             } else {
-                db::music::unstar_group(state.db(), auth.user_id, "artist", &artist, "").await
+                db::music::unstar_entity(state.db(), auth.user_id, entity).await
             };
             if result.is_err() {
                 return err(auth, SubsonicErrorCode::Generic);
@@ -165,34 +165,16 @@ pub async fn set_rating(
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
     }
 
-    match resolve_group(&auth, &state, target).await {
-        Ok(Some((kind, artist, album))) => {
-            match db::music::set_group_rating(state.db(), auth.user_id, kind, &artist, &album, rating)
-                .await
-            {
-                Ok(()) => ok(&auth, json!({})),
-                Err(_) => err(&auth, SubsonicErrorCode::Generic),
-            }
-        }
-        Ok(None) => err(&auth, SubsonicErrorCode::NotFound),
-        Err(()) => err(&auth, SubsonicErrorCode::Generic),
+    let entity = match resolve::resolve(state.db(), auth.viewer(), target).await {
+        Ok(Some(resolve::Named::Album(album))) => MusicEntity::Album(album.id),
+        Ok(Some(resolve::Named::Artist { id, .. })) => MusicEntity::Contributor(id),
+        Ok(None) => return err(&auth, SubsonicErrorCode::NotFound),
+        Err(_) => return err(&auth, SubsonicErrorCode::Generic),
+    };
+    match db::music::set_entity_rating(state.db(), auth.user_id, entity, rating).await {
+        Ok(()) => ok(&auth, json!({})),
+        Err(_) => err(&auth, SubsonicErrorCode::Generic),
     }
-}
-
-/// Maps a synthetic album or artist id back to the names it was derived from.
-///
-/// Returns `("album", artist, album)` or `("artist", artist, "")`, matching the
-/// shape the group tables store.
-async fn resolve_group(
-    auth: &SubsonicAuthUser,
-    state: &AppState,
-    target: Uuid,
-) -> Result<Option<(&'static str, String, String)>, ()> {
-    Ok(match resolve::resolve(state.db(), auth.viewer(), target).await.map_err(|_| ())? {
-        Some(resolve::Named::Album { artist, album }) => Some(("album", artist, album)),
-        Some(resolve::Named::Artist(artist)) => Some(("artist", artist, String::new())),
-        None => None,
-    })
 }
 
 // ── Bookmarks ─────────────────────────────────────────────────────────────
@@ -291,35 +273,4 @@ pub async fn delete_bookmark(
         return err(&auth, SubsonicErrorCode::Generic);
     }
     ok(&auth, json!({}))
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::subsonic::ids;
-    use uuid::Uuid;
-
-    /// The regression behind Amperfy's "Album Rating Sync" failure: an album id
-    /// is a synthetic UUID v5, not a `music_tracks` row, so a `setRating` that
-    /// only ever looked for a track answered error 70 for every album.
-    #[test]
-    fn an_album_id_is_not_a_track_id() {
-        let user = Uuid::new_v4();
-        let album = ids::album_id(user, "Toto", "Toto IV");
-        let artist = ids::artist_id(user, "Toto");
-        assert_ne!(album, artist);
-        // Stable across calls, which is what lets a rating stored by name be
-        // found again by the id a client sends back.
-        assert_eq!(album, ids::album_id(user, "Toto", "Toto IV"));
-    }
-
-    /// Group keys are normalized, so the id a client echoes back resolves to
-    /// the same row whatever case the tags happen to use.
-    #[test]
-    fn group_ids_ignore_case_and_padding() {
-        let user = Uuid::new_v4();
-        assert_eq!(
-            ids::album_id(user, "Toto", "Toto IV"),
-            ids::album_id(user, " toto ", " TOTO IV ")
-        );
-    }
 }

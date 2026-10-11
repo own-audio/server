@@ -3,12 +3,12 @@
 /// getAlbumList2, getAlbum, getSong, search3, getMusicFolders.
 use crate::app::AppState;
 use crate::db;
+use crate::db::music::MusicEntity;
 use crate::db::subsonic::{AlbumRow, ArtistRow};
 use crate::music::models::MusicTrack;
 use crate::subsonic::auth::SubsonicAuthUser;
 use crate::subsonic::extract::SubsonicQuery;
 use crate::subsonic::envelope::{self, SubsonicErrorCode};
-use crate::subsonic::ids::{self, UNKNOWN_ALBUM, UNKNOWN_ARTIST};
 use crate::subsonic::resolve;
 use axum::extract::State;
 use axum::response::Response;
@@ -85,13 +85,16 @@ pub(crate) fn folder_selected(id: Option<i64>) -> bool {
 
 // ── Artists ───────────────────────────────────────────────────────────────
 
-fn artist_json(row: &ArtistRow, user_id: Uuid, groups: &GroupContext) -> Value {
+const UNKNOWN_ARTIST: &str = "Unknown Artist";
+const UNKNOWN_ALBUM: &str = "Unknown Album";
+
+fn artist_json(row: &ArtistRow, groups: &GroupContext) -> Value {
     let mut obj = json!({
-        "id": ids::artist_id(user_id, &row.artist).to_string(),
+        "id": row.id.to_string(),
         "name": row.artist,
         "albumCount": row.album_count,
     });
-    groups.annotate(&mut obj, &row.artist, "");
+    groups.annotate(&mut obj, MusicEntity::Contributor(row.id));
     obj
 }
 
@@ -101,7 +104,6 @@ const IGNORED_ARTICLES: &str = "The El La Los Las Le Les";
 
 fn group_by_index(
     rows: &[ArtistRow],
-    user_id: Uuid,
     groups: &GroupContext,
     last_modified: i64,
 ) -> Value {
@@ -119,7 +121,7 @@ fn group_by_index(
                 }
             })
             .unwrap_or_else(|| "#".to_string());
-        by_letter.entry(letter).or_default().push(artist_json(row, user_id, groups));
+        by_letter.entry(letter).or_default().push(artist_json(row, groups));
     }
     let index: Vec<Value> = by_letter
         .into_iter()
@@ -162,7 +164,7 @@ pub async fn get_artists(
     };
     let groups = GroupContext::load(state.db(), auth.user_id).await;
     let last_modified = library_last_modified(&state, &auth).await;
-    let body = group_by_index(&rows, auth.user_id, &groups, last_modified);
+    let body = group_by_index(&rows, &groups, last_modified);
     ok(&auth, json!({ "artists": body }))
 }
 
@@ -198,7 +200,7 @@ pub async fn get_indexes(
     };
     let groups = GroupContext::load(state.db(), auth.user_id).await;
     let last_modified = library_last_modified(&state, &auth).await;
-    let body = group_by_index(&rows, auth.user_id, &groups, last_modified);
+    let body = group_by_index(&rows, &groups, last_modified);
     ok(&auth, json!({ "indexes": body }))
 }
 
@@ -217,16 +219,16 @@ pub async fn get_artist(
     };
 
     let name = match resolve::resolve(state.db(), auth.viewer(), target).await {
-        Ok(Some(resolve::Named::Artist(name))) => name,
+        Ok(Some(resolve::Named::Artist { name, .. })) => name,
         Ok(_) => return err(&auth, SubsonicErrorCode::NotFound),
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
     };
-    let albums = match db::subsonic::list_artist_albums(state.db(), auth.viewer(), &name).await {
+    let albums = match db::subsonic::list_artist_albums(state.db(), auth.viewer(), target).await {
         Ok(rows) => rows,
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
     };
     let groups = GroupContext::load(state.db(), auth.user_id).await;
-    let album_json: Vec<Value> = albums.iter().map(|a| album_summary_json(a, auth.user_id, &groups)).collect();
+    let album_json: Vec<Value> = albums.iter().map(|a| album_summary_json(a, &groups)).collect();
 
     let mut artist = json!({
         "id": target.to_string(),
@@ -234,25 +236,25 @@ pub async fn get_artist(
         "albumCount": albums.len(),
         "album": album_json,
     });
-    groups.annotate(&mut artist, &name, "");
+    groups.annotate(&mut artist, MusicEntity::Contributor(target));
 
     ok(&auth, json!({ "artist": artist }))
 }
 
 // ── Albums ────────────────────────────────────────────────────────────────
 
-fn album_summary_json(row: &AlbumRow, user_id: Uuid, groups: &GroupContext) -> Value {
+pub(crate) fn album_summary_json(row: &AlbumRow, groups: &GroupContext) -> Value {
     let mut obj = json!({
-        "id": ids::album_id(user_id, &row.artist, &row.album).to_string(),
+        "id": row.id.to_string(),
         "name": row.album,
         "artist": row.artist,
-        "artistId": ids::artist_id(user_id, &row.artist).to_string(),
+        "artistId": row.artist_id.map(|id| id.to_string()),
         "songCount": row.song_count,
         "duration": row.duration_secs.unwrap_or(0),
         "created": row.created_at.to_rfc3339(),
-        "coverArt": row.cover_object_id.map(|_| ids::album_id(user_id, &row.artist, &row.album).to_string()),
+        "coverArt": row.cover_object_id.map(|_| row.id.to_string()),
     });
-    groups.annotate(&mut obj, &row.artist, &row.album);
+    groups.annotate(&mut obj, MusicEntity::Album(row.id));
     obj
 }
 
@@ -327,22 +329,20 @@ pub(crate) async fn select_albums(
             rows.shuffle(&mut rand::rng());
         }
         "starred" => {
-            rows.retain(|r| groups.starred_at(&r.artist, &r.album).is_some());
-            rows.sort_by_key(|r| std::cmp::Reverse(groups.starred_at(&r.artist, &r.album)));
+            rows.retain(|r| groups.starred_at(MusicEntity::Album(r.id)).is_some());
+            rows.sort_by_key(|r| std::cmp::Reverse(groups.starred_at(MusicEntity::Album(r.id))));
         }
         "highest" => {
-            rows.retain(|r| groups.rating(&r.artist, &r.album).is_some());
-            rows.sort_by_key(|r| std::cmp::Reverse(groups.rating(&r.artist, &r.album)));
+            rows.retain(|r| groups.rating(MusicEntity::Album(r.id)).is_some());
+            rows.sort_by_key(|r| std::cmp::Reverse(groups.rating(MusicEntity::Album(r.id))));
         }
         "frequent" | "recent" => {
             let stats = db::subsonic::album_play_stats(state.db(), auth.viewer())
                 .await
                 .map_err(|_| SubsonicErrorCode::Generic)?;
-            let by_key: HashMap<(String, String), db::subsonic::AlbumPlayStats> = stats
-                .into_iter()
-                .map(|s| ((s.artist.clone(), s.album.clone()), s))
-                .collect();
-            let key = |r: &AlbumRow| (r.artist.clone(), r.album.clone());
+            let by_key: HashMap<Uuid, db::subsonic::AlbumPlayStats> =
+                stats.into_iter().map(|s| (s.album_id, s)).collect();
+            let key = |r: &AlbumRow| r.id;
             if list_type == "frequent" {
                 // An album never played is absent from the shelf entirely
                 // rather than sitting at the bottom of it with a zero.
@@ -361,13 +361,13 @@ pub(crate) async fn select_albums(
             let Some(genre) = params.genre.as_deref().filter(|g| !g.is_empty()) else {
                 return Err(SubsonicErrorCode::MissingParam);
             };
-            let keys: std::collections::HashSet<(String, String)> =
-                db::subsonic::album_keys_for_genre(state.db(), auth.viewer(), genre)
+            let keys: std::collections::HashSet<Uuid> =
+                db::subsonic::album_ids_for_genre(state.db(), auth.viewer(), genre)
                     .await
                     .map_err(|_| SubsonicErrorCode::Generic)?
                     .into_iter()
                     .collect();
-            rows.retain(|r| keys.contains(&(r.artist.clone(), r.album.clone())));
+            rows.retain(|r| keys.contains(&r.id));
         }
         "byYear" => {
             // `fromYear`/`toYear` are required by the protocol, so a client
@@ -402,7 +402,7 @@ pub async fn get_album_list2(
     };
     let page: Vec<Value> = rows
         .iter()
-        .map(|row| album_summary_json(row, auth.user_id, &groups))
+        .map(|row| album_summary_json(row, &groups))
         .collect();
 
     ok(&auth, json!({ "albumList2": { "album": page } }))
@@ -424,7 +424,7 @@ pub async fn get_album(
         return err(&auth, SubsonicErrorCode::NotFound);
     };
 
-    let tracks = match db::subsonic::list_album_tracks(state.db(), auth.viewer(), &matched.artist, &matched.album).await {
+    let tracks = match db::subsonic::list_album_tracks(state.db(), auth.viewer(), matched.id).await {
         Ok(tracks) => tracks,
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
     };
@@ -433,7 +433,7 @@ pub async fn get_album(
     let songs: Vec<Value> = tracks.iter().map(|t| song_json(t, &ctx)).collect();
 
     let groups = GroupContext::load(state.db(), auth.user_id).await;
-    let mut album = album_summary_json(&matched, auth.user_id, &groups);
+    let mut album = album_summary_json(&matched, &groups);
     album["song"] = json!(songs);
 
     ok(&auth, json!({ "album": album }))
@@ -444,10 +444,10 @@ async fn find_album_by_id(
     state: &AppState,
     id: Uuid,
 ) -> anyhow::Result<Option<db::subsonic::AlbumRow>> {
-    match resolve::resolve(state.db(), auth.viewer(), id).await? {
-        Some(resolve::Named::Album { artist, album }) => db::subsonic::find_album(state.db(), auth.viewer(), &artist, &album).await,
-        _ => Ok(None),
-    }
+    Ok(match resolve::resolve(state.db(), auth.viewer(), id).await? {
+        Some(resolve::Named::Album(album)) => Some(album),
+        _ => None,
+    })
 }
 
 pub async fn get_song(
@@ -517,7 +517,7 @@ pub async fn search3(
                 .iter()
                 .filter(|row| row.artist.to_lowercase().contains(&needle))
                 .take(artist_limit)
-                .map(|row| artist_json(row, auth.user_id, &groups))
+                .map(|row| artist_json(row, &groups))
                 .collect(),
             Err(_) => return err(&auth, SubsonicErrorCode::Generic),
         }
@@ -531,7 +531,7 @@ pub async fn search3(
                 .iter()
                 .filter(|row| row.album.to_lowercase().contains(&needle))
                 .take(album_limit)
-                .map(|row| album_summary_json(row, auth.user_id, &groups))
+                .map(|row| album_summary_json(row, &groups))
                 .collect(),
             Err(_) => return err(&auth, SubsonicErrorCode::Generic),
         }
@@ -560,9 +560,8 @@ pub async fn search3(
 /// each song fetching its own — cost one query per track, so a full album list
 /// issued hundreds of round trips to render one page.
 pub(crate) struct SongContext {
-    /// Who is asking. Album and artist ids are derived per viewer, so a song shared from
-    /// another family member's library must carry the viewer's ids, not its owner's.
-    viewer: Uuid,
+    /// Each track's first credited artist (a song's `artistId`).
+    artists: HashMap<Uuid, Uuid>,
     media: HashMap<Uuid, (String, Option<i64>)>,
     starred: HashMap<Uuid, DateTime<Utc>>,
     ratings: HashMap<Uuid, i16>,
@@ -571,8 +570,13 @@ pub(crate) struct SongContext {
 impl SongContext {
     pub(crate) async fn load(pool: &sqlx::PgPool, user_id: Uuid, tracks: &[MusicTrack]) -> Self {
         let object_ids: Vec<Uuid> = tracks.iter().map(|t| t.audio_object_id).collect();
+        let track_ids: Vec<Uuid> = tracks.iter().map(|t| t.id).collect();
         SongContext {
-            viewer: user_id,
+            artists: db::subsonic::track_artist_ids(pool, &track_ids)
+                .await
+                .unwrap_or_default()
+                .into_iter()
+                .collect(),
             media: db::subsonic::media_info_for(pool, &object_ids)
                 .await
                 .unwrap_or_default(),
@@ -597,31 +601,19 @@ impl SongContext {
     }
 }
 
-/// Stars and ratings for albums and artists, which are keyed by name rather
-/// than by row — the group tables store the names the synthetic ids were
-/// derived from. Loaded once per response, like [`SongContext`].
+/// Stars and ratings for albums and artists, by entity. Loaded once per
+/// response, like [`SongContext`].
 #[derive(Default)]
 pub(crate) struct GroupContext {
-    /// `(artist, album)`; album is `""` for an artist.
-    starred: HashMap<(String, String), DateTime<Utc>>,
-    ratings: HashMap<(String, String), i16>,
+    starred: HashMap<MusicEntity, DateTime<Utc>>,
+    ratings: HashMap<MusicEntity, i16>,
 }
 
 impl GroupContext {
     pub(crate) async fn load(pool: &sqlx::PgPool, user_id: Uuid) -> Self {
         GroupContext {
-            starred: db::music::starred_groups(pool, user_id)
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(_, artist, album, at)| ((artist, album), at))
-                .collect(),
-            ratings: db::music::group_ratings(pool, user_id)
-                .await
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(_, artist, album, rating)| ((artist, album), rating))
-                .collect(),
+            starred: db::music::starred_entities(pool, user_id).await.unwrap_or_default().into_iter().collect(),
+            ratings: db::music::entity_ratings(pool, user_id).await.unwrap_or_default().into_iter().collect(),
         }
     }
 
@@ -629,23 +621,22 @@ impl GroupContext {
     /// if they did. Exposed so the album-list endpoints can implement
     /// `type=starred` and `type=highest` against the same data `annotate`
     /// writes, rather than a second, divergent notion of "starred".
-    pub(crate) fn starred_at(&self, artist: &str, album: &str) -> Option<DateTime<Utc>> {
-        self.starred.get(&(artist.to_string(), album.to_string())).copied()
+    pub(crate) fn starred_at(&self, entity: MusicEntity) -> Option<DateTime<Utc>> {
+        self.starred.get(&entity).copied()
     }
 
-    pub(crate) fn rating(&self, artist: &str, album: &str) -> Option<i16> {
-        self.ratings.get(&(artist.to_string(), album.to_string())).copied()
+    pub(crate) fn rating(&self, entity: MusicEntity) -> Option<i16> {
+        self.ratings.get(&entity).copied()
     }
 
     /// Writes `starred`/`userRating` onto an album or artist object, so a
     /// client that just rated something reads its own value back rather than
     /// finding the field absent and assuming the write was lost.
-    fn annotate(&self, obj: &mut Value, artist: &str, album: &str) {
-        let key = (artist.to_string(), album.to_string());
-        if let Some(at) = self.starred.get(&key) {
+    pub(crate) fn annotate(&self, obj: &mut Value, entity: MusicEntity) {
+        if let Some(at) = self.starred.get(&entity) {
             obj["starred"] = json!(at.to_rfc3339());
         }
-        if let Some(rating) = self.ratings.get(&key) {
+        if let Some(rating) = self.ratings.get(&entity) {
             obj["userRating"] = json!(rating);
         }
     }
@@ -654,12 +645,12 @@ impl GroupContext {
 pub(crate) fn song_json(track: &MusicTrack, ctx: &SongContext) -> Value {
     let artist_name = normalize_or(track.artist.as_deref(), UNKNOWN_ARTIST).to_string();
     let album_name = normalize_or(track.album.as_deref(), UNKNOWN_ALBUM).to_string();
-    let artist_id = ids::artist_id(ctx.viewer, &artist_name);
-    let album_id = ids::album_id(ctx.viewer, &artist_name, &album_name);
+    let album_id = track.album_id.map(|id| id.to_string());
+    let artist_id = ctx.artists.get(&track.id).map(|id| id.to_string());
 
     let mut obj = json!({
         "id": track.id.to_string(),
-        "parent": album_id.to_string(),
+        "parent": album_id,
         "isDir": false,
         "title": track.title,
         "album": album_name,
@@ -668,8 +659,8 @@ pub(crate) fn song_json(track: &MusicTrack, ctx: &SongContext) -> Value {
         "discNumber": track.disc_number,
         "duration": track.duration_secs,
         "created": track.created_at.to_rfc3339(),
-        "albumId": album_id.to_string(),
-        "artistId": artist_id.to_string(),
+        "albumId": album_id,
+        "artistId": artist_id,
         "type": "music",
         "mediaType": "song",
     });
@@ -748,17 +739,16 @@ pub async fn get_music_directory(
     };
 
     // An artist directory: its children are that artist's albums.
-    if let resolve::Named::Artist(name) = &named {
-        let albums = match db::subsonic::list_artist_albums(state.db(), auth.viewer(), name).await {
+    if let resolve::Named::Artist { id, name } = &named {
+        let albums = match db::subsonic::list_artist_albums(state.db(), auth.viewer(), *id).await {
             Ok(rows) => rows,
             Err(_) => return err(&auth, SubsonicErrorCode::Generic),
         };
         let children: Vec<Value> = albums
             .iter()
             .map(|a| {
-                let album_id = ids::album_id(auth.user_id, &a.artist, &a.album);
                 json!({
-                    "id": album_id.to_string(),
+                    "id": a.id.to_string(),
                     "parent": target.to_string(),
                     "isDir": true,
                     "title": a.album,
@@ -767,7 +757,7 @@ pub async fn get_music_directory(
                     "songCount": a.song_count,
                     "duration": a.duration_secs.unwrap_or(0),
                     "created": a.created_at.to_rfc3339(),
-                    "coverArt": a.cover_object_id.map(|_| album_id.to_string()),
+                    "coverArt": a.cover_object_id.map(|_| a.id.to_string()),
                 })
             })
             .collect();
@@ -785,11 +775,11 @@ pub async fn get_music_directory(
     }
 
     // An album directory: its children are the songs.
-    let resolve::Named::Album { artist, album } = named else {
+    let resolve::Named::Album(album) = named else {
         return err(&auth, SubsonicErrorCode::NotFound);
     };
 
-    let tracks = match db::subsonic::list_album_tracks(state.db(), auth.viewer(), &artist, &album).await
+    let tracks = match db::subsonic::list_album_tracks(state.db(), auth.viewer(), album.id).await
     {
         Ok(t) => t,
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
@@ -802,8 +792,8 @@ pub async fn get_music_directory(
         json!({
             "directory": {
                 "id": target.to_string(),
-                "parent": ids::artist_id(auth.user_id, &artist).to_string(),
-                "name": album,
+                "parent": album.artist_id.map(|id| id.to_string()),
+                "name": album.album,
                 "child": children,
             }
         }),
@@ -838,15 +828,13 @@ pub async fn get_genres(auth: SubsonicAuthUser, State(state): State<AppState>) -
 /// wrapper name.
 async fn artist_info_payload(auth: &SubsonicAuthUser, state: &AppState, id: &str) -> Option<Value> {
     let target = id.parse::<Uuid>().ok()?;
-    let resolve::Named::Artist(artist) = resolve::resolve(state.db(), auth.viewer(), target).await.ok()?? else {
+    let resolve::Named::Artist { id: artist, .. } = resolve::resolve(state.db(), auth.viewer(), target).await.ok()?? else {
         return None;
     };
 
     let mut info = json!({});
 
-    // The MBID comes from any identified track by this artist; there is no
-    // artist table to hold one.
-    if let Ok(Some(mbid)) = db::music::find_artist_mbid(state.db(), auth.user_id, &artist).await {
+    if let Ok(Some(mbid)) = db::music::find_artist_mbid(state.db(), artist).await {
         info["musicBrainzId"] = json!(mbid);
     }
 
@@ -856,7 +844,7 @@ async fn artist_info_payload(auth: &SubsonicAuthUser, state: &AppState, id: &str
     // CC BY-SA asks for and pixels cannot carry: a link back to the source, and
     // notice that the file was modified — which adding the credit made it.
     if let Ok(Some((_, author, license, _, source_url, is_user_set))) =
-        db::music::find_artist_image_attribution(state.db(), auth.user_id, &artist).await
+        db::music::find_artist_image_attribution(state.db(), artist).await
     {
         if !is_user_set {
             if let Some(credit) =
@@ -903,11 +891,11 @@ pub async fn get_artist_info2(
 /// identified; the rest of the object is legitimately empty.
 async fn album_info_payload(auth: &SubsonicAuthUser, state: &AppState, id: &str) -> Option<Value> {
     let target = id.parse::<Uuid>().ok()?;
-    let resolve::Named::Album { artist, album } = resolve::resolve(state.db(), auth.viewer(), target).await.ok()?? else {
+    let resolve::Named::Album(album) = resolve::resolve(state.db(), auth.viewer(), target).await.ok()?? else {
         return None;
     };
 
-    let tracks = db::subsonic::list_album_tracks(state.db(), auth.viewer(), &artist, &album)
+    let tracks = db::subsonic::list_album_tracks(state.db(), auth.viewer(), album.id)
         .await
         .ok()?;
 

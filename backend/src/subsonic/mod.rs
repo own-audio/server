@@ -16,7 +16,6 @@ pub mod browsing;
 pub mod envelope;
 pub mod extract;
 pub mod form;
-pub mod ids;
 pub mod lists;
 pub mod playback;
 pub mod playlists;

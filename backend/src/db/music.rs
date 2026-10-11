@@ -831,22 +831,23 @@ pub async fn upsert_track_progress(
 /// How long "this artist has no picture" is believed for.
 const MISS_TTL_DAYS: i32 = 30;
 
+/// A contributor's photo, by the household's contributor (migration 0101).
+/// `Some(None)` is a remembered miss (or a cleared one set by hand), `None`
+/// means "never asked" or a miss old enough to ask again.
 pub async fn find_artist_image(
     pool: &PgPool,
-    user_id: Uuid,
-    artist: &str,
+    contributor_id: Uuid,
 ) -> anyhow::Result<Option<Option<(String, String)>>> {
     let row = sqlx::query_as::<_, (Option<String>, Option<String>)>(
         "SELECT mo.object_key, mo.content_type
-         FROM music_artist_images ai
-         LEFT JOIN media_objects mo ON mo.id = ai.image_object_id
-         WHERE ai.user_id = $1 AND lower(ai.artist_name) = lower($2)
-           AND (ai.image_object_id IS NOT NULL
-                OR ai.is_user_set
-                OR ai.fetched_at > now() - make_interval(days => $3))",
+         FROM contributors k
+         LEFT JOIN media_objects mo ON mo.id = k.image_object_id
+         WHERE k.id = $1
+           AND (k.image_object_id IS NOT NULL
+                OR k.image_is_user_set
+                OR k.image_fetched_at > now() - make_interval(days => $2))",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .bind(MISS_TTL_DAYS)
     .fetch_optional(pool)
     .await?;
@@ -857,86 +858,70 @@ pub async fn find_artist_image(
     }))
 }
 
-pub async fn upsert_artist_image(
-    pool: &PgPool,
-    user_id: Uuid,
-    artist: &str,
-    image_object_id: Option<Uuid>,
-) -> anyhow::Result<()> {
-    upsert_artist_image_tx(pool, user_id, artist, image_object_id).await
+/// The household's contributor of that name, as the tags spell it in any case.
+pub async fn contributor_by_name(pool: &PgPool, family_id: Uuid, name: &str) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar("SELECT contributor_id FROM contributor_keys WHERE family_id = $1 AND key = 'name:' || lower(trim($2))")
+        .bind(family_id)
+        .bind(name)
+        .fetch_optional(pool)
+        .await
+        .context("db: contributor by name")
 }
 
-/// The automatic path. **Never overwrites a user-set image** — the `WHERE NOT
-/// is_user_set` on the update is what makes a deliberate choice permanent
-/// rather than something the next catalogue lookup silently replaces.
+pub async fn upsert_artist_image(
+    pool: &PgPool,
+    contributor_id: Uuid,
+    image_object_id: Option<Uuid>,
+) -> anyhow::Result<()> {
+    upsert_artist_image_tx(pool, contributor_id, image_object_id).await
+}
+
+/// A looked-up photo (or a miss). Never replaces one set by hand.
 pub async fn upsert_artist_image_tx<'e, E: sqlx::Executor<'e, Database = Postgres>>(
     executor: E,
-    user_id: Uuid,
-    artist: &str,
+    contributor_id: Uuid,
     image_object_id: Option<Uuid>,
 ) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO music_artist_images (user_id, artist_name, image_object_id, fetched_at)
-         VALUES ($1, $2, $3, now())
-         ON CONFLICT (user_id, artist_name)
-         DO UPDATE SET image_object_id = EXCLUDED.image_object_id, fetched_at = now()
-         WHERE NOT music_artist_images.is_user_set",
+        "UPDATE contributors SET image_object_id = $2, image_fetched_at = now(), updated_at = now()
+         WHERE id = $1 AND NOT image_is_user_set",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .bind(image_object_id)
     .execute(executor)
     .await?;
     Ok(())
 }
 
-/// Any MusicBrainz artist id recorded on this user's tracks by this artist.
-///
-/// Artists have no row of their own, so identity has to be borrowed from the
-/// tracks that name them — which is also why this can legitimately return
-/// nothing for an artist whose tracks were never identified.
-pub async fn find_artist_mbid(
-    pool: &PgPool,
-    user_id: Uuid,
-    artist: &str,
-) -> anyhow::Result<Option<String>> {
-    let row: Option<(String,)> = sqlx::query_as(
-        "SELECT musicbrainz_artist_id FROM music_tracks
-         WHERE user_id = $1 AND lower(artist) = lower($2) AND musicbrainz_artist_id IS NOT NULL
-         LIMIT 1",
+/// The contributor's MusicBrainz artist id: its own, else one from any of its
+/// tracks that was identified.
+pub async fn find_artist_mbid(pool: &PgPool, contributor_id: Uuid) -> anyhow::Result<Option<String>> {
+    let row: Option<Option<String>> = sqlx::query_scalar(
+        "SELECT COALESCE(k.musicbrainz_artist_id,
+                (SELECT t.musicbrainz_artist_id FROM credits c JOIN music_tracks_all t ON t.id = c.item_id
+                  WHERE c.item_kind = 'track' AND c.contributor_id = k.id AND c.position = 0
+                    AND t.musicbrainz_artist_id IS NOT NULL LIMIT 1))
+         FROM contributors k WHERE k.id = $1",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .fetch_optional(pool)
     .await?;
-    Ok(row.map(|(mbid,)| mbid))
+    Ok(row.flatten())
 }
 
-/// The automatic path, with the attribution its licence requires. Same
-/// `WHERE NOT is_user_set` guard as `upsert_artist_image_tx` — a chosen picture
-/// still wins.
 pub async fn upsert_fetched_artist_image<'e, E: sqlx::Executor<'e, Database = Postgres>>(
     executor: E,
-    user_id: Uuid,
-    artist: &str,
+    contributor_id: Uuid,
     image_object_id: Option<Uuid>,
     attribution: &crate::metadata::wikimedia::Attribution,
 ) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO music_artist_images
-            (user_id, artist_name, image_object_id, fetched_at,
-             image_source, image_author, image_license, image_license_url, image_source_url)
-         VALUES ($1, $2, $3, now(), 'Wikimedia Commons', $4, $5, $6, $7)
-         ON CONFLICT (user_id, artist_name)
-         DO UPDATE SET image_object_id = EXCLUDED.image_object_id, fetched_at = now(),
-                       image_source = EXCLUDED.image_source, image_author = EXCLUDED.image_author,
-                       image_license = EXCLUDED.image_license,
-                       image_license_url = EXCLUDED.image_license_url,
-                       image_source_url = EXCLUDED.image_source_url
-         WHERE NOT music_artist_images.is_user_set",
+        "UPDATE contributors SET image_object_id = $2, image_fetched_at = now(),
+                image_source = 'Wikimedia Commons', image_author = $3, image_license = $4,
+                image_license_url = $5, image_source_url = $6, updated_at = now()
+         WHERE id = $1 AND NOT image_is_user_set",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .bind(image_object_id)
     .bind(attribution.author.as_deref())
     .bind(attribution.license.as_deref())
@@ -947,57 +932,49 @@ pub async fn upsert_fetched_artist_image<'e, E: sqlx::Executor<'e, Database = Po
     Ok(())
 }
 
-/// What a client must display alongside the image. `None` for a user's own
-/// upload, which has nothing to attribute.
 pub async fn find_artist_image_attribution(
     pool: &PgPool,
-    user_id: Uuid,
-    artist: &str,
+    contributor_id: Uuid,
 ) -> anyhow::Result<Option<(Option<String>, Option<String>, Option<String>, Option<String>, Option<String>, bool)>> {
     Ok(sqlx::query_as(
-        "SELECT image_source, image_author, image_license, image_license_url, image_source_url, is_user_set
-         FROM music_artist_images
-         WHERE user_id = $1 AND lower(artist_name) = lower($2) AND image_object_id IS NOT NULL",
+        "SELECT image_source, image_author, image_license, image_license_url, image_source_url, image_is_user_set
+         FROM contributors WHERE id = $1 AND image_object_id IS NOT NULL",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .fetch_optional(pool)
     .await?)
 }
 
-/// The user's own picture. Unconditional, unlike the automatic path above:
-/// choosing one is exactly the act that should win.
 pub async fn set_user_artist_image<'e, E: sqlx::Executor<'e, Database = Postgres>>(
     executor: E,
-    user_id: Uuid,
-    artist: &str,
+    contributor_id: Uuid,
     image_object_id: Uuid,
 ) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO music_artist_images (user_id, artist_name, image_object_id, fetched_at, is_user_set)
-         VALUES ($1, $2, $3, now(), TRUE)
-         ON CONFLICT (user_id, artist_name)
-         DO UPDATE SET image_object_id = EXCLUDED.image_object_id, fetched_at = now(), is_user_set = TRUE,
-                       image_source = NULL, image_author = NULL, image_license = NULL,
-                       image_license_url = NULL, image_source_url = NULL",
+        "UPDATE contributors SET image_object_id = $2, image_fetched_at = now(), image_is_user_set = TRUE,
+                image_source = NULL, image_author = NULL, image_license = NULL,
+                image_license_url = NULL, image_source_url = NULL, updated_at = now()
+         WHERE id = $1",
     )
-    .bind(user_id)
-    .bind(artist)
+    .bind(contributor_id)
     .bind(image_object_id)
     .execute(executor)
     .await?;
     Ok(())
 }
 
-/// Drops the row entirely rather than clearing the object — a NULL row means
-/// "asked, nothing found", which would wrongly suppress the automatic lookup
-/// this is meant to hand control back to.
-pub async fn clear_artist_image(pool: &PgPool, user_id: Uuid, artist: &str) -> anyhow::Result<()> {
-    sqlx::query("DELETE FROM music_artist_images WHERE user_id = $1 AND lower(artist_name) = lower($2)")
-        .bind(user_id)
-        .bind(artist)
-        .execute(pool)
-        .await?;
+/// Forgets the photo and any remembered miss, handing control back to the
+/// automatic lookup.
+pub async fn clear_artist_image(pool: &PgPool, contributor_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE contributors SET image_object_id = NULL, image_fetched_at = NULL, image_is_user_set = FALSE,
+                image_source = NULL, image_author = NULL, image_license = NULL,
+                image_license_url = NULL, image_source_url = NULL, updated_at = now()
+         WHERE id = $1",
+    )
+    .bind(contributor_id)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -1842,47 +1819,66 @@ pub async fn unstar_track(pool: &PgPool, user_id: Uuid, track_id: Uuid) -> anyho
     Ok(())
 }
 
-/// `album` is `""` for an artist star, matching the table's own CHECK.
-pub async fn star_group(
-    pool: &PgPool,
-    user_id: Uuid,
-    kind: &str,
-    artist: &str,
-    album: &str,
-) -> anyhow::Result<()> {
+/// What a star or rating on an artist or album points at (migration 0101).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MusicEntity {
+    Contributor(Uuid),
+    Album(Uuid),
+}
+
+impl MusicEntity {
+    fn ids(self) -> (Option<Uuid>, Option<Uuid>) {
+        match self {
+            MusicEntity::Contributor(id) => (Some(id), None),
+            MusicEntity::Album(id) => (None, Some(id)),
+        }
+    }
+
+    fn from_ids(contributor_id: Option<Uuid>, album_id: Option<Uuid>) -> Option<Self> {
+        match (contributor_id, album_id) {
+            (Some(id), _) => Some(MusicEntity::Contributor(id)),
+            (None, Some(id)) => Some(MusicEntity::Album(id)),
+            _ => None,
+        }
+    }
+
+    pub fn id(self) -> Uuid {
+        match self {
+            MusicEntity::Contributor(id) | MusicEntity::Album(id) => id,
+        }
+    }
+}
+
+pub async fn star_entity(pool: &PgPool, user_id: Uuid, entity: MusicEntity) -> anyhow::Result<()> {
+    let (contributor_id, album_id) = entity.ids();
     sqlx::query(
-        "INSERT INTO music_group_stars (user_id, kind, artist_name, album_name)
-         VALUES ($1, $2, $3, $4)
-         ON CONFLICT (user_id, kind, artist_name, album_name) DO NOTHING",
+        "INSERT INTO music_stars (user_id, contributor_id, album_id)
+         SELECT $1, $2, $3
+         WHERE NOT EXISTS (SELECT 1 FROM music_stars
+                            WHERE user_id = $1 AND contributor_id IS NOT DISTINCT FROM $2
+                              AND album_id IS NOT DISTINCT FROM $3)",
     )
     .bind(user_id)
-    .bind(kind)
-    .bind(artist)
-    .bind(album)
+    .bind(contributor_id)
+    .bind(album_id)
     .execute(pool)
     .await
-    .context("db: star group")?;
+    .context("db: star entity")?;
     Ok(())
 }
 
-pub async fn unstar_group(
-    pool: &PgPool,
-    user_id: Uuid,
-    kind: &str,
-    artist: &str,
-    album: &str,
-) -> anyhow::Result<()> {
+pub async fn unstar_entity(pool: &PgPool, user_id: Uuid, entity: MusicEntity) -> anyhow::Result<()> {
+    let (contributor_id, album_id) = entity.ids();
     sqlx::query(
-        "DELETE FROM music_group_stars
-         WHERE user_id = $1 AND kind = $2 AND artist_name = $3 AND album_name = $4",
+        "DELETE FROM music_stars
+         WHERE user_id = $1 AND contributor_id IS NOT DISTINCT FROM $2 AND album_id IS NOT DISTINCT FROM $3",
     )
     .bind(user_id)
-    .bind(kind)
-    .bind(artist)
-    .bind(album)
+    .bind(contributor_id)
+    .bind(album_id)
     .execute(pool)
     .await
-    .context("db: unstar group")?;
+    .context("db: unstar entity")?;
     Ok(())
 }
 
@@ -1900,19 +1896,16 @@ pub async fn starred_track_ids(pool: &PgPool, user_id: Uuid) -> anyhow::Result<V
     .context("db: starred track ids")
 }
 
-/// Starred artists/albums as `(kind, artist, album, created_at)`.
-pub async fn starred_groups(
-    pool: &PgPool,
-    user_id: Uuid,
-) -> anyhow::Result<Vec<(String, String, String, DateTime<Utc>)>> {
-    sqlx::query_as::<_, (String, String, String, DateTime<Utc>)>(
-        "SELECT kind, artist_name, album_name, created_at
-         FROM music_group_stars WHERE user_id = $1",
+/// Starred artists and albums, in the order they were starred.
+pub async fn starred_entities(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Vec<(MusicEntity, DateTime<Utc>)>> {
+    let rows = sqlx::query_as::<_, (Option<Uuid>, Option<Uuid>, DateTime<Utc>)>(
+        "SELECT contributor_id, album_id, created_at FROM music_stars WHERE user_id = $1 ORDER BY created_at",
     )
     .bind(user_id)
     .fetch_all(pool)
     .await
-    .context("db: starred groups")
+    .context("db: starred entities")?;
+    Ok(rows.into_iter().filter_map(|(c, a, at)| MusicEntity::from_ids(c, a).map(|e| (e, at))).collect())
 }
 
 /// Subsonic's rating 0 means "remove the rating", which is the absence of a
@@ -2101,25 +2094,13 @@ pub async fn delete_music_bookmark(pool: &PgPool, user_id: Uuid, track_id: Uuid)
 }
 
 /// The stored artist photo's object id, for the Subsonic cover-art route.
-///
-/// Separate from [`find_artist_image`], which returns the storage key and is
-/// shaped for serving bytes directly; the Subsonic path resolves an id first
-/// and fetches through the same helper every other cover art uses.
-pub async fn find_artist_image_object(
-    pool: &PgPool,
-    user_id: Uuid,
-    artist: &str,
-) -> anyhow::Result<Option<Uuid>> {
-    sqlx::query_scalar::<_, Option<Uuid>>(
-        "SELECT image_object_id FROM music_artist_images
-         WHERE user_id = $1 AND lower(artist_name) = lower($2)",
-    )
-    .bind(user_id)
-    .bind(artist)
-    .fetch_optional(pool)
-    .await
-    .map(Option::flatten)
-    .context("db: find artist image object")
+pub async fn find_artist_image_object(pool: &PgPool, contributor_id: Uuid) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar::<_, Option<Uuid>>("SELECT image_object_id FROM contributors WHERE id = $1")
+        .bind(contributor_id)
+        .fetch_optional(pool)
+        .await
+        .map(Option::flatten)
+        .context("db: find artist image object")
 }
 
 /// Track count for the viewer's library, for Subsonic's `getScanStatus`.
@@ -2131,60 +2112,43 @@ pub async fn count_tracks(pool: &PgPool, viewer: Viewer) -> anyhow::Result<i64> 
         .context("db: count music tracks")
 }
 
-/// Rating for an album or artist. `album` is `""` for an artist, matching the
-/// table's CHECK. Rating 0 removes the row, as for tracks.
-pub async fn set_group_rating(
-    pool: &PgPool,
-    user_id: Uuid,
-    kind: &str,
-    artist: &str,
-    album: &str,
-    rating: i16,
-) -> anyhow::Result<()> {
-    if rating <= 0 {
-        sqlx::query(
-            "DELETE FROM music_group_ratings
-             WHERE user_id = $1 AND kind = $2 AND artist_name = $3 AND album_name = $4",
-        )
-        .bind(user_id)
-        .bind(kind)
-        .bind(artist)
-        .bind(album)
-        .execute(pool)
-        .await
-        .context("db: clear group rating")?;
-        return Ok(());
-    }
-
+/// Rating for an album or artist. Rating 0 removes it, as for tracks.
+pub async fn set_entity_rating(pool: &PgPool, user_id: Uuid, entity: MusicEntity, rating: i16) -> anyhow::Result<()> {
+    let (contributor_id, album_id) = entity.ids();
+    let mut tx = pool.begin().await.context("db: begin entity rating")?;
     sqlx::query(
-        "INSERT INTO music_group_ratings (user_id, kind, artist_name, album_name, rating)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (user_id, kind, artist_name, album_name)
-         DO UPDATE SET rating = EXCLUDED.rating, updated_at = now()",
+        "DELETE FROM music_ratings
+         WHERE user_id = $1 AND contributor_id IS NOT DISTINCT FROM $2 AND album_id IS NOT DISTINCT FROM $3",
     )
     .bind(user_id)
-    .bind(kind)
-    .bind(artist)
-    .bind(album)
-    .bind(rating.min(5))
-    .execute(pool)
+    .bind(contributor_id)
+    .bind(album_id)
+    .execute(&mut *tx)
     .await
-    .context("db: set group rating")?;
+    .context("db: clear entity rating")?;
+    if rating > 0 {
+        sqlx::query("INSERT INTO music_ratings (user_id, contributor_id, album_id, rating) VALUES ($1, $2, $3, $4)")
+            .bind(user_id)
+            .bind(contributor_id)
+            .bind(album_id)
+            .bind(rating.min(5))
+            .execute(&mut *tx)
+            .await
+            .context("db: set entity rating")?;
+    }
+    tx.commit().await.context("db: commit entity rating")?;
     Ok(())
 }
 
-pub async fn group_ratings(
-    pool: &PgPool,
-    user_id: Uuid,
-) -> anyhow::Result<Vec<(String, String, String, i16)>> {
-    sqlx::query_as::<_, (String, String, String, i16)>(
-        "SELECT kind, artist_name, album_name, rating
-         FROM music_group_ratings WHERE user_id = $1",
+pub async fn entity_ratings(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Vec<(MusicEntity, i16)>> {
+    let rows = sqlx::query_as::<_, (Option<Uuid>, Option<Uuid>, i16)>(
+        "SELECT contributor_id, album_id, rating FROM music_ratings WHERE user_id = $1",
     )
     .bind(user_id)
     .fetch_all(pool)
     .await
-    .context("db: group ratings")
+    .context("db: entity ratings")?;
+    Ok(rows.into_iter().filter_map(|(c, a, r)| MusicEntity::from_ids(c, a).map(|e| (e, r))).collect())
 }
 
 // ── Release backfill (docs/album-artist-plan.md A2) ─────────────────────────

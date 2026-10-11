@@ -39,7 +39,7 @@ const MUSIC_REFS: &[(&str, &str)] = &[
     ("music_tracks", "audio_object_id"),
     ("music_tracks", "cover_object_id"),
     ("music_playlists", "cover_object_id"),
-    ("music_artist_images", "image_object_id"),
+    ("contributors", "image_object_id"),
 ];
 
 /// Bookmark voice notes, the audiobook-generation pipeline's artifacts, and personal-use
@@ -91,7 +91,7 @@ const INSTANCE_OTHER_REFS: &[(&str, &str)] = &[
     ("podcast_episodes", "image_object_id"),
     ("music_tracks", "cover_object_id"),
     ("music_playlists", "cover_object_id"),
-    ("music_artist_images", "image_object_id"),
+    ("contributors", "image_object_id"),
     ("generation_jobs", "hints_object_id"),
     ("podcast_episode_translations", "translated_text_object_id"),
     ("companion_files", "object_id"),

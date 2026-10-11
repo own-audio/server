@@ -90,7 +90,32 @@ pub struct ArtistImageInfoResponse {
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct ArtistImageQuery {
-    pub artist: String,
+    /// The artist by name, as the tags spell it (any case).
+    #[serde(default)]
+    pub artist: Option<String>,
+    /// The artist by id, from `/music/artists`; wins over `artist`.
+    #[serde(default)]
+    pub artist_id: Option<Uuid>,
+}
+
+/// The household's contributor an image request is about, and its name.
+async fn image_artist(state: &AppState, family: &FamilyContext, q: &ArtistImageQuery) -> Result<(Uuid, String), AuthError> {
+    let found: Option<(Uuid, String)> = if let Some(id) = q.artist_id {
+        sqlx::query_as("SELECT id, name FROM contributors WHERE id = $1 AND family_id = $2")
+            .bind(id)
+            .bind(family.family_id)
+            .fetch_optional(state.db())
+            .await
+            .map_err(|e| AuthError::Internal(e.into()))?
+    } else {
+        let name = q.artist.as_deref().map(str::trim).filter(|n| !n.is_empty())
+            .ok_or_else(|| AuthError::BadRequest("artist or artist_id is required".to_string()))?;
+        db::music::contributor_by_name(state.db(), family.family_id, name)
+            .await
+            .map_err(AuthError::Internal)?
+            .map(|id| (id, name.to_string()))
+    };
+    found.ok_or(AuthError::ItemNotFound)
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -439,9 +464,9 @@ async fn list_artists(
 /// have been done eagerly, and fetching every artist in a library up front
 /// would be a lot of network for pictures nobody may look at.
 ///
-/// The artist arrives as a query parameter rather than a path segment because
-/// an artist here *is* its name — free text that routinely contains slashes
-/// ("AC/DC"), dots and unicode.
+/// The artist arrives as `artist_id`, or as `artist` (its name, free text that
+/// routinely contains slashes — "AC/DC" — dots and unicode), resolved to the
+/// household's contributor; the photo belongs to it (migration 0101).
 ///
 /// A miss is cached too. Most libraries hold at least one name no catalogue
 /// knows, and without a negative entry every grid render would re-ask the
@@ -454,12 +479,10 @@ async fn get_artist_image(
     State(state): State<AppState>,
     Query(params): Query<ArtistImageQuery>,
 ) -> Result<Response, AuthError> {
-    let artist = params.artist.trim();
-    if artist.is_empty() {
-        return Err(AuthError::BadRequest("artist is required".to_string()));
-    }
+    let (contributor, artist) = image_artist(&state, &family, &params).await?;
+    let artist = artist.as_str();
 
-    if let Some(cached) = db::music::find_artist_image(state.db(), family.user_id, artist)
+    if let Some(cached) = db::music::find_artist_image(state.db(), contributor)
         .await
         .map_err(AuthError::Internal)?
     {
@@ -480,7 +503,7 @@ async fn get_artist_image(
     // identified — an exact identity, and far better than matching on a name.
     // Absent is normal and handled: the lookup falls back to an exact-label
     // match constrained to entities that carry a MusicBrainz artist id at all.
-    let mb_artist_id = db::music::find_artist_mbid(state.db(), family.user_id, artist)
+    let mb_artist_id = db::music::find_artist_mbid(state.db(), contributor)
         .await
         .map_err(AuthError::Internal)?;
 
@@ -489,7 +512,7 @@ async fn get_artist_image(
         Ok(image) => image,
         // Remember the miss, then report it.
         Err(wikimedia::Miss::Missing) => {
-            let _ = db::music::upsert_artist_image(state.db(), family.user_id, artist, None).await;
+            let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
             return Err(AuthError::ItemNotFound);
         }
         // Nothing was learned about this artist, so nothing is remembered: the
@@ -509,7 +532,7 @@ async fn get_artist_image(
         image.attribution.author.as_deref(),
         image.attribution.license.as_deref(),
     ) else {
-        let _ = db::music::upsert_artist_image(state.db(), family.user_id, artist, None).await;
+        let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
         return Err(AuthError::ItemNotFound);
     };
 
@@ -522,14 +545,14 @@ async fn get_artist_image(
         }
         Err(error) => {
             tracing::warn!(%artist, %error, "could not watermark artist image; dropping it");
-            let _ = db::music::upsert_artist_image(state.db(), family.user_id, artist, None).await;
+            let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
             return Err(AuthError::ItemNotFound);
         }
     }
 
     let content_type = image.content_type.to_string();
     let bytes = image.bytes.clone();
-    store_artist_image(&state, &family, artist, image).await;
+    store_artist_image(&state, &family, contributor, image).await;
     Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response())
 }
 
@@ -539,7 +562,7 @@ async fn get_artist_image(
 async fn store_artist_image(
     state: &AppState,
     family: &FamilyContext,
-    artist: &str,
+    contributor: Uuid,
     image: crate::metadata::wikimedia::ArtistImage,
 ) {
     let Ok(temp_file) = NamedTempFile::new() else { return };
@@ -552,25 +575,15 @@ async fn store_artist_image(
         content_type: image.content_type.to_string(),
         size_bytes: image.bytes.len() as i64,
     };
-    // Hashed, not the raw name: an artist name is free text and would otherwise
-    // have to be made safe for an object key, where "AC/DC" alone would create
-    // a spurious path segment.
-    let key = crate::storage::family_key(
-        family.family_id,
-        format!(
-            "music/{}/artists/{:x}.{}",
-            family.user_id,
-            <sha2::Sha256 as sha2::Digest>::digest(artist.to_lowercase().as_bytes()),
-            image.extension
-        ),
-    );
+    // Keyed by the contributor, the household's, not the asking user's.
+    let key = crate::storage::family_key(family.family_id, format!("music/artists/{contributor}.{}", image.extension));
 
     let Ok(mut tx) = state.db().begin().await else { return };
     let Ok(media_id) = store_temp_upload(state.storage(), &mut tx, &key, &upload).await else {
         return;
     };
     if db::music::upsert_fetched_artist_image(
-        &mut *tx, family.user_id, artist, Some(media_id), &image.attribution,
+        &mut *tx, contributor, Some(media_id), &image.attribution,
     )
     .await
     .is_err()
@@ -596,12 +609,8 @@ async fn get_artist_image_info(
     State(state): State<AppState>,
     Query(params): Query<ArtistImageQuery>,
 ) -> Result<Json<ArtistImageInfoResponse>, AuthError> {
-    let artist = params.artist.trim();
-    if artist.is_empty() {
-        return Err(AuthError::BadRequest("artist is required".to_string()));
-    }
-
-    let row = db::music::find_artist_image_attribution(state.db(), family.user_id, artist)
+    let (contributor, _) = image_artist(&state, &family, &params).await?;
+    let row = db::music::find_artist_image_attribution(state.db(), contributor)
         .await
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
@@ -632,10 +641,7 @@ async fn upload_artist_image(
     Query(params): Query<ArtistImageQuery>,
     mut multipart: Multipart,
 ) -> Result<StatusCode, AuthError> {
-    let artist = params.artist.trim().to_string();
-    if artist.is_empty() {
-        return Err(AuthError::BadRequest("artist is required".to_string()));
-    }
+    let (contributor, _) = image_artist(&state, &family, &params).await?;
 
     let mut upload: Option<TempUpload> = None;
     while let Some(field) = multipart
@@ -650,18 +656,11 @@ async fn upload_artist_image(
     let upload = upload.ok_or_else(|| AuthError::BadRequest("missing image payload".to_string()))?;
 
     let ext = file_extension(&upload.file_name).unwrap_or("jpg");
-    let object_key = crate::storage::family_key(
-        family.family_id,
-        format!(
-            "music/{}/artists/{:x}-user.{ext}",
-            family.user_id,
-            <sha2::Sha256 as sha2::Digest>::digest(artist.to_lowercase().as_bytes())
-        ),
-    );
+    let object_key = crate::storage::family_key(family.family_id, format!("music/artists/{contributor}-user.{ext}"));
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     let media_id = store_temp_upload(state.storage(), &mut tx, &object_key, &upload).await?;
-    db::music::set_user_artist_image(&mut *tx, family.user_id, &artist, media_id)
+    db::music::set_user_artist_image(&mut *tx, contributor, media_id)
         .await
         .map_err(AuthError::Internal)?;
     tx.commit().await.map_err(|e| AuthError::Internal(e.into()))?;
@@ -672,8 +671,8 @@ async fn upload_artist_image(
 /// DELETE /api/v1/music/artists/image?artist=… — forget this artist's picture,
 /// user-set or fetched, and let the automatic lookup run again next time.
 ///
-/// Deletes the row rather than nulling it: a NULL row is the cached "nothing
-/// found", which would suppress the very lookup this is handing control back to.
+/// Clears the remembered miss too, which would otherwise suppress the very
+/// lookup this is handing control back to.
 #[utoipa::path(delete, path = "/artists/image", tag = "music", security(("bearer" = [])),
     params(ArtistImageQuery),
     responses((status = 204, description = "Forgotten"), (status = 400, body = crate::http::openapi::ErrorBody)))]
@@ -682,11 +681,8 @@ async fn delete_artist_image(
     State(state): State<AppState>,
     Query(params): Query<ArtistImageQuery>,
 ) -> Result<StatusCode, AuthError> {
-    let artist = params.artist.trim();
-    if artist.is_empty() {
-        return Err(AuthError::BadRequest("artist is required".to_string()));
-    }
-    db::music::clear_artist_image(state.db(), family.user_id, artist)
+    let (contributor, _) = image_artist(&state, &family, &params).await?;
+    db::music::clear_artist_image(state.db(), contributor)
         .await
         .map_err(AuthError::Internal)?;
     Ok(StatusCode::NO_CONTENT)

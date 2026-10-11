@@ -7235,15 +7235,26 @@
           "music"
         ],
         "summary": "The artist's photo",
-        "description": "the artist's photo.\n\nFetched from a public source on first request and cached, the same\nlazy shape `get_lyrics` uses: an artist has no upload step where this could\nhave been done eagerly, and fetching every artist in a library up front\nwould be a lot of network for pictures nobody may look at.\n\nThe artist arrives as a query parameter rather than a path segment because\nan artist here *is* its name — free text that routinely contains slashes\n(\"AC/DC\"), dots and unicode.\n\nA miss is cached too. Most libraries hold at least one name no catalogue\nknows, and without a negative entry every grid render would re-ask the\nnetwork about it forever.",
+        "description": "the artist's photo.\n\nFetched from a public source on first request and cached, the same\nlazy shape `get_lyrics` uses: an artist has no upload step where this could\nhave been done eagerly, and fetching every artist in a library up front\nwould be a lot of network for pictures nobody may look at.\n\nThe artist arrives as `artist_id`, or as `artist` (its name, free text that\nroutinely contains slashes — \"AC/DC\" — dots and unicode), resolved to the\nhousehold's contributor; the photo belongs to it (migration 0101).\n\nA miss is cached too. Most libraries hold at least one name no catalogue\nknows, and without a negative entry every grid render would re-ask the\nnetwork about it forever.",
         "operationId": "music_get_artist_image",
         "parameters": [
           {
             "name": "artist",
             "in": "query",
-            "required": true,
+            "description": "The artist by name, as the tags spell it (any case).",
+            "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "artist_id",
+            "in": "query",
+            "description": "The artist by id, from `/music/artists`; wins over `artist`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -7286,15 +7297,26 @@
           "music"
         ],
         "summary": "Forget this artist's picture, user-set or fetched, and let the automatic lookup run again next time",
-        "description": "forget this artist's picture,\nuser-set or fetched, and let the automatic lookup run again next time.\n\nDeletes the row rather than nulling it: a NULL row is the cached \"nothing\nfound\", which would suppress the very lookup this is handing control back to.",
+        "description": "forget this artist's picture,\nuser-set or fetched, and let the automatic lookup run again next time.\n\nClears the remembered miss too, which would otherwise suppress the very\nlookup this is handing control back to.",
         "operationId": "music_delete_artist_image",
         "parameters": [
           {
             "name": "artist",
             "in": "query",
-            "required": true,
+            "description": "The artist by name, as the tags spell it (any case).",
+            "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "artist_id",
+            "in": "query",
+            "description": "The artist by id, from `/music/artists`; wins over `artist`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -7332,9 +7354,20 @@
           {
             "name": "artist",
             "in": "query",
-            "required": true,
+            "description": "The artist by name, as the tags spell it (any case).",
+            "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "artist_id",
+            "in": "query",
+            "description": "The artist by id, from `/music/artists`; wins over `artist`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],
@@ -7389,9 +7422,20 @@
           {
             "name": "artist",
             "in": "query",
-            "required": true,
+            "description": "The artist by name, as the tags spell it (any case).",
+            "required": false,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "artist_id",
+            "in": "query",
+            "description": "The artist by id, from `/music/artists`; wins over `artist`.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
             }
           }
         ],

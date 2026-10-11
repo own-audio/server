@@ -287,7 +287,6 @@ async fn resolve_cover_object(
     viewer: crate::db::access::Viewer,
     id: Uuid,
 ) -> anyhow::Result<Option<Uuid>> {
-    let user_id = viewer.user_id;
     // 1. A real track id with its own cover.
     if let Some(track) = db::music::find_track(state.db(), id, viewer).await? {
         return Ok(track.cover_object_id);
@@ -310,22 +309,21 @@ async fn resolve_cover_object(
         }
     }
 
-    // 4. A synthetic album or artist id. Last, because resolving one that is
-    //    not known yet costs a pass over the whole catalog.
+    // 4. An album or artist id (the entities' own).
     match resolve::resolve(state.db(), viewer, id).await? {
-        Some(resolve::Named::Album { artist, album }) => {
-            return db::subsonic::representative_cover(state.db(), viewer, &artist, Some(&album)).await;
+        Some(resolve::Named::Album(album)) => {
+            return db::subsonic::representative_cover(state.db(), viewer, Some(album.id), None).await;
         }
         //    An artist: their own photo when there is one, falling back to a
         //    representative album cover — an artist tile showing one of their
         //    sleeves is a better answer than an empty frame. Commons-sourced
         //    photos carry an attribution requirement, which `getArtistInfo2`
         //    satisfies by returning the credit in `biography`.
-        Some(resolve::Named::Artist(artist)) => {
-            if let Some(image) = db::music::find_artist_image_object(state.db(), user_id, &artist).await? {
+        Some(resolve::Named::Artist { id, .. }) => {
+            if let Some(image) = db::music::find_artist_image_object(state.db(), id).await? {
                 return Ok(Some(image));
             }
-            return db::subsonic::representative_cover(state.db(), viewer, &artist, None).await;
+            return db::subsonic::representative_cover(state.db(), viewer, None, Some(id)).await;
         }
         None => {}
     }

@@ -23,6 +23,17 @@ semver. Each release states the **API contract revision** it serves
   `artist_id` as well as by name. Artists are whoever is credited, so "A; B"
   lists two and a `feat.` guest is not an artist of the track; albums spelled
   in different case are one album.
+
+### Changed
+- Subsonic artist and album ids are the entities' ids (migration 0101). They
+  change once, with this release: a Subsonic client re-syncs its library, and
+  album and artist stars, ratings and cached ids from before are carried over
+  by the server, not by the client. Albums are grouped by album artist, so a
+  compilation is one album instead of one per track artist, and `byGenre`
+  finds an album through any of a track's genres ("Rock; Pop").
+- Stars, ratings and photos of artists and albums belong to the entities:
+  per household, kept across retags and spelling. `GET/POST/DELETE
+  /music/artists/image*` take `artist_id` as well as `artist` (the name).
   Entities nothing refers to any more are removed by the daily sweep.
 
 ## [1.0.0-beta.6] - 2026-10-11
