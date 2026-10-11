@@ -3,6 +3,7 @@ use anyhow::Context;
 use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 
+pub mod user_state;
 pub mod users;
 pub mod sessions;
 pub mod personal_tokens;

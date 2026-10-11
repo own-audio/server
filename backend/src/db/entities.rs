@@ -22,6 +22,10 @@ pub async fn sweep_orphans(pool: &PgPool) -> anyhow::Result<u64> {
         "DELETE FROM genres g WHERE NOT EXISTS (SELECT 1 FROM track_genres tg WHERE tg.genre_id = g.id)",
         // Album credits go with their album; release-group and recording credits are not written yet.
         "DELETE FROM credits c WHERE c.item_kind = 'album' AND NOT EXISTS (SELECT 1 FROM albums a WHERE a.id = c.item_id)",
+        // Where each device last was, in an item that is gone (0108: no foreign key).
+        "DELETE FROM progress_devices p WHERE (p.item_kind = 'track' AND NOT EXISTS (SELECT 1 FROM music_tracks_all t WHERE t.id = p.item_id))
+            OR (p.item_kind = 'book' AND NOT EXISTS (SELECT 1 FROM audiobook_books_all b WHERE b.id = p.item_id))
+            OR (p.item_kind = 'episode' AND NOT EXISTS (SELECT 1 FROM podcast_episodes e WHERE e.id = p.item_id))",
         // One made or corrected by hand stays, credited or not (an author created
         // before any book is linked to them).
         "DELETE FROM contributors k WHERE k.edited_at IS NULL AND NOT EXISTS (SELECT 1 FROM credits c WHERE c.contributor_id = k.id)",

@@ -18,14 +18,14 @@ macro_rules! viewer {
     };
 }
 
-fn music() -> String {
+pub(crate) fn music() -> String {
     visible_for("'music'")
 }
 
 /// A contributor credited (in one of `roles`, or any role when `roles` is
 /// NULL — bound at `$roles`) on something the viewer can see: a track, an album
 /// with a visible track, a book, a podcast.
-fn credited_visibly(roles: &str) -> String {
+pub(crate) fn credited_visibly(roles: &str) -> String {
     let music = music();
     let book = visible_for("'audiobook'");
     let podcast = visible_for("'podcast'");
@@ -542,11 +542,11 @@ fn escape_like(text: &str) -> String {
 
 // ── Books ────────────────────────────────────────────────────────────────────
 
-fn books() -> String {
+pub(crate) fn books() -> String {
     visible_for("'audiobook'")
 }
 
-fn podcasts() -> String {
+pub(crate) fn podcasts() -> String {
     visible_for("'podcast'")
 }
 

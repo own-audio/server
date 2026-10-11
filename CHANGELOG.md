@@ -34,6 +34,13 @@ semver. Each release states the **API contract revision** it serves
   /contributors/{id}` and `/albums/{id}`, merge and split of contributors,
   merge and regrouping of albums. Merging and splitting answer `403` before
   reading the body (v1's too).
+- A listener's own state on v2, one model for every medium: `/me/favourites`,
+  `/me/ratings`, `/me/progress` (a book's position counts across its files;
+  the later position wins, a device clock ahead of the server's is clamped,
+  and each device's last position is kept — migration 0108), `/me/plays`
+  (idempotent by the client's id), `/me/bookmarks`, and `POST /sync/push`
+  for what a device changed offline, answered change by change. Stored in
+  the tables v1 writes, so both versions see the same state.
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

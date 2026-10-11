@@ -13,6 +13,7 @@ pub mod music;
 pub mod page;
 pub mod problem;
 pub mod spoken;
+pub mod state;
 
 use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
@@ -68,6 +69,16 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(edit::split_contributor))
         .routes(routes!(edit::set_release_group))
         .routes(routes!(edit::merge_album))
+        .routes(routes!(state::list_favourites))
+        .routes(routes!(state::put_favourite, state::delete_favourite))
+        .routes(routes!(state::list_ratings))
+        .routes(routes!(state::put_rating))
+        .routes(routes!(state::list_progress))
+        .routes(routes!(state::get_progress, state::put_progress, state::delete_progress))
+        .routes(routes!(state::post_plays))
+        .routes(routes!(state::list_bookmarks, state::create_bookmark))
+        .routes(routes!(state::patch_bookmark, state::delete_bookmark))
+        .routes(routes!(state::push))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

@@ -34,7 +34,7 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
 
 ## Phases
 
-Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`) and V3c (credit editing, corrections) are done; V4 next. Series and collections as resources of their own wait for V7, with the household.
+Status 2026-10-11: V1 (`49b78c2`), V2 (`ab2e7b8`), V3a (`876e925`), V3b (`7d9bc8a`), V3c (`1459cff`) and V4 (user state) are done; V5 (sync) next. Series and collections as resources of their own wait for V7, with the household. V4 keeps v1's tables (one or two per medium) behind one model; they become one table each when v1 is removed. Favourites and ratings pushed offline apply in the order sent; only progress compares timestamps.
 
 | Phase | Content | Test |
 |---|---|---|

@@ -85,6 +85,7 @@ def run(ctx: Ctx) -> None:
     catalogue(ctx, problem)
     shelves(ctx, problem)
     corrections(ctx, problem)
+    user_state(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -412,3 +413,84 @@ def corrections(ctx: Ctx, problem) -> None:
     expected = 403 if ctx.feature("one_family") else 404
     ctx.check(f"only a track's owner corrects its credits ({expected} for another account)", problem(
         ctx.request("PUT", f"/api/v2/tracks/{shared['id']}/credits", member, {"credits": []}), expected))
+
+
+def user_state(ctx: Ctx, problem) -> None:
+    """V4: favourites, ratings, progress with each device's last position, plays, bookmarks,
+    and offline changes pushed in one batch."""
+    import datetime as dt
+    sfx = ctx.sfx
+    uid, email, _tok = ctx.make_family_admin("v2state", PW)
+
+    def sign_in(device: str) -> str:
+        data, headers = _form({"grant_type": "password", "username": email, "password": PW, "device_name": device, "device_kind": "ios"})
+        return json.loads(ctx.request("POST", "/api/v2/auth/token", body=data, headers=headers)[2])["access_token"]
+
+    phone, car = sign_in("Phone"), sign_in("Car")
+
+    def req(method: str, path: str, body=None, token: str = phone):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    track = ctx.upload_track(phone, f"State Song {sfx}", artist=f"State Band {sfx}", album=f"State Album {sfx}")
+    tid = track["id"]
+
+    st, _ = req("PUT", f"/api/v2/me/favourites/track/{tid}")
+    st2, favs = req("GET", "/api/v2/me/favourites?kind=track")
+    ctx.check("a favourite, listed", st == 204 and any(f["id"] == tid for f in favs["items"]))
+    req("DELETE", f"/api/v2/me/favourites/track/{tid}")
+    ctx.check("…and taken back", not any(f["id"] == tid for f in req("GET", "/api/v2/me/favourites?kind=track")[1]["items"]))
+    ctx.check("a kind without favourites: 400 unsupported_kind",
+              problem(ctx.request("PUT", f"/api/v2/me/favourites/episode/{tid}", phone), 400, "unsupported_kind"))
+    _oid, _oe, other = ctx.make_user("v2state-other", PW)
+    ctx.check("another account cannot favourite a private track", problem(ctx.request("PUT", f"/api/v2/me/favourites/track/{tid}", other), 404))
+
+    req("PUT", f"/api/v2/me/ratings/track/{tid}", {"rating": 4})
+    rated = req("GET", "/api/v2/me/ratings?kind=track")[1]["items"]
+    ctx.check("a rating, listed", any(r["id"] == tid and r["rating"] == 4 for r in rated))
+    req("PUT", f"/api/v2/me/ratings/track/{tid}", {"rating": 0})
+    ctx.check("0 takes it away", not any(r["id"] == tid for r in req("GET", "/api/v2/me/ratings?kind=track")[1]["items"]))
+    ctx.check("a rating of 6: 400", problem(ctx.request("PUT", f"/api/v2/me/ratings/track/{tid}", phone, {"rating": 6}), 400))
+
+    st, saved = req("PUT", f"/api/v2/me/progress/track/{tid}", {"position_ms": 30000})
+    ctx.check("progress saved", st == 200 and saved["applied"] and saved["progress"]["position_ms"] == 30000, str(saved)[:160])
+    hour_ago = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=1)).isoformat()
+    st, late = req("PUT", f"/api/v2/me/progress/track/{tid}", {"position_ms": 5000, "at": hour_ago}, car)
+    ctx.check("an older position does not win", st == 200 and not late["applied"] and late["progress"]["position_ms"] == 30000, str(late)[:160])
+    st, where = req("GET", f"/api/v2/me/progress/track/{tid}")
+    devices = {d.get("device_name"): d for d in (where or {}).get("devices", [])}
+    ctx.check("…but each device's last position is kept",
+              devices.get("Car", {}).get("position_ms") == 5000 and devices.get("Phone", {}).get("current") is True
+              and devices.get("Phone", {}).get("position_ms") == 30000, str(where)[:240])
+    future = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(days=365)).isoformat()
+    req("PUT", f"/api/v2/me/progress/track/{tid}", {"position_ms": 40000, "at": future}, car)
+    st, after = req("PUT", f"/api/v2/me/progress/track/{tid}", {"position_ms": 41000})
+    ctx.check("a device clock in the future is clamped to the server's", after["applied"] and after["progress"]["position_ms"] == 41000)
+    ctx.check("progress lists", any(p["id"] == tid for p in req("GET", "/api/v2/me/progress?kind=track")[1]["items"]))
+
+    now = dt.datetime.now(dt.timezone.utc)
+    play = {"client_id": f"play-{sfx}", "kind": "track", "id": tid, "started_at": (now - dt.timedelta(minutes=3)).isoformat(),
+            "ended_at": now.isoformat(), "listened_ms": 180000, "device_kind": "ios"}
+    st, results = req("POST", "/api/v2/me/plays", {"plays": [play, play, dict(play, client_id="x", id=str(uuid.uuid4()))]})
+    ctx.check("plays: recorded once, the repeat a duplicate, an unknown item not_found",
+              st == 200 and [r["status"] for r in results] == ["ok", "duplicate", "not_found"], str(results))
+
+    st, mark = req("POST", "/api/v2/me/bookmarks", {"kind": "track", "item_id": tid, "position_ms": 12000, "label": "the bridge"})
+    ctx.check("a bookmark", st == 201 and mark["position_ms"] == 12000 and mark["label"] == "the bridge", str(mark)[:160])
+    st, moved = req("PATCH", f"/api/v2/me/bookmarks/{mark['id']}", {"label": None, "position_ms": 15000})
+    ctx.check("…moved and its label cleared", st == 200 and moved["position_ms"] == 15000 and moved["label"] is None)
+    listed = req("GET", f"/api/v2/me/bookmarks?kind=track&item_id={tid}")[1]["items"]
+    ctx.check("…listed for its item", [b["id"] for b in listed] == [mark["id"]])
+    ctx.check("another account's bookmark: 404", problem(ctx.request("DELETE", f"/api/v2/me/bookmarks/{mark['id']}", other), 404))
+    ctx.check("…its own: 204", ctx.request("DELETE", f"/api/v2/me/bookmarks/{mark['id']}", phone)[0] == 204)
+
+    st, pushed = req("POST", "/api/v2/sync/push", {"changes": [
+        {"client_id": "a", "op": "favourite", "kind": "track", "id": tid},
+        {"client_id": "b", "op": "rate", "kind": "track", "id": tid, "rating": 5},
+        {"client_id": "c", "op": "progress", "kind": "track", "id": tid, "position_ms": 1, "at": hour_ago},
+        {"client_id": f"d-{sfx}", "op": "play", "kind": "track", "id": tid, "started_at": play["started_at"],
+         "ended_at": play["ended_at"], "listened_ms": 1000},
+        {"client_id": "e", "op": "teleport", "kind": "track", "id": tid}]})
+    ctx.check("offline changes answer one by one: ok, ok, stale, ok, unsupported_op",
+              st == 200 and [r["status"] for r in pushed] == ["ok", "ok", "stale", "ok", "unsupported_op"], str(pushed))
+    ctx.check("…and took effect", any(f["id"] == tid for f in req("GET", "/api/v2/me/favourites?kind=track")[1]["items"]))
