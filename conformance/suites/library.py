@@ -49,6 +49,7 @@ def run(ctx):
     ctx.check("songs know their length", all((t.get("duration_secs") or 0) >= 2 for t in tracks))
 
     tagged(ctx)
+    identify_run(ctx)
 
     books = [b for b in _items(ctx.call("GET", "/api/v1/audiobooks", ctx.admin_token)) if b.get("title") == "Test Book"]
     ctx.check("the book folder is one book, its parent the author",
@@ -130,6 +131,46 @@ def tagged(ctx):
     again = ctx.call("POST", f"{path}/rescan", ctx.admin_token)
     ctx.check("re-reading the file brings its ids back",
               again.get("musicbrainz_recording_id") == TAGGED_RECORDING, str(again.get("musicbrainz_recording_id")))
+
+
+def identify_run(ctx):
+    """An identify run over the library (revision 10): it finishes, every
+    proposal has a known class, sure ones accept in bulk, and a revert undoes
+    exactly what was accepted. Asks the configured MusicBrainz source, so it is
+    skipped when that does not answer in time."""
+    if (ctx.server.get("api") or {}).get("revision", 0) < 10 or not ctx.feature("identify_library"):
+        ctx.skip("identify runs", "not offered by this server")
+        return
+    run = ctx.call("POST", "/api/v2/identify/runs", ctx.admin_token,
+                   body={"scope": {"kind": "library", "label": "conformance"}}, expect=(202,))
+    ctx.check("a run starts queued", run.get("status") in ("queued", "running"), str(run.get("status")))
+    path = f"/api/v2/identify/runs/{run['id']}"
+    deadline = time.time() + 180
+    while time.time() < deadline and run.get("status") not in ("ready", "failed"):
+        time.sleep(2)
+        run = ctx.call("GET", path, ctx.admin_token)
+    if run.get("status") != "ready":
+        ctx.skip("identify runs", f"the MusicBrainz source did not finish in time: {run.get('status')} {run.get('error')}")
+        ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
+        return
+    ctx.check("the run looked at every group", run["groups_done"] == run["groups_total"] and run["tracks"] >= 1,
+              str((run["groups_done"], run["groups_total"], run["tracks"])))
+    proposals = ctx.call("GET", f"{path}/proposals?limit=500", ctx.admin_token).get("items", [])
+    ctx.check("every track in scope has a proposal", len(proposals) == run["tracks"], f"{len(proposals)} of {run['tracks']}")
+    ctx.check("proposals have a known class and say why",
+              all(p["class"] in ("sure", "review", "none") and (p["class"] == "sure") == (not p["reasons"]) for p in proposals))
+    ctx.check("the tagged song, identified from its file, is not in the run",
+              all(p["track"]["album"] != "Tagged Album" for p in proposals))
+    sure = sum(1 for p in proposals if p["class"] == "sure")
+    accepted = ctx.call("POST", f"{path}/accept", ctx.admin_token, body={"class": "sure"})["accepted"]
+    ctx.check("accepting the sure ones accepts exactly those", accepted == sure, f"{accepted} vs {sure}")
+    ctx.call("POST", f"{path}/accept", ctx.admin_token, body={"class": "review"}, expect=(400,))
+    reverted = ctx.call("POST", f"{path}/revert", ctx.admin_token)["reverted"]
+    ctx.check("a run's revert undoes what it accepted", reverted == accepted, f"{reverted} vs {accepted}")
+    _, _, other = ctx.make_user("stranger", "Stranger123!-long")
+    ctx.call("GET", path, other, expect=(404,))
+    ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
+    ctx.call("GET", path, ctx.admin_token, expect=(404,))
 
 
 def rescan(ctx):

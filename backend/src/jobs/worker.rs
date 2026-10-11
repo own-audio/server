@@ -493,6 +493,7 @@ async fn execute_job(
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
         "book_file_duration" => execute_book_file_duration(pool, storage, job).await,
         "music_release_backfill" => execute_music_release_backfill(pool, config, job).await,
+        crate::music::identify_runs::JOB_TYPE => crate::music::identify_runs::execute(pool, config, job).await,
         "podcast_catalog_sync" => execute_podcast_catalog_sync(pool, config, job).await,
         "storage_sweep" => execute_storage_sweep(pool, storage, job).await,
         "trash_purge" => execute_trash_purge(pool, storage).await,

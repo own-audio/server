@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 9;
+pub const API_REVISION: u32 = 10;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -89,6 +89,9 @@ pub fn features(state: &AppState) -> Map<String, Value> {
     // (unless MUSICBRAINZ__ENABLED=false). Podcast discovery (search,
     // categories, similar shows) needs the metadata service's catalogue.
     features.insert("music_identify".into(), json!(cfg.metadata.is_some() || cfg.musicbrainz.enabled));
+    // Revision 10: identify runs over a library, folder, album, playlist, artist
+    // or selection, with proposals to accept (`/api/v2/identify/*`). Same source.
+    features.insert("identify_library".into(), json!(cfg.metadata.is_some() || cfg.musicbrainz.enabled));
     features.insert("podcast_discovery".into(), json!(cfg.metadata.is_some()));
     // Revision 5: search alone, which Apple's public search can answer.
     features.insert("podcast_search".into(), json!(cfg.metadata.is_some() || cfg.itunes.enabled));

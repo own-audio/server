@@ -5,6 +5,7 @@
 //! are cursor pages ([`page`]), and every operation declares its permission as
 //! `x-permission` (security hardening plan §5.3).
 
+pub mod identify;
 pub mod auth;
 pub mod discovery;
 pub mod edit;
@@ -103,6 +104,16 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(household::set_podcast_visibility))
         .routes(routes!(events::events))
         .routes(routes!(uploads::create_upload))
+        .routes(routes!(identify::list_runs, identify::create_run))
+        .routes(routes!(identify::get_run, identify::delete_run))
+        .routes(routes!(identify::revert_run))
+        .routes(routes!(identify::accept_all))
+        .routes(routes!(identify::list_proposals))
+        .routes(routes!(identify::patch_proposal))
+        .routes(routes!(identify::accept))
+        .routes(routes!(identify::reject))
+        .routes(routes!(identify::get_group))
+        .routes(routes!(identify::choose_edition))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

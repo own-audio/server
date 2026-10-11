@@ -8,6 +8,29 @@ semver. Each release states the **API contract revision** it serves
 ## [Unreleased]
 
 ### Added
+- Identify runs (`features.identify_library`, contract revision 10; endpoints in the
+  draft `/api/v2/identify/*`): match your library, a library folder, an album, a
+  playlist, an artist or a selection against the MusicBrainz source in the background
+  (migration 0112). Results are proposals — `sure`, `review` with the reasons
+  (part of an album, different disc layout, two files on one track, another album
+  matching as well, a compilation's song on its original album, a weak match) or
+  `none` — accepted all at once for the sure ones, one by one for the rest, on
+  another edition when you pick one (no new lookup), or keeping a compilation's own
+  album. A run can be reverted as one. Runs take turns across households, one album
+  per lookup, and wait with a growing delay when the source is busy; against
+  musicbrainz.org that is about one request a second, so a large library takes hours.
+  Nothing is written to files.
+- Identify can ask any server that speaks the MusicBrainz API instead of
+  musicbrainz.org: `MUSICBRAINZ__BASE_URL` (your own MusicBrainz mirror, or a
+  `music-metadata` instance), `MUSICBRAINZ__API_KEY` for one that wants a key, and
+  `MUSICBRAINZ__MIN_INTERVAL_MS` to lift the one-request-a-second pace for your own
+  server. musicbrainz.org itself keeps its pace and is never sent a key. The compose
+  file passes them through (`MUSICBRAINZ_BASE_URL`, `MUSICBRAINZ_API_KEY`,
+  `MUSICBRAINZ_MIN_INTERVAL_MS`, `MUSICBRAINZ_CONTACT`, `MUSICBRAINZ_ENABLED` in `.env`).
+- Album identify counts a release named like the album as one more hit, so the album
+  itself is not outranked by every live record holding the searched songs.
+
+### Added
 - Files that carry their own MusicBrainz ids (as MusicBrainz Picard saves them: Vorbis
   `MUSICBRAINZ_TRACKID`, ID3 `UFID`, MP4 `MusicBrainz Track Id`) arrive identified, with no
   lookup, on upload, folder scan and rescan; the ids follow the file when it changes.

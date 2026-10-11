@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Music module — tracks, playlists, streaming, cover art.
+pub mod identify_runs;
 pub mod affinity;
 pub mod corrections;
 pub mod analysis;

@@ -434,18 +434,31 @@ pub struct MetadataConfig {
     pub api_key: String,
 }
 
-/// The public MusicBrainz web service, used for "identify" only when the
-/// private metadata service (`METADATA__*`) is not set. It is asked only when
-/// someone presses identify, at most once a second, never by a background job.
+/// The MusicBrainz web service (`/ws/2`), used for "identify" when the private
+/// metadata service (`METADATA__*`) is not set: musicbrainz.org by default, or
+/// any server that speaks the same API — your own MusicBrainz mirror, or a
+/// `music-metadata` instance.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(default)]
 pub struct MusicBrainzConfig {
-    /// `MUSICBRAINZ__ENABLED=false` keeps the server from contacting
-    /// musicbrainz.org at all.
+    /// `MUSICBRAINZ__ENABLED=false` keeps the server from contacting it at all.
     pub enabled: bool,
     /// Who to contact about this server's requests, sent in the User-Agent as
     /// MusicBrainz asks: an e-mail address or a URL. Unset ⇒ the project's.
     pub contact: Option<String>,
+    /// `MUSICBRAINZ__BASE_URL`: the server to ask, with or without the `/ws/2`
+    /// suffix. Unset ⇒ `https://musicbrainz.org`.
+    pub base_url: Option<String>,
+    /// `MUSICBRAINZ__API_KEY`: sent as `Authorization: Bearer …`, for a mirror
+    /// that wants one. Never sent to musicbrainz.org, which takes no key.
+    pub api_key: Option<String>,
+    /// `MUSICBRAINZ__MIN_INTERVAL_MS`: the least time between two requests.
+    /// Unset ⇒ 1100 ms, a little over musicbrainz.org's one request a second per
+    /// client. Lower it only for a server of your own: musicbrainz.org answers
+    /// faster callers with 503 and blocks persistent ones, so for it any lower
+    /// value is raised back to the default.
+    #[serde(default, deserialize_with = "blank_as_none")]
+    pub min_interval_ms: Option<u64>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -463,7 +476,7 @@ impl Default for ItunesConfig {
 
 impl Default for MusicBrainzConfig {
     fn default() -> Self {
-        Self { enabled: true, contact: None }
+        Self { enabled: true, contact: None, base_url: None, api_key: None, min_interval_ms: None }
     }
 }
 
