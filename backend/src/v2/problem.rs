@@ -37,6 +37,11 @@ pub struct ProblemBody {
     /// One entry per invalid field.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub errors: Vec<FieldError>,
+    /// Members a particular problem adds: the token endpoint's OAuth `error` and
+    /// `error_description`, a two-factor challenge's `mfa_token`.
+    #[serde(flatten)]
+    #[schema(ignore)]
+    pub extra: serde_json::Map<String, Value>,
 }
 
 #[derive(Serialize, ToSchema, Debug, Clone)]
@@ -55,11 +60,12 @@ pub struct Problem {
     detail: Option<String>,
     errors: Vec<FieldError>,
     retry_after: Option<u64>,
+    extra: serde_json::Map<String, Value>,
 }
 
 impl Problem {
     pub fn new(status: StatusCode, code: impl Into<String>) -> Self {
-        Problem { status, code: code.into(), detail: None, errors: Vec::new(), retry_after: None }
+        Problem { status, code: code.into(), detail: None, errors: Vec::new(), retry_after: None, extra: Default::default() }
     }
 
     pub fn detail(mut self, detail: impl Into<String>) -> Self {
@@ -69,6 +75,12 @@ impl Problem {
 
     pub fn field(mut self, field: impl Into<String>, code: impl Into<String>, detail: impl Into<String>) -> Self {
         self.errors.push(FieldError { field: field.into(), code: code.into(), detail: Some(detail.into()) });
+        self
+    }
+
+    /// An extra member of the body.
+    pub fn with(mut self, key: &str, value: impl Into<Value>) -> Self {
+        self.extra.insert(key.to_string(), value.into());
         self
     }
 
@@ -105,6 +117,7 @@ impl Problem {
             code: self.code.clone(),
             detail: self.detail.clone(),
             errors: self.errors.clone(),
+            extra: self.extra.clone(),
         }
     }
 }
@@ -136,6 +149,7 @@ impl From<AuthError> for Problem {
             AuthError::BadRequest(message) => Problem::bad_request("bad_request", message),
             AuthError::ItemNotFound => Problem::not_found(),
             AuthError::Forbidden => Problem::forbidden(),
+            AuthError::InsufficientScope(_) => Problem::new(StatusCode::FORBIDDEN, "insufficient_scope").detail(detail),
             AuthError::DemoReadOnly => Problem::new(StatusCode::FORBIDDEN, "demo_read_only").detail(detail),
             AuthError::EmailUnverified => Problem::new(StatusCode::FORBIDDEN, "email_unverified").detail(detail),
             AuthError::IdentityConflict => Problem::new(StatusCode::CONFLICT, "identity_conflict").detail(detail),

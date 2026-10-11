@@ -22,6 +22,9 @@ pub struct AuthUser {
     pub role: String,
     /// Refresh-token chain (device) of this session, when known.
     pub chain_id: Option<Uuid>,
+    /// A personal access token's scopes; `None` for a signed-in session, which
+    /// has every scope its account has.
+    pub scopes: Option<Vec<String>>,
 }
 
 impl FromRequestParts<AppState> for AuthUser {
@@ -39,6 +42,10 @@ impl FromRequestParts<AppState> for AuthUser {
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
             .ok_or(AuthError::SessionInvalid)?;
+
+        if token.starts_with(db::personal_tokens::PREFIX) {
+            return personal_token(parts, state, token).await;
+        }
 
         let claims: SessionClaims = verify(token, secret)?;
 
@@ -61,8 +68,35 @@ impl FromRequestParts<AppState> for AuthUser {
             session_id: claims.jti,
             role: claims.role,
             chain_id: claims.chain,
+            scopes: None,
         })
     }
+}
+
+/// A personal access token (docs/api-v2-plan.md, V2): good on `/api/v2` only,
+/// and only on operations whose scope it holds (`x-scope` in the v2 document).
+async fn personal_token(parts: &Parts, state: &AppState, token: &str) -> Result<AuthUser, AuthError> {
+    let path = parts
+        .extensions
+        .get::<axum::extract::OriginalUri>()
+        .map_or_else(|| parts.uri.path().to_string(), |u| u.path().to_string());
+    if !path.starts_with("/api/v2/") {
+        return Err(AuthError::SessionInvalid);
+    }
+    let (pat, role) = db::personal_tokens::authenticate(state.db(), &db::refresh_tokens::hash_token(token))
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::SessionInvalid)?;
+    let matched = parts.extensions.get::<axum::extract::MatchedPath>().map(|m| m.as_str().to_string());
+    let needed = crate::v2::required_scope(parts.method.as_str(), matched.as_deref().unwrap_or(&path))
+        .ok_or(AuthError::Forbidden)?;
+    if !pat.scopes.iter().any(|s| s == needed) {
+        return Err(AuthError::InsufficientScope(needed.to_string()));
+    }
+    if crate::demo::refuses(state, &parts.method, parts.uri.path(), pat.user_id).await {
+        return Err(AuthError::DemoReadOnly);
+    }
+    Ok(AuthUser { user_id: pat.user_id, session_id: pat.id, role, chain_id: None, scopes: Some(pat.scopes) })
 }
 
 /// The caller is an instance admin, or the request stops here with `403` —

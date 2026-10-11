@@ -264,7 +264,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         (status = 202, description = "The password is right and the account has two-factor sign-in on: finish with `POST /auth/totp/verify`", body = totp::MfaChallenge),
         (status = 401, description = "Unknown account, inactive account or wrong password — deliberately not told apart", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited, or too many wrong passwords for this email (`account_locked`); see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
-async fn login(
+pub(crate) async fn login(
     State(state): State<AppState>,
     meta: audit::RequestMeta,
     Json(body): Json<LoginRequest>,
@@ -573,7 +573,7 @@ pub(crate) fn login_response(issued: IssuedTokens, user: User) -> LoginResponse 
         (status = 200, description = "A new access token and the next refresh token", body = LoginResponse),
         (status = 401, description = "Unknown, expired or already-used refresh token (reuse revokes the device's chain), or inactive account", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
-async fn refresh(
+pub(crate) async fn refresh(
     State(state): State<AppState>,
     Json(body): Json<RefreshRequest>,
 ) -> Result<Json<LoginResponse>, AuthError> {
@@ -1073,7 +1073,7 @@ async fn apple_sign_in(
 /// identity, link a new identity to an existing account by verified email,
 /// or create a fresh account under the same authorization gate as
 /// `/auth/register`.
-async fn sso_sign_in(
+pub(crate) async fn sso_sign_in(
     state: &AppState,
     provider: &str,
     identity: oidc::ProviderIdentity,

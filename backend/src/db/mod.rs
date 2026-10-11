@@ -5,6 +5,7 @@ use sqlx::postgres::PgPoolOptions;
 
 pub mod users;
 pub mod sessions;
+pub mod personal_tokens;
 pub mod refresh_tokens;
 pub mod device_auth;
 pub mod families;

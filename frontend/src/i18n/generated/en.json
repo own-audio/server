@@ -1308,6 +1308,8 @@
   "settings.activity.kind.sessionRevoked": "A device was signed out",
   "settings.activity.kind.sessionRevokedAll": "Every device was signed out",
   "settings.activity.kind.sessionSignedOut": "Signed out",
+  "settings.activity.kind.tokenCreated": "Personal access token created",
+  "settings.activity.kind.tokenRevoked": "Personal access token revoked",
   "settings.activity.kind.totpDisabled": "Two-factor sign-in turned off",
   "settings.activity.kind.totpEnabled": "Two-factor sign-in turned on",
   "settings.delete.button": "Delete account",

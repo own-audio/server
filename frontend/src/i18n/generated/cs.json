@@ -1308,6 +1308,8 @@
   "settings.activity.kind.sessionRevoked": "Zařízení odhlášeno",
   "settings.activity.kind.sessionRevokedAll": "Všechna zařízení odhlášena",
   "settings.activity.kind.sessionSignedOut": "Odhlášení",
+  "settings.activity.kind.tokenCreated": "Vytvořen osobní přístupový token",
+  "settings.activity.kind.tokenRevoked": "Osobní přístupový token zrušen",
   "settings.activity.kind.totpDisabled": "Dvoufázové přihlášení vypnuto",
   "settings.activity.kind.totpEnabled": "Dvoufázové přihlášení zapnuto",
   "settings.delete.button": "Smazat účet",

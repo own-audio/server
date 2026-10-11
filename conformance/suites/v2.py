@@ -80,3 +80,145 @@ def run(ctx: Ctx) -> None:
             if not (problem(got, 403) or problem(got, 404)):
                 wrong.append(f"member {method} {path}: {got[0]}")
     ctx.check("anonymous callers get 401 and members no admin operation, as declared", not wrong, "; ".join(wrong[:8]))
+
+    signin(ctx, problem)
+
+
+def _form(fields: dict) -> tuple[bytes, dict]:
+    import urllib.parse
+    return urllib.parse.urlencode(fields).encode(), {"Content-Type": "application/x-www-form-urlencoded"}
+
+
+def signin(ctx: Ctx, problem) -> None:
+    """V2: tokens in the OAuth shape for every grant, revocation, the device grant (RFC 8628),
+    sessions, and scoped personal access tokens."""
+    import base64 as b64
+    import hmac
+    import struct
+    import time
+
+    def oauth_error(answer, status: int, error: str) -> bool:
+        return problem(answer, status, error) and json.loads(answer[2]).get("error") == error
+
+    def token(fields: dict, as_json: bool = False):
+        if as_json:
+            return ctx.request("POST", "/api/v2/auth/token", body=fields)
+        data, headers = _form(fields)
+        return ctx.request("POST", "/api/v2/auth/token", body=data, headers=headers)
+
+    uid, email, _tok = ctx.make_user("v2signin", PW)
+    st, headers, body = token({"grant_type": "password", "username": email, "password": PW, "device_name": "Conformance"})
+    issued = json.loads(body) if st == 200 else {}
+    ctx.check("password grant: the OAuth token response, never cached",
+              st == 200 and issued.get("token_type") == "Bearer" and issued.get("expires_in", 0) > 0
+              and bool(issued.get("refresh_token")) and "library:read" in issued.get("scope", "").split()
+              and "admin" not in issued.get("scope", "").split() and headers.get("cache-control") == "no-store",
+              f"{st} {str(issued)[:120]}")
+    st, _h, body = token({"grant_type": "password", "username": email, "password": PW}, as_json=True)
+    ctx.check("the token endpoint takes JSON too", st == 200)
+    ctx.check("a wrong password: 400 invalid_grant",
+              oauth_error(token({"grant_type": "password", "username": email, "password": "wrong-password-1"}), 400, "invalid_grant"))
+    ctx.check("a missing field: 400 invalid_request", oauth_error(token({"grant_type": "password", "username": email}), 400, "invalid_request"))
+    ctx.check("an unknown grant: 400 unsupported_grant_type",
+              oauth_error(token({"grant_type": "client_credentials"}), 400, "unsupported_grant_type"))
+
+    st, _h, body = token({"grant_type": "refresh_token", "refresh_token": issued["refresh_token"]})
+    rotated = json.loads(body) if st == 200 else {}
+    ctx.check("refresh grant rotates the refresh token",
+              st == 200 and rotated.get("refresh_token") not in (None, issued["refresh_token"]))
+    ctx.check("a used refresh token: invalid_grant",
+              oauth_error(token({"grant_type": "refresh_token", "refresh_token": issued["refresh_token"]}), 400, "invalid_grant"))
+    ctx.check("…and its reuse signed the device out",
+              oauth_error(token({"grant_type": "refresh_token", "refresh_token": rotated.get("refresh_token", "")}), 400, "invalid_grant"))
+
+    _st, _h, body = token({"grant_type": "password", "username": email, "password": PW, "device_name": "Revoked"})
+    revokable = json.loads(body)
+    data, headers = _form({"token": revokable["refresh_token"]})
+    st, _h, _b = ctx.request("POST", "/api/v2/auth/revoke", body=data, headers=headers)
+    ctx.check("revoke: 200, and the refresh token is dead", st == 200 and oauth_error(
+        token({"grant_type": "refresh_token", "refresh_token": revokable["refresh_token"]}), 400, "invalid_grant"))
+    data, headers = _form({"token": "never-issued"})
+    ctx.check("revoking an unknown token is 200 too", ctx.request("POST", "/api/v2/auth/revoke", body=data, headers=headers)[0] == 200)
+
+    # The device grant, RFC 8628.
+    _st, _h, body = token({"grant_type": "password", "username": email, "password": PW, "device_name": "Phone"})
+    phone = json.loads(body)["access_token"]
+    st, _h, body = ctx.request("POST", "/api/v2/auth/device", body={"device_name": "Living room TV", "device_kind": "tv"})
+    tv = json.loads(body) if st == 200 else {}
+    ctx.check("device authorization: codes, interval and a link with the code in it",
+              st == 200 and len(tv.get("device_code", "")) >= 32 and "-" in tv.get("user_code", "")
+              and tv.get("interval", 0) > 0 and (not tv.get("verification_uri")
+                                                  or tv.get("verification_uri_complete", "").endswith(tv.get("user_code", ""))),
+              str(tv)[:160])
+    poll = {"grant_type": "urn:ietf:params:oauth:grant-type:device_code", "device_code": tv.get("device_code", "")}
+    ctx.check("polling before approval: authorization_pending", oauth_error(token(poll), 400, "authorization_pending"))
+    ctx.check("polling too fast: slow_down", oauth_error(token(poll), 400, "slow_down"))
+    st, _h, body = ctx.request("GET", f"/api/v2/auth/device/{tv['user_code'].lower().replace('-', '')}", phone)
+    ctx.check("the approver sees what asks, whatever case the code is typed in",
+              st == 200 and json.loads(body).get("device_name") == "Living room TV")
+    ctx.check("approve: 204", ctx.request("POST", f"/api/v2/auth/device/{tv['user_code']}/approve", phone)[0] == 204)
+    st, _h, body = token(poll)
+    ctx.check("the next poll gets tokens", st == 200 and bool(json.loads(body).get("access_token")))
+    tv_token = json.loads(body).get("access_token") if st == 200 else None
+    ctx.check("…once: expired_token after", oauth_error(token(poll), 400, "expired_token"))
+    _st, _h, body = ctx.request("POST", "/api/v2/auth/device", body={"device_name": "Car"})
+    car = json.loads(body)
+    ctx.request("POST", f"/api/v2/auth/device/{car['user_code']}/deny", phone)
+    ctx.check("a denied device: access_denied", oauth_error(
+        token({"grant_type": "urn:ietf:params:oauth:grant-type:device_code", "device_code": car["device_code"]}), 400, "access_denied"))
+
+    # Sessions.
+    st, _h, body = ctx.request("GET", "/api/v2/me/sessions", phone)
+    sessions = json.loads(body) if st == 200 else []
+    tv_session = next((s for s in sessions if s.get("device_name") == "Living room TV"), None)
+    ctx.check("sessions list the devices, this one marked current",
+              any(s.get("current") and s.get("device_name") == "Phone" for s in sessions) and tv_session is not None,
+              str([(s.get("device_name"), s.get("current")) for s in sessions]))
+    if tv_session and tv_token:
+        ctx.check("signing a device out: 204", ctx.request("DELETE", f"/api/v2/me/sessions/{tv_session['id']}", phone)[0] == 204)
+        ctx.check("…and its access token stops working at once", problem(ctx.request("GET", "/api/v2/me", tv_token), 401))
+    ctx.check("another account's device: 404", problem(ctx.request("DELETE", f"/api/v2/me/sessions/{uuid.uuid4()}", phone), 404))
+
+    # Personal access tokens.
+    st, _h, body = ctx.request("POST", "/api/v2/me/tokens", phone, {"name": "read-only script", "scopes": ["library:read"]})
+    pat = json.loads(body) if st == 201 else {}
+    ctx.check("a personal token is shown once, scoped", st == 201 and pat.get("token", "").startswith("oat_")
+              and pat.get("scopes") == ["library:read"], f"{st} {str(pat)[:120]}")
+    secret = pat.get("token", "")
+    st, _h, body = ctx.request("GET", "/api/v2/me", secret)
+    ctx.check("it reads what its scope allows", st == 200 and json.loads(body).get("id") == uid)
+    ctx.check("and nothing else: 403 insufficient_scope",
+              problem(ctx.request("GET", "/api/v2/me/sessions", secret), 403, "insufficient_scope"))
+    ctx.check("it does not work on /api/v1", ctx.request("GET", "/api/v1/auth/me", secret)[0] == 401)
+    listed = json.loads(ctx.request("GET", "/api/v2/me/tokens", phone)[2])
+    ctx.check("the list never shows a secret", any(t.get("id") == pat.get("id") for t in listed)
+              and all("token" not in t for t in listed))
+    st, _h, body = ctx.request("POST", "/api/v2/me/tokens", phone, {"name": "token maker", "scopes": ["user:write"]})
+    maker = json.loads(body).get("token", "") if st == 201 else ""
+    ctx.check("a token cannot make tokens", problem(
+        ctx.request("POST", "/api/v2/me/tokens", maker, {"name": "x", "scopes": ["library:read"]}), 403, "forbidden"))
+    ctx.check("a scope the account lacks: 400 invalid_scope",
+              problem(ctx.request("POST", "/api/v2/me/tokens", phone, {"name": "x", "scopes": ["admin"]}), 400, "invalid_scope"))
+    ctx.check("revoked: 204, then 401", ctx.request("DELETE", f"/api/v2/me/tokens/{pat.get('id')}", phone)[0] == 204
+              and problem(ctx.request("GET", "/api/v2/me", secret), 401))
+    data, headers = _form({"token": maker})
+    ctx.request("POST", "/api/v2/auth/revoke", body=data, headers=headers)
+    ctx.check("a personal token revoked through /auth/revoke stops working", problem(ctx.request("GET", "/api/v2/me/tokens", maker), 401))
+
+    # Two-factor: the first step is mfa_required, the mfa-otp grant finishes it.
+    def totp(secret_b32: str, at: float) -> str:
+        key = b64.b32decode(secret_b32 + "=" * (-len(secret_b32) % 8))
+        digest = hmac.new(key, struct.pack(">Q", int(at // 30)), "sha1").digest()
+        off = digest[19] & 0x0F
+        return f"{(int.from_bytes(digest[off:off + 4], 'big') & 0x7FFFFFFF) % 1_000_000:06d}"
+
+    _mid, mfa_email, mfa_tok = ctx.make_user("v2mfa", PW)
+    setup = ctx.call("POST", "/api/v1/auth/totp/setup", mfa_tok)
+    ctx.call("POST", "/api/v1/auth/totp/enable", mfa_tok, {"code": totp(setup["secret"], time.time())})
+    first = token({"grant_type": "password", "username": mfa_email, "password": PW})
+    challenge = json.loads(first[2]) if first[0] == 403 else {}
+    ctx.check("two-factor on: 403 mfa_required with an mfa_token", oauth_error(first, 403, "mfa_required")
+              and bool(challenge.get("mfa_token")))
+    st, _h, body = token({"grant_type": "urn:own-audio:params:oauth:grant-type:mfa-otp",
+                          "mfa_token": challenge.get("mfa_token", ""), "otp": totp(setup["secret"], time.time() + 30)})
+    ctx.check("the mfa-otp grant with the next code signs in", st == 200 and bool(json.loads(body).get("access_token")))

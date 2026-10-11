@@ -1314,6 +1314,8 @@ export interface MessageParams {
   "settings.activity.kind.sessionRevoked": undefined;
   "settings.activity.kind.sessionRevokedAll": undefined;
   "settings.activity.kind.sessionSignedOut": undefined;
+  "settings.activity.kind.tokenCreated": undefined;
+  "settings.activity.kind.tokenRevoked": undefined;
   "settings.activity.kind.totpDisabled": undefined;
   "settings.activity.kind.totpEnabled": undefined;
   "settings.delete.button": undefined;

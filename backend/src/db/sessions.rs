@@ -88,6 +88,18 @@ pub async fn revoke_all_for_user(pool: &PgPool, user_id: Uuid) -> anyhow::Result
     Ok(())
 }
 
+/// Revoke the access tokens of one device (its refresh chain), so signing it
+/// out takes effect now rather than when its last access token expires.
+pub async fn revoke_chain(pool: &PgPool, user_id: Uuid, chain_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query("UPDATE sessions SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND chain_id = $2 AND revoked_at IS NULL")
+        .bind(user_id)
+        .bind(chain_id)
+        .execute(pool)
+        .await
+        .context("db: revoke sessions of a chain")?;
+    Ok(())
+}
+
 /// Revoke all of a user's sessions except one — used by password change so
 /// the device performing the change stays logged in.
 pub async fn revoke_all_except(pool: &PgPool, user_id: Uuid, keep_id: Uuid) -> anyhow::Result<()> {

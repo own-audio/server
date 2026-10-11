@@ -22,7 +22,7 @@ use utoipa::ToSchema;
 
 /// Ten minutes: long enough to fetch a phone from the next room, short enough that a code left
 /// on screen stops being useful.
-const REQUEST_TTL_SECS: i64 = 600;
+pub(crate) const REQUEST_TTL_SECS: i64 = 600;
 /// What the client is told to wait between polls, and what `slow_down` enforces.
 pub const POLL_INTERVAL_SECS: i64 = 5;
 

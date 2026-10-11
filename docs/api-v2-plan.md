@@ -34,6 +34,8 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
 
 ## Phases
 
+Status 2026-10-11: V1 (`49b78c2`) and V2 are done; V3 next.
+
 | Phase | Content | Test |
 |---|---|---|
 | **V1** | Router, problem details, `x-permission` and its test, cursor paging, `.well-known/own-audio`, `openapi-v2.json`, `GET /me` | conformance `v2`: problem shape on 401/404/422/429, every operation declares a permission, discovery |

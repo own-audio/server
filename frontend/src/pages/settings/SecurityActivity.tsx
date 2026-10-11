@@ -21,6 +21,8 @@ const KIND_KEYS: Record<string, PlainKey> = {
   "session.signed_out": "settings.activity.kind.sessionSignedOut",
   "session.revoked": "settings.activity.kind.sessionRevoked",
   "session.revoked_all": "settings.activity.kind.sessionRevokedAll",
+  "token.created": "settings.activity.kind.tokenCreated",
+  "token.revoked": "settings.activity.kind.tokenRevoked",
   "account.created": "settings.activity.kind.accountCreated",
   "account.changed": "settings.activity.kind.accountChanged",
   "account.deleted": "settings.activity.kind.accountDeleted",

@@ -13,6 +13,13 @@ semver. Each release states the **API contract revision** it serves
   with a stable `code`, cursor-paged lists, every operation declaring who may
   call it (`x-permission`, checked by the conformance suite), `GET /me`. Draft
   means it may still change in any way until our apps ship on it.
+- v2 sign-in in the OAuth shape: `POST /api/v2/auth/token` for every grant
+  (password, refresh, device code, a provider's id token, a two-factor code;
+  `403 mfa_required` starts the last), `POST /auth/revoke` (RFC 7009),
+  `POST /auth/device` (RFC 8628, with `verification_uri_complete` for a QR
+  code), sessions under `/me/sessions` (signing a device out ends its access
+  tokens at once), and personal access tokens under `/me/tokens`: scoped,
+  shown once, stored hashed, good on `/api/v2` only (migration 0105).
 - `GET /.well-known/own-audio`: the server's id, version, APIs, sign-in
   methods, modules, addresses and limits, without signing in.
 - Music entities: contributors, credits, release groups, albums, recordings

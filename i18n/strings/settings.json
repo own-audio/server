@@ -61,6 +61,8 @@
   "settings.activity.kind.sessionSignedOut": { "en": "Signed out", "cs": "Odhlášení" },
   "settings.activity.kind.sessionRevoked": { "en": "A device was signed out", "cs": "Zařízení odhlášeno" },
   "settings.activity.kind.sessionRevokedAll": { "en": "Every device was signed out", "cs": "Všechna zařízení odhlášena" },
+  "settings.activity.kind.tokenCreated": { "en": "Personal access token created", "cs": "Vytvořen osobní přístupový token" },
+  "settings.activity.kind.tokenRevoked": { "en": "Personal access token revoked", "cs": "Osobní přístupový token zrušen" },
   "settings.activity.kind.accountCreated": { "en": "Account created", "cs": "Účet vytvořen" },
   "settings.activity.kind.accountChanged": { "en": "Role or status changed", "cs": "Role nebo stav změněn" },
   "settings.activity.kind.accountDeleted": { "en": "Account deleted", "cs": "Účet smazán" },

@@ -30,6 +30,10 @@ pub enum AuthError {
     #[error("forbidden")]
     Forbidden,
 
+    /// A personal access token without the scope this operation needs.
+    #[error("this token does not have the `{0}` scope")]
+    InsufficientScope(String),
+
     /// A public demo's shared account tried to change something (`crate::demo`).
     #[error("the demo account is read-only")]
     DemoReadOnly,
@@ -79,6 +83,13 @@ impl IntoResponse for AuthError {
             )
                 .into_response();
         }
+        if let AuthError::InsufficientScope(_) = &self {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(json!({ "error": self.to_string(), "code": "insufficient_scope" })),
+            )
+                .into_response();
+        }
         if let AuthError::EmailUnverified = &self {
             return (
                 StatusCode::FORBIDDEN,
@@ -93,7 +104,7 @@ impl IntoResponse for AuthError {
             AuthError::BadRequest(message) => (StatusCode::BAD_REQUEST, message.clone()),
             AuthError::ItemNotFound => (StatusCode::NOT_FOUND, self.to_string()),
             AuthError::SessionInvalid => (StatusCode::UNAUTHORIZED, self.to_string()),
-            AuthError::Forbidden | AuthError::DemoReadOnly => (StatusCode::FORBIDDEN, self.to_string()),
+            AuthError::Forbidden | AuthError::DemoReadOnly | AuthError::InsufficientScope(_) => (StatusCode::FORBIDDEN, self.to_string()),
             AuthError::IdentityConflict => (StatusCode::CONFLICT, self.to_string()),
             AuthError::ProviderNotConfigured => (StatusCode::NOT_IMPLEMENTED, self.to_string()),
             AuthError::Conflict(message) => (StatusCode::CONFLICT, message.clone()),

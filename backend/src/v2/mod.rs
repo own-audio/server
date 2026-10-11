@@ -5,6 +5,7 @@
 //! are cursor pages ([`page`]), and every operation declares its permission as
 //! `x-permission` (security hardening plan §5.3).
 
+pub mod auth;
 pub mod discovery;
 pub mod me;
 pub mod page;
@@ -21,9 +22,44 @@ use utoipa_axum::{router::OpenApiRouter, routes};
 pub const PERMISSIONS: &[&str] =
     &["public", "user", "member", "family_admin", "instance_admin", "can_upload", "can_generate", "owner"];
 
-/// The routes under `/api/v2`, documented.
-pub fn router(_limits: &Limiters) -> OpenApiRouter<AppState> {
-    OpenApiRouter::new().routes(routes!(me::me))
+/// The routes under `/api/v2`, documented. Sign-in shares v1's stricter
+/// buckets: a password guess costs the same on either version.
+pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
+    use crate::http::openapi::map;
+    OpenApiRouter::new()
+        .routes(map(routes!(auth::token), |m| limits.login.apply(m)))
+        .routes(routes!(auth::revoke))
+        .routes(map(routes!(auth::device_authorization), |m| limits.device.apply(m)))
+        .routes(routes!(auth::describe_device))
+        .routes(routes!(auth::approve_device))
+        .routes(routes!(auth::deny_device))
+        .routes(routes!(me::me))
+        .routes(routes!(me::sessions, me::delete_sessions))
+        .routes(routes!(me::delete_session))
+        .routes(routes!(me::tokens, me::create_token))
+        .routes(routes!(me::delete_token))
+}
+
+/// The scope a personal access token needs for an operation, from the v2
+/// document's `x-scope`; `None` for a path that is not a v2 operation.
+pub fn required_scope(method: &str, path: &str) -> Option<&'static str> {
+    use std::collections::HashMap;
+    use std::sync::OnceLock;
+    static TABLE: OnceLock<HashMap<(String, String), &'static str>> = OnceLock::new();
+    let table = TABLE.get_or_init(|| {
+        let mut table = HashMap::new();
+        for (path, item) in document().paths.paths {
+            for (method, op) in [("GET", &item.get), ("PUT", &item.put), ("POST", &item.post), ("DELETE", &item.delete), ("PATCH", &item.patch)] {
+                let scope = op.as_ref().and_then(|op| op.extensions.as_ref()?.get("x-scope")?.as_str().map(str::to_string));
+                if let Some(scope) = scope.and_then(|s| auth::SCOPES.iter().find(|k| **k == s)) {
+                    table.insert((method.to_string(), path.clone()), *scope);
+                }
+            }
+        }
+        table
+    });
+    let path = if path.starts_with("/api/v2") { path.to_string() } else { format!("/api/v2{path}") };
+    table.get(&(method.to_ascii_uppercase(), path)).copied()
 }
 
 /// `/api/v2` as served: the per-caller budget on every route, unknown paths a
@@ -86,9 +122,24 @@ pub fn document() -> utoipa::openapi::OpenApi {
         ResponseBuilder::new().description(description).content(problem::CONTENT_TYPE, problem()).build()
     };
     for item in api.paths.paths.values_mut() {
-        for op in [&mut item.get, &mut item.put, &mut item.post, &mut item.delete, &mut item.patch].into_iter().flatten() {
+        for (read, op) in [(true, &mut item.get), (false, &mut item.put), (false, &mut item.post), (false, &mut item.delete), (false, &mut item.patch)]
+            .into_iter()
+            .filter_map(|(read, op)| op.as_mut().map(|op| (read, op)))
+        {
             crate::http::openapi::tidy(op);
             let public = permission(op) == Some("public");
+            // What a personal access token needs: stated, or by what the operation is.
+            if !public && op.extensions.as_ref().and_then(|e| e.get("x-scope")).is_none() {
+                let scope = match permission(op) {
+                    Some("instance_admin") => "admin",
+                    Some("family_admin") => "family:admin",
+                    _ if read => "library:read",
+                    _ => "library:write",
+                };
+                let mut extensions = op.extensions.take().unwrap_or_default();
+                extensions.merge(utoipa::openapi::extensions::ExtensionsBuilder::new().add("x-scope", scope).build());
+                op.extensions = Some(extensions);
+            }
             if public {
                 op.security = Some(vec![utoipa::openapi::security::SecurityRequirement::default()]);
             } else {
@@ -111,6 +162,28 @@ pub fn document() -> utoipa::openapi::OpenApi {
     api
 }
 
+/// The document as committed: utoipa keeps extensions in a hash map, so their
+/// order changes from run to run; here each operation's `x-` members come last,
+/// sorted.
+pub fn document_json() -> String {
+    let mut value = serde_json::to_value(document()).expect("the v2 document serialises");
+    if let Some(paths) = value.get_mut("paths").and_then(|p| p.as_object_mut()) {
+        for item in paths.values_mut().filter_map(|i| i.as_object_mut()) {
+            for op in item.values_mut().filter_map(|o| o.as_object_mut()) {
+                let mut ext: Vec<(String, serde_json::Value)> = Vec::new();
+                for key in op.keys().filter(|k| k.starts_with("x-")).cloned().collect::<Vec<_>>() {
+                    if let Some(v) = op.remove(&key) {
+                        ext.push((key, v));
+                    }
+                }
+                ext.sort_by(|a, b| a.0.cmp(&b.0));
+                op.extend(ext);
+            }
+        }
+    }
+    serde_json::to_string_pretty(&value).expect("the v2 document serialises") + "\n"
+}
+
 fn permission(op: &utoipa::openapi::path::Operation) -> Option<&str> {
     op.extensions.as_ref()?.get("x-permission")?.as_str()
 }
@@ -121,7 +194,7 @@ mod tests {
 
     #[test]
     fn openapi_v2_json_is_current() {
-        let generated = super::document().to_pretty_json().unwrap() + "\n";
+        let generated = super::document_json();
         if std::env::var_os("OPENAPI_WRITE").is_some() {
             std::fs::write(FILE, &generated).unwrap();
             return;
