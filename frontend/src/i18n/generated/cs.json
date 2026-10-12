@@ -917,6 +917,7 @@
   "music.identifyRuns.emptyTitle": "Zatím žádné běhy",
   "music.identifyRuns.intro": "Porovná vaše skladby s MusicBrainz na pozadí a pak ukáže, co našel: jisté shody přijmete najednou, ostatní projdete jednu po druhé. Vaše soubory se nikdy nemění a běh jde vrátit. S veřejnou službou MusicBrainz zvládne zhruba jedno album za sekundu, takže velká knihovna chvíli trvá.",
   "music.identifyRuns.keepAlbum": "Ponechat v albu „{album}“",
+  "music.identifyRuns.keys": "Klávesy: j / k další, předchozí · a přijmout · x odmítnout · Shift A celé album",
   "music.identifyRuns.more": "Zobrazit další",
   "music.identifyRuns.noChosenEdition": "Žádné jedno vydání nesedí na všechny tyto skladby, proto se každá párovala zvlášť. Vyberte vydání, ke kterému se má spárovat celé album.",
   "music.identifyRuns.noEditions": "Jiné edice se nenašly.",

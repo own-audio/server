@@ -7205,7 +7205,7 @@
             "content": {
               "text/event-stream": {}
             },
-            "description": "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; a comment every 30 s"
+            "description": "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; `identify` events (no id), data `{\"run_id\", \"status\", \"groups_done\", \"groups_total\"}`; a comment every 30 s"
           },
           "401": {
             "content": {
@@ -12992,6 +12992,96 @@
         "summary": "Correct a track's credits",
         "tags": [
           "corrections"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/tracks/{id}/identity": {
+      "delete": {
+        "description": "Undo one track's identify: its title, artist, album, album artist, genre, track\nnumber and MusicBrainz ids go back to what they were before it was first\nidentified, by a run or on its own. A run's proposal for it is pending again.\nThe file was never touched.",
+        "operationId": "identify_revert_track",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              }
+            },
+            "description": "The track as it is now"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_identified`, or `nothing_recorded`: identified before the server kept what it replaced"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Undo one track's identify: its title, artist, album, album artist, genre, track number and MusicBrainz ids go back to what they were before it was first identified, by a run or on its own",
+        "tags": [
+          "identify"
         ],
         "x-permission": "owner",
         "x-scope": "library:write"

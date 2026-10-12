@@ -534,3 +534,35 @@ pub async fn choose_edition(family: FamilyContext, State(state): State<AppState>
     }
     Ok(Json(group_out(&state, &family, id).await?))
 }
+
+/// Undo one track's identify: its title, artist, album, album artist, genre, track
+/// number and MusicBrainz ids go back to what they were before it was first
+/// identified, by a run or on its own. A run's proposal for it is pending again.
+/// The file was never touched.
+#[utoipa::path(delete, path = "/tracks/{id}/identity", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)),
+    responses((status = 200, description = "The track as it is now", body = crate::v2::music::Track),
+        (status = 403, description = "Not the track's owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody),
+        (status = 409, description = "`not_identified`, or `nothing_recorded`: identified before the server kept what it replaced", body = crate::v2::problem::ProblemBody)))]
+pub async fn revert_track(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<crate::v2::music::Track>, Problem> {
+    let viewer = family.viewer();
+    let row = db::catalog::find_track(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
+    if row.user_id != family.user_id {
+        return Err(Problem::forbidden().detail("only its owner reverts this track"));
+    }
+    match db::music::revert_identity(state.db(), id, family.user_id).await? {
+        db::music::RevertOutcome::Reverted => {}
+        db::music::RevertOutcome::NotIdentified => {
+            return Err(Problem::new(StatusCode::CONFLICT, "not_identified").detail("this track has not been identified"));
+        }
+        db::music::RevertOutcome::NothingRecorded => {
+            return Err(Problem::new(StatusCode::CONFLICT, "nothing_recorded")
+                .detail("this track was identified before the server kept what it replaced; correct it instead"));
+        }
+    }
+    let row = db::catalog::find_track(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
+    let track = crate::v2::music::tracks(&state, vec![row]).await?.pop().ok_or_else(Problem::not_found)?;
+    Ok(Json(track))
+}

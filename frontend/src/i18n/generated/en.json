@@ -917,6 +917,7 @@
   "music.identifyRuns.emptyTitle": "No runs yet",
   "music.identifyRuns.intro": "Matches your songs against MusicBrainz in the background, then shows what it found: accept the sure matches at once, look at the rest one by one. Your files are never changed, and a run can be undone. Against the public MusicBrainz service it does about one album a second, so a large library takes a while.",
   "music.identifyRuns.keepAlbum": "Keep it on “{album}”",
+  "music.identifyRuns.keys": "Keys: j / k next, previous · a accept · x reject · Shift A the whole album",
   "music.identifyRuns.more": "Show more",
   "music.identifyRuns.noChosenEdition": "No one release fits all these songs, so each was matched on its own. Pick a release to match the whole album to it.",
   "music.identifyRuns.noEditions": "No other editions were found.",

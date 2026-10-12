@@ -2,7 +2,7 @@
 // Identify a library in the background, then go through what it proposes —
 // the server's identify runs (`features.identify_library`). Nothing here ever
 // writes to a file: accepting changes the library, and a run can be undone.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Disc3, Loader2, ScanSearch, Trash2, Undo2, X } from "lucide-react";
@@ -254,11 +254,97 @@ function RunPage({ runId }: { runId: string }) {
     return <Page title={t("music.identifyRuns.title")} back="/music/identify" width="max-w-4xl"><Skeleton className="h-40" /></Page>;
   }
 
-  const groups = groupBy(items);
+  return (
+    <RunView
+      run={r}
+      title={scopeName(r)}
+      tab={tab}
+      setTab={setTab}
+      items={items}
+      proposals={proposals}
+      refresh={refresh}
+      acceptAll={acceptAll}
+      revert={revert}
+      remove={remove}
+    />
+  );
+}
+
+/** Keys on the run page; the player keeps space, arrows, M, S and R. */
+function isTyping(el: EventTarget | null): boolean {
+  return el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement
+    || !!(el as HTMLElement | null)?.isContentEditable;
+}
+
+/** Songs a group's "accept album" takes: pending, with a match, not another artist's. */
+function acceptableInGroup(ps: Proposal[]): Proposal[] {
+  // A song matched to another artist is probably a wrong match: decide it on its own.
+  return ps.filter((p) => p.decision === "pending" && p.proposal && !p.reasons.includes("artist_differs"));
+}
+
+function RunView({ run: r, title, tab, setTab, items, proposals, refresh, acceptAll, revert, remove }: {
+  run: IdentifyRun;
+  title: string;
+  tab: Tab;
+  setTab: (t: Tab) => void;
+  items: Proposal[];
+  proposals: { isLoading: boolean; hasNextPage: boolean; isFetchingNextPage: boolean; fetchNextPage: () => unknown };
+  refresh: () => void;
+  acceptAll: { isPending: boolean; mutate: () => void };
+  revert: { isPending: boolean; mutate: () => void };
+  remove: { isPending: boolean; mutate: () => void };
+}) {
+  const { t } = useT();
+  const groups = useMemo(() => groupBy(items), [items]);
+  const pendingOrder = useMemo(() => groups.flatMap(([, ps]) => ps).filter((p) => p.decision === "pending"), [groups]);
+  const [focused, setFocused] = useState<string | null>(null);
+  const focusedIndex = pendingOrder.findIndex((p) => p.id === focused);
+
+  // The row that was focused may be gone (decided): keep the place in the list.
+  const lastIndex = useRef(0);
+  useEffect(() => {
+    if (focusedIndex >= 0) lastIndex.current = focusedIndex;
+    else if (focused && pendingOrder.length > 0) setFocused(pendingOrder[Math.min(lastIndex.current, pendingOrder.length - 1)].id);
+  }, [focused, focusedIndex, pendingOrder]);
+
+  const act = useMutation({
+    mutationFn: async ({ kind, p }: { kind: "accept" | "reject" | "album"; p: Proposal }) => {
+      if (kind === "accept") await acceptProposal(p.id);
+      else if (kind === "reject") await rejectProposal(p.id);
+      else for (const q of acceptableInGroup(groups.find(([id]) => id === p.group.id)?.[1] ?? [])) await acceptProposal(q.id);
+    },
+    onSuccess: refresh,
+    onError: (e) => { toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))); refresh(); },
+  });
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey || act.isPending) return;
+      const key = e.key;
+      const at = focusedIndex;
+      const current = at >= 0 ? pendingOrder[at] : undefined;
+      if (key === "j" || key === "k") {
+        if (pendingOrder.length === 0) return;
+        const next = at < 0 ? 0 : Math.max(0, Math.min(pendingOrder.length - 1, at + (key === "j" ? 1 : -1)));
+        setFocused(pendingOrder[next].id);
+      } else if (key === "a" && current?.proposal) {
+        act.mutate({ kind: "accept", p: current });
+      } else if (key === "x" && current) {
+        act.mutate({ kind: "reject", p: current });
+      } else if (key === "A" && current) {
+        act.mutate({ kind: "album", p: current });
+      } else {
+        return;
+      }
+      e.preventDefault();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [act, focusedIndex, pendingOrder]);
 
   return (
     <Page
-      title={scopeName(r)}
+      title={title}
       back="/music/identify"
       width="max-w-4xl"
       actions={
@@ -301,6 +387,9 @@ function RunPage({ runId }: { runId: string }) {
             { value: "decided", label: t("music.identifyRuns.tab.decided") },
           ]}
         />
+        {pendingOrder.length > 0 && (
+          <p className="hidden text-xs text-muted md:block">{t("music.identifyRuns.keys")}</p>
+        )}
         {tab === "sure" && items.length > 0 && (
           <Button size="sm" icon={<Check className="h-4 w-4" />} loading={acceptAll.isPending} onClick={() => acceptAll.mutate()}>
             {t("music.identifyRuns.acceptAllSure", { count: items.length })}
@@ -315,7 +404,7 @@ function RunPage({ runId }: { runId: string }) {
       ) : (
         <div className="space-y-3">
           {groups.map(([groupId, ps]) => (
-            <GroupCard key={groupId} proposals={ps} onChanged={refresh} />
+            <GroupCard key={groupId} proposals={ps} focused={focused} onFocus={setFocused} onChanged={refresh} />
           ))}
           {proposals.hasNextPage && (
             <Button variant="secondary" size="sm" loading={proposals.isFetchingNextPage} onClick={() => proposals.fetchNextPage()}>
@@ -344,12 +433,16 @@ function groupBy(items: Proposal[]): [string, Proposal[]][] {
   return [...out.entries()];
 }
 
-function GroupCard({ proposals, onChanged }: { proposals: Proposal[]; onChanged: () => void }) {
+function GroupCard({ proposals, focused, onFocus, onChanged }: {
+  proposals: Proposal[];
+  focused: string | null;
+  onFocus: (id: string) => void;
+  onChanged: () => void;
+}) {
   const { t } = useT();
   const group = proposals[0].group;
   const [editionsOpen, setEditionsOpen] = useState(false);
-  // A song matched to another artist is probably a wrong match: decide it on its own.
-  const pending = proposals.filter((p) => p.decision === "pending" && p.proposal && !p.reasons.includes("artist_differs"));
+  const pending = acceptableInGroup(proposals);
 
   const acceptGroup = useMutation({
     mutationFn: async () => {
@@ -383,7 +476,7 @@ function GroupCard({ proposals, onChanged }: { proposals: Proposal[]; onChanged:
       </div>
       {editionsOpen && <Editions groupId={group.id} onChosen={() => { setEditionsOpen(false); onChanged(); }} />}
       {proposals.map((p, i) => (
-        <ProposalRow key={p.id} p={p} first={i === 0} onChanged={onChanged} />
+        <ProposalRow key={p.id} p={p} first={i === 0} focused={p.id === focused} onFocus={() => onFocus(p.id)} onChanged={onChanged} />
       ))}
     </div>
   );
@@ -425,8 +518,18 @@ function Editions({ groupId, onChosen }: { groupId: string; onChosen: () => void
   );
 }
 
-function ProposalRow({ p, first, onChanged }: { p: Proposal; first: boolean; onChanged: () => void }) {
+function ProposalRow({ p, first, focused, onFocus, onChanged }: {
+  p: Proposal;
+  first: boolean;
+  focused: boolean;
+  onFocus: () => void;
+  onChanged: () => void;
+}) {
   const { t } = useT();
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (focused) ref.current?.scrollIntoView({ block: "nearest" });
+  }, [focused]);
   const accept = useMutation({
     mutationFn: () => acceptProposal(p.id),
     onSuccess: onChanged,
@@ -446,7 +549,15 @@ function ProposalRow({ p, first, onChanged }: { p: Proposal; first: boolean; onC
   const albumQuestion = !!x && (p.reasons.includes("album_differs") || p.keep_album);
 
   return (
-    <div className={cn("grid gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-center", !first && "border-t border-border")}>
+    <div
+      ref={ref}
+      onClick={p.decision === "pending" ? onFocus : undefined}
+      className={cn(
+        "grid gap-2 px-4 py-2.5 sm:grid-cols-[1fr_auto_1fr_auto] sm:items-center",
+        !first && "border-t border-border",
+        focused && "bg-accent/5 ring-2 ring-inset ring-accent/40",
+      )}
+    >
       <div className="min-w-0 text-sm">
         <p className="truncate">
           <span className="mr-2 text-xs tabular-nums text-muted">{position(p.track.disc_number, p.track.track_number)}</span>

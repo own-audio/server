@@ -1199,6 +1199,11 @@
     "cs": "{tracks, plural, one {# skladba} few {# skladby} other {# skladeb}} k identifikaci. Může to stát až {price}: platíte jen za skladby, které MusicBrainz najde, za každou jen jednou, a pozdější opravy jsou zdarma. Spustit?",
     "note": "Confirm before a paid identify run (hosted only). {price} is formatted money."
   },
+  "music.identifyRuns.keys": {
+    "en": "Keys: j / k next, previous · a accept · x reject · Shift A the whole album",
+    "cs": "Klávesy: j / k další, předchozí · a přijmout · x odmítnout · Shift A celé album",
+    "note": "Hint under the run page's tabs, wide screens only."
+  },
   "music.identifyRuns.start": {
     "en": "Start",
     "cs": "Spustit",

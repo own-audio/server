@@ -152,6 +152,10 @@ def identify_run(ctx):
                    body={"scope": {"kind": "library", "label": "conformance"}}, expect=(202,))
     ctx.check("a run starts queued", run.get("status") in ("queued", "running"), str(run.get("status")))
     path = f"/api/v2/identify/runs/{run['id']}"
+    if ctx.server["api"]["revision"] >= 12:
+        told = identify_event(ctx)
+        ctx.check("the event stream tells a run's progress at once", told.get("run_id") == run["id"]
+                  and told.get("status") in ("queued", "running", "ready") and "groups_total" in told, str(told)[:160])
     deadline = time.time() + 180
     while time.time() < deadline and run.get("status") not in ("ready", "failed"):
         time.sleep(2)
@@ -172,12 +176,41 @@ def identify_run(ctx):
     accepted = ctx.call("POST", f"{path}/accept", ctx.admin_token, body={"class": "sure"})["accepted"]
     ctx.check("accepting the sure ones accepts exactly those", accepted == sure, f"{accepted} vs {sure}")
     ctx.call("POST", f"{path}/accept", ctx.admin_token, body={"class": "review"}, expect=(400,))
+    one = 0
+    if accepted and ctx.server["api"]["revision"] >= 12:
+        taken = next(p for p in proposals if p["class"] == "sure")
+        track = ctx.call("DELETE", f"/api/v2/tracks/{taken['track']['id']}/identity", ctx.admin_token)
+        ctx.check("one track's identify can be undone", track.get("id") == taken["track"]["id"], str(track)[:120])
+        again = ctx.call("GET", f"{path}/proposals?decision=pending&limit=500", ctx.admin_token).get("items", [])
+        ctx.check("…and its proposal is a decision to make again", any(p["id"] == taken["id"] for p in again))
+        ctx.call("DELETE", f"/api/v2/tracks/{taken['track']['id']}/identity", ctx.admin_token, expect=(409,))
+        one = 1
     reverted = ctx.call("POST", f"{path}/revert", ctx.admin_token)["reverted"]
-    ctx.check("a run's revert undoes what it accepted", reverted == accepted, f"{reverted} vs {accepted}")
+    ctx.check("a run's revert undoes what it accepted", reverted == accepted - one, f"{reverted} vs {accepted} - {one}")
     _, _, other = ctx.make_user("stranger", "Stranger123!-long")
     ctx.call("GET", path, other, expect=(404,))
     ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
     ctx.call("GET", path, ctx.admin_token, expect=(404,))
+
+
+def identify_event(ctx) -> dict:
+    """The first `identify` event the caller's stream sends, or {}."""
+    import json
+    import urllib.request
+    req = urllib.request.Request(ctx.url("/api/v2/events"),
+                                 headers={"Authorization": f"Bearer {ctx.admin_token}", "Accept": "text/event-stream"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            kind = None
+            for raw in r:
+                line = raw.decode().strip()
+                if line.startswith("event:"):
+                    kind = line.split(":", 1)[1].strip()
+                elif line.startswith("data:") and kind == "identify":
+                    return json.loads(line.split(":", 1)[1])
+    except Exception:  # noqa: BLE001 — a timeout means no event came
+        pass
+    return {}
 
 
 def rescan(ctx):

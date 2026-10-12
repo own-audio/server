@@ -923,6 +923,7 @@ export interface MessageParams {
   "music.identifyRuns.emptyTitle": undefined;
   "music.identifyRuns.intro": undefined;
   "music.identifyRuns.keepAlbum": { "album": string | number };
+  "music.identifyRuns.keys": undefined;
   "music.identifyRuns.more": undefined;
   "music.identifyRuns.noChosenEdition": undefined;
   "music.identifyRuns.noEditions": undefined;

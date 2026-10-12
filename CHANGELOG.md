@@ -7,6 +7,23 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- `GET /api/v2/events` also sends `identify` events (revision 12): a run of the
+  caller's moved on — `run_id`, `status`, `groups_done`, `groups_total`. Clients can
+  stop polling a run.
+- `DELETE /api/v2/tracks/{id}/identity` (revision 12): undo one track's identify, as
+  v1's `…/metadata/revert` does; `409 not_identified` / `nothing_recorded`.
+
+### Changed
+- Undoing a track's identify, by either API, makes its run's proposal pending again.
+- Identify against musicbrainz.org finds the album a library holds, not a box set
+  or a bootleg of it: song searches ask for official studio albums first, the
+  releases to look up are chosen by kind, track count and year, and when the best
+  match is a remaster box the original release of the same recordings is looked
+  up too. A song whose compilation is not in MusicBrainz is searched without it.
+- Web console: keys on a run's page — j / k next and previous, a accept, x reject,
+  Shift A the whole album.
+
 ## [1.0.0-beta.11] - 2026-10-12
 
 ### Added

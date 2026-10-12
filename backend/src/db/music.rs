@@ -488,6 +488,12 @@ pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid) -> anyhow::
         .execute(&mut *tx)
         .await
         .context("db: forget track identity")?;
+    // A run's accept that is undone is a decision to make again.
+    sqlx::query("UPDATE identify_proposals SET decision = 'pending', decided_at = NULL WHERE track_id = $1 AND decision = 'accepted'")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .context("db: reopen the track's proposal")?;
     tx.commit().await.context("db: commit revert")?;
     Ok(RevertOutcome::Reverted)
 }

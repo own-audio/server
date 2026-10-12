@@ -32,6 +32,9 @@ const SPACING: Duration = Duration::from_millis(1100);
 const ALBUM_LOOKUPS: usize = 5;
 /// Track titles searched to find the releases that hold them.
 const ALBUM_TITLE_SEARCHES: usize = 3;
+/// Search terms that keep a song's releases to official studio albums.
+const STUDIO_ALBUMS: &str =
+    "AND status:official AND primarytype:album AND NOT secondarytype:live AND NOT secondarytype:compilation";
 const MAX_ALBUM_CANDIDATES: usize = 8;
 const DURATION_TOLERANCE_MS: i64 = 15_000;
 const PREFIX_DURATION_MS: i64 = 10_000;
@@ -92,7 +95,13 @@ impl MusicBrainz {
             return Ok(Vec::new());
         }
         let limit = limit.clamp(1, 25).to_string();
-        let found: RecordingSearch = self.get("recording", &[("query", &query), ("limit", &limit)]).await?;
+        let mut found: RecordingSearch = self.get("recording", &[("query", &query), ("limit", &limit)]).await?;
+        // The search wants the release named exactly; a compilation the file came
+        // from is often not in MusicBrainz at all, while its songs are.
+        if found.recordings.is_empty() && album.is_some_and(|a| !a.trim().is_empty()) && title.is_some() {
+            let query = lucene(&[("recording", title), ("artist", artist)]);
+            found = self.get("recording", &[("query", &query), ("limit", &limit)]).await?;
+        }
         // Many versions of a song score 100 on its title alone; between equals
         // the one on an official studio album, earliest, is the one meant.
         let mut ranked: Vec<(MetadataCandidate, (u8, i32))> = found
@@ -117,13 +126,20 @@ impl MusicBrainz {
         tracks: Vec<AlbumTrackQuery<'_>>,
     ) -> anyhow::Result<Vec<AlbumCandidate>> {
         // Releases holding the titles, counted per release.
-        let mut hits: HashMap<String, HashSet<usize>> = HashMap::new();
+        let mut hits: HashMap<String, (HashSet<usize>, Shortlist)> = HashMap::new();
         for (index, track) in tracks.iter().enumerate().take(ALBUM_TITLE_SEARCHES) {
             let query = lucene(&[("recording", Some(track.title)), ("artist", Some(artist))]);
-            let found: RecordingSearch = self.get("recording", &[("query", &query), ("limit", "25")]).await?;
+            // A famous song has hundreds of live versions; ask for its studio
+            // albums first, and for anything only when there are none.
+            let studio = format!("{query} {STUDIO_ALBUMS}");
+            let mut found: RecordingSearch = self.get("recording", &[("query", &studio), ("limit", "25")]).await?;
+            if found.recordings.is_empty() {
+                found = self.get("recording", &[("query", &query), ("limit", "25")]).await?;
+            }
             for recording in found.recordings {
                 for release in recording.releases {
-                    hits.entry(release.id).or_default().insert(index);
+                    let key = Shortlist::of(&release, tracks.len());
+                    hits.entry(release.id).or_insert_with(|| (HashSet::new(), key)).0.insert(index);
                 }
             }
         }
@@ -133,15 +149,14 @@ impl MusicBrainz {
             // Named like the album counts as one more hit: otherwise every live
             // record holding the three searched songs outranks the album itself.
             for release in found.releases {
-                hits.entry(release.id).or_default().insert(usize::MAX);
+                let key = Shortlist::of(&release, tracks.len());
+                hits.entry(release.id).or_insert_with(|| (HashSet::new(), key)).0.insert(usize::MAX);
             }
         }
-        let mut ranked: Vec<(String, usize)> = hits.into_iter().map(|(id, set)| (id, set.len())).collect();
-        ranked.sort_by(|a, b| b.1.cmp(&a.1).then(a.0.cmp(&b.0)));
-        ranked.truncate(ALBUM_LOOKUPS);
+        let ranked = shortlist(hits.into_iter().map(|(id, (set, key))| (id, set.len(), key)).collect());
 
         let mut scored = Vec::new();
-        for (id, _) in ranked {
+        for (id, _) in &ranked {
             let release: Release = self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?;
             let detail = ReleaseDetail::from(&release);
             let matches = match_tracks(&tracks, &detail.tracks);
@@ -149,7 +164,38 @@ impl MusicBrainz {
                 scored.push((detail, matches));
             }
         }
-        Ok(rank_albums(scored, tracks.len() as i32))
+        // The searches list a song's releases by relevance, and a classic album's
+        // original can be missing from all of them while a box set holding the same
+        // recordings is there. The releases of one of those recordings include the
+        // original: the album's last matched song, which fewer compilations repeat.
+        let n = tracks.len() as i32;
+        let best = scored.iter().max_by_key(|(d, m)| (m.len(), d.official(), -(d.track_count - n).abs()));
+        let unfit = |d: &ReleaseDetail| d.track_count != n || d.kind_penalty() > 0;
+        let recording = best
+            .filter(|(d, _)| unfit(d))
+            .and_then(|(d, m)| m.iter().max_by_key(|x| x.index).map(|x| (x.mb_recording_id.clone(), d.kind_penalty(), (d.track_count - n).unsigned_abs())));
+        if let Some((recording, penalty, fit)) = recording {
+            let browse: ReleaseBrowse = self
+                .get("release", &[("recording", recording.as_str()), ("inc", "release-groups+media"), ("limit", "100")])
+                .await?;
+            let better = browse
+                .releases
+                .iter()
+                .filter(|r| !scored.iter().any(|(d, _)| d.id == r.id))
+                .map(|r| (Shortlist::of(r, tracks.len()), r.id.clone()))
+                .filter(|(key, _)| (key.penalty, key.fit) < (penalty, fit))
+                .min();
+            if let Some((key, id)) = better {
+                tracing::debug!(%id, ?key, "identify: a better-fitting release of the same recordings");
+                let release: Release = self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?;
+                let detail = ReleaseDetail::from(&release);
+                let matches = match_tracks(&tracks, &detail.tracks);
+                if !matches.is_empty() {
+                    scored.push((detail, matches));
+                }
+            }
+        }
+        Ok(rank_albums(scored, n))
     }
 
     /// One recording by MBID, with the album, track number and album artist
@@ -212,6 +258,40 @@ fn top_genre(genres: &[Genre]) -> Option<String> {
 
 fn year(date: Option<&str>) -> Option<i32> {
     date.and_then(|d| d.get(..4)).and_then(|y| y.parse().ok())
+}
+
+/// What a search tells about a release before it is looked up, to choose which
+/// few to look up: a popular album has hundreds of releases with the same hits —
+/// remasters, box sets, live records, bootlegs.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+struct Shortlist {
+    /// Official studio albums first ([`ReleaseDetail::kind_penalty`]).
+    penalty: u8,
+    /// How far its track count is from the files': missing songs count double,
+    /// an unknown count as far.
+    fit: u32,
+    /// The earliest, the original, first.
+    year: i32,
+}
+
+impl Shortlist {
+    fn of(release: &ReleaseRef, files: usize) -> Self {
+        let files = files as u32;
+        // A browsed release counts its tracks per medium only.
+        let count = release.track_count.or_else(|| release.media.iter().map(|m| m.track_count).sum());
+        let fit = match count {
+            Some(n) if n >= files => n - files,
+            Some(n) => (files - n) * 2,
+            None => 50,
+        };
+        Self { penalty: release_penalty(release), fit, year: year(release.date.as_deref()).unwrap_or(i32::MAX) }
+    }
+}
+
+/// The releases worth looking up: the most hits, then the most album-like.
+fn shortlist(mut found: Vec<(String, usize, Shortlist)>) -> Vec<(String, usize)> {
+    found.sort_by(|a, b| b.1.cmp(&a.1).then(a.2.cmp(&b.2)).then(a.0.cmp(&b.0)));
+    found.into_iter().take(ALBUM_LOOKUPS).map(|(id, hits, _)| (id, hits)).collect()
 }
 
 /// `ReleaseDetail::kind_penalty` for a release as a search lists it.
@@ -357,6 +437,8 @@ struct ReleaseRef {
     date: Option<String>,
     #[serde(rename = "release-group", default)]
     release_group: Option<ReleaseGroup>,
+    #[serde(rename = "track-count", default)]
+    track_count: Option<u32>,
     #[serde(default)]
     media: Vec<SearchMedium>,
 }
@@ -365,6 +447,14 @@ struct ReleaseRef {
 struct SearchMedium {
     #[serde(default)]
     track: Vec<SearchTrack>,
+    #[serde(rename = "track-count", default)]
+    track_count: Option<u32>,
+}
+
+#[derive(Deserialize)]
+struct ReleaseBrowse {
+    #[serde(default)]
+    releases: Vec<ReleaseRef>,
 }
 
 #[derive(Deserialize)]
@@ -668,6 +758,20 @@ mod tests {
 
     fn listed(title: &str, position: i32, length: Option<i64>) -> ListedTrack {
         ListedTrack { recording_id: format!("rec-{position}"), title: title.into(), disc: 1, position, length }
+    }
+
+    #[test]
+    fn the_shortlist_takes_the_original_album_over_box_sets_and_bootlegs() {
+        let key = |penalty, fit, year| Shortlist { penalty, fit, year };
+        let found = vec![
+            ("box".to_string(), 4, key(0, 129, 2017)),
+            ("bootleg".to_string(), 4, key(7, 3, 1988)),
+            ("original".to_string(), 4, key(0, 0, 1986)),
+            ("remaster".to_string(), 4, key(0, 0, 2017)),
+            ("fewer hits".to_string(), 3, key(0, 0, 1986)),
+        ];
+        let ids: Vec<String> = shortlist(found).into_iter().map(|(id, _)| id).collect();
+        assert_eq!(ids, ["original", "remaster", "box", "bootleg", "fewer hits"]);
     }
 
     #[test]
