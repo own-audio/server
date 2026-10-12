@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.11] - 2026-10-12
+
 ### Added
 - Web console: Music → Identify library. Start a run for the whole library or
   one folder, accept the sure matches at once, review the rest song by song or
