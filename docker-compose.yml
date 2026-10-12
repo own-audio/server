@@ -141,14 +141,9 @@ services:
       # The server runs as this user and group, not root. It must be able to
       # read your library folders; its own storage is handed to it at start.
       # Optional mail for invites (SMTP submission, see INSTALL.md).
-      # Identify asks musicbrainz.org (about one request a second) unless another
-      # server that speaks the MusicBrainz API is set: your own mirror, or a
-      # music-metadata instance (see INSTALL.md).
+      # Identify asks musicbrainz.org, about one request a second (see INSTALL.md).
       MUSICBRAINZ__ENABLED: ${MUSICBRAINZ_ENABLED:-true}
       MUSICBRAINZ__CONTACT: ${MUSICBRAINZ_CONTACT:-}
-      MUSICBRAINZ__BASE_URL: ${MUSICBRAINZ_BASE_URL:-}
-      MUSICBRAINZ__API_KEY: ${MUSICBRAINZ_API_KEY:-}
-      MUSICBRAINZ__MIN_INTERVAL_MS: ${MUSICBRAINZ_MIN_INTERVAL_MS:-}
       MAIL__SMTP_HOST: ${SMTP_HOST:-}
       MAIL__SMTP_PORT: ${SMTP_PORT:-}
       MAIL__SMTP_SECURITY: ${SMTP_SECURITY:-}

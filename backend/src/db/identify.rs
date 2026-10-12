@@ -120,7 +120,18 @@ const SCOPE_COLS: &str = "t.id, t.title, t.artist, t.album, t.album_artist, t.tr
 /// The owner's tracks in a run's scope that have no MusicBrainz identity yet —
 /// neither matched here nor carrying ids in their files.
 pub async fn scope_tracks(pool: &PgPool, run: &Run) -> anyhow::Result<Vec<ScopeTrack>> {
-    let filter = match run.scope_kind.as_str() {
+    scope_tracks_of(pool, run.user_id, &run.scope_kind, run.scope_id, run.scope_track_ids.as_deref()).await
+}
+
+/// [`scope_tracks`] for a scope with no run yet, to quote it.
+pub async fn scope_tracks_of(
+    pool: &PgPool,
+    user_id: Uuid,
+    scope_kind: &str,
+    scope_id: Option<Uuid>,
+    track_ids: Option<&[Uuid]>,
+) -> anyhow::Result<Vec<ScopeTrack>> {
+    let filter = match scope_kind {
         "library" => "",
         "folder" => "AND t.id IN (SELECT item_id FROM library_files
                                    WHERE folder_id = $2 AND item_kind = 'track' AND NOT missing)",
@@ -140,9 +151,9 @@ pub async fn scope_tracks(pool: &PgPool, run: &Run) -> anyhow::Result<Vec<ScopeT
             {filter}
           ORDER BY t.album NULLS LAST, t.disc_number NULLS FIRST, t.track_number NULLS LAST, t.title"
     ))
-    .bind(run.user_id)
-    .bind(run.scope_id)
-    .bind(run.scope_track_ids.as_deref())
+    .bind(user_id)
+    .bind(scope_id)
+    .bind(track_ids)
     .fetch_all(pool)
     .await
     .context("db: identify scope tracks")
@@ -406,4 +417,13 @@ pub async fn identified_by_run(pool: &PgPool, run_id: Uuid) -> anyhow::Result<Ve
         .fetch_all(pool)
         .await
         .context("db: tracks identified by run")
+}
+
+pub async fn delete_run(pool: &PgPool, run_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query("DELETE FROM identify_runs WHERE id = $1")
+        .bind(run_id)
+        .execute(pool)
+        .await
+        .context("db: delete identify run")?;
+    Ok(())
 }

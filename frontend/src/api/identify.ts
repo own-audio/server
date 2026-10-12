@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // Identify runs (`features.identify_library`, revision 10), on /api/v2.
 import api, { apiBaseUrl } from "./client";
+import { intlLocale } from "../i18n";
 
 /** The v2 API beside v1: same origin, same session. */
 const v2 = { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") };
@@ -89,9 +90,23 @@ export async function listRuns(): Promise<IdentifyRun[]> {
   return data.items;
 }
 
-export async function createRun(scope: { kind: ScopeKind; id?: string; label?: string }): Promise<IdentifyRun> {
+export async function createRun(scope: RunScope): Promise<IdentifyRun> {
   const { data } = await api.post<IdentifyRun>("/identify/runs", { scope }, v2);
   return data;
+}
+
+export type RunScope = { kind: ScopeKind; id?: string; label?: string };
+
+/** What a run over the scope would look up and the most it could charge (revision 11). */
+export async function quoteRun(scope: RunScope): Promise<{ tracks: number; charge_micro: number }> {
+  const { data } = await api.post<{ tracks: number; charge_micro: number }>("/identify/quote", { scope }, v2);
+  return data;
+}
+
+/** A price in micro-USD, to the tenth of a cent a track costs. */
+export function formatCharge(micro: number): string {
+  return new Intl.NumberFormat(intlLocale(), { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 3 })
+    .format(Math.ceil(micro / 1_000) / 1_000);
 }
 
 export async function getRun(id: string): Promise<IdentifyRun> {

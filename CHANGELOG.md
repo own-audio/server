@@ -12,6 +12,17 @@ semver. Each release states the **API contract revision** it serves
   one folder, accept the sure matches at once, review the rest song by song or
   album by album, pick another edition, undo a run. Songs matched to another
   artist are left out of "accept album".
+- `POST /api/v2/identify/quote` (revision 11): how many tracks a run over a scope
+  would look up and the most it could charge — 0 here, where identify is free.
+  Starting a run can now answer `402` in an edition that charges for it.
+- Edition hooks for identify: `identify_quote`, `identify_run_start` (may refuse a
+  run) and `identify_run_end` (called when a run finishes, fails or is deleted,
+  while its proposals still exist).
+
+### Removed
+- `MUSICBRAINZ__BASE_URL`, `MUSICBRAINZ__API_KEY` and `MUSICBRAINZ__MIN_INTERVAL_MS`
+  (beta.9): identify asks only the public MusicBrainz API, at its own pace. A
+  server that still sets them starts as before; they are ignored.
 
 ### Fixed
 - The read-only demo account could not listen through `/api/v2`: every write

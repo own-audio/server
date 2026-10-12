@@ -908,6 +908,7 @@ export interface MessageParams {
   "music.identifyRuns.acceptedSure": { "count": number };
   "music.identifyRuns.actionFailed": undefined;
   "music.identifyRuns.chosen": undefined;
+  "music.identifyRuns.confirmCharge": { "tracks": number; "price": string | number };
   "music.identifyRuns.decision.accepted": undefined;
   "music.identifyRuns.decision.pending": undefined;
   "music.identifyRuns.decision.rejected": undefined;

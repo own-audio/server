@@ -118,6 +118,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(identify::list_runs, identify::create_run))
         .routes(routes!(identify::get_run, identify::delete_run))
         .routes(routes!(identify::revert_run))
+        .routes(routes!(identify::quote))
         .routes(routes!(identify::accept_all))
         .routes(routes!(identify::list_proposals))
         .routes(routes!(identify::patch_proposal))

@@ -141,6 +141,13 @@ def identify_run(ctx):
     if (ctx.server.get("api") or {}).get("revision", 0) < 10 or not ctx.feature("identify_library"):
         ctx.skip("identify runs", "not offered by this server")
         return
+    if ctx.server["api"]["revision"] >= 11:
+        quote = ctx.call("POST", "/api/v2/identify/quote", ctx.admin_token, body={"scope": {"kind": "library"}})
+        ctx.check("a quote counts the tracks a run would look up",
+                  quote.get("tracks", 0) >= 1 and isinstance(quote.get("charge_micro"), int), str(quote))
+        if ctx.server.get("edition") != "hosted":
+            ctx.check("identify is free in the open-source edition", quote.get("charge_micro") == 0, str(quote))
+        ctx.call("POST", "/api/v2/identify/quote", ctx.admin_token, body={"scope": {"kind": "album"}}, expect=(400,))
     run = ctx.call("POST", "/api/v2/identify/runs", ctx.admin_token,
                    body={"scope": {"kind": "library", "label": "conformance"}}, expect=(202,))
     ctx.check("a run starts queued", run.get("status") in ("queued", "running"), str(run.get("status")))

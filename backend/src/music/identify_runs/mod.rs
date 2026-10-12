@@ -14,6 +14,7 @@ pub mod matching;
 
 use crate::app::AppConfig;
 use crate::db;
+use crate::hooks::Hooks;
 use crate::metadata::{Identify, mirror::AlbumTrackQuery};
 use anyhow::Context;
 use matching::{Class, FileTrack, Proposal};
@@ -46,7 +47,7 @@ async fn enqueue_step(pool: &PgPool, run_id: Uuid, delay: Option<Duration>) -> a
 }
 
 /// One step of a run.
-pub async fn execute(pool: &PgPool, config: &AppConfig, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
+pub async fn execute(pool: &PgPool, config: &AppConfig, hooks: &dyn Hooks, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
     let run_id: Uuid = job
         .payload
         .as_ref()
@@ -60,6 +61,7 @@ pub async fn execute(pool: &PgPool, config: &AppConfig, job: &crate::jobs::model
     }
 
     let Some(source) = Identify::from_config(config) else {
+        hooks.identify_run_end(pool, run_id).await?;
         db::identify::set_status(pool, run_id, "failed", Some("no MusicBrainz source is configured")).await?;
         return Ok(());
     };
@@ -75,6 +77,7 @@ pub async fn execute(pool: &PgPool, config: &AppConfig, job: &crate::jobs::model
             // The source refused or is unreachable: pause, then try the same group again.
             let level = run.backoff_level + 1;
             if level > MAX_BACKOFF_LEVEL {
+                hooks.identify_run_end(pool, run_id).await?;
                 db::identify::set_status(pool, run_id, "failed", Some(&format!("{e:#}"))).await?;
                 return Ok(());
             }
@@ -86,6 +89,7 @@ pub async fn execute(pool: &PgPool, config: &AppConfig, job: &crate::jobs::model
     }
 
     if db::identify::pending_groups(pool, run_id, 1).await?.is_empty() {
+        hooks.identify_run_end(pool, run_id).await?;
         db::identify::set_status(pool, run_id, "ready", None).await?;
     } else {
         enqueue_step(pool, run_id, None).await?;

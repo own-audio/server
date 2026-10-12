@@ -1194,6 +1194,11 @@
     "en": "Selected songs",
     "cs": "Vybrané skladby"
   },
+  "music.identifyRuns.confirmCharge": {
+    "en": "{tracks, plural, one {# song} other {# songs}} to identify. This can cost up to {price}: you pay only for songs MusicBrainz finds, once per song, and correcting them later is free. Start?",
+    "cs": "{tracks, plural, one {# skladba} few {# skladby} other {# skladeb}} k identifikaci. Může to stát až {price}: platíte jen za skladby, které MusicBrainz najde, za každou jen jednou, a pozdější opravy jsou zdarma. Spustit?",
+    "note": "Confirm before a paid identify run (hosted only). {price} is formatted money."
+  },
   "music.identifyRuns.start": {
     "en": "Start",
     "cs": "Spustit",

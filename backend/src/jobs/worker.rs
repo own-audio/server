@@ -443,12 +443,13 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
                     let config2 = config.clone();
                     let handlers2 = handlers.clone();
                     let guard2 = guard.clone();
+                    let hooks2 = hooks.clone();
                     let job_id = job.id;
                     let job_type = job.job_type.clone();
                     tokio::spawn(async move {
                         let _permit = permit;
                         debug!(%job_id, %job_type, "executing job");
-                        match execute_job(&pool2, &storage2, &config2, &handlers2, &guard2, &job).await {
+                        match execute_job(&pool2, &storage2, &config2, &handlers2, &guard2, hooks2.as_ref(), &job).await {
                             Ok(()) => {
                                 info!(%job_id, %job_type, "job completed");
                                 let _ = db::jobs::complete(&pool2, job_id, None).await;
@@ -481,6 +482,7 @@ async fn execute_job(
     config: &AppConfig,
     handlers: &Handlers,
     guard: &crate::storage::quota::Guard,
+    hooks: &dyn Hooks,
     job: &crate::jobs::models::Job,
 ) -> anyhow::Result<()> {
     if let Some(handler) = handlers.get(job.job_type.as_str()) {
@@ -493,7 +495,7 @@ async fn execute_job(
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
         "book_file_duration" => execute_book_file_duration(pool, storage, job).await,
         "music_release_backfill" => execute_music_release_backfill(pool, config, job).await,
-        crate::music::identify_runs::JOB_TYPE => crate::music::identify_runs::execute(pool, config, job).await,
+        crate::music::identify_runs::JOB_TYPE => crate::music::identify_runs::execute(pool, config, hooks, job).await,
         "podcast_catalog_sync" => execute_podcast_catalog_sync(pool, config, job).await,
         "storage_sweep" => execute_storage_sweep(pool, storage, job).await,
         "trash_purge" => execute_trash_purge(pool, storage).await,

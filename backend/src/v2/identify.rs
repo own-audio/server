@@ -13,6 +13,7 @@
 use crate::app::AppState;
 use crate::db;
 use crate::families::FamilyContext;
+use crate::hooks::IdentifyVerdict;
 use crate::music::identify_runs::{self, AcceptOutcome, matching::ProposedTrack};
 use crate::v2::page::{Page, PageQuery};
 use crate::v2::problem::Problem;
@@ -127,10 +128,77 @@ async fn own_run(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<d
     request_body = NewRun,
     responses((status = 202, description = "Queued", body = Run),
         (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 402, description = "Not enough credit for the quote", body = crate::v2::problem::ProblemBody),
         (status = 501, description = "No MusicBrainz source configured", body = crate::v2::problem::ProblemBody)))]
 pub async fn create_run(family: FamilyContext, State(state): State<AppState>, Json(body): Json<NewRun>) -> Result<(StatusCode, Json<Run>), Problem> {
     source_configured(&state)?;
     let s = body.scope;
+    let needs_id = check_scope(&s)?;
+    let run = db::identify::create_run(
+        state.db(),
+        family.user_id,
+        Some(family.family_id),
+        &s.kind,
+        s.id.filter(|_| needs_id),
+        s.track_ids.as_deref(),
+        s.label.as_deref().map(str::trim).filter(|l| !l.is_empty()),
+    )
+    .await?;
+    let tracks: Vec<Uuid> = db::identify::scope_tracks(state.db(), &run).await?.into_iter().map(|t| t.id).collect();
+    let verdict = state.hooks().identify_run_start(state.db(), family.family_id, family.user_id, run.id, &tracks).await;
+    match verdict {
+        Ok(IdentifyVerdict::Allowed) => {}
+        Ok(IdentifyVerdict::Refused(why)) => {
+            db::identify::delete_run(state.db(), run.id).await?;
+            return Err(Problem::new(StatusCode::PAYMENT_REQUIRED, "payment_required").detail(why));
+        }
+        Err(e) => {
+            db::identify::delete_run(state.db(), run.id).await?;
+            return Err(e.into());
+        }
+    }
+    identify_runs::start(state.db(), run.id).await?;
+    Ok((StatusCode::ACCEPTED, Json(run_out(&state, run).await?)))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct QuoteRequest {
+    pub scope: Scope,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct Quote {
+    /// Tracks in the scope that a run would look up: those with no MusicBrainz
+    /// identity yet.
+    pub tracks: usize,
+    /// The most the run could charge, in micro-currency; it charges only for
+    /// tracks it finds a match for. 0 where identify is free.
+    pub charge_micro: i64,
+}
+
+/// What a run over this scope would look up, and the most it could cost.
+/// Ask before starting one.
+#[utoipa::path(post, path = "/identify/quote", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("user"))),
+    request_body = QuoteRequest,
+    responses((status = 200, body = Quote),
+        (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 501, description = "No MusicBrainz source configured", body = crate::v2::problem::ProblemBody)))]
+pub async fn quote(family: FamilyContext, State(state): State<AppState>, Json(body): Json<QuoteRequest>) -> Result<Json<Quote>, Problem> {
+    source_configured(&state)?;
+    let s = body.scope;
+    let needs_id = check_scope(&s)?;
+    let tracks: Vec<Uuid> = db::identify::scope_tracks_of(state.db(), family.user_id, &s.kind, s.id.filter(|_| needs_id), s.track_ids.as_deref())
+        .await?
+        .into_iter()
+        .map(|t| t.id)
+        .collect();
+    let charge_micro = state.hooks().identify_quote(state.db(), family.family_id, &tracks).await?;
+    Ok(Json(Quote { tracks: tracks.len(), charge_micro }))
+}
+
+/// Whether the scope is well formed; true when its kind needs an id.
+fn check_scope(s: &Scope) -> Result<bool, Problem> {
     if !SCOPES.contains(&s.kind.as_str()) {
         return Err(Problem::bad_request("invalid_scope", format!("scope.kind is one of: {}", SCOPES.join(", ")))
             .field("/scope/kind", "invalid", SCOPES.join(", ")));
@@ -142,18 +210,7 @@ pub async fn create_run(family: FamilyContext, State(state): State<AppState>, Js
     if s.kind == "tracks" && s.track_ids.as_ref().is_none_or(|t| t.is_empty()) {
         return Err(Problem::bad_request("invalid_scope", "a `tracks` scope needs track_ids").field("/scope/track_ids", "required", "track ids"));
     }
-    let run = db::identify::create_run(
-        state.db(),
-        family.user_id,
-        Some(family.family_id),
-        &s.kind,
-        s.id.filter(|_| needs_id),
-        s.track_ids.as_deref(),
-        s.label.as_deref().map(str::trim).filter(|l| !l.is_empty()),
-    )
-    .await?;
-    identify_runs::start(state.db(), run.id).await?;
-    Ok((StatusCode::ACCEPTED, Json(run_out(&state, run).await?)))
+    Ok(needs_id)
 }
 
 /// Your runs, newest first.
@@ -186,8 +243,10 @@ pub async fn get_run(family: FamilyContext, State(state): State<AppState>, Path(
     responses((status = 204, description = "Gone"), (status = 404, body = crate::v2::problem::ProblemBody)))]
 pub async fn delete_run(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
     own_run(&state, &family, id).await?;
+    // Settle while the proposals still say what was found.
+    state.hooks().identify_run_end(state.db(), id).await?;
     db::identify::set_status(state.db(), id, "cancelled", None).await?;
-    sqlx::query("DELETE FROM identify_runs WHERE id = $1").bind(id).execute(state.db()).await.map_err(anyhow::Error::from)?;
+    db::identify::delete_run(state.db(), id).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

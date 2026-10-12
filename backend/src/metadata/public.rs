@@ -22,7 +22,8 @@ use serde::Deserialize;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::time::{Duration, Instant};
 
-const PUBLIC: &str = "https://musicbrainz.org";
+const BASE: &str = "https://musicbrainz.org/ws/2";
+const HOST: &str = "musicbrainz.org";
 /// A little over a second: MusicBrainz counts per second, and a request that
 /// lands on the boundary is the one that gets a 503.
 const SPACING: Duration = Duration::from_millis(1100);
@@ -40,12 +41,6 @@ static LAST: tokio::sync::Mutex<Option<Instant>> = tokio::sync::Mutex::const_new
 
 pub struct MusicBrainz {
     http: reqwest::Client,
-    /// `…/ws/2`, no trailing slash.
-    base: String,
-    /// The host, for messages.
-    host: String,
-    spacing: Duration,
-    api_key: Option<String>,
 }
 
 impl MusicBrainz {
@@ -55,13 +50,7 @@ impl MusicBrainz {
             .user_agent(format!("own.audio-server/{} ( {contact} )", env!("CARGO_PKG_VERSION")))
             .timeout(Duration::from_secs(20))
             .build()?;
-        let (base, host, public) = ws2_base(config.base_url.as_deref())?;
-        let spacing = match config.min_interval_ms.map(Duration::from_millis) {
-            Some(d) if !public || d >= SPACING => d,
-            _ => SPACING,
-        };
-        let api_key = config.api_key.clone().filter(|k| !k.trim().is_empty() && !public);
-        Ok(Self { http, base, host, spacing, api_key })
+        Ok(Self { http })
     }
 
     async fn get<T: serde::de::DeserializeOwned>(&self, path: &str, query: &[(&str, &str)]) -> anyhow::Result<T> {
@@ -69,27 +58,24 @@ impl MusicBrainz {
             {
                 let mut last = LAST.lock().await;
                 if let Some(at) = *last {
-                    let wait = self.spacing.saturating_sub(at.elapsed());
+                    let wait = SPACING.saturating_sub(at.elapsed());
                     tokio::time::sleep(wait).await;
                 }
                 *last = Some(Instant::now());
             }
-            let mut request = self.http.get(format!("{}/{path}", self.base)).query(query).query(&[("fmt", "json")]);
-            if let Some(key) = &self.api_key {
-                request = request.bearer_auth(key);
-            }
-            let response = request.send().await.with_context(|| format!("could not reach {}", self.host))?;
+            let request = self.http.get(format!("{BASE}/{path}")).query(query).query(&[("fmt", "json")]);
+            let response = request.send().await.with_context(|| format!("could not reach {HOST}"))?;
             // 503 is MusicBrainz saying "slow down"; one more try after a pause.
             if response.status() == reqwest::StatusCode::SERVICE_UNAVAILABLE && attempt == 0 {
-                tokio::time::sleep(self.spacing.max(SPACING)).await;
+                tokio::time::sleep(SPACING).await;
                 continue;
             }
             if !response.status().is_success() {
-                bail!("{} answered HTTP {}", self.host, response.status());
+                bail!("{HOST} answered HTTP {}", response.status());
             }
-            return response.json().await.with_context(|| format!("unexpected answer from {}", self.host));
+            return response.json().await.with_context(|| format!("unexpected answer from {HOST}"));
         }
-        bail!("{} is rate limiting this server; try again in a moment", self.host)
+        bail!("{HOST} is rate limiting this server; try again in a moment")
     }
 
     /// Candidate recordings for a track, best first.
@@ -201,18 +187,6 @@ impl MusicBrainz {
             mb_release_group_id: release.as_ref().and_then(|r| r.release_group.as_ref().map(|g| g.id.clone())),
         })
     }
-}
-
-/// The `/ws/2` base for a configured server, its host for messages, and whether
-/// it is musicbrainz.org itself (whose rate limit cannot be lowered).
-fn ws2_base(configured: Option<&str>) -> anyhow::Result<(String, String, bool)> {
-    let raw = configured.map(str::trim).filter(|s| !s.is_empty()).unwrap_or(PUBLIC);
-    let url = reqwest::Url::parse(raw).with_context(|| format!("MUSICBRAINZ__BASE_URL is not a URL: {raw}"))?;
-    let host = url.host_str().context("MUSICBRAINZ__BASE_URL has no host")?.to_ascii_lowercase();
-    let public = host == "musicbrainz.org" || host.ends_with(".musicbrainz.org");
-    let trimmed = raw.trim_end_matches('/');
-    let base = if trimmed.ends_with("/ws/2") { trimmed.to_string() } else { format!("{trimmed}/ws/2") };
-    Ok((base, host, public))
 }
 
 /// A Lucene query of quoted phrases, empty fields left out.
@@ -742,41 +716,11 @@ mod tests {
         assert_eq!(c.score, 100);
     }
 
-    #[test]
-    fn the_base_url_takes_any_ws2_server() {
-        assert_eq!(ws2_base(None).unwrap(), ("https://musicbrainz.org/ws/2".into(), "musicbrainz.org".into(), true));
-        assert_eq!(ws2_base(Some("http://192.168.88.35:8091/")).unwrap().0, "http://192.168.88.35:8091/ws/2");
-        assert_eq!(ws2_base(Some("https://mb.example/ws/2")).unwrap(), ("https://mb.example/ws/2".into(), "mb.example".into(), false));
-        assert!(ws2_base(Some("beta.musicbrainz.org")).is_err(), "a bare host is not a URL");
-        assert!(ws2_base(Some("https://beta.musicbrainz.org")).unwrap().2);
-    }
-
-    #[test]
-    fn musicbrainz_org_keeps_its_pace_and_gets_no_key() {
-        let fast = |url: &str| MusicBrainzConfig {
-            base_url: Some(url.into()),
-            api_key: Some("k".into()),
-            min_interval_ms: Some(50),
-            ..MusicBrainzConfig::default()
-        };
-        let public = MusicBrainz::new(&fast("https://musicbrainz.org")).unwrap();
-        assert_eq!((public.spacing, public.api_key.is_none()), (SPACING, true));
-        let own = MusicBrainz::new(&fast("http://mirror.lan:8091")).unwrap();
-        assert_eq!((own.spacing, own.api_key.as_deref()), (Duration::from_millis(50), Some("k")));
-    }
-
-    /// Against musicbrainz.org itself: `cargo test live_musicbrainz -- --ignored --nocapture`;
-    /// against another `/ws/2` server: set `MUSICBRAINZ__BASE_URL` (and `MUSICBRAINZ__API_KEY`).
+    /// Against musicbrainz.org: `cargo test live_musicbrainz -- --ignored --nocapture`.
     #[tokio::test]
     #[ignore]
     async fn live_musicbrainz() {
-        let config = MusicBrainzConfig {
-            base_url: std::env::var("MUSICBRAINZ__BASE_URL").ok(),
-            api_key: std::env::var("MUSICBRAINZ__API_KEY").ok(),
-            min_interval_ms: std::env::var("MUSICBRAINZ__MIN_INTERVAL_MS").ok().and_then(|v| v.parse().ok()),
-            ..MusicBrainzConfig::default()
-        };
-        let mb = MusicBrainz::new(&config).unwrap();
+        let mb = MusicBrainz::new(&MusicBrainzConfig::default()).unwrap();
         let found = mb.identify(Some("Bohemian Rhapsody"), Some("Queen"), None, Some(355_000), 5).await.unwrap();
         let top = &found[0];
         println!("identify: {} / {:?} / {:?} / {:?} / track {:?} / score {}", top.title, top.artist, top.album, top.year, top.track_number, top.score);

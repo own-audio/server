@@ -902,6 +902,7 @@
   "music.identifyRuns.acceptedSure": "{count, plural, one {# song identified} other {# songs identified}}",
   "music.identifyRuns.actionFailed": "That didn't work",
   "music.identifyRuns.chosen": "In use",
+  "music.identifyRuns.confirmCharge": "{tracks, plural, one {# song} other {# songs}} to identify. This can cost up to {price}: you pay only for songs MusicBrainz finds, once per song, and correcting them later is free. Start?",
   "music.identifyRuns.decision.accepted": "Accepted",
   "music.identifyRuns.decision.pending": "Pending",
   "music.identifyRuns.decision.rejected": "Rejected",

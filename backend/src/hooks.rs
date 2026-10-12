@@ -32,6 +32,14 @@ pub enum StorageVerdict {
     Refused(String),
 }
 
+/// Whether an identify run may start ([`Hooks::identify_run_start`]).
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum IdentifyVerdict {
+    Allowed,
+    /// Why not, in words the client shows (`402`).
+    Refused(String),
+}
+
 /// A background job executor contributed by an edition. The worker consults
 /// the handlers from [`Hooks::job_handlers`] before its own job types.
 #[async_trait]
@@ -94,6 +102,33 @@ pub trait Hooks: Send + Sync + 'static {
         _note: &str,
     ) -> anyhow::Result<i64> {
         Ok(0)
+    }
+
+    /// The most identifying these tracks could charge the family, in
+    /// micro-currency: shown before a run starts. Free in the open-source
+    /// edition.
+    async fn identify_quote(&self, _db: &PgPool, _family_id: Uuid, _track_ids: &[Uuid]) -> anyhow::Result<i64> {
+        Ok(0)
+    }
+
+    /// A run over these tracks is about to start. `Refused` stops it before
+    /// anything is looked up; the hosted edition reserves the quote here.
+    async fn identify_run_start(
+        &self,
+        _db: &PgPool,
+        _family_id: Uuid,
+        _user_id: Uuid,
+        _run_id: Uuid,
+        _track_ids: &[Uuid],
+    ) -> anyhow::Result<IdentifyVerdict> {
+        Ok(IdentifyVerdict::Allowed)
+    }
+
+    /// The run ended — every group looked at, failed, or deleted — while its
+    /// proposals still exist. Called before the run's status says so, so a
+    /// failure here is retried; it may be called more than once for a run.
+    async fn identify_run_end(&self, _db: &PgPool, _run_id: Uuid) -> anyhow::Result<()> {
+        Ok(())
     }
 
     /// May the family add `incoming_bytes` (0 when the size is not known

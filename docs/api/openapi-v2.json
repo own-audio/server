@@ -4370,6 +4370,36 @@
         ],
         "type": "object"
       },
+      "Quote": {
+        "properties": {
+          "charge_micro": {
+            "description": "The most the run could charge, in micro-currency; it charges only for\ntracks it finds a match for. 0 where identify is free.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "tracks": {
+            "description": "Tracks in the scope that a run would look up: those with no MusicBrainz\nidentity yet.",
+            "minimum": 0,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tracks",
+          "charge_micro"
+        ],
+        "type": "object"
+      },
+      "QuoteRequest": {
+        "properties": {
+          "scope": {
+            "$ref": "#/components/schemas/Scope"
+          }
+        },
+        "required": [
+          "scope"
+        ],
+        "type": "object"
+      },
       "Rating": {
         "properties": {
           "id": {
@@ -8324,6 +8354,85 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/identify/quote": {
+      "post": {
+        "description": "What a run over this scope would look up, and the most it could cost.\nAsk before starting one.",
+        "operationId": "identify_quote",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuoteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Quote"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No MusicBrainz source configured"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a run over this scope would look up, and the most it could cost",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "user",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/identify/runs": {
       "get": {
         "operationId": "identify_list_runs",
@@ -8414,6 +8523,16 @@
               }
             },
             "description": "Missing, invalid or revoked access token"
+          },
+          "402": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not enough credit for the quote"
           },
           "429": {
             "content": {

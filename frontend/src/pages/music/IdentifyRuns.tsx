@@ -12,6 +12,7 @@ import {
   chooseEdition,
   createRun,
   deleteRun,
+  formatCharge,
   getGroup,
   getRun,
   identifyError,
@@ -19,6 +20,7 @@ import {
   listLibraryFolders,
   listProposals,
   listRuns,
+  quoteRun,
   rejectProposal,
   revertRun,
   setKeepAlbum,
@@ -26,6 +28,7 @@ import {
   type IdentifyRun,
   type Proposal,
   type ProposalClass,
+  type RunScope,
 } from "../../api/identify";
 import { Button, EmptyState, Pill, SegmentedControl, Select, Skeleton, toast } from "../../components/ui";
 import { Page } from "../../components/shell/SplitView";
@@ -127,12 +130,22 @@ function RunsPage() {
   const folders = useQuery({ queryKey: ["library-folders-music"], queryFn: listLibraryFolders, enabled: features.library_folders });
 
   const start = useMutation({
-    mutationFn: () => {
-      if (scope === "library") return createRun({ kind: "library", label: t("music.identifyRuns.scope.library") });
+    mutationFn: async (): Promise<IdentifyRun | null> => {
       const folder = folders.data?.find((f) => f.id === scope);
-      return createRun({ kind: "folder", id: scope, label: folder?.path });
+      const runScope: RunScope = scope === "library"
+        ? { kind: "library", label: t("music.identifyRuns.scope.library") }
+        : { kind: "folder", id: scope, label: folder?.path };
+      if (features.billing) {
+        const quote = await quoteRun(runScope);
+        if (quote.charge_micro > 0
+          && !window.confirm(t("music.identifyRuns.confirmCharge", { tracks: quote.tracks, price: formatCharge(quote.charge_micro) }))) {
+          return null;
+        }
+      }
+      return createRun(runScope);
     },
     onSuccess: (run) => {
+      if (!run) return;
       qc.invalidateQueries({ queryKey: ["identify-runs"] });
       navigate(`/music/identify/${run.id}`);
     },
