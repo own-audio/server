@@ -59,7 +59,7 @@ impl FromRequestParts<AppState> for AuthUser {
             return Err(AuthError::SessionInvalid);
         }
 
-        if crate::demo::refuses(state, &parts.method, parts.uri.path(), claims.sub).await {
+        if crate::demo::refuses(state, &parts.method, &original_path(parts), claims.sub).await {
             return Err(AuthError::DemoReadOnly);
         }
 
@@ -73,13 +73,19 @@ impl FromRequestParts<AppState> for AuthUser {
     }
 }
 
+/// The path as the client sent it: a nested router sees it without its prefix
+/// (`/playback/sessions` for `/api/v1/playback/sessions`).
+fn original_path(parts: &Parts) -> String {
+    parts
+        .extensions
+        .get::<axum::extract::OriginalUri>()
+        .map_or_else(|| parts.uri.path().to_string(), |u| u.path().to_string())
+}
+
 /// A personal access token (docs/api-v2-plan.md, V2): good on `/api/v2` only,
 /// and only on operations whose scope it holds (`x-scope` in the v2 document).
 async fn personal_token(parts: &Parts, state: &AppState, token: &str) -> Result<AuthUser, AuthError> {
-    let path = parts
-        .extensions
-        .get::<axum::extract::OriginalUri>()
-        .map_or_else(|| parts.uri.path().to_string(), |u| u.path().to_string());
+    let path = original_path(parts);
     if !path.starts_with("/api/v2/") {
         return Err(AuthError::SessionInvalid);
     }
@@ -93,7 +99,7 @@ async fn personal_token(parts: &Parts, state: &AppState, token: &str) -> Result<
     if !pat.scopes.iter().any(|s| s == needed) {
         return Err(AuthError::InsufficientScope(needed.to_string()));
     }
-    if crate::demo::refuses(state, &parts.method, parts.uri.path(), pat.user_id).await {
+    if crate::demo::refuses(state, &parts.method, &path, pat.user_id).await {
         return Err(AuthError::DemoReadOnly);
     }
     Ok(AuthUser { user_id: pat.user_id, session_id: pat.id, role, chain_id: None, scopes: Some(pat.scopes) })

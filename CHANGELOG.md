@@ -25,10 +25,11 @@ semver. Each release states the **API contract revision** it serves
   server that still sets them starts as before; they are ignored.
 
 ### Fixed
-- The read-only demo account could not listen through `/api/v2`: every write
-  there was refused, so were `POST /playback-info` (a read), progress, plays and
-  `/sync/push`. They are allowed now, as on v1; inside a push the demo account's
-  favourites and ratings are refused one by one.
+- The read-only demo account could not write anything through the REST API, not
+  even what listening writes (progress, playback sessions): the check saw the path
+  without its `/api/v1` prefix and allowed nothing. On `/api/v2` it now allows the
+  same — `POST /playback-info` (a read), progress, plays and `/sync/push`, where
+  the demo account's favourites and ratings are refused one by one.
 
 ## [1.0.0-beta.10] - 2026-10-11
 
