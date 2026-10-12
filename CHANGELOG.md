@@ -13,6 +13,12 @@ semver. Each release states the **API contract revision** it serves
   album by album, pick another edition, undo a run. Songs matched to another
   artist are left out of "accept album".
 
+### Fixed
+- The read-only demo account could not listen through `/api/v2`: every write
+  there was refused, so were `POST /playback-info` (a read), progress, plays and
+  `/sync/push`. They are allowed now, as on v1; inside a push the demo account's
+  favourites and ratings are refused one by one.
+
 ## [1.0.0-beta.10] - 2026-10-11
 
 ### Added

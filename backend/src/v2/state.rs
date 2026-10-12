@@ -682,9 +682,12 @@ pub async fn push(auth: AuthUser, family: FamilyContext, State(state): State<App
     if body.changes.len() > 500 {
         return Err(Problem::bad_request("too_many", "at most 500 changes at a time"));
     }
+    // The public demo account may listen but not edit (crate::demo).
+    let read_only = crate::demo::is_read_only_user(&state, family.user_id).await;
     let mut out = Vec::with_capacity(body.changes.len());
     for c in &body.changes {
         let outcome: Result<&str, Problem> = match c.op.as_str() {
+            "favourite" | "unfavourite" | "rate" if read_only => Err(Problem::forbidden().detail("the demo account is read-only")),
             "favourite" | "unfavourite" => apply_favourite(&state, &family, &c.kind, c.id, c.op == "favourite").await.map(|_| "ok"),
             "rate" => match c.rating {
                 Some(r) => apply_rating(&state, &family, &c.kind, c.id, r).await.map(|_| "ok"),

@@ -28,6 +28,15 @@ pub async fn refuses(state: &AppState, method: &Method, path: &str, user_id: Uui
     if !demo_is_read_only || !is_write(method) || rest_allows(method, path) {
         return false;
     }
+    is_read_only_user(state, user_id).await
+}
+
+/// Whether this user is the read-only demo account; for a request that mixes listening with
+/// edits (`POST /api/v2/sync/push`) and refuses only the edits.
+pub async fn is_read_only_user(state: &AppState, user_id: Uuid) -> bool {
+    if !state.config().server.demo.as_ref().is_some_and(|d| d.read_only) {
+        return false;
+    }
     match crate::db::users::find_by_id(state.db(), user_id).await {
         Ok(Some(user)) => is_read_only_account(state, &user.email),
         _ => false,
@@ -43,6 +52,7 @@ fn rest_allows(method: &Method, path: &str) -> bool {
     let segments: Vec<&str> = path.trim_end_matches('/').split('/').skip_while(|s| s.is_empty()).collect();
     let rest = match segments.as_slice() {
         ["api", "v1", rest @ ..] => rest,
+        ["api", "v2", rest @ ..] => return v2_allows(method, rest),
         _ => return false,
     };
     match (method, rest) {
@@ -64,6 +74,19 @@ fn rest_allows(method: &Method, path: &str) -> bool {
         (&Method::POST, ["music", "smart-playlists", _, "resolve"]) => true,
         _ => false,
     }
+}
+
+/// The same on `/api/v2`. `/sync/push` carries plays and progress with favourites and
+/// ratings; it is let through and refuses those two item by item.
+fn v2_allows(method: &Method, rest: &[&str]) -> bool {
+    matches!(
+        (method, rest),
+        (&Method::POST, ["auth", "revoke"])
+            | (&Method::POST, ["playback-info"])
+            | (&Method::PUT, ["me", "progress", _, _])
+            | (&Method::POST, ["me", "plays"])
+            | (&Method::POST, ["sync", "push"])
+    )
 }
 
 /// Subsonic endpoints that change something other than listening state.
@@ -93,6 +116,18 @@ mod tests {
         assert!(rest_allows(&Method::PUT, "/api/v1/music/tracks/0b9c/progress"));
         assert!(rest_allows(&Method::POST, "/api/v1/music/smart-playlists/abc/resolve"));
         assert!(rest_allows(&Method::POST, "/api/v1/auth/logout"));
+        assert!(rest_allows(&Method::POST, "/api/v2/playback-info"));
+        assert!(rest_allows(&Method::PUT, "/api/v2/me/progress/track/0b9c"));
+        assert!(rest_allows(&Method::POST, "/api/v2/me/plays"));
+        assert!(rest_allows(&Method::POST, "/api/v2/sync/push"));
+    }
+
+    #[test]
+    fn v2_edits_are_refused() {
+        assert!(!rest_allows(&Method::PUT, "/api/v2/me/favourites/track/0b9c"));
+        assert!(!rest_allows(&Method::POST, "/api/v2/playlists"));
+        assert!(!rest_allows(&Method::PATCH, "/api/v2/albums/0b9c"));
+        assert!(!rest_allows(&Method::DELETE, "/api/v2/me/progress/track/0b9c"));
     }
 
     #[test]
