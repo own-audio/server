@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.12] - 2026-10-12
+
 ### Added
 - `GET /api/v2/events` also sends `identify` events (revision 12): a run of the
   caller's moved on — `run_id`, `status`, `groups_done`, `groups_total`. Clients can
