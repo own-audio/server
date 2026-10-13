@@ -10,11 +10,13 @@ pub mod auth;
 pub mod discover;
 pub mod discovery;
 pub mod edit;
+pub mod edits;
 pub mod events;
 pub mod household;
 pub mod idempotency;
 pub mod images;
 pub mod me;
+pub mod organize;
 pub mod media;
 pub mod music;
 pub mod page;
@@ -122,6 +124,13 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(household::set_podcast_visibility))
         .routes(routes!(events::events))
         .routes(routes!(uploads::create_upload))
+        .routes(routes!(organize::list_tracks))
+        .routes(routes!(organize::facets))
+        .routes(routes!(organize::save_tracks))
+        .routes(routes!(edits::list_edits))
+        .routes(routes!(edits::list_batches))
+        .routes(routes!(edits::undo_edit))
+        .routes(routes!(edits::undo_batch))
         .routes(routes!(identify::list_runs, identify::create_run))
         .routes(routes!(identify::get_run, identify::delete_run))
         .routes(routes!(identify::revert_run))

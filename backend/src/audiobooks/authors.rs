@@ -190,6 +190,7 @@ async fn update_author(
         &body.name,
         body.sort_name.as_deref(),
         body.bio.as_deref(),
+        &crate::db::edits::Edit::new(family.user_id, "manual"),
     )
     .await
     .map_err(AuthError::Internal)?

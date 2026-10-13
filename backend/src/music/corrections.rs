@@ -106,7 +106,7 @@ async fn rename_artist(
     }
     visible_artist(&state, &family, id).await?;
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
-    match db::entities::rename_contributor(&mut tx, family.family_id, id, name)
+    match db::entities::rename_contributor(&mut tx, family.family_id, id, name, &crate::db::edits::Edit::new(family.user_id, "manual"))
         .await
         .map_err(AuthError::Internal)?
     {
@@ -200,7 +200,7 @@ async fn rename_album(
         return Err(AuthError::BadRequest("title is required".into()));
     }
     visible_album(&state, &family, id).await?;
-    if !db::entities::rename_album(state.db(), family.family_id, id, &body.title)
+    if !db::entities::rename_album(state.db(), family.family_id, id, &body.title, &crate::db::edits::Edit::new(family.user_id, "manual"))
         .await
         .map_err(AuthError::Internal)?
     {
@@ -222,7 +222,7 @@ async fn set_album_release_group(
     Json(body): Json<ReleaseGroupRequest>,
 ) -> Result<Json<ReleaseGroupResponse>, AuthError> {
     visible_album(&state, &family, id).await?;
-    let group = db::entities::set_album_release_group(state.db(), family.family_id, id, body.release_group_id)
+    let group = db::entities::set_album_release_group(state.db(), family.family_id, id, body.release_group_id, &crate::db::edits::Edit::new(family.user_id, "manual"))
         .await
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;

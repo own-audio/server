@@ -1330,6 +1330,7 @@ pub(crate) async fn refresh_folder_track(
             .map(Some),
         tags.genre.as_deref().or(track.genre.as_deref()),
         tags.track_number.or(track.track_number),
+        None,
     )
     .await?;
     db::music::set_disc(state.db(), track_id, tags.disc_number, tags.disc_total).await?;
@@ -1371,6 +1372,7 @@ async fn update_track(
         body.album_artist.as_ref().map(|v| trim_opt(v.as_deref())),
         trim_opt(body.genre.as_deref()),
         body.track_number,
+        Some(&crate::db::edits::Edit::new(family.user_id, "manual")),
     )
     .await
     .map_err(AuthError::Internal)?;
@@ -1546,6 +1548,7 @@ async fn rescan_track_tags(
             .map(Some),
         tags.genre.as_deref().or(track.genre.as_deref()),
         tags.track_number.or(track.track_number),
+        None,
     )
     .await
     .map_err(AuthError::Internal)?;
@@ -1876,7 +1879,7 @@ async fn revert_track_metadata(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    match db::music::revert_identity(state.db(), id, family.user_id)
+    match db::music::revert_identity(state.db(), id, family.user_id, &crate::db::edits::Edit::new(family.user_id, "revert"))
         .await
         .map_err(AuthError::Internal)?
     {

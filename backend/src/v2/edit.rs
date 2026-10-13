@@ -188,12 +188,14 @@ pub async fn patch_contributor(family: FamilyContext, State(state): State<AppSta
             return Err(Problem::bad_request("invalid_body", format!("kind is one of: {}", CONTRIBUTOR_KINDS.join(", "))).field("/kind", "invalid", kind.to_string()));
         }
     }
+    // A rename and a new sort name are one save.
+    let edit = crate::db::edits::Edit::new(family.user_id, "manual");
     if let Some(name) = body.name.as_deref() {
         if name.trim().is_empty() {
             return Err(Problem::bad_request("invalid_body", "a name cannot be empty").field("/name", "required", "a name"));
         }
         let mut tx = state.db().begin().await.map_err(anyhow::Error::from)?;
-        match db::entities::rename_contributor(&mut tx, family.family_id, id, name).await? {
+        match db::entities::rename_contributor(&mut tx, family.family_id, id, name, &edit).await? {
             Renamed::Done => {}
             Renamed::NotFound => return Err(Problem::not_found()),
             Renamed::Taken(other) => {
@@ -204,7 +206,7 @@ pub async fn patch_contributor(family: FamilyContext, State(state): State<AppSta
     }
     if body.sort_name.is_some() || body.kind.is_some() {
         let sort = body.sort_name.as_ref().map(|s| s.as_deref());
-        db::entities::describe_contributor(state.db(), family.family_id, id, sort, body.kind.as_deref()).await?;
+        db::entities::describe_contributor(state.db(), family.family_id, id, sort, body.kind.as_deref(), &edit).await?;
     }
     Ok(Json(visible_contributor(&state, &family, id).await?))
 }
@@ -303,7 +305,7 @@ pub async fn patch_album(family: FamilyContext, State(state): State<AppState>, P
         return Err(Problem::bad_request("invalid_body", "a title cannot be empty").field("/title", "required", "a title"));
     }
     let details = AlbumDetails { title: body.title, release_date: body.release_date, country: body.country, label: body.label, barcode: body.barcode };
-    if !db::entities::update_album(state.db(), family.family_id, id, &details).await? {
+    if !db::entities::update_album(state.db(), family.family_id, id, &details, &crate::db::edits::Edit::new(family.user_id, "manual")).await? {
         return Err(Problem::not_found());
     }
     Ok(Json(Updated { id }))
@@ -324,7 +326,7 @@ pub struct ReleaseGroupRequest {
         (status = 404, description = "The album or group is not visible or not the household's", body = crate::v2::problem::ProblemBody)))]
 pub async fn set_release_group(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ReleaseGroupRequest>) -> Result<Json<Updated>, Problem> {
     catalog::find_album(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    let group = db::entities::set_album_release_group(state.db(), family.family_id, id, body.release_group_id).await?.ok_or_else(Problem::not_found)?;
+    let group = db::entities::set_album_release_group(state.db(), family.family_id, id, body.release_group_id, &crate::db::edits::Edit::new(family.user_id, "manual")).await?.ok_or_else(Problem::not_found)?;
     Ok(Json(Updated { id: group }))
 }
 

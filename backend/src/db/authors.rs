@@ -110,10 +110,11 @@ pub async fn update_author(
     name: &str,
     sort_name: Option<&str>,
     bio: Option<&str>,
+    edit: &crate::db::edits::Edit,
 ) -> anyhow::Result<Result<Author, crate::db::entities::Renamed>> {
     use crate::db::entities::{Renamed, rename_contributor};
     let mut tx = pool.begin().await.context("db: begin update author")?;
-    match rename_contributor(&mut tx, family_id, id, name).await? {
+    match rename_contributor(&mut tx, family_id, id, name, edit).await? {
         Renamed::Done => {}
         other => return Ok(Err(other)),
     }

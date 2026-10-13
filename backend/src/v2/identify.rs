@@ -592,7 +592,7 @@ pub async fn revert_track(family: FamilyContext, State(state): State<AppState>, 
     if row.user_id != family.user_id {
         return Err(Problem::forbidden().detail("only its owner reverts this track"));
     }
-    match db::music::revert_identity(state.db(), id, family.user_id).await? {
+    match db::music::revert_identity(state.db(), id, family.user_id, &crate::db::edits::Edit::new(family.user_id, "revert")).await? {
         db::music::RevertOutcome::Reverted => {}
         db::music::RevertOutcome::NotIdentified => {
             return Err(Problem::new(StatusCode::CONFLICT, "not_identified").detail("this track has not been identified"));

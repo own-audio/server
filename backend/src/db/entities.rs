@@ -53,7 +53,9 @@ pub async fn rename_contributor(
     family_id: Uuid,
     id: Uuid,
     name: &str,
+    edit: &crate::db::edits::Edit,
 ) -> anyhow::Result<Renamed> {
+    crate::db::edits::mark(tx, edit).await?;
     let name = name.trim();
     let taken: Option<Uuid> = sqlx::query_scalar(
         "SELECT contributor_id FROM contributor_keys
@@ -164,18 +166,22 @@ pub async fn split_contributor(
 
 /// The album's title, everywhere it is shown. Tracks keep matching it by
 /// their tags (its keys), so the next scan does not undo it.
-pub async fn rename_album(pool: &PgPool, family_id: Uuid, id: Uuid, title: &str) -> anyhow::Result<bool> {
-    Ok(sqlx::query(
+pub async fn rename_album(pool: &PgPool, family_id: Uuid, id: Uuid, title: &str, edit: &crate::db::edits::Edit) -> anyhow::Result<bool> {
+    let mut tx = pool.begin().await.context("db: begin rename album")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
+    let done = sqlx::query(
         "UPDATE albums SET title = $3, edited_at = now(), updated_at = now() WHERE id = $1 AND family_id = $2",
     )
     .bind(id)
     .bind(family_id)
     .bind(title.trim())
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .context("db: rename album")?
     .rows_affected()
-        == 1)
+        == 1;
+    tx.commit().await.context("db: commit rename album")?;
+    Ok(done)
 }
 
 /// Puts the album in a release group of the household — another edition's,
@@ -186,8 +192,10 @@ pub async fn set_album_release_group(
     family_id: Uuid,
     id: Uuid,
     release_group: Option<Uuid>,
+    edit: &crate::db::edits::Edit,
 ) -> anyhow::Result<Option<Uuid>> {
     let mut tx = pool.begin().await.context("db: begin regroup album")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
     let group: Option<Uuid> = match release_group {
         Some(group) => sqlx::query_scalar("SELECT id FROM release_groups WHERE id = $1 AND family_id = $2")
             .bind(group)
@@ -374,8 +382,10 @@ pub struct AlbumDetails {
 }
 
 /// Sets what is given; `Some(None)` clears. Marks the album corrected.
-pub async fn update_album(pool: &PgPool, family_id: Uuid, id: Uuid, d: &AlbumDetails) -> anyhow::Result<bool> {
-    Ok(sqlx::query(
+pub async fn update_album(pool: &PgPool, family_id: Uuid, id: Uuid, d: &AlbumDetails, edit: &crate::db::edits::Edit) -> anyhow::Result<bool> {
+    let mut tx = pool.begin().await.context("db: begin update album")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
+    let done = sqlx::query(
         "UPDATE albums SET
             title        = COALESCE($3, title),
             release_date = CASE WHEN $4 THEN $5 ELSE release_date END,
@@ -396,11 +406,13 @@ pub async fn update_album(pool: &PgPool, family_id: Uuid, id: Uuid, d: &AlbumDet
     .bind(d.label.clone().flatten())
     .bind(d.barcode.is_some())
     .bind(d.barcode.clone().flatten())
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .context("db: update album")?
     .rows_affected()
-        == 1)
+        == 1;
+    tx.commit().await.context("db: commit update album")?;
+    Ok(done)
 }
 
 /// A contributor's sort name and kind, corrected by hand.
@@ -410,7 +422,10 @@ pub async fn describe_contributor(
     id: Uuid,
     sort_name: Option<Option<&str>>,
     kind: Option<&str>,
+    edit: &crate::db::edits::Edit,
 ) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await.context("db: begin describe contributor")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
     sqlx::query(
         "UPDATE contributors SET
             sort_name = CASE WHEN $3 THEN $4 ELSE sort_name END,
@@ -422,8 +437,9 @@ pub async fn describe_contributor(
     .bind(sort_name.is_some())
     .bind(sort_name.flatten().map(str::trim).filter(|s| !s.is_empty()))
     .bind(kind)
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .context("db: describe contributor")?;
+    tx.commit().await.context("db: commit describe contributor")?;
     Ok(())
 }

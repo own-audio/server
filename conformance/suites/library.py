@@ -231,6 +231,11 @@ def own_words(ctx, proposal, other):
     track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token, body={"recording": pick["mb_recording_id"]})
     ctx.check("any track can be identified as a recording", track.get("id") == tid, str(track)[:120])
     ctx.call("DELETE", f"/api/v2/tracks/{tid}/identity", ctx.admin_token)
+    if ctx.server["api"]["revision"] >= 15:
+        hist = ctx.call("GET", f"/api/v2/edits?item_kind=track&item_id={tid}&limit=5", ctx.admin_token).get("items", [])
+        ctx.check("identifying and undoing it are in the song's history",
+                  [e["source"] for e in hist[:2]] == ["revert", "identify"]
+                  and hist[1]["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"], str(hist[:2])[:300])
 
 
 def album_in_own_words(ctx, proposals):

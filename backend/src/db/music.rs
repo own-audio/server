@@ -292,7 +292,13 @@ pub async fn update_track(
     album_artist: Option<Option<&str>>,
     genre: Option<&str>,
     track_number: Option<i32>,
+    // Someone's change, kept in the history; `None` for a file read.
+    edit: Option<&crate::db::edits::Edit>,
 ) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await.context("db: begin update music track")?;
+    if let Some(edit) = edit {
+        crate::db::edits::mark(&mut tx, edit).await?;
+    }
     sqlx::query(
         "UPDATE music_tracks
          SET title = $3, artist = $4, album = $5, genre = $6, track_number = $7,
@@ -309,9 +315,10 @@ pub async fn update_track(
     .bind(track_number)
     .bind(album_artist.is_some())
     .bind(album_artist.flatten())
-    .execute(pool)
+    .execute(&mut *tx)
     .await
     .context("db: update music track")?;
+    tx.commit().await.context("db: commit update music track")?;
     Ok(())
 }
 
@@ -338,6 +345,11 @@ pub async fn apply_musicbrainz_metadata(
     run_id: Option<Uuid>,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await.context("db: begin identify")?;
+    let edit = match run_id {
+        Some(run) => crate::db::edits::Edit::in_batch(user_id, "run", run),
+        None => crate::db::edits::Edit::new(user_id, "identify"),
+    };
+    crate::db::edits::mark(&mut tx, &edit).await?;
     // What the track was before, kept for a revert. Locked so a concurrent edit
     // can't slip between the snapshot and the update.
     let before: Option<serde_json::Value> = sqlx::query_scalar(&format!(
@@ -447,8 +459,9 @@ pub enum RevertOutcome {
 
 /// Undo a track's identify: the columns go back to what they were before it, the
 /// MusicBrainz ids with them, and the track no longer counts as identified.
-pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid) -> anyhow::Result<RevertOutcome> {
+pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid, edit: &crate::db::edits::Edit) -> anyhow::Result<RevertOutcome> {
     let mut tx = pool.begin().await.context("db: begin revert")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
     let row: Option<(Option<serde_json::Value>,)> = sqlx::query_as(
         "SELECT i.before
            FROM music_track_identity i

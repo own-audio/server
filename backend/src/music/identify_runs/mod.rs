@@ -365,8 +365,10 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid) -> anyhow::
 /// again. Returns how many tracks went back.
 pub async fn revert_run(pool: &PgPool, run: &db::identify::Run) -> anyhow::Result<usize> {
     let mut n = 0;
+    // One batch: the history shows the run's undo as one change.
+    let edit = db::edits::Edit::new(run.user_id, "revert");
     for track_id in db::identify::identified_by_run(pool, run.id).await? {
-        if db::music::revert_identity(pool, track_id, run.user_id).await? == db::music::RevertOutcome::Reverted {
+        if db::music::revert_identity(pool, track_id, run.user_id, &edit).await? == db::music::RevertOutcome::Reverted {
             n += 1;
         }
     }
