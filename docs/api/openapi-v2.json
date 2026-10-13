@@ -193,6 +193,25 @@
         },
         "type": "object"
       },
+      "AlbumSearch": {
+        "properties": {
+          "album": {
+            "description": "The album's title as the owner types it; the tags' by default.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "description": "The album's artist as the owner types it; the tags' by default.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "ApiVersion": {
         "properties": {
           "path": {
@@ -8592,6 +8611,96 @@
           }
         ],
         "summary": "Put an album group's pending proposals on another of its editions",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/identify/groups/{id}/search": {
+      "post": {
+        "description": "Search an album's editions again with the owner's words, for an album whose\ntags name it wrong, and put its pending proposals on the best one. Nothing\nfound leaves the group as it was (`editions` then are the old ones).",
+        "operationId": "identify_search_group",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AlbumSearch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Group"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, or not an album group"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search an album's editions again with the owner's words, for an album whose tags name it wrong, and put its pending proposals on the best one",
         "tags": [
           "identify"
         ],

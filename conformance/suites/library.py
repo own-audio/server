@@ -190,6 +190,8 @@ def identify_run(ctx):
     _, _, other = ctx.make_user("stranger", "Stranger123!-long")
     if ctx.server["api"]["revision"] >= 13 and proposals:
         own_words(ctx, proposals[0], other)
+    if ctx.server["api"]["revision"] >= 14:
+        album_in_own_words(ctx, proposals)
     ctx.call("GET", path, other, expect=(404,))
     ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
     ctx.call("GET", path, ctx.admin_token, expect=(404,))
@@ -229,6 +231,25 @@ def own_words(ctx, proposal, other):
     track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token, body={"recording": pick["mb_recording_id"]})
     ctx.check("any track can be identified as a recording", track.get("id") == tid, str(track)[:120])
     ctx.call("DELETE", f"/api/v2/tracks/{tid}/identity", ctx.admin_token)
+
+
+def album_in_own_words(ctx, proposals):
+    """Revision 14: an album group's editions searched again with the owner's
+    words."""
+    album = next((p for p in proposals if p["group"]["kind"] == "album"), None)
+    if not album:
+        ctx.skip("an album in your own words", "the run has no album group")
+        return
+    gid = album["group"]["id"]
+    ctx.call("POST", f"/api/v2/identify/groups/{gid}/search", ctx.admin_token, body={"album": " "}, expect=(400,))
+    group = ctx.call("POST", f"/api/v2/identify/groups/{gid}/search", ctx.admin_token,
+                     body={"album": "Abbey Road", "artist": "The Beatles"})
+    ctx.check("an album can be searched for with the owner's words",
+              group.get("id") == gid and isinstance(group.get("editions"), list), str(group)[:160])
+    single = next((p for p in proposals if p["group"]["kind"] == "track"), None)
+    if single:
+        ctx.call("POST", f"/api/v2/identify/groups/{single['group']['id']}/search", ctx.admin_token,
+                 body={"album": "Abbey Road"}, expect=(404,))
 
 
 def identify_event(ctx) -> dict:

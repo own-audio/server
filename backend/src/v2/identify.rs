@@ -544,6 +544,37 @@ pub async fn choose_edition(family: FamilyContext, State(state): State<AppState>
     Ok(Json(group_out(&state, &family, id).await?))
 }
 
+#[derive(Deserialize, ToSchema)]
+pub struct AlbumSearch {
+    /// The album's title as the owner types it; the tags' by default.
+    pub album: Option<String>,
+    /// The album's artist as the owner types it; the tags' by default.
+    pub artist: Option<String>,
+}
+
+/// Search an album's editions again with the owner's words, for an album whose
+/// tags name it wrong, and put its pending proposals on the best one. Nothing
+/// found leaves the group as it was (`editions` then are the old ones).
+#[utoipa::path(post, path = "/identify/groups/{id}/search", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = AlbumSearch,
+    responses((status = 200, body = Group), (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown, or not an album group", body = crate::v2::problem::ProblemBody)))]
+pub async fn search_group(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<AlbumSearch>) -> Result<Json<Group>, Problem> {
+    let g = db::identify::find_group(state.db(), id).await?.ok_or_else(Problem::not_found)?;
+    let run = own_run(&state, &family, g.run_id).await?;
+    let clean = |v: Option<String>| v.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let (album, artist) = (clean(body.album), clean(body.artist));
+    if album.is_none() && artist.is_none() {
+        return Err(Problem::bad_request("empty_search", "give an album or an artist").field("/album", "required", "an album or an artist"));
+    }
+    let source = source(&state)?;
+    if identify_runs::search_group(state.db(), &source, &run, id, artist.as_deref(), album.as_deref()).await?.is_none() {
+        return Err(Problem::not_found());
+    }
+    Ok(Json(group_out(&state, &family, id).await?))
+}
+
 /// Undo one track's identify: its title, artist, album, album artist, genre, track
 /// number and MusicBrainz ids go back to what they were before it was first
 /// identified, by a run or on its own. A run's proposal for it is pending again.

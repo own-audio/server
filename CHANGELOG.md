@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.15] - 2026-10-14
+
+### Added
+- An album's editions searched again with the owner's words (revision 14), for an album its
+  tags name wrong: `POST /api/v2/identify/groups/{id}/search` with `album` and/or `artist`
+  replaces the group's editions and puts its pending proposals on the best one; an owner's own
+  picks stay. The web console's "Other edition" has the fields.
+
 ## [1.0.0-beta.14] - 2026-10-13
 
 ### Added

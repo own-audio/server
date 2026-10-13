@@ -138,6 +138,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(identify::reject))
         .routes(routes!(identify::get_group))
         .routes(routes!(identify::choose_edition))
+        .routes(map(routes!(identify::search_group), |m| limits.outbound.apply(m)))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

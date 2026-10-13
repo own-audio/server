@@ -194,6 +194,12 @@ export async function chooseRecording(id: string, recording: string, release: st
   return data;
 }
 
+/** Search an album's editions again with the owner's words (revision 14). */
+export async function searchGroup(id: string, search: { album?: string; artist?: string }): Promise<IdentifyGroup> {
+  const { data } = await api.post<IdentifyGroup>(`/identify/groups/${id}/search`, search, v2);
+  return data;
+}
+
 export async function getGroup(id: string): Promise<IdentifyGroup> {
   const { data } = await api.get<IdentifyGroup>(`/identify/groups/${id}`, v2);
   return data;

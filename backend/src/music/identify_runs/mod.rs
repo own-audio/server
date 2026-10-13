@@ -217,7 +217,8 @@ fn most_common<'a>(values: impl Iterator<Item = Option<&'a str>>) -> Option<Stri
 }
 
 /// Re-map a looked-up album group onto another of its candidates: the owner
-/// chose another edition. Decided proposals stay as they are.
+/// chose another edition. Decided proposals stay as they are, and so do the
+/// owner's own picks.
 pub async fn choose_edition(pool: &PgPool, run: &db::identify::Run, group_id: Uuid, index: usize) -> anyhow::Result<bool> {
     let Some(group) = db::identify::find_group(pool, group_id).await? else { return Ok(false) };
     if group.run_id != run.id || group.kind != "album" {
@@ -227,13 +228,61 @@ pub async fn choose_edition(pool: &PgPool, run: &db::identify::Run, group_id: Uu
     if index >= candidates.len() {
         return Ok(false);
     }
+    let files = group_files(pool, run, &group).await?;
+    put_on_edition(pool, &group, &files, &candidates, index).await?;
+    Ok(true)
+}
+
+/// Search an album group's editions again with the owner's words — the tags'
+/// album or artist is what is wrong — and put the group on the best of them.
+/// `None` for a group that is not an album of this run; an empty list when
+/// nothing was found, and then nothing changes.
+pub async fn search_group(
+    pool: &PgPool,
+    source: &Identify<'_>,
+    run: &db::identify::Run,
+    group_id: Uuid,
+    artist: Option<&str>,
+    album: Option<&str>,
+) -> anyhow::Result<Option<usize>> {
+    let Some(group) = db::identify::find_group(pool, group_id).await? else { return Ok(None) };
+    if group.run_id != run.id || group.kind != "album" {
+        return Ok(None);
+    }
     let found = db::identify::tracks_by_id(pool, run.user_id, &group.track_ids).await?;
-    let files: Vec<FileTrack> = group
+    let files = group_files(pool, run, &group).await?;
+    let tagged = most_common(found.iter().map(|t| t.album_artist.as_deref().or(t.artist.as_deref())));
+    let Some(artist) = artist.map(str::to_string).or(tagged) else { return Ok(Some(0)) };
+    let album = album.map(str::to_string).or_else(|| files.first().and_then(|f| f.album.clone()));
+    let queries: Vec<AlbumTrackQuery> =
+        files.iter().map(|f| AlbumTrackQuery { title: &f.title, duration_ms: f.duration_ms }).collect();
+    let candidates = source.identify_album(&artist, album.as_deref(), queries).await?;
+    let Some(best) = matching::choose(&files, &candidates) else { return Ok(Some(0)) };
+    let mut group = group;
+    group.candidates = serde_json::to_value(&candidates)?;
+    put_on_edition(pool, &group, &files, &candidates, best).await?;
+    Ok(Some(candidates.len()))
+}
+
+async fn group_files(pool: &PgPool, run: &db::identify::Run, group: &db::identify::Group) -> anyhow::Result<Vec<FileTrack>> {
+    let found = db::identify::tracks_by_id(pool, run.user_id, &group.track_ids).await?;
+    Ok(group
         .track_ids
         .iter()
         .filter_map(|id| found.iter().find(|t| t.id == *id).map(file_track))
-        .collect();
-    let (props, left) = matching::album_proposals(&files, &candidates, index);
+        .collect())
+}
+
+/// The group's pending proposals on candidate `index`, stored with the group's
+/// candidates.
+async fn put_on_edition(
+    pool: &PgPool,
+    group: &db::identify::Group,
+    files: &[FileTrack],
+    candidates: &[crate::metadata::AlbumCandidate],
+    index: usize,
+) -> anyhow::Result<()> {
+    let (props, left) = matching::album_proposals(files, candidates, index);
     let mut stored: Vec<db::identify::NewProposal> = props
         .iter()
         .map(|p| db::identify::NewProposal {
@@ -256,8 +305,7 @@ pub async fn choose_edition(pool: &PgPool, run: &db::identify::Run, group_id: Uu
             alternatives: serde_json::json!([]),
         });
     }
-    db::identify::save_group(pool, &group, &group.candidates, Some(index as i16), &stored).await?;
-    Ok(true)
+    db::identify::save_group(pool, group, &group.candidates, Some(index as i16), &stored).await
 }
 
 #[derive(Debug, PartialEq, Eq)]

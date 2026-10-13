@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 13;
+pub const API_REVISION: u32 = 14;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a

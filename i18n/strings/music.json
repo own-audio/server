@@ -1482,5 +1482,9 @@
   "music.identifyRuns.identified": {
     "en": "Song identified",
     "cs": "Skladba identifikována"
+  },
+  "music.identifyRuns.albumSearchHint": {
+    "en": "Correct the album or artist if the tags name it wrong.",
+    "cs": "Pokud tagy album nebo interpreta pojmenovávají špatně, opravte je."
   }
 }

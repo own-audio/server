@@ -25,6 +25,7 @@ import {
   quoteRun,
   rejectProposal,
   revertRun,
+  searchGroup,
   searchProposal,
   setKeepAlbum,
   type Decision,
@@ -479,7 +480,16 @@ function GroupCard({ proposals, focused, onFocus, onChanged }: {
           </Button>
         )}
       </div>
-      {editionsOpen && <Editions groupId={group.id} onChosen={() => { setEditionsOpen(false); onChanged(); }} />}
+      {editionsOpen && (
+        <Editions
+          groupId={group.id}
+          album={proposals[0].track.album ?? ""}
+          artist={proposals[0].track.artist ?? ""}
+          searchable={proposals[0].alternatives !== undefined}
+          onChosen={() => { setEditionsOpen(false); onChanged(); }}
+          onSearched={onChanged}
+        />
+      )}
       {proposals.map((p, i) => (
         <ProposalRow key={p.id} p={p} first={i === 0} focused={p.id === focused} onFocus={() => onFocus(p.id)} onChanged={onChanged} />
       ))}
@@ -487,18 +497,47 @@ function GroupCard({ proposals, focused, onFocus, onChanged }: {
   );
 }
 
-function Editions({ groupId, onChosen }: { groupId: string; onChosen: () => void }) {
+function Editions({ groupId, album: tagAlbum, artist: tagArtist, searchable, onChosen, onSearched }: {
+  groupId: string;
+  album: string;
+  artist: string;
+  /** The server searches editions in the owner's words (revision 14). */
+  searchable: boolean;
+  onChosen: () => void;
+  onSearched: () => void;
+}) {
   const { t } = useT();
+  const qc = useQueryClient();
+  const [album, setAlbum] = useState(tagAlbum);
+  const [artist, setArtist] = useState(tagArtist);
   const { data, isLoading } = useQuery({ queryKey: ["identify-group", groupId], queryFn: () => getGroup(groupId) });
+  const search = useMutation({
+    mutationFn: () => searchGroup(groupId, { album: album.trim() || undefined, artist: artist.trim() || undefined }),
+    onSuccess: (g) => { qc.setQueryData(["identify-group", groupId], g); onSearched(); },
+    onError: (e) => toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))),
+  });
+  const searchForm = searchable && (
+    <form className="mb-2 flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); search.mutate(); }}>
+      <div className="min-w-[8rem] flex-1"><Input className="h-9" value={album} onChange={(e) => setAlbum(e.target.value)} placeholder={t("music.identifyRuns.field.album")} aria-label={t("music.identifyRuns.field.album")} /></div>
+      <div className="min-w-[8rem] flex-1"><Input className="h-9" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder={t("music.identifyRuns.field.artist")} aria-label={t("music.identifyRuns.field.artist")} /></div>
+      <Button type="submit" size="sm" variant="secondary" icon={<Search className="h-4 w-4" />} loading={search.isPending} disabled={!album.trim() && !artist.trim()}>
+        {t("music.identifyRuns.search")}
+      </Button>
+      <p className="w-full text-xs text-muted">{t("music.identifyRuns.albumSearchHint")}</p>
+    </form>
+  );
   const choose = useMutation({
     mutationFn: (index: number) => chooseEdition(groupId, index),
     onSuccess: onChosen,
     onError: (e) => toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))),
   });
   if (isLoading || !data) return <div className="px-4 py-2"><Loader2 className="h-4 w-4 animate-spin" /></div>;
-  if (data.editions.length === 0) return <p className="px-4 py-2 text-xs text-muted">{t("music.identifyRuns.noEditions")}</p>;
+  if (data.editions.length === 0) {
+    return <div className="border-b border-border bg-bg-alt/50 px-4 py-2">{searchForm}<p className="text-xs text-muted">{t("music.identifyRuns.noEditions")}</p></div>;
+  }
   return (
     <ul className="border-b border-border bg-bg-alt/50 px-4 py-2">
+      {searchForm && <li>{searchForm}</li>}
       {data.chosen == null && <li className="py-1 text-xs text-muted">{t("music.identifyRuns.noChosenEdition")}</li>}
       {data.editions.map((e) => (
         <li key={e.index} className="flex items-center gap-3 py-1 text-sm">
