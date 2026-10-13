@@ -56,6 +56,28 @@ export interface Proposal {
   proposal?: ProposedTrack | null;
   keep_album: boolean;
   decision: Decision;
+  /** The owner picked this recording (revision 13). */
+  chosen_by_owner?: boolean;
+  /** Other recordings the server keeps for it; absent before revision 13. */
+  alternatives?: number;
+}
+
+/** A MusicBrainz recording a search found, best first. */
+export interface RecordingCandidate {
+  mb_recording_id: string;
+  title: string;
+  artist?: string | null;
+  album?: string | null;
+  mb_release_id?: string | null;
+  duration_ms?: number | null;
+  year?: number | null;
+  score: number;
+}
+
+export interface RecordingSearch {
+  title?: string;
+  artist?: string;
+  album?: string;
 }
 
 export interface Edition {
@@ -152,6 +174,23 @@ export async function rejectProposal(id: string): Promise<Proposal> {
 
 export async function setKeepAlbum(id: string, keep_album: boolean): Promise<Proposal> {
   const { data } = await api.patch<Proposal>(`/identify/proposals/${id}`, { keep_album }, v2);
+  return data;
+}
+
+export async function proposalAlternatives(id: string): Promise<RecordingCandidate[]> {
+  const { data } = await api.get<{ items: RecordingCandidate[] }>(`/identify/proposals/${id}/alternatives`, v2);
+  return data.items;
+}
+
+/** Search again in the owner's words; the results become the proposal's alternatives. */
+export async function searchProposal(id: string, search: RecordingSearch): Promise<RecordingCandidate[]> {
+  const { data } = await api.post<{ items: RecordingCandidate[] }>(`/identify/proposals/${id}/search`, search, v2);
+  return data.items;
+}
+
+/** A recording by id or musicbrainz.org link becomes the proposal, accepted when `accept`. */
+export async function chooseRecording(id: string, recording: string, release: string | null | undefined, accept: boolean): Promise<Proposal> {
+  const { data } = await api.put<Proposal>(`/identify/proposals/${id}/recording`, { recording, release: release ?? null, accept }, v2);
   return data;
 }
 

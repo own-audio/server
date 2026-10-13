@@ -1900,7 +1900,7 @@ async fn revert_track_metadata(
 
 /// Best-effort: a missing/unreachable cover never fails the apply, since
 /// the metadata update itself already succeeded by the time this runs.
-async fn apply_cover_art(
+pub(crate) async fn apply_cover_art(
     state: &AppState,
     family: &FamilyContext,
     track_id: Uuid,

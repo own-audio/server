@@ -188,9 +188,47 @@ def identify_run(ctx):
     reverted = ctx.call("POST", f"{path}/revert", ctx.admin_token)["reverted"]
     ctx.check("a run's revert undoes what it accepted", reverted == accepted - one, f"{reverted} vs {accepted} - {one}")
     _, _, other = ctx.make_user("stranger", "Stranger123!-long")
+    if ctx.server["api"]["revision"] >= 13 and proposals:
+        own_words(ctx, proposals[0], other)
     ctx.call("GET", path, other, expect=(404,))
     ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
     ctx.call("GET", path, ctx.admin_token, expect=(404,))
+
+
+def own_words(ctx, proposal, other):
+    """Revision 13: search again with the owner's words, pick a recording by id
+    or link, and identify any track the same way, then undo it."""
+    pid, tid = proposal["id"], proposal["track"]["id"]
+    alts = ctx.call("GET", f"/api/v2/identify/proposals/{pid}/alternatives", ctx.admin_token)
+    ctx.check("a proposal lists its other recordings", isinstance(alts.get("items"), list), str(alts)[:120])
+    ctx.call("POST", f"/api/v2/identify/proposals/{pid}/search", ctx.admin_token, body={"title": "  "}, expect=(400,))
+    ctx.call("PUT", f"/api/v2/identify/proposals/{pid}/recording", ctx.admin_token,
+             body={"recording": "track 02"}, expect=(400,))
+    # The fixtures' tags are made up, as a "Track 02" is: the owner types what
+    # the song really is.
+    words = {"title": "Yesterday", "artist": "The Beatles"}
+    found = ctx.call("POST", f"/api/v2/identify/proposals/{pid}/search", ctx.admin_token, body=words).get("items", [])
+    stored = ctx.call("GET", f"/api/v2/identify/proposals/{pid}/alternatives", ctx.admin_token).get("items", [])
+    ctx.check("a search's results become the alternatives",
+              [c["mb_recording_id"] for c in stored] == [c["mb_recording_id"] for c in found])
+    if not found:
+        ctx.skip("picking a recording", "the MusicBrainz source found nothing for the search")
+        return
+    pick = found[0]
+    link = f"https://musicbrainz.org/recording/{pick['mb_recording_id']}"
+    chosen = ctx.call("PUT", f"/api/v2/identify/proposals/{pid}/recording", ctx.admin_token,
+                      body={"recording": link, "release": pick.get("mb_release_id")})
+    ctx.check("a picked recording is the owner's proposal, to accept",
+              chosen.get("chosen_by_owner") is True and chosen.get("reasons") == ["chosen"]
+              and chosen.get("decision") == "pending"
+              and (chosen.get("proposal") or {}).get("mb_recording_id") == pick["mb_recording_id"], str(chosen)[:200])
+    ctx.call("POST", f"/api/v2/tracks/{tid}/identity/search", other, body=words, expect=(403, 404))
+    again = ctx.call("POST", f"/api/v2/tracks/{tid}/identity/search", ctx.admin_token, body=words).get("items", [])
+    ctx.check("any track can be searched for with the owner's words", isinstance(again, list) and len(again) >= 1)
+    ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", other, body={"recording": pick["mb_recording_id"]}, expect=(403, 404))
+    track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token, body={"recording": pick["mb_recording_id"]})
+    ctx.check("any track can be identified as a recording", track.get("id") == tid, str(track)[:120])
+    ctx.call("DELETE", f"/api/v2/tracks/{tid}/identity", ctx.admin_token)
 
 
 def identify_event(ctx) -> dict:

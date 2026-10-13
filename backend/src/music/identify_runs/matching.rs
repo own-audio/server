@@ -9,7 +9,7 @@
 //! a reason to look first, not a guess to make.
 
 use crate::metadata::public::normalize;
-use crate::metadata::{AlbumCandidate, MetadataCandidate};
+use crate::metadata::{AlbumCandidate, MetadataCandidate, RecordingDetail};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -259,6 +259,39 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
     }
 }
 
+/// The proposal for a recording the owner picked: what MusicBrainz says of it
+/// by id, with the year and length a search found for it where it did.
+pub fn chosen(recording: RecordingDetail, found: Option<&MetadataCandidate>) -> ProposedTrack {
+    let found = found.filter(|c| c.mb_recording_id == recording.mb_recording_id);
+    ProposedTrack {
+        mb_recording_id: recording.mb_recording_id,
+        title: recording.title,
+        artist: recording.artist,
+        mb_artist_id: recording.mb_artist_id,
+        album: recording.album,
+        album_artist: recording.album_artist,
+        mb_release_id: recording.mb_release_id,
+        mb_release_group_id: recording.mb_release_group_id,
+        track_number: recording.track_number,
+        disc_number: None,
+        year: found.and_then(|c| c.year),
+        length_ms: found.and_then(|c| c.duration_ms),
+        score: 100,
+    }
+}
+
+/// A MusicBrainz id of `kind` ("recording", "release") from what someone
+/// pasted: the bare id, or a musicbrainz.org link to it.
+pub fn mbid(input: &str, kind: &str) -> Option<String> {
+    let s = input.trim();
+    let id = match s.find(&format!("/{kind}/")) {
+        Some(at) => s[at + kind.len() + 2..].split(['/', '?', '#']).next()?,
+        None if !s.contains('/') => s,
+        None => return None,
+    };
+    Uuid::parse_str(id).ok().map(|u| u.to_string())
+}
+
 /// The same artist, or one credit inside the other ("Wings" in "Paul McCartney
 /// & Wings").
 fn same_artist(a: &str, b: &str) -> bool {
@@ -454,5 +487,15 @@ mod tests {
         f.album = None;
         let p = track_proposal(&f, &[found(100, "A", "a"), found(98, "B", "b")]);
         assert!(p.reasons.contains(&"ambiguous"));
+    }
+
+    #[test]
+    fn a_pasted_link_or_bare_id_gives_the_recording() {
+        let id = "b1a9c0e9-d987-4042-ae91-78d6a3267d69";
+        assert_eq!(mbid(id, "recording").as_deref(), Some(id));
+        assert_eq!(mbid(&format!(" https://musicbrainz.org/recording/{id} "), "recording").as_deref(), Some(id));
+        assert_eq!(mbid(&format!("https://musicbrainz.org/recording/{}/edit?x=1", id.to_uppercase()), "recording").as_deref(), Some(id));
+        assert_eq!(mbid(&format!("https://musicbrainz.org/release/{id}"), "recording"), None);
+        assert_eq!(mbid("track 02", "recording"), None);
     }
 }

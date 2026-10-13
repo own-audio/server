@@ -5,11 +5,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Check, Disc3, Loader2, ScanSearch, Trash2, Undo2, X } from "lucide-react";
+import { ArrowRight, Check, Disc3, Loader2, ScanSearch, Search, Trash2, Undo2, X } from "lucide-react";
 import {
   acceptProposal,
   acceptSure,
   chooseEdition,
+  chooseRecording,
   createRun,
   deleteRun,
   formatCharge,
@@ -20,17 +21,20 @@ import {
   listLibraryFolders,
   listProposals,
   listRuns,
+  proposalAlternatives,
   quoteRun,
   rejectProposal,
   revertRun,
+  searchProposal,
   setKeepAlbum,
   type Decision,
   type IdentifyRun,
   type Proposal,
   type ProposalClass,
+  type RecordingCandidate,
   type RunScope,
 } from "../../api/identify";
-import { Button, EmptyState, Pill, SegmentedControl, Select, Skeleton, toast } from "../../components/ui";
+import { Button, EmptyState, Input, Pill, SegmentedControl, Select, Skeleton, toast } from "../../components/ui";
 import { Page } from "../../components/shell/SplitView";
 import { useServerFeatures } from "../../lib/features";
 import { cn } from "../../lib/cn";
@@ -52,6 +56,7 @@ const REASONS = {
   weak: "weak",
   not_found: "notFound",
   not_on_release: "notOnRelease",
+  chosen: "chosen",
 } as const;
 type ReasonCode = keyof typeof REASONS;
 const isReason = (r: string): r is ReasonCode => r in REASONS;
@@ -545,6 +550,8 @@ function ProposalRow({ p, first, focused, onFocus, onChanged }: {
     onSuccess: onChanged,
     onError: (e) => toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))),
   });
+  const [recordingsOpen, setRecordingsOpen] = useState(false);
+  const canPick = p.alternatives !== undefined && p.decision !== "accepted";
   const x = p.proposal;
   const albumQuestion = !!x && (p.reasons.includes("album_differs") || p.keep_album);
 
@@ -596,6 +603,11 @@ function ProposalRow({ p, first, focused, onFocus, onChanged }: {
         )}
       </div>
       <div className="flex justify-end gap-1">
+        {canPick && (
+          <Button size="sm" variant="ghost" icon={<Search className="h-4 w-4" />} onClick={() => setRecordingsOpen((v) => !v)}>
+            {t("music.identifyRuns.otherRecording")}
+          </Button>
+        )}
         {p.decision === "pending" ? (
           <>
             {x && (
@@ -611,6 +623,88 @@ function ProposalRow({ p, first, focused, onFocus, onChanged }: {
           <Pill tone={p.decision === "accepted" ? "success" : "neutral"}>{t(`music.identifyRuns.decision.${p.decision}`)}</Pill>
         )}
       </div>
+      {recordingsOpen && (
+        <div className="sm:col-span-4">
+          <Recordings p={p} onChosen={() => { setRecordingsOpen(false); onChanged(); }} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Another recording for one song: what the run also found, a search in your
+ *  own words, or a pasted musicbrainz.org link. Choosing applies it. */
+function Recordings({ p, onChosen }: { p: Proposal; onChosen: () => void }) {
+  const { t } = useT();
+  const [title, setTitle] = useState(p.track.title);
+  const [artist, setArtist] = useState(p.track.artist ?? "");
+  const [album, setAlbum] = useState(p.track.album ?? "");
+  const [link, setLink] = useState("");
+  const [found, setFound] = useState<RecordingCandidate[] | null>(null);
+  const stored = useQuery({ queryKey: ["identify-alternatives", p.id], queryFn: () => proposalAlternatives(p.id) });
+  const search = useMutation({
+    mutationFn: () => searchProposal(p.id, {
+      title: title.trim() || undefined,
+      artist: artist.trim() || undefined,
+      album: album.trim() || undefined,
+    }),
+    onSuccess: setFound,
+    onError: (e) => toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))),
+  });
+  const choose = useMutation({
+    mutationFn: (c: { recording: string; release?: string | null }) => chooseRecording(p.id, c.recording, c.release, true),
+    onSuccess: () => { toast.success(t("music.identifyRuns.identified")); onChosen(); },
+    onError: (e) => toast.error(identifyError(e, t("music.identifyRuns.actionFailed"))),
+  });
+  const items = found ?? stored.data ?? [];
+  const songMs = (p.track.duration_secs ?? 0) * 1000;
+
+  return (
+    <div className="mt-1 rounded-card border border-border bg-bg-alt/50 p-3" onClick={(e) => e.stopPropagation()}>
+      <form
+        className="flex flex-wrap gap-2"
+        onSubmit={(e) => { e.preventDefault(); search.mutate(); }}
+      >
+        <div className="min-w-[8rem] flex-1"><Input className="h-9" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("music.identifyRuns.field.title")} aria-label={t("music.identifyRuns.field.title")} /></div>
+        <div className="min-w-[8rem] flex-1"><Input className="h-9" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder={t("music.identifyRuns.field.artist")} aria-label={t("music.identifyRuns.field.artist")} /></div>
+        <div className="min-w-[8rem] flex-1"><Input className="h-9" value={album} onChange={(e) => setAlbum(e.target.value)} placeholder={t("music.identifyRuns.field.album")} aria-label={t("music.identifyRuns.field.album")} /></div>
+        <Button type="submit" size="sm" variant="secondary" icon={<Search className="h-4 w-4" />} loading={search.isPending}
+          disabled={!title.trim() && !artist.trim() && !album.trim()}>
+          {t("music.identifyRuns.search")}
+        </Button>
+      </form>
+      <p className="mt-1 text-xs text-muted">{t("music.identifyRuns.searchHint")}</p>
+      {stored.isLoading && !found ? (
+        <Loader2 className="mt-2 h-4 w-4 animate-spin" />
+      ) : items.length === 0 ? (
+        <p className="mt-2 text-xs text-muted">{t("music.identifyRuns.noRecordings")}</p>
+      ) : (
+        <ul className="mt-2">
+          {items.map((c) => {
+            const key = `${c.mb_recording_id}/${c.mb_release_id ?? ""}`;
+            const off = !!songMs && !!c.duration_ms && Math.abs(c.duration_ms - songMs) > 5000;
+            return (
+              <li key={key} className="flex items-center gap-3 py-1 text-sm">
+                <span className="min-w-0 flex-1 truncate">
+                  {c.title}
+                  <span className="ml-2 text-xs text-muted">{[c.artist, c.album, c.year].filter(Boolean).join(" · ")}</span>
+                </span>
+                <span className={cn("text-xs tabular-nums", off ? "text-warning" : "text-muted")}>{clock(c.duration_ms)}</span>
+                <Button size="sm" variant="secondary" loading={choose.isPending && choose.variables?.recording === c.mb_recording_id}
+                  onClick={() => choose.mutate({ recording: c.mb_recording_id, release: c.mb_release_id })}>
+                  {t("music.identifyRuns.useRecording")}
+                </Button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); if (link.trim()) choose.mutate({ recording: link.trim() }); }}>
+        <div className="min-w-[8rem] flex-1"><Input className="h-9" value={link} onChange={(e) => setLink(e.target.value)} placeholder={t("music.identifyRuns.pasteLink")} aria-label={t("music.identifyRuns.pasteLink")} /></div>
+        <Button type="submit" size="sm" variant="secondary" disabled={!link.trim()} loading={choose.isPending && choose.variables?.recording === link.trim()}>
+          {t("music.identifyRuns.useRecording")}
+        </Button>
+      </form>
     </div>
   );
 }

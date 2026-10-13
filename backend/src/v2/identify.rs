@@ -14,7 +14,8 @@ use crate::app::AppState;
 use crate::db;
 use crate::families::FamilyContext;
 use crate::hooks::IdentifyVerdict;
-use crate::music::identify_runs::{self, AcceptOutcome, matching::ProposedTrack};
+use crate::metadata::{Identify, MetadataCandidate};
+use crate::music::identify_runs::{self, AcceptOutcome, matching::{self, ProposedTrack}};
 use crate::v2::page::{Page, PageQuery};
 use crate::v2::problem::Problem;
 use axum::Json;
@@ -328,7 +329,8 @@ pub struct Proposal {
     /// `partial` (some files are not on it), `layout` (discs or numbering differ
     /// from the files'), `duplicate` (two files on one track), `ambiguous`
     /// (another release matches as well), `album_differs` (a compilation's
-    /// song on its original album), `weak`, `not_found`, `not_on_release`.
+    /// song on its original album), `weak`, `not_found`, `not_on_release`,
+    /// `chosen` (the owner picked the recording).
     /// Unknown values may appear.
     pub reasons: Vec<String>,
     /// What an accept writes; absent when nothing was found.
@@ -337,6 +339,11 @@ pub struct Proposal {
     pub keep_album: bool,
     /// `pending`, `accepted` or `rejected`.
     pub decision: String,
+    /// The owner picked this recording (`PUT …/recording`); another edition of
+    /// the album leaves it as it is.
+    pub chosen_by_owner: bool,
+    /// Other recordings stored with it (`GET …/alternatives`).
+    pub alternatives: i32,
 }
 
 fn proposal_out(p: db::identify::ProposalRow) -> Proposal {
@@ -357,6 +364,8 @@ fn proposal_out(p: db::identify::ProposalRow) -> Proposal {
         proposal: p.proposal.and_then(|v| serde_json::from_value(v).ok()),
         keep_album: p.keep_album,
         decision: p.decision,
+        chosen_by_owner: p.chosen_by_owner,
+        alternatives: p.alternatives_count,
     }
 }
 
@@ -563,6 +572,205 @@ pub async fn revert_track(family: FamilyContext, State(state): State<AppState>, 
         }
     }
     let row = db::catalog::find_track(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
+    let track = crate::v2::music::tracks(&state, vec![row]).await?.pop().ok_or_else(Problem::not_found)?;
+    Ok(Json(track))
+}
+
+fn source(state: &AppState) -> Result<Identify<'_>, Problem> {
+    source_configured(state)?;
+    Identify::from_config(state.config())
+        .ok_or_else(|| Problem::internal(anyhow::anyhow!("no MusicBrainz source")))?
+        .map_err(Into::into)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct TrackSearch {
+    /// What to search for, as the owner typed it: the file's own tags are often
+    /// what is wrong ("Track 02", a typo, the artist in the title).
+    pub title: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    /// At most this many, 1–25; 10 by default.
+    pub limit: Option<usize>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct Candidates {
+    /// Recordings, best first; the track's own length is part of the score.
+    pub items: Vec<MetadataCandidate>,
+}
+
+/// Search MusicBrainz for a track with the owner's words. The track's length
+/// is added from the library.
+async fn search(state: &AppState, duration_secs: Option<i32>, body: TrackSearch) -> Result<Vec<MetadataCandidate>, Problem> {
+    let clean = |v: Option<String>| v.map(|s| s.trim().to_string()).filter(|s| !s.is_empty());
+    let (title, artist, album) = (clean(body.title), clean(body.artist), clean(body.album));
+    if title.is_none() && artist.is_none() && album.is_none() {
+        return Err(Problem::bad_request("empty_search", "give a title, an artist or an album")
+            .field("/title", "required", "a title, an artist or an album"));
+    }
+    let duration_ms = duration_secs.filter(|s| *s > 0).map(|s| s as u64 * 1000);
+    let limit = body.limit.unwrap_or(10).clamp(1, 25);
+    Ok(source(state)?
+        .identify(title.as_deref(), artist.as_deref(), album.as_deref(), duration_ms, limit)
+        .await?)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct RecordingChoice {
+    /// A MusicBrainz recording id, or a musicbrainz.org/recording/… link.
+    pub recording: String,
+    /// The release to put it on: an id or a musicbrainz.org/release/… link.
+    /// Left out, MusicBrainz's own choice for the recording.
+    pub release: Option<String>,
+}
+
+fn parse_choice(c: &RecordingChoice) -> Result<(String, Option<String>), Problem> {
+    let recording = matching::mbid(&c.recording, "recording").ok_or_else(|| {
+        Problem::bad_request("invalid_recording", "a MusicBrainz recording id or link")
+            .field("/recording", "invalid", "a MusicBrainz recording id or link")
+    })?;
+    let release = match c.release.as_deref().map(str::trim).filter(|r| !r.is_empty()) {
+        None => None,
+        Some(r) => Some(matching::mbid(r, "release").ok_or_else(|| {
+            Problem::bad_request("invalid_release", "a MusicBrainz release id or link")
+                .field("/release", "invalid", "a MusicBrainz release id or link")
+        })?),
+    };
+    Ok((recording, release))
+}
+
+/// The other recordings stored with a proposal: what its lookup also found, or
+/// what the owner's last search found.
+#[utoipa::path(get, path = "/identify/proposals/{id}/alternatives", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)),
+    responses((status = 200, body = Candidates), (status = 404, body = crate::v2::problem::ProblemBody)))]
+pub async fn alternatives(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Candidates>, Problem> {
+    own_proposal(&state, &family, id).await?;
+    let items = serde_json::from_value(db::identify::alternatives(state.db(), id).await?).unwrap_or_default();
+    Ok(Json(Candidates { items }))
+}
+
+/// Search again for a proposal's track with the owner's words. What it finds
+/// becomes the proposal's alternatives; nothing is chosen yet.
+#[utoipa::path(post, path = "/identify/proposals/{id}/search", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = TrackSearch,
+    responses((status = 200, body = Candidates), (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 404, body = crate::v2::problem::ProblemBody)))]
+pub async fn search_proposal(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<TrackSearch>) -> Result<Json<Candidates>, Problem> {
+    let p = own_proposal(&state, &family, id).await?;
+    let items = search(&state, p.duration_secs, body).await?;
+    db::identify::set_alternatives(state.db(), id, &serde_json::to_value(&items).map_err(anyhow::Error::from)?).await?;
+    Ok(Json(Candidates { items }))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct ProposalRecording {
+    #[serde(flatten)]
+    pub choice: RecordingChoice,
+    /// Apply it at once, as an accept would.
+    #[serde(default)]
+    pub accept: bool,
+}
+
+/// Make a recording the owner picked the proposal: one of its alternatives, or
+/// any recording by id or link. It is looked up by id, so a pasted id works for
+/// a track nothing was found for. Pending again if it was rejected; an accepted
+/// proposal is undone first.
+#[utoipa::path(put, path = "/identify/proposals/{id}/recording", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = ProposalRecording,
+    responses((status = 200, body = Proposal), (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 404, body = crate::v2::problem::ProblemBody),
+        (status = 409, description = "`already_decided`: accepted; undo it first", body = crate::v2::problem::ProblemBody)))]
+pub async fn choose_recording(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ProposalRecording>) -> Result<Json<Proposal>, Problem> {
+    let p = own_proposal(&state, &family, id).await?;
+    if p.decision == "accepted" {
+        return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was accepted; undo it first"));
+    }
+    let (recording, release) = parse_choice(&body.choice)?;
+    let detail = source(&state)?.recording(&recording, release.as_deref()).await?;
+    let found: Vec<MetadataCandidate> = serde_json::from_value(db::identify::alternatives(state.db(), id).await?).unwrap_or_default();
+    let hint = found.iter().find(|c| c.mb_recording_id == recording && (release.is_none() || c.mb_release_id == release));
+    let proposed = matching::chosen(detail, hint);
+    if !db::identify::set_owner_choice(state.db(), id, &serde_json::to_value(&proposed).map_err(anyhow::Error::from)?).await? {
+        return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was accepted; undo it first"));
+    }
+    if body.accept {
+        identify_runs::accept(state.db(), family.user_id, id).await?;
+    }
+    Ok(Json(proposal_out(own_proposal(&state, &family, id).await?)))
+}
+
+async fn own_track(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<db::catalog::TrackRow, Problem> {
+    let row = db::catalog::find_track(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    if row.user_id != family.user_id {
+        return Err(Problem::forbidden().detail("only its owner identifies this track"));
+    }
+    Ok(row)
+}
+
+/// Search MusicBrainz for any of your tracks, with your own words — for a song
+/// a run did not find, or found wrong.
+#[utoipa::path(post, path = "/tracks/{id}/identity/search", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = TrackSearch,
+    responses((status = 200, body = Candidates), (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not the track's owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, body = crate::v2::problem::ProblemBody)))]
+pub async fn search_track(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<TrackSearch>) -> Result<Json<Candidates>, Problem> {
+    let row = own_track(&state, &family, id).await?;
+    Ok(Json(Candidates { items: search(&state, row.duration_secs, body).await? }))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct TrackIdentity {
+    #[serde(flatten)]
+    pub choice: RecordingChoice,
+    /// Also fetch the release's cover for the track.
+    #[serde(default)]
+    pub fetch_cover: bool,
+}
+
+/// Identify one of your tracks as a MusicBrainz recording: its title, artist,
+/// album, album artist, track number and MusicBrainz ids come from
+/// MusicBrainz, looked up by id; its genre stays. `DELETE` undoes it. The file
+/// is never touched.
+#[utoipa::path(put, path = "/tracks/{id}/identity", tag = "identify", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = TrackIdentity,
+    responses((status = 200, description = "The track as it is now", body = crate::v2::music::Track),
+        (status = 400, body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not the track's owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, body = crate::v2::problem::ProblemBody)))]
+pub async fn identify_track(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<TrackIdentity>) -> Result<Json<crate::v2::music::Track>, Problem> {
+    own_track(&state, &family, id).await?;
+    let (recording, release) = parse_choice(&body.choice)?;
+    let detail = source(&state)?.recording(&recording, release.as_deref()).await?;
+    let track = db::music::find_track_owned(state.db(), id, family.user_id).await?.ok_or_else(Problem::not_found)?;
+    db::music::apply_musicbrainz_metadata(
+        state.db(),
+        id,
+        family.user_id,
+        &detail.title,
+        detail.artist.as_deref().or(track.artist.as_deref()),
+        detail.album.as_deref().or(track.album.as_deref()),
+        track.genre.as_deref(),
+        detail.track_number.or(track.track_number),
+        &detail.mb_recording_id,
+        detail.mb_release_id.as_deref(),
+        detail.mb_artist_id.as_deref(),
+        detail.album_artist.as_deref(),
+        detail.mb_release_group_id.as_deref(),
+        None,
+    )
+    .await?;
+    if body.fetch_cover {
+        crate::music::apply_cover_art(&state, &family, id, &detail).await;
+    }
+    let row = db::catalog::find_track(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
     let track = crate::v2::music::tracks(&state, vec![row]).await?.pop().ok_or_else(Problem::not_found)?;
     Ok(Json(track))
 }

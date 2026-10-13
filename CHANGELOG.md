@@ -7,6 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.14] - 2026-10-13
+
+### Added
+- Search in the owner's own words (revision 13), for tags that are what is wrong — "Track 02",
+  a typo, the artist in the title. A run keeps what each single-track lookup also found:
+  `GET /api/v2/identify/proposals/{id}/alternatives`; `POST …/{id}/search` searches again with
+  a title, artist or album and keeps the results; `PUT …/{id}/recording` makes a recording the
+  proposal, by id or musicbrainz.org link, looked up by id, and accepts it with `accept`.
+  Proposals say `chosen_by_owner` and how many `alternatives` they have; another edition of
+  the album leaves an owner's choice alone.
+- Any of your tracks, outside a run: `POST /api/v2/tracks/{id}/identity/search` and
+  `PUT /api/v2/tracks/{id}/identity`; `DELETE` undoes it as before. Free in every edition.
+- The web console's identify page: "Other recording" on a proposal, with the alternatives, a
+  search and a pasted link.
+
 ## [1.0.0-beta.13] - 2026-10-13
 
 ### Added

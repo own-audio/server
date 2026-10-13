@@ -183,12 +183,15 @@ async fn look_up(
             chosen = Some(c as i16);
         }
     }
+    // What each single lookup found, kept as the track's other recordings.
+    let mut alternatives: std::collections::HashMap<Uuid, serde_json::Value> = std::collections::HashMap::new();
     for i in singles {
         let f = &files[i];
         let found = source
             .identify(Some(&f.title), f.artist.as_deref(), f.album.as_deref(), f.duration_ms, TRACK_CANDIDATES)
             .await?;
         proposals.push(matching::track_proposal(f, &found));
+        alternatives.insert(f.id, serde_json::to_value(&found)?);
     }
 
     let stored: Vec<db::identify::NewProposal> = proposals
@@ -199,6 +202,7 @@ async fn look_up(
             reasons: p.reasons.clone(),
             proposal: p.proposal.as_ref().map(|x| serde_json::to_value(x).unwrap_or_default()),
             keep_album: p.keep_album,
+            alternatives: alternatives.remove(&p.track_id).unwrap_or_else(|| serde_json::json!([])),
         })
         .collect();
     db::identify::save_group(pool, group, &serde_json::to_value(&candidates)?, chosen, &stored).await
@@ -238,6 +242,7 @@ pub async fn choose_edition(pool: &PgPool, run: &db::identify::Run, group_id: Uu
             reasons: p.reasons.clone(),
             proposal: p.proposal.as_ref().map(|x| serde_json::to_value(x).unwrap_or_default()),
             keep_album: p.keep_album,
+            alternatives: serde_json::json!([]),
         })
         .collect();
     // Files this edition does not hold: nothing proposed on it.
@@ -248,6 +253,7 @@ pub async fn choose_edition(pool: &PgPool, run: &db::identify::Run, group_id: Uu
             reasons: vec!["not_on_release"],
             proposal: None,
             keep_album: false,
+            alternatives: serde_json::json!([]),
         });
     }
     db::identify::save_group(pool, &group, &group.candidates, Some(index as i16), &stored).await?;

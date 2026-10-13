@@ -1436,5 +1436,51 @@
   "music.identifyRuns.reason.notOnRelease": {
     "en": "Not on this edition",
     "cs": "Na této edici není"
+  },
+  "music.identifyRuns.reason.chosen": {
+    "en": "Your choice",
+    "cs": "Vaše volba"
+  },
+  "music.identifyRuns.otherRecording": {
+    "en": "Other recording",
+    "cs": "Jiná nahrávka",
+    "note": "Opens a search for the recording this song really is."
+  },
+  "music.identifyRuns.searchHint": {
+    "en": "Correct the words if the tags are wrong — a typo, “Track 02”, the artist in the title.",
+    "cs": "Pokud jsou tagy špatně, opravte slova — překlep, „Track 02“, interpret v názvu."
+  },
+  "music.identifyRuns.field.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "music.identifyRuns.field.artist": {
+    "en": "Artist",
+    "cs": "Interpret"
+  },
+  "music.identifyRuns.field.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.identifyRuns.search": {
+    "en": "Search MusicBrainz",
+    "cs": "Hledat v MusicBrainz"
+  },
+  "music.identifyRuns.noRecordings": {
+    "en": "Nothing found. Try fewer or other words.",
+    "cs": "Nic nenalezeno. Zkuste méně slov nebo jiná."
+  },
+  "music.identifyRuns.useRecording": {
+    "en": "Use",
+    "cs": "Použít",
+    "note": "Applies this recording to the song."
+  },
+  "music.identifyRuns.pasteLink": {
+    "en": "Or paste a recording's link or ID from musicbrainz.org",
+    "cs": "Nebo vložte odkaz či ID nahrávky z musicbrainz.org"
+  },
+  "music.identifyRuns.identified": {
+    "en": "Song identified",
+    "cs": "Skladba identifikována"
   }
 }

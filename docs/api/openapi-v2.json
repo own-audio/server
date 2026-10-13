@@ -603,6 +603,21 @@
         ],
         "type": "object"
       },
+      "Candidates": {
+        "properties": {
+          "items": {
+            "description": "Recordings, best first; the track's own length is part of the score.",
+            "items": {
+              "$ref": "#/components/schemas/MetadataCandidate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Capabilities": {
         "properties": {
           "direct": {
@@ -1978,6 +1993,87 @@
         ],
         "type": "object"
       },
+      "MetadataCandidate": {
+        "description": "One MusicBrainz recording candidate, returned from a search.",
+        "properties": {
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_art_url": {
+            "description": "Not verified with a HEAD request — a speculative Cover Art Archive\nURL built from `mb_release_id`. May 404; the client should treat it\nas best-effort. [`musicbrainz::get_cover_art_url`] does the real\ncheck, used only for the single release chosen at apply time.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mb_artist_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "mb_recording_id": {
+            "type": "string"
+          },
+          "mb_release_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "score": {
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          },
+          "track_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "year": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "mb_recording_id",
+          "title",
+          "score"
+        ],
+        "type": "object"
+      },
       "NewBook": {
         "properties": {
           "author": {
@@ -3259,6 +3355,15 @@
           "items": {
             "items": {
               "properties": {
+                "alternatives": {
+                  "description": "Other recordings stored with it (`GET …/alternatives`).",
+                  "format": "int32",
+                  "type": "integer"
+                },
+                "chosen_by_owner": {
+                  "description": "The owner picked this recording (`PUT …/recording`); another edition of\nthe album leaves it as it is.",
+                  "type": "boolean"
+                },
                 "class": {
                   "description": "`sure`, `review` or `none`.",
                   "type": "string"
@@ -3290,7 +3395,7 @@
                   ]
                 },
                 "reasons": {
-                  "description": "Why it is not sure: `incomplete` (the files are part of the release),\n`partial` (some files are not on it), `layout` (discs or numbering differ\nfrom the files'), `duplicate` (two files on one track), `ambiguous`\n(another release matches as well), `album_differs` (a compilation's\nsong on its original album), `weak`, `not_found`, `not_on_release`.\nUnknown values may appear.",
+                  "description": "Why it is not sure: `incomplete` (the files are part of the release),\n`partial` (some files are not on it), `layout` (discs or numbering differ\nfrom the files'), `duplicate` (two files on one track), `ambiguous`\n(another release matches as well), `album_differs` (a compilation's\nsong on its original album), `weak`, `not_found`, `not_on_release`,\n`chosen` (the owner picked the recording).\nUnknown values may appear.",
                   "items": {
                     "type": "string"
                   },
@@ -3308,7 +3413,9 @@
                 "class",
                 "reasons",
                 "keep_album",
-                "decision"
+                "decision",
+                "chosen_by_owner",
+                "alternatives"
               ],
               "type": "object"
             },
@@ -4313,6 +4420,15 @@
       },
       "Proposal": {
         "properties": {
+          "alternatives": {
+            "description": "Other recordings stored with it (`GET …/alternatives`).",
+            "format": "int32",
+            "type": "integer"
+          },
+          "chosen_by_owner": {
+            "description": "The owner picked this recording (`PUT …/recording`); another edition of\nthe album leaves it as it is.",
+            "type": "boolean"
+          },
           "class": {
             "description": "`sure`, `review` or `none`.",
             "type": "string"
@@ -4344,7 +4460,7 @@
             ]
           },
           "reasons": {
-            "description": "Why it is not sure: `incomplete` (the files are part of the release),\n`partial` (some files are not on it), `layout` (discs or numbering differ\nfrom the files'), `duplicate` (two files on one track), `ambiguous`\n(another release matches as well), `album_differs` (a compilation's\nsong on its original album), `weak`, `not_found`, `not_on_release`.\nUnknown values may appear.",
+            "description": "Why it is not sure: `incomplete` (the files are part of the release),\n`partial` (some files are not on it), `layout` (discs or numbering differ\nfrom the files'), `duplicate` (two files on one track), `ambiguous`\n(another release matches as well), `album_differs` (a compilation's\nsong on its original album), `weak`, `not_found`, `not_on_release`,\n`chosen` (the owner picked the recording).\nUnknown values may appear.",
             "items": {
               "type": "string"
             },
@@ -4362,7 +4478,9 @@
           "class",
           "reasons",
           "keep_album",
-          "decision"
+          "decision",
+          "chosen_by_owner",
+          "alternatives"
         ],
         "type": "object"
       },
@@ -4398,6 +4516,22 @@
           "keep_album"
         ],
         "type": "object"
+      },
+      "ProposalRecording": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RecordingChoice"
+          },
+          {
+            "properties": {
+              "accept": {
+                "description": "Apply it at once, as an accept would.",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        ]
       },
       "ProposalTrack": {
         "properties": {
@@ -4654,6 +4788,25 @@
           "title",
           "musicbrainz_recording_id",
           "track_ids"
+        ],
+        "type": "object"
+      },
+      "RecordingChoice": {
+        "properties": {
+          "recording": {
+            "description": "A MusicBrainz recording id, or a musicbrainz.org/recording/… link.",
+            "type": "string"
+          },
+          "release": {
+            "description": "The release to put it on: an id or a musicbrainz.org/release/… link.\nLeft out, MusicBrainz's own choice for the recording.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "recording"
         ],
         "type": "object"
       },
@@ -5384,6 +5537,54 @@
             "type": "object"
           }
         ]
+      },
+      "TrackIdentity": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/RecordingChoice"
+          },
+          {
+            "properties": {
+              "fetch_cover": {
+                "description": "Also fetch the release's cover for the track.",
+                "type": "boolean"
+              }
+            },
+            "type": "object"
+          }
+        ]
+      },
+      "TrackSearch": {
+        "properties": {
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "limit": {
+            "description": "At most this many, 1–25; 10 by default.",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "description": "What to search for, as the owner typed it: the file's own tags are often\nwhat is wrong (\"Track 02\", a typo, the artist in the title).",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
       },
       "Updated": {
         "properties": {
@@ -8556,6 +8757,175 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/identify/proposals/{id}/alternatives": {
+      "get": {
+        "operationId": "identify_alternatives",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Candidates"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The other recordings stored with a proposal: what its lookup also found, or what the owner's last search found",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/identify/proposals/{id}/recording": {
+      "put": {
+        "description": "Make a recording the owner picked the proposal: one of its alternatives, or\nany recording by id or link. It is looked up by id, so a pasted id works for\na track nothing was found for. Pending again if it was rejected; an accepted\nproposal is undone first.",
+        "operationId": "identify_choose_recording",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalRecording"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Proposal"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`already_decided`: accepted; undo it first"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make a recording the owner picked the proposal: one of its alternatives, or any recording by id or link",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/identify/proposals/{id}/reject": {
       "post": {
         "operationId": "identify_reject",
@@ -8628,6 +8998,96 @@
           }
         ],
         "summary": "Leave the track as it is",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/identify/proposals/{id}/search": {
+      "post": {
+        "description": "Search again for a proposal's track with the owner's words. What it finds\nbecomes the proposal's alternatives; nothing is chosen yet.",
+        "operationId": "identify_search_proposal",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackSearch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Candidates"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search again for a proposal's track with the owner's words",
         "tags": [
           "identify"
         ],
@@ -14010,6 +14470,203 @@
           }
         ],
         "summary": "Undo one track's identify: its title, artist, album, album artist, genre, track number and MusicBrainz ids go back to what they were before it was first identified, by a run or on its own",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "put": {
+        "description": "Identify one of your tracks as a MusicBrainz recording: its title, artist,\nalbum, album artist, track number and MusicBrainz ids come from\nMusicBrainz, looked up by id; its genre stays. `DELETE` undoes it. The file\nis never touched.",
+        "operationId": "identify_identify_track",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackIdentity"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              }
+            },
+            "description": "The track as it is now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Identify one of your tracks as a MusicBrainz recording: its title, artist, album, album artist, track number and MusicBrainz ids come from MusicBrainz, looked up by id; its genre stays",
+        "tags": [
+          "identify"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/tracks/{id}/identity/search": {
+      "post": {
+        "operationId": "identify_search_track",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrackSearch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Candidates"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Search MusicBrainz for any of your tracks, with your own words — for a song a run did not find, or found wrong",
         "tags": [
           "identify"
         ],

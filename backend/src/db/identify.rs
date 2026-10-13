@@ -240,6 +240,8 @@ pub struct NewProposal<'a> {
     pub reasons: Vec<&'a str>,
     pub proposal: Option<Value>,
     pub keep_album: bool,
+    /// Other recordings a single-track lookup found, best first.
+    pub alternatives: Value,
 }
 
 /// A looked-up group: its candidates, the one chosen, and the proposals for its
@@ -261,12 +263,13 @@ pub async fn save_group(
         .context("db: save identify group")?;
     for p in proposals {
         sqlx::query(
-            "INSERT INTO identify_proposals (run_id, group_id, track_id, class, reasons, proposal, keep_album)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            "INSERT INTO identify_proposals (run_id, group_id, track_id, class, reasons, proposal, keep_album, alternatives)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
              ON CONFLICT (run_id, track_id) DO UPDATE
                 SET group_id = EXCLUDED.group_id, class = EXCLUDED.class, reasons = EXCLUDED.reasons,
-                    proposal = EXCLUDED.proposal, keep_album = EXCLUDED.keep_album
-              WHERE identify_proposals.decision = 'pending'",
+                    proposal = EXCLUDED.proposal, keep_album = EXCLUDED.keep_album,
+                    alternatives = EXCLUDED.alternatives
+              WHERE identify_proposals.decision = 'pending' AND NOT identify_proposals.chosen_by_owner",
         )
         .bind(group.run_id)
         .bind(group.id)
@@ -275,6 +278,7 @@ pub async fn save_group(
         .bind(&p.reasons)
         .bind(&p.proposal)
         .bind(p.keep_album)
+        .bind(&p.alternatives)
         .execute(&mut *tx)
         .await
         .context("db: save identify proposal")?;
@@ -302,6 +306,8 @@ pub struct ProposalRow {
     pub proposal: Option<Value>,
     pub keep_album: bool,
     pub decision: String,
+    pub chosen_by_owner: bool,
+    pub alternatives_count: i32,
     pub group_label: String,
     pub group_kind: String,
     pub group_position: i32,
@@ -315,7 +321,8 @@ pub struct ProposalRow {
 }
 
 const PROPOSAL_COLS: &str = "p.id, p.run_id, p.group_id, p.track_id, p.class, p.reasons, p.proposal,
-    p.keep_album, p.decision, g.label AS group_label, g.kind AS group_kind, g.position AS group_position,
+    p.keep_album, p.decision, p.chosen_by_owner, jsonb_array_length(p.alternatives) AS alternatives_count,
+    g.label AS group_label, g.kind AS group_kind, g.position AS group_position,
     t.title, t.artist, t.album, t.track_number, t.disc_number, t.duration_secs";
 
 /// A run's proposals, a group's together (ordered within it by the caller),
@@ -384,6 +391,45 @@ pub async fn set_keep_album(pool: &PgPool, id: Uuid, keep: bool) -> anyhow::Resu
         .await
         .context("db: set keep_album")?;
     Ok(())
+}
+
+/// The other recordings stored with a proposal.
+pub async fn alternatives(pool: &PgPool, id: Uuid) -> anyhow::Result<Value> {
+    sqlx::query_scalar("SELECT alternatives FROM identify_proposals WHERE id = $1")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .context("db: identify alternatives")
+}
+
+/// What the owner's own search found, in place of the run's.
+pub async fn set_alternatives(pool: &PgPool, id: Uuid, alternatives: &Value) -> anyhow::Result<()> {
+    sqlx::query("UPDATE identify_proposals SET alternatives = $2 WHERE id = $1")
+        .bind(id)
+        .bind(alternatives)
+        .execute(pool)
+        .await
+        .context("db: set identify alternatives")?;
+    Ok(())
+}
+
+/// The owner picked the recording: it becomes the proposal, pending again if it
+/// was rejected, and stays theirs when the group gets another edition. Not for
+/// an accepted proposal: that is undone first.
+pub async fn set_owner_choice(pool: &PgPool, id: Uuid, proposal: &Value) -> anyhow::Result<bool> {
+    let n = sqlx::query(
+        "UPDATE identify_proposals
+            SET proposal = $2, class = 'review', reasons = '{chosen}', keep_album = false,
+                chosen_by_owner = true, decision = 'pending', decided_at = NULL
+          WHERE id = $1 AND decision <> 'accepted'",
+    )
+    .bind(id)
+    .bind(proposal)
+    .execute(pool)
+    .await
+    .context("db: owner's identify choice")?
+    .rows_affected();
+    Ok(n == 1)
 }
 
 /// Pending proposals of a run in one class, for accepting them all.
