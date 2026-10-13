@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.13] - 2026-10-13
+
 ### Added
 - Smart playlists on `/api/v2` (docs/api-v2-plan.md, V11): `/smart-playlists` to list, read,
   save, change (name, description, rule, sharing) and delete them; `/smart-playlists/presets`;
