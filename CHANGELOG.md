@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.18] - 2026-10-14
+
+### Added
+- The organizer's artist card: with an album artist picked and no song selected, its name,
+  sort name and MusicBrainz artist (by link) to correct, kept in the history; and merging it
+  into another spelling of the same artist (a family admin's, not undoable).
+
 ## [1.0.0-beta.17] - 2026-10-14
 
 ### Fixed

@@ -1878,5 +1878,61 @@
   "music.organize.coverSet": {
     "en": "{count, plural, one {Cover set on # song} other {Cover set on # songs}}",
     "cs": "{count, plural, one {Obal nastaven # skladbě} few {Obal nastaven # skladbám} other {Obal nastaven # skladbám}}"
+  },
+  "music.organize.artist.notFound": {
+    "en": "This artist is only a name on the songs; correct it on the songs.",
+    "cs": "Tento interpret je jen jméno u skladeb, opravte ho přímo u nich."
+  },
+  "music.organize.artist.name": {
+    "en": "Name",
+    "cs": "Jméno"
+  },
+  "music.organize.artist.sortName": {
+    "en": "Sort name",
+    "cs": "Jméno pro řazení"
+  },
+  "music.organize.artist.sortHint": {
+    "en": "Beatles, The",
+    "cs": "Beatles, The"
+  },
+  "music.organize.artist.musicbrainz": {
+    "en": "MusicBrainz artist",
+    "cs": "Interpret v MusicBrainz"
+  },
+  "music.organize.artist.open": {
+    "en": "Open on MusicBrainz",
+    "cs": "Otevřít v MusicBrainz"
+  },
+  "music.organize.artist.save": {
+    "en": "Save artist",
+    "cs": "Uložit interpreta"
+  },
+  "music.organize.artist.saved": {
+    "en": "Artist saved",
+    "cs": "Interpret uložen"
+  },
+  "music.organize.artist.mergeHint": {
+    "en": "Another spelling of the same artist? Merge this one into it. A family admin's, and it can't be undone.",
+    "cs": "Jiné jméno téhož interpreta? Slučte tohoto do něj. Může jen správce rodiny a nejde to vrátit."
+  },
+  "music.organize.artist.mergeFind": {
+    "en": "Find the other spelling",
+    "cs": "Najít druhé jméno"
+  },
+  "music.organize.artist.mergeInto": {
+    "en": "Merge into",
+    "cs": "Sloučit do"
+  },
+  "music.organize.artist.mergeConfirm": {
+    "en": "Merge {from} into {into}? This can't be undone.",
+    "cs": "Sloučit {from} do {into}? Nejde to vrátit."
+  },
+  "music.organize.artist.merged": {
+    "en": "Merged into {name}",
+    "cs": "Sloučeno do {name}"
+  },
+  "music.organize.artist.mergeFailed": {
+    "en": "Couldn't merge. Only a family admin can.",
+    "cs": "Sloučení se nepodařilo. Může jen správce rodiny."
   }
 }

@@ -197,3 +197,30 @@ export async function uploadCover(trackId: string, file: File, batch: string): P
   form.append("cover", file);
   await api.post(`/music/tracks/${trackId}/upload-cover`, form, { params: { batch } });
 }
+
+// ── Artists ────────────────────────────────────────────────────────────────
+
+export interface Contributor {
+  id: string;
+  name: string;
+  sort_name?: string | null;
+  kind: string;
+  musicbrainz_artist_id?: string | null;
+}
+
+export async function findContributors(q: string): Promise<Contributor[]> {
+  const { data } = await api.get<{ items: Contributor[] }>("/contributors", { ...v2, params: { q, limit: 20 } });
+  return data.items;
+}
+
+/** Name, sort name and who they are on MusicBrainz (an id or a link; `null` forgets it). */
+export async function updateContributor(id: string, patch: { name?: string; sort_name?: string | null; musicbrainz_artist?: string | null }): Promise<Contributor> {
+  const { data } = await api.patch<Contributor>(`/contributors/${id}`, patch, v2);
+  return data;
+}
+
+/** `id` goes; `into` keeps everything it had (a family admin's). Not undoable. */
+export async function mergeContributor(id: string, into: string): Promise<Contributor> {
+  const { data } = await api.post<Contributor>(`/contributors/${id}/merge`, { into }, v2);
+  return data;
+}

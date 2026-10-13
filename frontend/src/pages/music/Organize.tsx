@@ -9,6 +9,9 @@ import { Check, History, ImageUp, Loader2, Pencil, Search, Undo2, X } from "luci
 import {
   EDITABLE,
   applyRelease,
+  findContributors,
+  mergeContributor,
+  updateContributor,
   getFacets,
   identifyTrack,
   listBatches,
@@ -19,6 +22,7 @@ import {
   searchReleases,
   undoBatch,
   uploadCover,
+  type Contributor,
   type EditBatch,
   type OrganizeFilter,
   type OrganizeTrack,
@@ -228,7 +232,7 @@ export default function OrganizePage() {
             )}
           </section>
 
-          <MusicBrainzPane chosen={chosen} onApplied={refresh} />
+          <MusicBrainzPane chosen={chosen} artist={filter.artist} onApplied={refresh} onArtistRenamed={(name) => setFilter((f) => ({ ...f, artist: name }))} />
         </div>
       )}
 
@@ -519,7 +523,13 @@ function BulkEditDialog({ open, onOpenChange, count, onApply }: {
 
 // ── Right: MusicBrainz ──────────────────────────────────────────────────────
 
-function MusicBrainzPane({ chosen, onApplied }: { chosen: OrganizeTrack[]; onApplied: () => void }) {
+function MusicBrainzPane({ chosen, artist, onApplied, onArtistRenamed }: {
+  chosen: OrganizeTrack[];
+  /** The album artist the list is narrowed to: with nothing selected, its card. */
+  artist?: string;
+  onApplied: () => void;
+  onArtistRenamed: (name: string) => void;
+}) {
   const { t } = useT();
   const { features } = useServerFeatures();
   if (!features.music_identify) {
@@ -528,7 +538,9 @@ function MusicBrainzPane({ chosen, onApplied }: { chosen: OrganizeTrack[]; onApp
   return (
     <aside className="scroll-subtle min-h-0 overflow-y-auto p-3 text-sm">
       <h2 className="mb-2 font-semibold">MusicBrainz</h2>
-      {chosen.length === 0 ? (
+      {chosen.length === 0 && artist ? (
+        <ArtistCard key={artist} name={artist} onChanged={(name) => { onArtistRenamed(name); onApplied(); }} />
+      ) : chosen.length === 0 ? (
         <p className="text-muted">{t("music.organize.mb.pick")}</p>
       ) : chosen.length === 1 ? (
         <OneSong key={chosen[0].id} song={chosen[0]} onApplied={onApplied} />
@@ -748,6 +760,87 @@ function ReleasePairs({ release, songs, onApplied }: { release: ReleaseCandidate
       <Button size="sm" icon={<Check className="h-4 w-4" />} loading={apply.isPending} disabled={count === 0} onClick={() => apply.mutate()}>
         {t("music.organize.mb.applyRelease", { count })}
       </Button>
+    </div>
+  );
+}
+
+// ── An artist ───────────────────────────────────────────────────────────────
+
+/** The album artist the list shows: rename it, set who it is on MusicBrainz,
+ *  or merge it into another spelling of the same artist. */
+function ArtistCard({ name, onChanged }: { name: string; onChanged: (name: string) => void }) {
+  const { t } = useT();
+  const found = useQuery({ queryKey: ["organize-contributor", name], queryFn: () => findContributors(name) });
+  const who = (found.data ?? []).find((c) => c.name === name) ?? null;
+  if (found.isLoading) return <Loader2 className="h-4 w-4 animate-spin" />;
+  if (!who) return <p className="text-muted">{t("music.organize.artist.notFound")}</p>;
+  return <ArtistForm key={who.id} who={who} onChanged={onChanged} />;
+}
+
+function ArtistForm({ who, onChanged }: { who: Contributor; onChanged: (name: string) => void }) {
+  const { t } = useT();
+  const qc = useQueryClient();
+  const [name, setName] = useState(who.name);
+  const [sortName, setSortName] = useState(who.sort_name ?? "");
+  const [mb, setMb] = useState(who.musicbrainz_artist_id ?? "");
+  const [other, setOther] = useState("");
+  const others = useQuery({
+    queryKey: ["organize-contributors", other],
+    queryFn: () => findContributors(other),
+    enabled: other.trim().length > 1,
+  });
+  const save = useMutation({
+    mutationFn: () => updateContributor(who.id, {
+      name: name.trim() !== who.name ? name.trim() : undefined,
+      sort_name: sortName.trim() || null,
+      musicbrainz_artist: mb.trim() || null,
+    }),
+    onSuccess: (c) => {
+      toast.success(t("music.organize.artist.saved"));
+      qc.invalidateQueries({ queryKey: ["organize-contributor"] });
+      onChanged(c.name);
+    },
+    onError: (e) => toast.error(errorText(e, t("music.organize.saveFailed"))),
+  });
+  const merge = useMutation({
+    mutationFn: (into: Contributor) => mergeContributor(who.id, into.id),
+    onSuccess: (c) => {
+      toast.success(t("music.organize.artist.merged", { name: c.name }));
+      qc.invalidateQueries({ queryKey: ["organize-contributor"] });
+      onChanged(c.name);
+    },
+    onError: (e) => toast.error(errorText(e, t("music.organize.artist.mergeFailed"))),
+  });
+  return (
+    <div className="space-y-3">
+      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); save.mutate(); }}>
+        <Input label={t("music.organize.artist.name")} className="h-9" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input label={t("music.organize.artist.sortName")} className="h-9" value={sortName} onChange={(e) => setSortName(e.target.value)} placeholder={t("music.organize.artist.sortHint")} />
+        <Input label={t("music.organize.artist.musicbrainz")} className="h-9" value={mb} onChange={(e) => setMb(e.target.value)} placeholder="musicbrainz.org/artist/…" />
+        {who.musicbrainz_artist_id && (
+          <a className="block text-xs text-accent-text underline" href={`https://musicbrainz.org/artist/${who.musicbrainz_artist_id}`} target="_blank" rel="noreferrer">
+            {t("music.organize.artist.open")}
+          </a>
+        )}
+        <Button type="submit" size="sm" icon={<Check className="h-4 w-4" />} loading={save.isPending} disabled={!name.trim()}>
+          {t("music.organize.artist.save")}
+        </Button>
+      </form>
+      <div className="space-y-2 border-t border-border pt-3">
+        <p className="text-xs text-muted">{t("music.organize.artist.mergeHint")}</p>
+        <Input className="h-9" value={other} onChange={(e) => setOther(e.target.value)} placeholder={t("music.organize.artist.mergeFind")} aria-label={t("music.organize.artist.mergeFind")} />
+        <ul className="space-y-1">
+          {(others.data ?? []).filter((c) => c.id !== who.id).map((c) => (
+            <li key={c.id} className="flex items-center gap-2">
+              <span className="min-w-0 flex-1 truncate">{c.name}</span>
+              <Button size="sm" variant="secondary" loading={merge.isPending && merge.variables?.id === c.id}
+                onClick={() => { if (window.confirm(t("music.organize.artist.mergeConfirm", { from: who.name, into: c.name }))) merge.mutate(c); }}>
+                {t("music.organize.artist.mergeInto")}
+              </Button>
+            </li>
+          ))}
+        </ul>
+      </div>
     </div>
   );
 }
