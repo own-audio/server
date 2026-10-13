@@ -24,7 +24,7 @@ export interface ServerFeatures {
   /** Revision 10: identify runs over a library, folder or album (`/api/v2/identify`). */
   identify_library: boolean;
   /** Revision 15: the metadata organizer and edit history. */
-  organizer?: boolean;
+  organizer: boolean;
   podcast_discovery: boolean;
   /** Revision 5: search works (maybe Apple's directory, without discovery's catalogue). */
   podcast_search: boolean;

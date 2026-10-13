@@ -281,7 +281,7 @@ pub async fn save_tracks(family: FamilyContext, State(state): State<AppState>, J
         return Err(Problem::bad_request("invalid_body", format!("1 to {MAX_SAVE} songs a save")).field("/tracks", "invalid", "1–500 songs"));
     }
     if let Some(i) = body.tracks.iter().position(|t| t.title.as_deref().is_some_and(|s| s.trim().is_empty())) {
-        return Err(Problem::bad_request("invalid_body", "a title cannot be empty").field(&format!("/tracks/{i}/title"), "required", "a title"));
+        return Err(Problem::bad_request("invalid_body", "a title cannot be empty").field(format!("/tracks/{i}/title"), "required", "a title"));
     }
     let changes: Vec<TrackChange> = body
         .tracks
@@ -465,7 +465,7 @@ pub async fn apply_release(family: FamilyContext, State(state): State<AppState>,
     for (i, t) in body.tracks.iter().enumerate() {
         let recording = mbid(&t.recording, "recording").ok_or_else(|| {
             Problem::bad_request("invalid_recording", "a MusicBrainz recording id")
-                .field(&format!("/tracks/{i}/recording"), "invalid", "a recording id")
+                .field(format!("/tracks/{i}/recording"), "invalid", "a recording id")
         })?;
         pairs.push((t.id, recording, t.disc));
     }

@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.17] - 2026-10-14
+
+### Fixed
+- 1.0.0-beta.16's image did not build (the console's type check); the same release, built.
+
 ## [1.0.0-beta.16] - 2026-10-14
 
 ### Added

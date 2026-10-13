@@ -653,7 +653,7 @@ function ManySongs({ songs, onApplied }: { songs: OrganizeTrack[]; onApplied: ()
       <p className="text-xs text-muted">{t("music.organize.mb.manyHint", { count: songs.length })}</p>
       <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); search.mutate(); }}>
         <Input className="h-9" value={album} onChange={(e) => setAlbum(e.target.value)} placeholder={t("music.organize.col.album")} aria-label={t("music.organize.col.album")} />
-        <Input className="h-9" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder={t("music.organize.col.album_artist")} aria-label={t("music.organize.col.album_artist")} />
+        <Input className="h-9" value={artist} onChange={(e) => setArtist(e.target.value)} placeholder={t("music.organize.col.albumArtist")} aria-label={t("music.organize.col.albumArtist")} />
         <Button type="submit" size="sm" variant="secondary" icon={<Search className="h-4 w-4" />} loading={search.isPending}>
           {t("music.organize.mb.findRelease")}
         </Button>
