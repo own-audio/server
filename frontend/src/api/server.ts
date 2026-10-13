@@ -23,6 +23,8 @@ export interface ServerFeatures {
   music_identify: boolean;
   /** Revision 10: identify runs over a library, folder or album (`/api/v2/identify`). */
   identify_library: boolean;
+  /** Revision 15: the metadata organizer and edit history. */
+  organizer?: boolean;
   podcast_discovery: boolean;
   /** Revision 5: search works (maybe Apple's directory, without discovery's catalogue). */
   podcast_search: boolean;
@@ -55,6 +57,7 @@ export const NO_FEATURES: ServerFeatures = {
   uploads: { presigned: true, multipart_max_bytes: null },
   music_identify: false,
   identify_library: false,
+  organizer: false,
   podcast_discovery: false,
   podcast_search: false,
   file_sync: true,

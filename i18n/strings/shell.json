@@ -9,8 +9,8 @@
     "note": "Sidebar section heading."
   },
   "shell.nav.organize": {
-    "en": "Organize",
-    "cs": "Uspořádat"
+    "en": "Organize music",
+    "cs": "Uspořádat hudbu"
   },
   "shell.nav.justMe": {
     "en": "Just me",
@@ -258,8 +258,14 @@
     "cs": "Potvrďte svou e-mailovou adresu: odkaz jsme poslali na {email}.",
     "note": "Banner for an account whose address is not confirmed yet."
   },
-  "shell.verifyEmail.resend": { "en": "Send it again", "cs": "Poslat znovu" },
-  "shell.verifyEmail.sent": { "en": "Sent — check your inbox.", "cs": "Odesláno – podívejte se do schránky." },
+  "shell.verifyEmail.resend": {
+    "en": "Send it again",
+    "cs": "Poslat znovu"
+  },
+  "shell.verifyEmail.sent": {
+    "en": "Sent — check your inbox.",
+    "cs": "Odesláno – podívejte se do schránky."
+  },
   "shell.offline.message": {
     "en": "You're offline. Downloaded songs still play.",
     "cs": "Jste offline. Stažené skladby se dál přehrají."

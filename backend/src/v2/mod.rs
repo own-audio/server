@@ -127,6 +127,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(organize::list_tracks))
         .routes(routes!(organize::facets))
         .routes(routes!(organize::save_tracks))
+        .routes(map(routes!(organize::search_releases), |m| limits.outbound.apply(m)))
+        .routes(map(routes!(organize::apply_release), |m| limits.outbound.apply(m)))
         .routes(routes!(edits::list_edits))
         .routes(routes!(edits::list_batches))
         .routes(routes!(edits::undo_edit))

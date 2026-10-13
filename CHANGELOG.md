@@ -7,6 +7,29 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.16] - 2026-10-14
+
+### Added
+- **The metadata organizer** (revision 15, docs/metadata-organizer-plan.md), in the web
+  console under Create → Organize music, `features.organizer`: your songs as a table to filter
+  (not identified, no cover, no year, no genre, changed, possible duplicates, by folder, album
+  artist, album, words) and sort, edited in place or many at once, saved as one batch;
+  MusicBrainz beside it — a song searched in your own words and compared field by field, or a
+  set of songs matched to a release with which file is which track, applied in one batch with
+  the cover and, if wanted, the genre. Files are never rewritten.
+- **An edit history with undo** (`metadata_edits`): every change someone makes to a song, an
+  album or a contributor — by hand, in bulk, by identify, by a run, by an undo — with the
+  fields before and after. `GET /api/v2/edits`, `GET /api/v2/edits/batches`,
+  `POST /api/v2/edits/{id}/undo`, `POST /api/v2/edits/batches/{id}/undo`: all or nothing,
+  `409 changed_since` when a field changed again since. Scans reading files are not edits.
+- `GET /api/v2/organize/tracks`, `GET /api/v2/organize/facets`, `PATCH /api/v2/tracks` (many
+  songs, one batch), `POST /api/v2/organize/releases`, `POST /api/v2/organize/apply-release`.
+- `PATCH /api/v2/contributors/{id}` takes `musicbrainz_artist` (an id or link; `409 mbid_taken`
+  when another contributor already is that artist — merge them instead).
+
+### Changed
+- MusicBrainz asking to slow down answers `503 source_busy` with `Retry-After`, not a 500.
+
 ## [1.0.0-beta.15] - 2026-10-14
 
 ### Added

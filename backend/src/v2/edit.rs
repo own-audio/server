@@ -167,6 +167,11 @@ pub struct ContributorPatch {
     #[schema(value_type = Option<String>)]
     pub sort_name: Option<Option<String>>,
     pub kind: Option<String>,
+    /// Who they are on MusicBrainz: an artist id or a musicbrainz.org/artist/…
+    /// link; `null` forgets it.
+    #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
+    pub musicbrainz_artist: Option<Option<String>>,
 }
 
 async fn visible_contributor(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Contributor, Problem> {
@@ -207,6 +212,19 @@ pub async fn patch_contributor(family: FamilyContext, State(state): State<AppSta
     if body.sort_name.is_some() || body.kind.is_some() {
         let sort = body.sort_name.as_ref().map(|s| s.as_deref());
         db::entities::describe_contributor(state.db(), family.family_id, id, sort, body.kind.as_deref(), &edit).await?;
+    }
+    if let Some(link) = body.musicbrainz_artist.as_ref() {
+        let mbid = match link.as_deref().map(str::trim).filter(|s| !s.is_empty()) {
+            None => None,
+            Some(l) => Some(crate::music::identify_runs::matching::mbid(l, "artist").ok_or_else(|| {
+                Problem::bad_request("invalid_body", "a MusicBrainz artist id or link").field("/musicbrainz_artist", "invalid", "an artist id or link")
+            })?),
+        };
+        if let Err(other) = db::entities::set_contributor_mbid(state.db(), family.family_id, id, mbid.as_deref(), &edit).await? {
+            return Err(Problem::new(StatusCode::CONFLICT, "mbid_taken")
+                .detail("another contributor is this MusicBrainz artist; merge them instead")
+                .with("contributor_id", other.to_string()));
+        }
     }
     Ok(Json(visible_contributor(&state, &family, id).await?))
 }

@@ -857,6 +857,13 @@
               "null"
             ]
           },
+          "musicbrainz_artist": {
+            "description": "Who they are on MusicBrainz: an artist id or a musicbrainz.org/artist/…\nlink; `null` forgets it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "name": {
             "description": "Shown everywhere they are credited; the old spelling keeps matching tags.",
             "type": [
@@ -5413,6 +5420,125 @@
         ],
         "type": "object"
       },
+      "ReleaseApply": {
+        "properties": {
+          "fetch_cover": {
+            "description": "Also fetch the release's cover.",
+            "type": "boolean"
+          },
+          "release": {
+            "description": "The release: an id or a musicbrainz.org/release/… link.",
+            "type": "string"
+          },
+          "tracks": {
+            "description": "The songs and which recording each is; a pair can be fixed by hand\nbefore applying.",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseTrack"
+            },
+            "type": "array"
+          },
+          "use_genre": {
+            "description": "Take MusicBrainz's genre too; the songs' own stay by default.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "release",
+          "tracks"
+        ],
+        "type": "object"
+      },
+      "ReleaseCandidate": {
+        "properties": {
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_art_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "matched": {
+            "description": "How many of the songs it holds.",
+            "format": "int32",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "mb_release_group_id": {
+            "type": "string"
+          },
+          "mb_release_id": {
+            "type": "string"
+          },
+          "primary_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "secondary_types": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "track_count": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "tracks": {
+            "description": "Which song is which of its tracks; songs it lacks are left out.",
+            "items": {
+              "$ref": "#/components/schemas/ReleaseTrackMatch"
+            },
+            "type": "array"
+          },
+          "year": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "mb_release_id",
+          "mb_release_group_id",
+          "title",
+          "secondary_types",
+          "track_count",
+          "matched",
+          "tracks"
+        ],
+        "type": "object"
+      },
+      "ReleaseCandidates": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReleaseCandidate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "ReleaseGroup": {
         "properties": {
           "album_ids": {
@@ -5468,6 +5594,99 @@
             ]
           }
         },
+        "type": "object"
+      },
+      "ReleaseSearch": {
+        "properties": {
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "description": "The album's artist and title as you type them; the tags' by default.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_ids": {
+            "description": "Your songs to find a release for — an album's files, a folder's.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "track_ids"
+        ],
+        "type": "object"
+      },
+      "ReleaseTrack": {
+        "properties": {
+          "disc": {
+            "description": "Its disc on the release.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "recording": {
+            "description": "The recording this song is on the release (`tracks[].mb_recording_id`).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "recording"
+        ],
+        "type": "object"
+      },
+      "ReleaseTrackMatch": {
+        "properties": {
+          "disc": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "duration_ms": {
+            "format": "int64",
+            "minimum": 0,
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "mb_recording_id": {
+            "type": "string"
+          },
+          "position": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "title": {
+            "description": "The release's title for the track.",
+            "type": "string"
+          },
+          "track_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "track_id",
+          "mb_recording_id",
+          "title",
+          "disc",
+          "position"
+        ],
         "type": "object"
       },
       "Resolved": {
@@ -12589,6 +12808,85 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/organize/apply-release": {
+      "post": {
+        "description": "Identify songs as a release's tracks, all in one batch of the history\n(`POST /edits/batches/{id}/undo` undoes it). Each recording is looked up by\nid on that release; the songs' genres stay.",
+        "operationId": "organize_apply_release",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseApply"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Saved"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Identify songs as a release's tracks, all in one batch of the history (`POST /edits/batches/{id}/undo` undoes it)",
+        "tags": [
+          "organize"
+        ],
+        "x-permission": "user",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/organize/facets": {
       "get": {
         "operationId": "organize_facets",
@@ -12635,6 +12933,85 @@
         ],
         "x-permission": "user",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/organize/releases": {
+      "post": {
+        "description": "The releases a set of your songs could be, best first, each with which song\nis which track — Picard's clustering. Up to 100 songs.",
+        "operationId": "organize_search_releases",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseSearch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReleaseCandidates"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The releases a set of your songs could be, best first, each with which song is which track — Picard's clustering",
+        "tags": [
+          "organize"
+        ],
+        "x-permission": "user",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/organize/tracks": {

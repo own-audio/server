@@ -98,3 +98,84 @@ def run(ctx):
         ctx.check("and undone", after.get("release_date") == before.get("release_date"),
                   str((after.get("release_date"), before.get("release_date"))))
     ctx.call("GET", "/api/v2/edits?item_kind=track", ctx.admin_token, expect=(400,))
+    covers(ctx, songs)
+    releases_and_artists(ctx, songs)
+
+
+PNG = bytes.fromhex(
+    "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+    "1f15c4890000000d49444154789c6360000002000154a24f5d0000000049454e44ae426082")
+
+
+def covers(ctx, songs):
+    """An image set as the cover of several songs is one batch, undone together."""
+    import uuid
+    batch = str(uuid.uuid4())
+    two = songs[:2]
+    for s in two:
+        ctx.call("POST", f"/api/v1/music/tracks/{s['id']}/upload-cover?batch={batch}", ctx.admin_token,
+                 multipart={"cover": ("cover.png", PNG)}, expect=(201,))
+    hist = ctx.call("GET", f"/api/v2/edits?batch_id={batch}", ctx.admin_token).get("items", [])
+    ctx.check("a cover set on several songs is one batch", len(hist) == len(two)
+              and all("cover_object_id" in e["after"] for e in hist), str(hist)[:200])
+    ctx.call("POST", f"/api/v2/edits/batches/{batch}/undo", ctx.admin_token)
+    now = {s["id"]: s for s in ctx.call("GET", "/api/v2/organize/tracks?limit=500", ctx.admin_token)["items"]}
+    ctx.check("and undone together", all(now[s["id"]]["has_cover"] == s["has_cover"] for s in two),
+              str([(now[s["id"]]["has_cover"], s["has_cover"]) for s in two]))
+
+
+def releases_and_artists(ctx, songs):
+    """O3–O4: releases for a set of songs, one applied in one batch and undone;
+    a contributor's MusicBrainz artist set by link, kept in the history."""
+    if not ctx.feature("music_identify"):
+        ctx.skip("releases", "no MusicBrainz source here")
+        return
+    ids = [s["id"] for s in songs]
+    ctx.call("POST", "/api/v2/organize/releases", ctx.admin_token, body={"track_ids": []}, expect=(400,))
+    found = ctx.call("POST", "/api/v2/organize/releases", ctx.admin_token, body={"track_ids": ids}, expect=(200, 503))
+    if found.get("code") == "source_busy":
+        ctx.skip("releases", "MusicBrainz is busy")
+        return
+    ctx.check("releases for a set of songs come back as a list", isinstance(found.get("items"), list), str(found)[:160])
+    words = {"title": "Yesterday", "artist": "The Beatles"}
+    hits = ctx.call("POST", f"/api/v2/tracks/{ids[0]}/identity/search", ctx.admin_token, body=words, expect=(200, 503)).get("items", [])
+    pick = next((h for h in hits if h.get("mb_release_id")), None)
+    if not pick:
+        ctx.skip("applying a release", "the MusicBrainz source found nothing to apply")
+        return
+    ctx.call("POST", "/api/v2/organize/apply-release", ctx.admin_token,
+             body={"release": "not a release", "tracks": [{"id": ids[0], "recording": pick["mb_recording_id"]}]}, expect=(400,))
+    applied = ctx.call("POST", "/api/v2/organize/apply-release", ctx.admin_token,
+                       body={"release": f"https://musicbrainz.org/release/{pick['mb_release_id']}",
+                             "tracks": [{"id": ids[0], "recording": pick["mb_recording_id"], "disc": 1}]})
+    ctx.check("a release is applied to the songs in one batch", applied.get("updated") == 1 and applied.get("batch_id"), str(applied))
+    hist = ctx.call("GET", f"/api/v2/edits?batch_id={applied['batch_id']}", ctx.admin_token).get("items", [])
+    ctx.check("…as identify in the history",
+              hist and all(e["source"] == "identify" for e in hist)
+              and any(e["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"] for e in hist), str(hist)[:300])
+    back = ctx.call("POST", f"/api/v2/edits/batches/{applied['batch_id']}/undo", ctx.admin_token)
+    now = next(s for s in ctx.call("GET", "/api/v2/organize/tracks?limit=500", ctx.admin_token)["items"] if s["id"] == ids[0])
+    ctx.check("and undone, the song is as it was, unidentified",
+              back.get("items") == 1 and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None
+              and now["identity"] is None, str((back, now["title"], now["identity"])))
+
+    artists = ctx.call("GET", "/api/v2/contributors?limit=50", ctx.admin_token).get("items", [])
+    who = next((a for a in artists if a.get("name") == "Test Artist"), None)
+    if not who:
+        return
+    import uuid
+    beatles = str(uuid.uuid4())
+    ctx.call("PATCH", f"/api/v2/contributors/{who['id']}", ctx.admin_token, body={"musicbrainz_artist": "nonsense"}, expect=(400,))
+    ctx.call("PATCH", f"/api/v2/contributors/{who['id']}", ctx.admin_token,
+             body={"musicbrainz_artist": f"https://musicbrainz.org/artist/{beatles}"})
+    taken = next((a for a in artists if a.get("id") != who["id"] and a.get("musicbrainz_artist_id")), None)
+    if taken:
+        ctx.call("PATCH", f"/api/v2/contributors/{who['id']}", ctx.admin_token,
+                 body={"musicbrainz_artist": taken["musicbrainz_artist_id"]}, expect=(409,))
+    hist = ctx.call("GET", f"/api/v2/edits?item_kind=contributor&item_id={who['id']}", ctx.admin_token).get("items", [])
+    ctx.check("a contributor's MusicBrainz artist is set by link and kept in the history",
+              hist and hist[0]["after"].get("musicbrainz_artist_id") == beatles, str(hist[:1]))
+    ctx.call("POST", f"/api/v2/edits/{hist[0]['id']}/undo", ctx.admin_token)
+    again = ctx.call("GET", f"/api/v2/edits?item_kind=contributor&item_id={who['id']}", ctx.admin_token).get("items", [])
+    ctx.check("and undone", again and again[0]["source"] == "undo" and again[0]["after"].get("musicbrainz_artist_id") is None,
+              str(again[:1]))

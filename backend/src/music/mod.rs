@@ -1838,6 +1838,7 @@ async fn apply_track_metadata(
         recording.album_artist.as_deref(),
         recording.mb_release_group_id.as_deref(),
         None,
+        None,
     )
     .await
     .map_err(AuthError::Internal)?;
@@ -2275,15 +2276,23 @@ async fn get_cover(
     Ok(([(header::CONTENT_TYPE, row.1)], Body::from(bytes)).into_response())
 }
 
+#[derive(Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct CoverBatch {
+    /// The edit-history batch to put the change in, to undo several songs' cover together.
+    pub batch: Option<Uuid>,
+}
+
 /// POST /api/v1/music/tracks/{id}/upload-cover — replace the track's cover. Owner only.
 #[utoipa::path(post, path = "/tracks/{id}/upload-cover", tag = "music", security(("bearer" = [])),
-    params(("id" = Uuid, Path, description = "Track id")),
+    params(("id" = Uuid, Path, description = "Track id"), CoverBatch),
     request_body(content_type = "multipart/form-data", description = "fields: `cover` (the image file)"),
     responses((status = 201, description = "Stored"), (status = 400, body = crate::http::openapi::ErrorBody), (status = 404, body = crate::http::openapi::ErrorBody)))]
 async fn upload_cover(
     family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    Query(q): Query<CoverBatch>,
     mut multipart: Multipart,
 ) -> Result<StatusCode, AuthError> {
     db::music::find_track_owned(state.db(), id, family.user_id)
@@ -2311,6 +2320,12 @@ async fn upload_cover(
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     let media_id = store_temp_upload(state.storage(), &mut tx, &object_key, &upload).await?;
+    // A cover set on several songs at once is one change in the history.
+    let edit = match q.batch {
+        Some(batch) => db::edits::Edit::in_batch(family.user_id, "manual", batch),
+        None => db::edits::Edit::new(family.user_id, "manual"),
+    };
+    db::edits::mark(&mut tx, &edit).await.map_err(AuthError::Internal)?;
 
     sqlx::query(
         "UPDATE music_tracks SET cover_object_id = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1",

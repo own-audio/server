@@ -1486,5 +1486,397 @@
   "music.identifyRuns.albumSearchHint": {
     "en": "Correct the album or artist if the tags name it wrong.",
     "cs": "Pokud tagy album nebo interpreta pojmenovávají špatně, opravte je."
+  },
+  "music.organize.title": {
+    "en": "Organize music",
+    "cs": "Uspořádat hudbu"
+  },
+  "music.organize.songs": {
+    "en": "Songs",
+    "cs": "Skladby"
+  },
+  "music.organize.history": {
+    "en": "History",
+    "cs": "Historie"
+  },
+  "music.organize.filesUntouched": {
+    "en": "Changes stay in your library; files are never rewritten.",
+    "cs": "Změny zůstávají v knihovně, soubory se nikdy nepřepisují."
+  },
+  "music.organize.search": {
+    "en": "Search title, artist, album or file",
+    "cs": "Hledat název, interpreta, album nebo soubor"
+  },
+  "music.organize.count": {
+    "en": "{shown} of {total}",
+    "cs": "{shown} z {total}"
+  },
+  "music.organize.editSelected": {
+    "en": "{count, plural, one {Edit # song} other {Edit # songs}}",
+    "cs": "{count, plural, one {Upravit # skladbu} few {Upravit # skladby} other {Upravit # skladeb}}"
+  },
+  "music.organize.discard": {
+    "en": "Discard",
+    "cs": "Zahodit"
+  },
+  "music.organize.save": {
+    "en": "{count, plural, one {Save # song} other {Save # songs}}",
+    "cs": "{count, plural, one {Uložit # skladbu} few {Uložit # skladby} other {Uložit # skladeb}}"
+  },
+  "music.organize.saved": {
+    "en": "{count, plural, one {# song saved} other {# songs saved}}",
+    "cs": "{count, plural, one {Uložena # skladba} few {Uloženy # skladby} other {Uloženo # skladeb}}"
+  },
+  "music.organize.saveFailed": {
+    "en": "Couldn't save the changes.",
+    "cs": "Změny se nepodařilo uložit."
+  },
+  "music.organize.undo": {
+    "en": "Undo",
+    "cs": "Vrátit"
+  },
+  "music.organize.undone": {
+    "en": "{count, plural, one {# item put back} other {# items put back}}",
+    "cs": "{count, plural, one {Vrácena # položka} few {Vráceny # položky} other {Vráceno # položek}}"
+  },
+  "music.organize.undoFailed": {
+    "en": "Couldn't undo it.",
+    "cs": "Vrátit se nepodařilo."
+  },
+  "music.organize.more": {
+    "en": "Load more",
+    "cs": "Načíst další"
+  },
+  "music.organize.empty": {
+    "en": "No songs match.",
+    "cs": "Žádné skladby neodpovídají."
+  },
+  "music.organize.selectAll": {
+    "en": "Select all",
+    "cs": "Vybrat vše"
+  },
+  "music.organize.folders": {
+    "en": "Folders",
+    "cs": "Složky"
+  },
+  "music.organize.uploads": {
+    "en": "Uploaded",
+    "cs": "Nahrané"
+  },
+  "music.organize.artists": {
+    "en": "Album artists",
+    "cs": "Interpreti alb"
+  },
+  "music.organize.findArtist": {
+    "en": "Find an artist",
+    "cs": "Najít interpreta"
+  },
+  "music.organize.albums": {
+    "en": "Albums",
+    "cs": "Alba"
+  },
+  "music.organize.filter.all": {
+    "en": "All songs",
+    "cs": "Všechny skladby"
+  },
+  "music.organize.filter.unidentified": {
+    "en": "Not identified",
+    "cs": "Neidentifikované"
+  },
+  "music.organize.filter.noCover": {
+    "en": "No cover",
+    "cs": "Bez obalu"
+  },
+  "music.organize.filter.noYear": {
+    "en": "No year",
+    "cs": "Bez roku"
+  },
+  "music.organize.filter.noGenre": {
+    "en": "No genre",
+    "cs": "Bez žánru"
+  },
+  "music.organize.filter.edited": {
+    "en": "Changed",
+    "cs": "Změněné"
+  },
+  "music.organize.filter.duplicates": {
+    "en": "Possible duplicates",
+    "cs": "Možné duplicity"
+  },
+  "music.organize.col.trackNumber": {
+    "en": "#",
+    "cs": "#"
+  },
+  "music.organize.col.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "music.organize.col.artist": {
+    "en": "Artist",
+    "cs": "Interpret"
+  },
+  "music.organize.col.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.organize.col.albumArtist": {
+    "en": "Album artist",
+    "cs": "Interpret alba"
+  },
+  "music.organize.col.genre": {
+    "en": "Genre",
+    "cs": "Žánr"
+  },
+  "music.organize.col.discNumber": {
+    "en": "Disc",
+    "cs": "Disk"
+  },
+  "music.organize.col.year": {
+    "en": "Year",
+    "cs": "Rok"
+  },
+  "music.organize.col.path": {
+    "en": "File",
+    "cs": "Soubor"
+  },
+  "music.organize.col.length": {
+    "en": "Length",
+    "cs": "Délka"
+  },
+  "music.organize.col.state": {
+    "en": "State",
+    "cs": "Stav"
+  },
+  "music.organize.state.edited": {
+    "en": "Changed",
+    "cs": "Změněno"
+  },
+  "music.organize.state.noCover": {
+    "en": "No cover",
+    "cs": "Bez obalu"
+  },
+  "music.organize.bulkTitle": {
+    "en": "{count, plural, one {Edit # song} other {Edit # songs}}",
+    "cs": "{count, plural, one {Upravit # skladbu} few {Upravit # skladby} other {Upravit # skladeb}}"
+  },
+  "music.organize.bulkHint": {
+    "en": "Tick the fields to set on every selected song. Nothing is saved until you save.",
+    "cs": "Zaškrtněte pole, která se nastaví všem vybraným skladbám. Nic se neuloží, dokud změny neuložíte."
+  },
+  "music.organize.bulkApply": {
+    "en": "Set",
+    "cs": "Nastavit"
+  },
+  "music.organize.bulkEmptyClears": {
+    "en": "Empty clears it",
+    "cs": "Prázdné pole hodnotu smaže"
+  },
+  "music.organize.historyEmpty": {
+    "en": "No changes yet.",
+    "cs": "Zatím žádné změny."
+  },
+  "music.organize.batchMany": {
+    "en": "{name} and {count, plural, one {# more} other {# more}}",
+    "cs": "{name} a {count, plural, one {# další} few {# další} other {# dalších}}"
+  },
+  "music.organize.source.manual": {
+    "en": "Edited",
+    "cs": "Upraveno"
+  },
+  "music.organize.source.bulk": {
+    "en": "Edited together",
+    "cs": "Upraveno hromadně"
+  },
+  "music.organize.source.identify": {
+    "en": "Identified",
+    "cs": "Identifikováno"
+  },
+  "music.organize.source.run": {
+    "en": "Identify run",
+    "cs": "Běh identifikace"
+  },
+  "music.organize.source.revert": {
+    "en": "Identify undone",
+    "cs": "Identifikace vrácena"
+  },
+  "music.organize.source.undo": {
+    "en": "Undo",
+    "cs": "Vráceno"
+  },
+  "music.organize.mb.unavailable": {
+    "en": "This server has no MusicBrainz source.",
+    "cs": "Tento server nemá zdroj MusicBrainz."
+  },
+  "music.organize.mb.pick": {
+    "en": "Select a song to look it up, or several — an album's — to find their release.",
+    "cs": "Vyberte skladbu a vyhledejte ji, nebo několik skladeb (album) a najděte jejich vydání."
+  },
+  "music.organize.mb.search": {
+    "en": "Search MusicBrainz",
+    "cs": "Hledat v MusicBrainz"
+  },
+  "music.organize.mb.ownWords": {
+    "en": "Correct the words if the tags are wrong.",
+    "cs": "Pokud jsou tagy špatně, opravte slova."
+  },
+  "music.organize.mb.nothing": {
+    "en": "Nothing found. Try fewer or other words.",
+    "cs": "Nic nenalezeno. Zkuste méně slov nebo jiná."
+  },
+  "music.organize.mb.failed": {
+    "en": "MusicBrainz didn't answer. Try again in a moment.",
+    "cs": "MusicBrainz neodpověděl. Zkuste to za chvíli znovu."
+  },
+  "music.organize.mb.identified": {
+    "en": "Song identified",
+    "cs": "Skladba identifikována"
+  },
+  "music.organize.mb.use": {
+    "en": "Use",
+    "cs": "Použít"
+  },
+  "music.organize.mb.link": {
+    "en": "musicbrainz.org/recording/…",
+    "cs": "musicbrainz.org/recording/…"
+  },
+  "music.organize.mb.now": {
+    "en": "Now",
+    "cs": "Teď"
+  },
+  "music.organize.mb.manyHint": {
+    "en": "{count, plural, one {# song selected.} other {# songs selected.}} Find the release they are, then check which file is which track.",
+    "cs": "{count, plural, one {Vybrána # skladba.} few {Vybrány # skladby.} other {Vybráno # skladeb.}} Najděte vydání, ze kterého jsou, a zkontrolujte, který soubor je která stopa."
+  },
+  "music.organize.mb.findRelease": {
+    "en": "Find the release",
+    "cs": "Najít vydání"
+  },
+  "music.organize.mb.tracks": {
+    "en": "{tracks} tracks, {matched} matched",
+    "cs": "{tracks} stop, {matched} odpovídá"
+  },
+  "music.organize.mb.skip": {
+    "en": "Leave as it is",
+    "cs": "Ponechat"
+  },
+  "music.organize.mb.fetchCover": {
+    "en": "Fetch the cover",
+    "cs": "Stáhnout obal"
+  },
+  "music.organize.mb.useGenre": {
+    "en": "Take MusicBrainz's genre",
+    "cs": "Převzít žánr z MusicBrainz"
+  },
+  "music.organize.mb.applyRelease": {
+    "en": "{count, plural, one {Apply to # song} other {Apply to # songs}}",
+    "cs": "{count, plural, one {Použít na # skladbu} few {Použít na # skladby} other {Použít na # skladeb}}"
+  },
+  "music.organize.mb.applied": {
+    "en": "{count, plural, one {# song identified} other {# songs identified}}",
+    "cs": "{count, plural, one {Identifikována # skladba} few {Identifikovány # skladby} other {Identifikováno # skladeb}}"
+  },
+  "music.organize.mb.tooMany": {
+    "en": "Select at most 100 songs to find a release.",
+    "cs": "Pro hledání vydání vyberte nejvýš 100 skladeb."
+  },
+  "music.organize.field.title": {
+    "en": "Title",
+    "cs": "Název"
+  },
+  "music.organize.field.artist": {
+    "en": "Artist",
+    "cs": "Interpret"
+  },
+  "music.organize.field.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.organize.field.albumArtist": {
+    "en": "Album artist",
+    "cs": "Interpret alba"
+  },
+  "music.organize.field.genre": {
+    "en": "Genre",
+    "cs": "Žánr"
+  },
+  "music.organize.field.trackNumber": {
+    "en": "Track",
+    "cs": "Stopa"
+  },
+  "music.organize.field.discNumber": {
+    "en": "Disc",
+    "cs": "Disk"
+  },
+  "music.organize.field.discTotal": {
+    "en": "Discs",
+    "cs": "Disků"
+  },
+  "music.organize.field.isCompilation": {
+    "en": "Compilation",
+    "cs": "Kompilace"
+  },
+  "music.organize.field.musicbrainzRecordingId": {
+    "en": "MusicBrainz recording",
+    "cs": "Nahrávka v MusicBrainz"
+  },
+  "music.organize.field.musicbrainzReleaseId": {
+    "en": "MusicBrainz release",
+    "cs": "Vydání v MusicBrainz"
+  },
+  "music.organize.field.musicbrainzArtistId": {
+    "en": "MusicBrainz artist",
+    "cs": "Interpret v MusicBrainz"
+  },
+  "music.organize.field.musicbrainzReleaseGroupId": {
+    "en": "MusicBrainz release group",
+    "cs": "Skupina vydání v MusicBrainz"
+  },
+  "music.organize.field.coverObjectId": {
+    "en": "Cover",
+    "cs": "Obal"
+  },
+  "music.organize.field.releaseDate": {
+    "en": "Year",
+    "cs": "Rok"
+  },
+  "music.organize.field.country": {
+    "en": "Country",
+    "cs": "Země"
+  },
+  "music.organize.field.label": {
+    "en": "Label",
+    "cs": "Vydavatel"
+  },
+  "music.organize.field.barcode": {
+    "en": "Barcode",
+    "cs": "Čárový kód"
+  },
+  "music.organize.field.releaseGroupId": {
+    "en": "Release group",
+    "cs": "Skupina vydání"
+  },
+  "music.organize.field.name": {
+    "en": "Name",
+    "cs": "Jméno"
+  },
+  "music.organize.field.sortName": {
+    "en": "Sort name",
+    "cs": "Jméno pro řazení"
+  },
+  "music.organize.field.kind": {
+    "en": "Kind",
+    "cs": "Druh"
+  },
+  "music.organize.field.biography": {
+    "en": "Biography",
+    "cs": "Životopis"
+  },
+  "music.organize.setCover": {
+    "en": "Set cover…",
+    "cs": "Nastavit obal…"
+  },
+  "music.organize.coverSet": {
+    "en": "{count, plural, one {Cover set on # song} other {Cover set on # songs}}",
+    "cs": "{count, plural, one {Obal nastaven # skladbě} few {Obal nastaven # skladbám} other {Obal nastaven # skladbám}}"
   }
 }

@@ -10309,6 +10309,16 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "batch",
+            "in": "query",
+            "description": "The edit-history batch to put the change in, to undo several songs' cover together.",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         ],
         "requestBody": {

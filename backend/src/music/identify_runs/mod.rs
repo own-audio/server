@@ -352,6 +352,7 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid) -> anyhow::
         if keep { None } else { proposed.album_artist.as_deref() },
         if keep { None } else { proposed.mb_release_group_id.as_deref() },
         Some(p.run_id),
+        None,
     )
     .await?;
     if !keep && proposed.disc_number.is_some() {

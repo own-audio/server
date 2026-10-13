@@ -273,3 +273,35 @@ pub async fn undo(pool: &PgPool, edits: &[EditRow], by: Uuid) -> anyhow::Result<
     tx.commit().await.context("db: commit undo")?;
     Ok(UndoOutcome::Undone { items: items.len(), batch_id: edit.batch_id })
 }
+
+/// Keep a change made outside a marked transaction — a cover fetched by a
+/// helper that writes on its own — as part of `edit`.
+pub async fn record(
+    pool: &PgPool,
+    item_kind: &str,
+    item_id: Uuid,
+    family_id: Option<Uuid>,
+    edit: &Edit,
+    before: Value,
+    after: Value,
+) -> anyhow::Result<()> {
+    if before == after {
+        return Ok(());
+    }
+    sqlx::query(
+        "INSERT INTO metadata_edits (item_kind, item_id, family_id, user_id, source, batch_id, before, after)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    )
+    .bind(item_kind)
+    .bind(item_id)
+    .bind(family_id)
+    .bind(edit.user_id)
+    .bind(edit.source)
+    .bind(edit.batch_id)
+    .bind(before)
+    .bind(after)
+    .execute(pool)
+    .await
+    .context("db: record edit")?;
+    Ok(())
+}

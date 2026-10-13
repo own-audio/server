@@ -6,6 +6,9 @@ MusicBrainz says, look things up, change them one by one or many at once, and un
 it. Unlike Picard, **nothing is ever written to a file**: the metadata lives in the database,
 as identify already does.
 
+**Status (2026-10-14): O0–O4 built** (core 1.0.0-beta.16). Left for later: an artist search on MusicBrainz (an artist is linked by pasting
+its link), and the open questions below.
+
 Decided (2026-10-14):
 
 - **Open-source core and hosted alike.** The hosted edition's edge is its own MusicBrainz

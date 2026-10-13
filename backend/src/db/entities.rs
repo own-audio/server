@@ -443,3 +443,42 @@ pub async fn describe_contributor(
     tx.commit().await.context("db: commit describe contributor")?;
     Ok(())
 }
+
+/// Who a contributor is on MusicBrainz, set or forgotten by hand. `Err` with
+/// the other contributor when one of the household already is that artist.
+pub async fn set_contributor_mbid(
+    pool: &PgPool,
+    family_id: Uuid,
+    id: Uuid,
+    mbid: Option<&str>,
+    edit: &crate::db::edits::Edit,
+) -> anyhow::Result<Result<(), Uuid>> {
+    let mut tx = pool.begin().await.context("db: begin contributor mbid")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
+    if let Some(mbid) = mbid {
+        let other: Option<Uuid> = sqlx::query_scalar(
+            "SELECT id FROM contributors WHERE family_id = $1 AND musicbrainz_artist_id = $2 AND id <> $3",
+        )
+        .bind(family_id)
+        .bind(mbid)
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .context("db: who is the artist")?;
+        if let Some(other) = other {
+            return Ok(Err(other));
+        }
+    }
+    sqlx::query(
+        "UPDATE contributors SET musicbrainz_artist_id = $3, edited_at = now(), updated_at = now()
+          WHERE id = $1 AND family_id = $2",
+    )
+    .bind(id)
+    .bind(family_id)
+    .bind(mbid)
+    .execute(&mut *tx)
+    .await
+    .context("db: set contributor mbid")?;
+    tx.commit().await.context("db: commit contributor mbid")?;
+    Ok(Ok(()))
+}

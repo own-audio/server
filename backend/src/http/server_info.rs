@@ -92,6 +92,9 @@ pub fn features(state: &AppState) -> Map<String, Value> {
     // Revision 10: identify runs over a library, folder, album, playlist, artist
     // or selection, with proposals to accept (`/api/v2/identify/*`). Same source.
     features.insert("identify_library".into(), json!(cfg.metadata.is_some() || cfg.musicbrainz.enabled));
+    // Revision 15: the metadata organizer and the edit history (`/api/v2/organize`,
+    // `/api/v2/edits`). Its MusicBrainz side follows `music_identify`.
+    features.insert("organizer".into(), json!(true));
     features.insert("podcast_discovery".into(), json!(cfg.metadata.is_some()));
     // Revision 5: search alone, which Apple's public search can answer.
     features.insert("podcast_search".into(), json!(cfg.metadata.is_some() || cfg.itunes.enabled));

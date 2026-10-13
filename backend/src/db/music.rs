@@ -343,11 +343,14 @@ pub async fn apply_musicbrainz_metadata(
     album_artist: Option<&str>,
     mb_release_group_id: Option<&str>,
     run_id: Option<Uuid>,
+    // Several songs identified in one save share it; otherwise each is its own.
+    batch: Option<Uuid>,
 ) -> anyhow::Result<()> {
     let mut tx = pool.begin().await.context("db: begin identify")?;
-    let edit = match run_id {
-        Some(run) => crate::db::edits::Edit::in_batch(user_id, "run", run),
-        None => crate::db::edits::Edit::new(user_id, "identify"),
+    let edit = match (run_id, batch) {
+        (Some(run), _) => crate::db::edits::Edit::in_batch(user_id, "run", run),
+        (None, Some(batch)) => crate::db::edits::Edit::in_batch(user_id, "identify", batch),
+        (None, None) => crate::db::edits::Edit::new(user_id, "identify"),
     };
     crate::db::edits::mark(&mut tx, &edit).await?;
     // What the track was before, kept for a revert. Locked so a concurrent edit

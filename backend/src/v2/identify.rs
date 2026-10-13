@@ -796,6 +796,7 @@ pub async fn identify_track(family: FamilyContext, State(state): State<AppState>
         detail.album_artist.as_deref(),
         detail.mb_release_group_id.as_deref(),
         None,
+        None,
     )
     .await?;
     if body.fetch_cover {

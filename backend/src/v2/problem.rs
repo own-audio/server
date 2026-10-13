@@ -136,6 +136,14 @@ impl IntoResponse for Problem {
 
 impl From<anyhow::Error> for Problem {
     fn from(e: anyhow::Error) -> Self {
+        // MusicBrainz (or the metadata service) asking us to slow down is not
+        // our failure: the caller may try again shortly.
+        if format!("{e:#}").contains("503 Service Unavailable") {
+            return Problem {
+                retry_after: Some(5),
+                ..Problem::new(StatusCode::SERVICE_UNAVAILABLE, "source_busy").detail("MusicBrainz is busy; try again in a few seconds")
+            };
+        }
         Problem::internal(e)
     }
 }
