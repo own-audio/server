@@ -1213,3 +1213,32 @@ pub async fn track_lyrics(pool: &PgPool, id: Uuid) -> anyhow::Result<(Option<Str
         .await
         .context("db: track lyrics")
 }
+
+// ── Smart playlists (V11) ────────────────────────────────────────────────────
+
+/// Name, description, rule and sharing at once; the owner's only.
+pub async fn update_smart_playlist(
+    pool: &PgPool,
+    id: Uuid,
+    user_id: Uuid,
+    name: &str,
+    description: Option<&str>,
+    rule: &serde_json::Value,
+    family_id: Option<Uuid>,
+) -> anyhow::Result<Option<crate::db::music::SmartPlaylist>> {
+    sqlx::query_as::<_, crate::db::music::SmartPlaylist>(
+        "UPDATE music_smart_playlists
+            SET name = $3, description = $4, rule = $5, family_id = $6, updated_at = now()
+          WHERE id = $1 AND user_id = $2
+      RETURNING id, user_id, family_id, name, description, rule, mode, created_at, updated_at",
+    )
+    .bind(id)
+    .bind(user_id)
+    .bind(name)
+    .bind(description)
+    .bind(rule)
+    .bind(family_id)
+    .fetch_optional(pool)
+    .await
+    .context("db: update smart playlist")
+}

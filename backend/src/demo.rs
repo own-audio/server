@@ -86,6 +86,9 @@ fn v2_allows(method: &Method, rest: &[&str]) -> bool {
             | (&Method::PUT, ["me", "progress", _, _])
             | (&Method::POST, ["me", "plays"])
             | (&Method::POST, ["sync", "push"])
+            // Reads sent as POST: what a smart playlist or a rule holds now.
+            | (&Method::POST, ["smart-playlists", "resolve"])
+            | (&Method::POST, ["smart-playlists", _, "resolve"])
     )
 }
 
@@ -120,6 +123,9 @@ mod tests {
         assert!(rest_allows(&Method::PUT, "/api/v2/me/progress/track/0b9c"));
         assert!(rest_allows(&Method::POST, "/api/v2/me/plays"));
         assert!(rest_allows(&Method::POST, "/api/v2/sync/push"));
+        assert!(rest_allows(&Method::POST, "/api/v2/smart-playlists/resolve"));
+        assert!(rest_allows(&Method::POST, "/api/v2/smart-playlists/0b9c/resolve"));
+        assert!(!rest_allows(&Method::POST, "/api/v2/smart-playlists/0b9c/freeze"));
     }
 
     #[test]

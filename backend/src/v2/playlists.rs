@@ -78,6 +78,11 @@ async fn find(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Play
     catalog::find_playlist(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)
 }
 
+/// A playlist the caller can see, as v2 shows it.
+pub(crate) async fn find_for(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Playlist, Problem> {
+    Ok(playlist(state, find(state, family, id).await?))
+}
+
 /// Seen (`404` otherwise) and the caller's (`403` otherwise).
 async fn owned(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<PlaylistRow, Problem> {
     let row = find(state, family, id).await?;

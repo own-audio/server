@@ -830,6 +830,34 @@
         ],
         "type": "object"
       },
+      "CreateSmart": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "object"
+          },
+          "visibility": {
+            "description": "`private` (the default) or `family`: each member then gets their own\nresult from it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "rule"
+        ],
+        "type": "object"
+      },
       "CreateTokenRequest": {
         "properties": {
           "expires_in_days": {
@@ -1428,6 +1456,29 @@
           "field",
           "code"
         ],
+        "type": "object"
+      },
+      "Freeze": {
+        "properties": {
+          "mark_frozen": {
+            "description": "Mark the smart playlist frozen (the default). False keeps it living and\nmakes this a copy. Only the owner's own is ever marked.",
+            "type": "boolean"
+          },
+          "name": {
+            "description": "The new playlist's name; the smart playlist's by default.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "description": "`private` (the default) or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "Genre": {
@@ -3429,6 +3480,88 @@
         ],
         "type": "object"
       },
+      "Page_SmartPlaylist": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "created_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "description": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "mode": {
+                  "description": "`dynamic`, or `frozen` once made into an ordinary playlist.",
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "owner_id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "rule": {
+                  "description": "The rule: `filters`, `limit`, `arc`, `sequence`, `sort` (as v1's).",
+                  "type": "object"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "visibility": {
+                  "description": "`private` or `family`.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "rule",
+                "mode",
+                "visibility",
+                "owner_id",
+                "created_at",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Track": {
         "description": "One page of a list.",
         "properties": {
@@ -3587,6 +3720,36 @@
           },
           "visibility": {
             "description": "`private` or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "PatchSmart": {
+        "properties": {
+          "description": {
+            "description": "`null` clears it; leaving it out keeps it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rule": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "visibility": {
             "type": [
               "string",
               "null"
@@ -3972,6 +4135,25 @@
           "owner_id",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "Preset": {
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "object"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "slug",
+          "name",
+          "rule"
         ],
         "type": "object"
       },
@@ -4532,6 +4714,42 @@
         },
         "type": "object"
       },
+      "Resolved": {
+        "properties": {
+          "candidates": {
+            "description": "How many tracks matched before sequencing: few, with a short list, means\nthe rule is narrow rather than that something failed.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included"
+              }
+            ]
+          },
+          "items": {
+            "description": "In the order to play them.",
+            "items": {
+              "$ref": "#/components/schemas/Track"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "duration_ms",
+          "candidates"
+        ],
+        "type": "object"
+      },
       "Reverted": {
         "properties": {
           "reverted": {
@@ -4560,6 +4778,17 @@
         },
         "required": [
           "token"
+        ],
+        "type": "object"
+      },
+      "RuleRequest": {
+        "properties": {
+          "rule": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "rule"
         ],
         "type": "object"
       },
@@ -4826,6 +5055,58 @@
           "signed_in_at",
           "expires_at",
           "current"
+        ],
+        "type": "object"
+      },
+      "SmartPlaylist": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "mode": {
+            "description": "`dynamic`, or `frozen` once made into an ordinary playlist.",
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "rule": {
+            "description": "The rule: `filters`, `limit`, `arc`, `sequence`, `sort` (as v1's).",
+            "type": "object"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "`private` or `family`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "rule",
+          "mode",
+          "visibility",
+          "owner_id",
+          "created_at",
+          "updated_at"
         ],
         "type": "object"
       },
@@ -12151,6 +12432,655 @@
         "summary": "Search the music the caller can see",
         "tags": [
           "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/smart-playlists": {
+      "get": {
+        "operationId": "playlists_list_smart",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SmartPlaylist"
+                }
+              }
+            },
+            "description": "All of them: a short list, so one page"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's smart playlists and those shared with the household, by name",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "post": {
+        "operationId": "playlists_create_smart",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSmart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_rule`, `invalid_body`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Save a rule as a smart playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/smart-playlists/presets": {
+      "get": {
+        "operationId": "playlists_presets",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Preset"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Ready-made rules, the same for everyone: to play as they are, or to save and change",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/smart-playlists/resolve": {
+      "post": {
+        "operationId": "playlists_resolve_rule",
+        "parameters": [
+          {
+            "description": "`albums`, `contributors`, `genres`.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RuleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resolved"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_rule`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Try a rule without saving it: what an editor shows while it is changed",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/smart-playlists/{id}": {
+      "delete": {
+        "description": "Delete a smart playlist. Its rule is all it held, so this is final.",
+        "operationId": "playlists_delete_smart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a smart playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "get": {
+        "operationId": "playlists_get_smart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One smart playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "patch": {
+        "operationId": "playlists_patch_smart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PatchSmart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmartPlaylist"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_rule`, `invalid_body`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Rename, describe, change the rule, share or stop sharing",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/smart-playlists/{id}/freeze": {
+      "post": {
+        "operationId": "playlists_freeze_smart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Freeze"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": "The new playlist"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`empty_result`: the rule matches nothing now"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Make what the rule holds now into an ordinary playlist: fixed, editable, the same for everyone it is shared with",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/smart-playlists/{id}/resolve": {
+      "post": {
+        "description": "What a smart playlist holds now, for the caller, in the order to play it.\nA new draw each time (the default order is weighted random).",
+        "operationId": "playlists_resolve_smart",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "`albums`, `contributors`, `genres`.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resolved"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What a smart playlist holds now, for the caller, in the order to play it",
+        "tags": [
+          "playlists"
         ],
         "x-permission": "member",
         "x-scope": "library:read"

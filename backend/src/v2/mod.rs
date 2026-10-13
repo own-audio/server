@@ -20,6 +20,7 @@ pub mod music;
 pub mod page;
 pub mod playlists;
 pub mod problem;
+pub mod smart;
 pub mod spoken;
 pub mod state;
 pub mod sync;
@@ -74,6 +75,12 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(playlists::list_entries, playlists::add_entries))
         .routes(routes!(playlists::remove_entry))
         .routes(routes!(playlists::order_entries))
+        .routes(routes!(smart::list_smart, smart::create_smart))
+        .routes(routes!(smart::presets))
+        .routes(routes!(smart::resolve_rule))
+        .routes(routes!(smart::get_smart, smart::patch_smart, smart::delete_smart))
+        .routes(routes!(smart::resolve_smart))
+        .routes(routes!(smart::freeze_smart))
         .routes(routes!(spoken::list_books, uploads::create_book))
         .routes(routes!(spoken::get_book))
         .routes(routes!(spoken::list_podcasts))

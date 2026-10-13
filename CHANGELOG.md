@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+- Smart playlists on `/api/v2` (docs/api-v2-plan.md, V11): `/smart-playlists` to list, read,
+  save, change (name, description, rule, sharing) and delete them; `/smart-playlists/presets`;
+  `POST /smart-playlists/resolve` to try a rule without saving it and
+  `POST /smart-playlists/{id}/resolve` to play one, each worked out from the caller's own
+  history; `POST /smart-playlists/{id}/freeze` to make one into an ordinary playlist. The rule
+  is v1's. The read-only demo account may try and play them.
+
 ## [1.0.0-beta.12] - 2026-10-12
 
 ### Added

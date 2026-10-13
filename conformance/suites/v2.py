@@ -98,6 +98,7 @@ def run(ctx: Ctx) -> None:
     library(ctx, problem)
     playlists(ctx, problem)
     finding(ctx, problem)
+    smart_playlists(ctx, problem)
 
 
 def _form(fields: dict) -> tuple[bytes, dict]:
@@ -941,3 +942,75 @@ def finding(ctx: Ctx, problem) -> None:
     st, none = req("GET", f"/api/v2/tracks/{three}/lyrics")
     ctx.check("a track without lyrics: text null, no lines", st == 200 and none["text"] is None and none["lines"] == [], str(none)[:200])
     ctx.check("someone else's private track: 404", problem(ctx.request("GET", f"/api/v2/tracks/{one}/lyrics", other), 404))
+
+
+def smart_playlists(ctx: Ctx, problem) -> None:
+    """V11: smart playlists — a saved rule, resolved for whoever plays it; frozen into a playlist."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2smart", PW)
+    _mid, _me, member = ctx.make_user("v2smart-member", PW)
+
+    def req(method: str, path: str, body=None, token: str = tok):
+        st, _h, raw = ctx.request(method, path, token, body)
+        return st, (json.loads(raw) if raw else None)
+
+    genre = f"Smartgenre{sfx}"
+    ids = {ctx.upload_track(tok, f"Smart {n} {sfx}", artist=f"Smart Band {n} {sfx}", album=f"Smart Album {sfx}", genre=genre, visibility="family")["id"]
+           for n in ("A", "B", "C")}
+    ctx.upload_track(tok, f"Other {sfx}", artist=f"Other Band {sfx}", album=f"Other Album {sfx}", genre=f"Elsewhere{sfx}", visibility="family")
+    rule = {"filters": {"genres": {"include": [genre.lower()]}}, "limit": {"kind": "count", "n": 10},
+            "sequence": {"max_per_artist": 10, "no_consecutive_artist": False}}
+
+    st, presets = req("GET", "/api/v2/smart-playlists/presets")
+    ctx.check("ready-made rules, each with a slug, a name and a rule",
+              st == 200 and presets and all({"slug", "name", "rule"} <= set(p) for p in presets), str(presets)[:200])
+    st, preview = req("POST", "/api/v2/smart-playlists/resolve?include=albums", {"rule": rule})
+    ctx.check("a rule tried without saving: the genre's tracks, and only those",
+              st == 200 and {t["id"] for t in preview["items"]} == ids and preview["candidates"] == 3
+              and preview["duration_ms"] >= 0 and preview.get("included", {}).get("albums"), str(preview)[:300])
+    ctx.check("a rule asking for no tracks: 400 invalid_rule",
+              problem(ctx.request("POST", "/api/v2/smart-playlists/resolve", tok, {"rule": dict(rule, limit={"kind": "count", "n": 0})}), 400, "invalid_rule"))
+    ctx.check("a rule with a field it doesn't have: refused",
+              ctx.request("POST", "/api/v2/smart-playlists/resolve", tok, {"rule": dict(rule, colour="red")})[0] in (400, 422))
+
+    st, made = req("POST", "/api/v2/smart-playlists", {"name": f"  Smart {sfx} ", "rule": rule})
+    sid = (made or {}).get("id")
+    ctx.check("a rule saved: private, dynamic, the rule as given",
+              st == 201 and made["name"] == f"Smart {sfx}" and made["visibility"] == "private" and made["mode"] == "dynamic"
+              and made["rule"]["filters"]["genres"]["include"] == [genre.lower()], str(made)[:300])
+    ctx.check("…listed and found by id", any(p["id"] == sid for p in req("GET", "/api/v2/smart-playlists")[1]["items"])
+              and req("GET", f"/api/v2/smart-playlists/{sid}")[0] == 200)
+    st, now = req("POST", f"/api/v2/smart-playlists/{sid}/resolve")
+    ctx.check("played: what it holds now", st == 200 and {t["id"] for t in now["items"]} == ids, str(now)[:200])
+    ctx.check("someone else's private one: 404", problem(ctx.request("GET", f"/api/v2/smart-playlists/{sid}", member), 404))
+
+    st, changed = req("PATCH", f"/api/v2/smart-playlists/{sid}", {"name": f"Smarter {sfx}", "rule": dict(rule, limit={"kind": "count", "n": 2})})
+    ctx.check("renamed and given a new rule", st == 200 and changed["name"] == f"Smarter {sfx}" and changed["rule"]["limit"]["n"] == 2)
+    ctx.check("…which now holds two", len(req("POST", f"/api/v2/smart-playlists/{sid}/resolve")[1]["items"]) == 2)
+    ctx.check("an invalid rule in a change: 400 invalid_rule",
+              problem(ctx.request("PATCH", f"/api/v2/smart-playlists/{sid}", tok, {"rule": dict(rule, filters={"min_rating": 9})}), 400, "invalid_rule"))
+
+    if ctx.feature("one_family"):
+        req("PATCH", f"/api/v2/smart-playlists/{sid}", {"visibility": "family"})
+        st, theirs = req("POST", f"/api/v2/smart-playlists/{sid}/resolve", token=member)
+        ctx.check("shared: a member plays it, from what they can see", st == 200 and {t["id"] for t in theirs["items"]} <= ids and len(theirs["items"]) == 2, str(theirs)[:200])
+        ctx.check("a member cannot change or delete it",
+                  problem(ctx.request("PATCH", f"/api/v2/smart-playlists/{sid}", member, {"name": "mine"}), 403)
+                  and problem(ctx.request("DELETE", f"/api/v2/smart-playlists/{sid}", member), 403))
+        st, copy = req("POST", f"/api/v2/smart-playlists/{sid}/freeze", {"name": f"Member copy {sfx}"}, token=member)
+        ctx.check("a member freezes their own copy; the owner's stays living",
+                  st == 201 and copy["owner_id"] != made.get("owner_id") and req("GET", f"/api/v2/smart-playlists/{sid}")[1]["mode"] == "dynamic", str(copy)[:200])
+    else:
+        ctx.skip("a shared smart playlist played by a member", "each account has its own household on this server")
+
+    st, frozen = req("POST", f"/api/v2/smart-playlists/{sid}/freeze", {"name": f"Frozen {sfx}"})
+    ctx.check("frozen into an ordinary playlist with what it held",
+              st == 201 and frozen["name"] == f"Frozen {sfx}" and frozen["track_count"] == 2, str(frozen)[:200])
+    entries = req("GET", f"/api/v2/playlists/{frozen.get('id')}/entries")[1]["items"]
+    ctx.check("…its entries, and the smart playlist marked frozen",
+              {e["track"]["id"] for e in entries} <= ids and len(entries) == 2 and req("GET", f"/api/v2/smart-playlists/{sid}")[1]["mode"] == "frozen")
+    st, empty = req("POST", "/api/v2/smart-playlists", {"name": f"Nothing {sfx}", "rule": dict(rule, filters={"genres": {"include": [f"nosuchgenre{sfx}"]}})})
+    ctx.check("a rule that matches nothing cannot be frozen: 400 empty_result",
+              problem(ctx.request("POST", f"/api/v2/smart-playlists/{empty.get('id')}/freeze", tok, {}), 400, "empty_result"))
+    ctx.check("deleted by its owner, then gone",
+              req("DELETE", f"/api/v2/smart-playlists/{sid}")[0] == 204 and problem(ctx.request("GET", f"/api/v2/smart-playlists/{sid}", tok), 404))
