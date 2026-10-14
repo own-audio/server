@@ -18,7 +18,16 @@ const USER_AGENT: &str = "audio2/0.1 (own.audio; https://own.audio)";
 /// URL this returns is one the caller can actually download — unlike
 /// [`MetadataCandidate::cover_art_url`], which is speculative.
 pub async fn get_cover_art_url(mb_release_id: &str) -> anyhow::Result<Option<String>> {
-    let url = format!("{CAA_BASE}/release/{mb_release_id}/front-500");
+    cover_if_there(format!("{CAA_BASE}/release/{mb_release_id}/front-500")).await
+}
+
+/// A release group's chosen cover — the fallback for an edition that has none
+/// of its own, which many reissues and digital releases do not.
+pub async fn get_group_cover_art_url(mb_release_group_id: &str) -> anyhow::Result<Option<String>> {
+    cover_if_there(format!("{CAA_BASE}/release-group/{mb_release_group_id}/front-500")).await
+}
+
+async fn cover_if_there(url: String) -> anyhow::Result<Option<String>> {
 
     let resp = reqwest::Client::builder()
         .user_agent(USER_AGENT)

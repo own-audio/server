@@ -36,6 +36,7 @@ import {
   type RunScope,
 } from "../../api/identify";
 import { Button, EmptyState, Input, Pill, SegmentedControl, Select, Skeleton, toast } from "../../components/ui";
+import { CoverArchiveThumb } from "../../components/CoverArchiveThumb";
 import { Page } from "../../components/shell/SplitView";
 import { useServerFeatures } from "../../lib/features";
 import { cn } from "../../lib/cn";
@@ -541,6 +542,7 @@ function Editions({ groupId, album: tagAlbum, artist: tagArtist, searchable, onC
       {data.chosen == null && <li className="py-1 text-xs text-muted">{t("music.identifyRuns.noChosenEdition")}</li>}
       {data.editions.map((e) => (
         <li key={e.index} className="flex items-center gap-3 py-1 text-sm">
+          <CoverArchiveThumb release={e.mb_release_id} group={e.mb_release_group_id} size={36} />
           <span className="min-w-0 flex-1 truncate">
             {e.title}{e.year ? ` (${e.year})` : ""}
             <span className="ml-2 text-xs text-muted">
@@ -612,7 +614,9 @@ function ProposalRow({ p, first, focused, onFocus, onChanged }: {
         <p className="truncate text-xs text-muted">{[p.track.artist, p.track.album].filter(Boolean).join(" · ")}</p>
       </div>
       <ArrowRight className="hidden h-4 w-4 text-muted sm:block" />
-      <div className="min-w-0 text-sm">
+      <div className="flex min-w-0 items-center gap-2 text-sm">
+        {x && !p.keep_album && <CoverArchiveThumb release={x.mb_release_id} group={x.mb_release_group_id} size={36} />}
+        <div className="min-w-0 flex-1">
         {x ? (
           <>
             <p className="truncate">
@@ -640,6 +644,7 @@ function ProposalRow({ p, first, focused, onFocus, onChanged }: {
             {t("music.identifyRuns.keepAlbum", { album: p.track.album ?? "" })}
           </label>
         )}
+        </div>
       </div>
       <div className="flex justify-end gap-1">
         {canPick && (
@@ -724,6 +729,7 @@ function Recordings({ p, onChosen }: { p: Proposal; onChosen: () => void }) {
             const off = !!songMs && !!c.duration_ms && Math.abs(c.duration_ms - songMs) > 5000;
             return (
               <li key={key} className="flex items-center gap-3 py-1 text-sm">
+                <CoverArchiveThumb release={c.mb_release_id} size={32} />
                 <span className="min-w-0 flex-1 truncate">
                   {c.title}
                   <span className="ml-2 text-xs text-muted">{[c.artist, c.album, c.year].filter(Boolean).join(" · ")}</span>

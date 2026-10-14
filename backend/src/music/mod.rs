@@ -1912,6 +1912,7 @@ pub(crate) async fn apply_cover_art(
 ) {
     let query = crate::metadata::cover_art::CoverQuery {
         mb_release_id: recording.mb_release_id.as_deref(),
+        mb_release_group_id: recording.mb_release_group_id.as_deref(),
         artist: recording.artist.as_deref(),
         album: recording.album.as_deref(),
     };
@@ -1966,6 +1967,88 @@ pub(crate) async fn apply_cover_art(
         return;
     }
     let _ = tx.commit().await;
+}
+
+/// A song just identified as a release's track: the release's cover goes on it.
+pub(crate) struct ReleaseCover {
+    pub track_id: Uuid,
+    pub release_id: Option<String>,
+    pub release_group_id: Option<String>,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+}
+
+/// After an identify, in the background: each release's cover fetched once
+/// (Cover Art Archive first, then the search providers) and put on its songs,
+/// replacing what they had — the change is in `edit`'s batch of the history,
+/// so undoing the identify's batch undoes it too. A release with no cover
+/// anywhere leaves its songs as they are. Stored under the release, not the
+/// song, so an earlier cover's bytes are never overwritten and an undo shows
+/// it again.
+pub(crate) fn spawn_release_covers(state: AppState, family_id: Uuid, user_id: Uuid, items: Vec<ReleaseCover>, edit: db::edits::Edit) {
+    if items.is_empty() {
+        return;
+    }
+    tokio::spawn(async move {
+        let mut groups: std::collections::BTreeMap<String, Vec<&ReleaseCover>> = std::collections::BTreeMap::new();
+        for item in &items {
+            let key = match (&item.release_id, &item.album) {
+                (Some(r), _) => format!("release-{r}"),
+                (None, Some(album)) => format!(
+                    "album-{:x}",
+                    name_hash(&format!("{}\u{1f}{album}", item.artist.as_deref().unwrap_or("")))
+                ),
+                (None, None) => continue,
+            };
+            groups.entry(key).or_default().push(item);
+        }
+        for (key, songs) in groups {
+            let first = songs[0];
+            let query = crate::metadata::cover_art::CoverQuery {
+                mb_release_id: first.release_id.as_deref(),
+                mb_release_group_id: first.release_group_id.as_deref(),
+                artist: first.artist.as_deref(),
+                album: first.album.as_deref(),
+            };
+            let Some(cover) = crate::metadata::cover_art::resolve(&query).await else {
+                tracing::debug!(%key, "no cover for the release; songs keep theirs");
+                continue;
+            };
+            let ext = cover.format.extension();
+            let Ok(temp_file) = NamedTempFile::new() else { continue };
+            if tokio::fs::write(temp_file.path(), &cover.bytes).await.is_err() {
+                continue;
+            }
+            let upload = TempUpload {
+                file_name: format!("cover.{ext}"),
+                temp_file,
+                content_type: cover.format.content_type().to_string(),
+                size_bytes: cover.bytes.len() as i64,
+            };
+            let object_key = crate::storage::family_key(family_id, format!("music/{user_id}/covers/{key}.{ext}"));
+            let Ok(mut tx) = state.db().begin().await else { continue };
+            let Ok(media_id) = store_temp_upload(state.storage(), &mut tx, &object_key, &upload).await else { continue };
+            if db::edits::mark(&mut tx, &edit).await.is_err() {
+                continue;
+            }
+            for song in &songs {
+                if let Err(e) = db::music::update_track_cover(&mut *tx, song.track_id, user_id, media_id).await {
+                    tracing::warn!(track_id = %song.track_id, "release cover: {e:#}");
+                }
+            }
+            if tx.commit().await.is_ok() {
+                tracing::info!(%key, songs = songs.len(), source = cover.source, "release cover set");
+            }
+        }
+    });
+}
+
+/// A short name for an artist and album without a release id.
+fn name_hash(s: &str) -> u64 {
+    use std::hash::{Hash, Hasher};
+    let mut h = std::collections::hash_map::DefaultHasher::new();
+    s.hash(&mut h);
+    h.finish()
 }
 
 /// Moves the track to the trash (30 days); its bytes stay until the purge.

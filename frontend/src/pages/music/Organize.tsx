@@ -31,6 +31,7 @@ import {
   type TrackFields,
 } from "../../api/organize";
 import { identifyError } from "../../api/identify";
+import { CoverArchiveThumb } from "../../components/CoverArchiveThumb";
 import { Button, Dialog, DialogContent, Input, Pill, SegmentedControl, Skeleton, toast } from "../../components/ui";
 import { useServerFeatures } from "../../lib/features";
 import { cn } from "../../lib/cn";
@@ -582,9 +583,12 @@ function OneSong({ song, onApplied }: { song: OrganizeTrack; onApplied: () => vo
       <ul className="space-y-1">
         {(search.data ?? []).map((c) => (
           <li key={`${c.mb_recording_id}/${c.mb_release_id ?? ""}`} className="rounded-card border border-border">
-            <button type="button" className="w-full px-2 py-1.5 text-left hover:bg-bg-alt" onClick={() => setOpen(open === c ? null : c)}>
-              <span className="block truncate">{c.title}</span>
-              <span className="block truncate text-xs text-muted">{[c.artist, c.album, c.year].filter(Boolean).join(" · ")} {c.duration_ms ? `· ${clock(c.duration_ms / 1000)}` : ""}</span>
+            <button type="button" className="flex w-full items-center gap-2 px-2 py-1.5 text-left hover:bg-bg-alt" onClick={() => setOpen(open === c ? null : c)}>
+              <CoverArchiveThumb release={c.mb_release_id} size={36} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate">{c.title}</span>
+                <span className="block truncate text-xs text-muted">{[c.artist, c.album, c.year].filter(Boolean).join(" · ")} {c.duration_ms ? `· ${clock(c.duration_ms / 1000)}` : ""}</span>
+              </span>
             </button>
             {open === c && (
               <div className="border-t border-border p-2">
@@ -678,11 +682,14 @@ function ManySongs({ songs, onApplied }: { songs: OrganizeTrack[]; onApplied: ()
               <button
                 type="button"
                 onClick={() => setChosen(r)}
-                className={cn("w-full rounded-card border border-border px-2 py-1.5 text-left hover:bg-bg-alt", chosen === r && "border-accent bg-accent/5")}
+                className={cn("flex w-full items-center gap-2 rounded-card border border-border px-2 py-1.5 text-left hover:bg-bg-alt", chosen === r && "border-accent bg-accent/5")}
               >
-                <span className="block truncate">{r.title}{r.year ? ` (${r.year})` : ""}</span>
-                <span className="block truncate text-xs text-muted">
-                  {[r.artist, t("music.organize.mb.tracks", { tracks: r.track_count, matched: r.matched }), ...r.secondary_types].filter(Boolean).join(" · ")}
+                <CoverArchiveThumb release={r.mb_release_id} group={r.mb_release_group_id} size={44} />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{r.title}{r.year ? ` (${r.year})` : ""}</span>
+                  <span className="block truncate text-xs text-muted">
+                    {[r.artist, t("music.organize.mb.tracks", { tracks: r.track_count, matched: r.matched }), ...r.secondary_types].filter(Boolean).join(" · ")}
+                  </span>
                 </span>
               </button>
             </li>

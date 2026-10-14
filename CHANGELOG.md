@@ -7,6 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.19] - 2026-10-14
+
+### Changed
+- **An identify brings the release's cover.** Accepting a run's proposal (one, an album's, every
+  sure one, a picked recording) and `PUT /api/v2/tracks/{id}/identity` put the release's cover on
+  the songs, in the background, replacing what they had when a cover is found; one fetch per
+  release, kept under the release so an undo shows the earlier cover again, and in the
+  identify's batch of the history. A compilation's song kept on its own album keeps its cover.
+  `PUT …/identity` takes `fetch_cover: false` to skip it. Until now only the web console's single
+  identify fetched a cover, and only when asked.
+- Covers fall back to the release group's front on Cover Art Archive when the release has none of
+  its own, which many reissues and digital editions do not.
+- The console shows each match's cover — proposals, editions, recordings and releases, in Identify
+  and in the organizer.
+
 ## [1.0.0-beta.18] - 2026-10-14
 
 ### Added

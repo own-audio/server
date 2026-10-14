@@ -228,11 +228,25 @@ def own_words(ctx, proposal, other):
     again = ctx.call("POST", f"/api/v2/tracks/{tid}/identity/search", ctx.admin_token, body=words).get("items", [])
     ctx.check("any track can be searched for with the owner's words", isinstance(again, list) and len(again) >= 1)
     ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", other, body={"recording": pick["mb_recording_id"]}, expect=(403, 404))
-    track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token, body={"recording": pick["mb_recording_id"]})
+    track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token,
+                     body={"recording": pick["mb_recording_id"], "release": pick.get("mb_release_id")})
     ctx.check("any track can be identified as a recording", track.get("id") == tid, str(track)[:120])
+    if ctx.server["api"]["revision"] >= 15:
+        # The release's cover follows in the background, in the identify's batch.
+        deadline = time.time() + 30
+        cover = []
+        while time.time() < deadline and not cover:
+            time.sleep(2)
+            cover = [e for e in ctx.call("GET", f"/api/v2/edits?item_kind=track&item_id={tid}&limit=10", ctx.admin_token)["items"]
+                     if "cover_object_id" in e["after"] and e["source"] == "identify"]
+        if cover:
+            ctx.check("the release's cover comes with an identify, in its batch", cover[0]["after"]["cover_object_id"] is not None)
+        else:
+            ctx.skip("release cover", "no cover for the release from the cover sources in time")
     ctx.call("DELETE", f"/api/v2/tracks/{tid}/identity", ctx.admin_token)
     if ctx.server["api"]["revision"] >= 15:
-        hist = ctx.call("GET", f"/api/v2/edits?item_kind=track&item_id={tid}&limit=5", ctx.admin_token).get("items", [])
+        hist = [e for e in ctx.call("GET", f"/api/v2/edits?item_kind=track&item_id={tid}&limit=10", ctx.admin_token).get("items", [])
+                if "musicbrainz_recording_id" in e["after"]]
         ctx.check("identifying and undoing it are in the song's history",
                   [e["source"] for e in hist[:2]] == ["revert", "identify"]
                   and hist[1]["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"], str(hist[:2])[:300])

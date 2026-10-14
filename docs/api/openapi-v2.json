@@ -6388,7 +6388,7 @@
           {
             "properties": {
               "fetch_cover": {
-                "description": "Also fetch the release's cover for the track.",
+                "description": "Put the release's cover on it, in the background; `true` unless sent.",
                 "type": "boolean"
               }
             },

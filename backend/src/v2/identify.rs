@@ -290,11 +290,16 @@ pub async fn accept_all(family: FamilyContext, State(state): State<AppState>, Pa
         return Err(Problem::bad_request("invalid_class", "only sure proposals are accepted in bulk").field("/class", "invalid", "sure"));
     }
     let mut accepted = 0;
+    let mut rows = Vec::new();
     for pid in db::identify::pending_ids(state.db(), run.id, "sure").await? {
         if identify_runs::accept(state.db(), family.user_id, pid).await? == AcceptOutcome::Accepted {
             accepted += 1;
+            if let Some(row) = db::identify::find_proposal(state.db(), pid).await? {
+                rows.push(row);
+            }
         }
     }
+    covers_after_accept(&state, &family, run.id, &rows);
     Ok(Json(Accepted { accepted }))
 }
 
@@ -403,6 +408,28 @@ pub async fn list_proposals(
     Ok(Json(page))
 }
 
+/// After accepting: the accepted songs' release covers, in the background, in
+/// the run's batch of the history. A compilation's song kept on its own album
+/// keeps its cover.
+fn covers_after_accept(state: &AppState, family: &FamilyContext, run_id: Uuid, accepted: &[db::identify::ProposalRow]) {
+    let items = accepted
+        .iter()
+        .filter(|p| p.decision == "accepted" && !p.keep_album)
+        .filter_map(|p| {
+            let x: ProposedTrack = serde_json::from_value(p.proposal.clone()?).ok()?;
+            Some(crate::music::ReleaseCover {
+                track_id: p.track_id,
+                release_id: x.mb_release_id,
+                release_group_id: x.mb_release_group_id,
+                artist: x.album_artist.or(x.artist),
+                album: x.album,
+            })
+        })
+        .collect();
+    let edit = db::edits::Edit::in_batch(family.user_id, "run", run_id);
+    crate::music::spawn_release_covers(state.clone(), family.family_id, family.user_id, items, edit);
+}
+
 async fn own_proposal(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<db::identify::ProposalRow, Problem> {
     let p = db::identify::find_proposal(state.db(), id).await?.ok_or_else(Problem::not_found)?;
     own_run(state, family, p.run_id).await?;
@@ -423,7 +450,9 @@ pub async fn accept(family: FamilyContext, State(state): State<AppState>, Path(i
         AcceptOutcome::AlreadyDecided => return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was already accepted or rejected")),
         AcceptOutcome::NothingProposed => return Err(Problem::new(StatusCode::CONFLICT, "nothing_proposed").detail("nothing was found for this track")),
     }
-    Ok(Json(proposal_out(own_proposal(&state, &family, id).await?)))
+    let row = own_proposal(&state, &family, id).await?;
+    covers_after_accept(&state, &family, row.run_id, std::slice::from_ref(&row));
+    Ok(Json(proposal_out(row)))
 }
 
 /// Leave the track as it is.
@@ -732,7 +761,11 @@ pub async fn choose_recording(family: FamilyContext, State(state): State<AppStat
     if body.accept {
         identify_runs::accept(state.db(), family.user_id, id).await?;
     }
-    Ok(Json(proposal_out(own_proposal(&state, &family, id).await?)))
+    let row = own_proposal(&state, &family, id).await?;
+    if body.accept {
+        covers_after_accept(&state, &family, row.run_id, std::slice::from_ref(&row));
+    }
+    Ok(Json(proposal_out(row)))
 }
 
 async fn own_track(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<db::catalog::TrackRow, Problem> {
@@ -760,9 +793,13 @@ pub async fn search_track(family: FamilyContext, State(state): State<AppState>, 
 pub struct TrackIdentity {
     #[serde(flatten)]
     pub choice: RecordingChoice,
-    /// Also fetch the release's cover for the track.
-    #[serde(default)]
+    /// Put the release's cover on it, in the background; `true` unless sent.
+    #[serde(default = "yes")]
     pub fetch_cover: bool,
+}
+
+fn yes() -> bool {
+    true
 }
 
 /// Identify one of your tracks as a MusicBrainz recording: its title, artist,
@@ -781,6 +818,7 @@ pub async fn identify_track(family: FamilyContext, State(state): State<AppState>
     let (recording, release) = parse_choice(&body.choice)?;
     let detail = source(&state)?.recording(&recording, release.as_deref()).await?;
     let track = db::music::find_track_owned(state.db(), id, family.user_id).await?.ok_or_else(Problem::not_found)?;
+    let batch = Uuid::new_v4();
     db::music::apply_musicbrainz_metadata(
         state.db(),
         id,
@@ -796,11 +834,19 @@ pub async fn identify_track(family: FamilyContext, State(state): State<AppState>
         detail.album_artist.as_deref(),
         detail.mb_release_group_id.as_deref(),
         None,
-        None,
+        Some(batch),
     )
     .await?;
     if body.fetch_cover {
-        crate::music::apply_cover_art(&state, &family, id, &detail).await;
+        let cover = crate::music::ReleaseCover {
+            track_id: id,
+            release_id: detail.mb_release_id.clone(),
+            release_group_id: detail.mb_release_group_id.clone(),
+            artist: detail.album_artist.clone().or(detail.artist.clone()),
+            album: detail.album.clone(),
+        };
+        let edit = db::edits::Edit::in_batch(family.user_id, "identify", batch);
+        crate::music::spawn_release_covers(state.clone(), family.family_id, family.user_id, vec![cover], edit);
     }
     let row = db::catalog::find_track(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
     let track = crate::v2::music::tracks(&state, vec![row]).await?.pop().ok_or_else(Problem::not_found)?;

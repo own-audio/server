@@ -32,6 +32,7 @@ export interface ProposedTrack {
   album?: string | null;
   album_artist?: string | null;
   mb_release_id?: string | null;
+  mb_release_group_id?: string | null;
   track_number?: number | null;
   disc_number?: number | null;
   year?: number | null;
@@ -83,6 +84,7 @@ export interface RecordingSearch {
 export interface Edition {
   index: number;
   mb_release_id: string;
+  mb_release_group_id?: string | null;
   title: string;
   artist?: string | null;
   year?: number | null;

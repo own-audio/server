@@ -41,6 +41,8 @@ const THIRD_PARTY_SPACING: Duration = Duration::from_millis(3000);
 #[derive(Debug, Clone, Copy)]
 pub struct CoverQuery<'a> {
     pub mb_release_id: Option<&'a str>,
+    /// For the release group's cover when the release has none.
+    pub mb_release_group_id: Option<&'a str>,
     pub artist: Option<&'a str>,
     pub album: Option<&'a str>,
 }
@@ -94,11 +96,13 @@ impl CoverArtProvider for CoverArtArchive {
     }
 
     async fn find(&self, query: &CoverQuery<'_>) -> Option<String> {
-        let release_id = query.mb_release_id?;
-        super::musicbrainz::get_cover_art_url(release_id)
-            .await
-            .ok()
-            .flatten()
+        if let Some(release) = query.mb_release_id {
+            if let Some(url) = super::musicbrainz::get_cover_art_url(release).await.ok().flatten() {
+                return Some(url);
+            }
+        }
+        let group = query.mb_release_group_id?;
+        super::musicbrainz::get_group_cover_art_url(group).await.ok().flatten()
     }
 }
 
@@ -302,6 +306,7 @@ mod tests {
     fn search_term_needs_both_artist_and_album() {
         let both = CoverQuery {
             mb_release_id: None,
+            mb_release_group_id: None,
             artist: Some("Pixies"),
             album: Some("Doolittle"),
         };
@@ -309,6 +314,7 @@ mod tests {
 
         let album_only = CoverQuery {
             mb_release_id: None,
+            mb_release_group_id: None,
             artist: None,
             album: Some("Greatest Hits"),
         };
@@ -316,6 +322,7 @@ mod tests {
 
         let blank = CoverQuery {
             mb_release_id: None,
+            mb_release_group_id: None,
             artist: Some("   "),
             album: Some("Doolittle"),
         };

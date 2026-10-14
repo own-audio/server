@@ -473,6 +473,7 @@ pub async fn apply_release(family: FamilyContext, State(state): State<AppState>,
     let batch = Uuid::new_v4();
     let edit = db::edits::Edit::in_batch(family.user_id, "identify", batch);
     let mut updated = 0;
+    let mut covers = Vec::new();
     for (id, recording, disc) in pairs {
         let Some(track) = db::music::find_track_owned(state.db(), id, family.user_id).await? else { continue };
         let detail = source.recording(&recording, Some(&release)).await?;
@@ -501,28 +502,17 @@ pub async fn apply_release(family: FamilyContext, State(state): State<AppState>,
             tx.commit().await.map_err(anyhow::Error::from)?;
         }
         if body.fetch_cover {
-            let cover = |pool| async move {
-                sqlx::query_scalar::<_, Option<Uuid>>("SELECT cover_object_id FROM music_tracks_all WHERE id = $1")
-                    .bind(id)
-                    .fetch_one(pool)
-                    .await
-                    .map_err(anyhow::Error::from)
-            };
-            let before = cover(state.db()).await?;
-            crate::music::apply_cover_art(&state, &family, id, &detail).await;
-            let after = cover(state.db()).await?;
-            db::edits::record(
-                state.db(),
-                "track",
-                id,
-                Some(family.family_id),
-                &edit,
-                serde_json::json!({ "cover_object_id": before }),
-                serde_json::json!({ "cover_object_id": after }),
-            )
-            .await?;
+            covers.push(crate::music::ReleaseCover {
+                track_id: id,
+                release_id: detail.mb_release_id.clone(),
+                release_group_id: detail.mb_release_group_id.clone(),
+                artist: detail.album_artist.clone().or(detail.artist.clone()),
+                album: detail.album.clone(),
+            });
         }
         updated += 1;
     }
+    // One cover for the release, on all its songs, in the background.
+    crate::music::spawn_release_covers(state.clone(), family.family_id, family.user_id, covers, edit);
     Ok(Json(Saved { updated, batch_id: batch }))
 }
