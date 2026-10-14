@@ -94,14 +94,18 @@ pub async fn image(State(state): State<AppState>, Path(id): Path<Uuid>, Query(q)
             return Err(Problem::bad_request("invalid_size", "w is 64, 128, 256, 512 or 1024").field("w", "invalid", w.to_string()));
         }
     }
+    let cache_key = format!("{id}/{}", q.w.unwrap_or(0));
+    if let Some((bytes, content_type)) = cache::get(&cache_key) {
+        return Ok(answer(bytes, content_type));
+    }
     let (object_key, content_type) = crate::db::subsonic::media_object_key_and_type(state.db(), id).await?.ok_or_else(Problem::not_found)?;
     let store = state.storage();
     let (bytes, content_type) = match q.w {
         None => (store.get(&object_key).await?, content_type),
         Some(w) => {
             let derived = format!("derived/images/{id}/{w}.jpg");
-            match store.head_object(&derived).await? {
-                Some(_) => (store.get(&derived).await?, "image/jpeg".to_string()),
+            match store.get_optional(&derived).await? {
+                Some(bytes) => (bytes, "image/jpeg".to_string()),
                 None => {
                     let original = store.get(&object_key).await?;
                     let scaled = tokio::task::spawn_blocking({
@@ -125,11 +129,87 @@ pub async fn image(State(state): State<AppState>, Path(id): Path<Uuid>, Query(q)
             }
         }
     };
-    Ok((
+    cache::put(cache_key, bytes.clone(), content_type.clone());
+    Ok(answer(bytes, content_type))
+}
+
+fn answer(bytes: Bytes, content_type: String) -> Response {
+    (
         [(header::CONTENT_TYPE, content_type), (header::CACHE_CONTROL, "public, max-age=31536000, immutable".to_string())],
         Body::from(bytes),
     )
-        .into_response())
+        .into_response()
+}
+
+/// Images served lately, in memory. A screen of covers asks for the same few
+/// dozen again and again, and each answer otherwise costs the store a request —
+/// a round trip to R2 on the hosted service. An object never changes (a new
+/// cover is a new object), so nothing kept here goes stale; the oldest go
+/// when the budget is full.
+mod cache {
+    use bytes::Bytes;
+    use std::collections::{HashMap, VecDeque};
+    use std::sync::{LazyLock, Mutex};
+
+    const BUDGET: usize = 32 * 1024 * 1024;
+    /// Larger than this (an original photo) is served but not kept.
+    const LARGEST: usize = BUDGET / 16;
+
+    #[derive(Default)]
+    struct Kept {
+        entries: HashMap<String, (Bytes, String)>,
+        order: VecDeque<String>,
+        bytes: usize,
+    }
+
+    static KEPT: LazyLock<Mutex<Kept>> = LazyLock::new(|| Mutex::new(Kept::default()));
+
+    pub fn get(key: &str) -> Option<(Bytes, String)> {
+        let mut kept = KEPT.lock().ok()?;
+        let found = kept.entries.get(key).cloned()?;
+        if let Some(at) = kept.order.iter().position(|k| k == key) {
+            let k = kept.order.remove(at)?;
+            kept.order.push_back(k);
+        }
+        Some(found)
+    }
+
+    pub fn put(key: String, bytes: Bytes, content_type: String) {
+        if bytes.len() > LARGEST {
+            return;
+        }
+        let Ok(mut kept) = KEPT.lock() else { return };
+        if kept.entries.contains_key(&key) {
+            return;
+        }
+        kept.bytes += bytes.len();
+        kept.order.push_back(key.clone());
+        kept.entries.insert(key, (bytes, content_type));
+        while kept.bytes > BUDGET {
+            let Some(oldest) = kept.order.pop_front() else { break };
+            if let Some((gone, _)) = kept.entries.remove(&oldest) {
+                kept.bytes -= gone.len();
+            }
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::*;
+
+        #[test]
+        fn keeps_what_was_served_and_lets_the_oldest_go() {
+            put("a/0".into(), Bytes::from_static(b"one"), "image/png".into());
+            assert_eq!(get("a/0").map(|(b, t)| (b, t)), Some((Bytes::from_static(b"one"), "image/png".to_string())));
+            put("big/0".into(), Bytes::from(vec![0u8; LARGEST + 1]), "image/jpeg".into());
+            assert!(get("big/0").is_none(), "an original photo is not kept");
+            for i in 0..20 {
+                put(format!("fill/{i}"), Bytes::from(vec![0u8; LARGEST]), "image/jpeg".into());
+            }
+            assert!(get("a/0").is_none(), "the oldest went once the budget was full");
+            assert!(get("fill/19").is_some());
+        }
+    }
 }
 
 #[cfg(test)]

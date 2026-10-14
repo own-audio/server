@@ -463,6 +463,15 @@ pub async fn media_object_key(pool: &PgPool, object_id: Uuid) -> anyhow::Result<
 
 /// (object_key, content_type) for a media object — used to proxy cover art
 /// bytes for `getCoverArt`.
+/// `media_object_key_and_type` with the size the upload recorded, when it did.
+pub async fn media_object_key_type_size(pool: &PgPool, object_id: Uuid) -> anyhow::Result<Option<(String, String, Option<i64>)>> {
+    sqlx::query_as::<_, (String, String, Option<i64>)>("SELECT object_key, content_type, size_bytes FROM media_objects WHERE id = $1")
+        .bind(object_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: media object key, content type and size")
+}
+
 pub async fn media_object_key_and_type(
     pool: &PgPool,
     object_id: Uuid,

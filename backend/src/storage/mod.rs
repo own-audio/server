@@ -246,6 +246,23 @@ impl ObjectStore {
         Ok(bytes)
     }
 
+    /// `get`, with a missing object as `None`: one request where `head_object`
+    /// then `get` would be two (each a round trip to a remote store).
+    pub async fn get_optional(&self, key: &str) -> anyhow::Result<Option<Bytes>> {
+        if let Some(path) = self.file_for(key) {
+            return match tokio::fs::read(path?).await {
+                Ok(data) => Ok(Some(Bytes::from(data))),
+                Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+                Err(e) => Err(anyhow::Error::from(e).context("object store get failed")),
+            };
+        }
+        match self.client.get_object().bucket(&self.bucket).key(key).send().await {
+            Ok(output) => Ok(Some(output.body.collect().await.context("read object body")?.into_bytes())),
+            Err(err) if err.as_service_error().map(|e| e.is_no_such_key()).unwrap_or(false) => Ok(None),
+            Err(err) => Err(anyhow::Error::from(err).context("object store get failed")),
+        }
+    }
+
     /// Stream an object into a temporary file, for reading what needs a whole
     /// file on disk (tags) without holding it in memory — see `sha256_hex`.
     pub async fn download_to_temp(&self, key: &str) -> anyhow::Result<tempfile::NamedTempFile> {

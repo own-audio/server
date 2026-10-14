@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- Fewer round trips to object storage, which on a remote store (R2, S3) are most of a
+  request's time: a resized cover is read in one request instead of a check and a read
+  (`Storage::get_optional`), the covers served lately are kept in memory (32 MB, the oldest
+  go first; an image never changes, so nothing kept goes stale), and `playback-info` takes a
+  file's size from the database rather than asking the store, where the upload recorded it.
+
 ### Fixed
 
 - Conformance suite: the organizer suite skips on a server with none of the admin's songs

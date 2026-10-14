@@ -158,8 +158,13 @@ async fn source(state: &AppState, viewer: Viewer, item: &str) -> Result<Option<S
         (_, object) => object,
     };
     let Some(object) = object else { return Ok(None) };
-    let Some((key, content_type)) = db::subsonic::media_object_key_and_type(pool, object).await? else { return Ok(None) };
-    let size = state.storage().head_object(&key).await?.map_or(0, |(size, _)| size);
+    let Some((key, content_type, recorded)) = db::subsonic::media_object_key_type_size(pool, object).await? else { return Ok(None) };
+    // The size the upload recorded; asking the store (a round trip to R2 on the
+    // hosted service) only for an object that has none.
+    let size = match recorded {
+        Some(size) if size > 0 => size,
+        _ => state.storage().head_object(&key).await?.map_or(0, |(size, _)| size),
+    };
     Ok(Some(Source::Stored { key, size, content_type, duration_secs }))
 }
 
