@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.20] - 2026-10-14
+
 ### Changed
 
 - Fewer round trips to object storage, which on a remote store (R2, S3) are most of a
