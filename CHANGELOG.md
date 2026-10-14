@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Conformance suite: the organizer suite skips on a server with none of the admin's songs
+  instead of failing; with the fixture library, the mobile suite checks the album its songs
+  went to, and the organizer accepts the release's cover arriving in the undone batch.
+
 ## [1.0.0-beta.19] - 2026-10-14
 
 ### Changed

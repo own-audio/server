@@ -17,6 +17,10 @@ def run(ctx):
         return
     facets = ctx.call("GET", "/api/v2/organize/facets", ctx.admin_token)
     counts = facets.get("counts") or {}
+    if counts.get("all", 0) == 0:
+        # No fixture library: nothing of the admin's to organise, as on a fresh server.
+        ctx.skip("organizer", "no songs of the admin's (run on the fixture library)")
+        return
     ctx.check("facets count the songs and the quick filters",
               counts.get("all", 0) >= 3 and all(k in counts for k in ("unidentified", "no_cover", "no_year", "no_genre", "edited")),
               str(counts))
@@ -156,7 +160,9 @@ def releases_and_artists(ctx, songs):
     back = ctx.call("POST", f"/api/v2/edits/batches/{applied['batch_id']}/undo", ctx.admin_token)
     now = next(s for s in ctx.call("GET", "/api/v2/organize/tracks?limit=500", ctx.admin_token)["items"] if s["id"] == ids[0])
     ctx.check("and undone, the song is as it was, unidentified",
-              back.get("items") == 1 and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None
+              # One edit, or two when the release's cover (fetched in the background since
+              # revision 15) came in before the undo; both are undone.
+              back.get("items") in (1, 2) and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None
               and now["identity"] is None, str((back, now["title"], now["identity"])))
 
     artists = ctx.call("GET", "/api/v2/contributors?limit=50", ctx.admin_token).get("items", [])

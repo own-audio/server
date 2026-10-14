@@ -99,7 +99,9 @@ def run(ctx) -> None:
                   f"artist={mine!r}")
         albums = ctx.call("GET", "/api/v1/music/albums?artist=Test%20Artist", tok)
         ctx.check("albums filter by artist", all(a["artist"] == "Test Artist" for a in albums))
-        ctx.check("album reports its track count", bool(albums) and albums[0]["track_count"] >= 2,
+        # The album its songs went to; a fixture library may hold others by the same artist.
+        album = next((a for a in albums if a["album"] == "Test Album"), None)
+        ctx.check("album reports its track count", album is not None and album["track_count"] >= 2,
                   f"albums={albums!r}")
         genres = ctx.call("GET", "/api/v1/music/genres", tok)
         ctx.check("genre appears", any(g["genre"] == "Testing" for g in genres))
