@@ -200,7 +200,7 @@ mod cache {
         #[test]
         fn keeps_what_was_served_and_lets_the_oldest_go() {
             put("a/0".into(), Bytes::from_static(b"one"), "image/png".into());
-            assert_eq!(get("a/0").map(|(b, t)| (b, t)), Some((Bytes::from_static(b"one"), "image/png".to_string())));
+            assert_eq!(get("a/0"), Some((Bytes::from_static(b"one"), "image/png".to_string())));
             put("big/0".into(), Bytes::from(vec![0u8; LARGEST + 1]), "image/jpeg".into());
             assert!(get("big/0").is_none(), "an original photo is not kept");
             for i in 0..20 {
