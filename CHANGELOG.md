@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- The organizer is called *Identify music* in the console, opens on the songs not yet
+  identified, and the sidebar lights only its own entry while it is open, not *Music* as well.
+
 ## [1.0.0-beta.22] - 2026-10-15
 
 ### Added

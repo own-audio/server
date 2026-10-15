@@ -83,7 +83,8 @@ export default function OrganizePage() {
   const { t } = useT();
   const qc = useQueryClient();
   const [view, setView] = useState<View>("songs");
-  const [filter, setFilter] = useState<OrganizeFilter>({});
+  // Opens on the songs that need the most work.
+  const [filter, setFilter] = useState<OrganizeFilter>({ unidentified: true });
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [drafts, setDrafts] = useState<Drafts>({});

@@ -30,6 +30,8 @@ interface Item {
   icon: React.ReactNode;
   cloud?: Cloud;
   end?: boolean;
+  /** Paths under `to` that belong to another item, so two are never lit at once. */
+  except?: string[];
   /** A small pill after the label ("New"), hidden on the collapsed rail. */
   badge?: string;
 }
@@ -37,7 +39,7 @@ interface Item {
 const library: Item[] = [
   { to: "/audiobooks", label: "common.kind.audiobooks", icon: <BookIcon />, cloud: "book" },
   { to: "/podcasts", label: "common.kind.podcasts", icon: <PodcastIcon />, cloud: "podcast" },
-  { to: "/music", label: "common.kind.music", icon: <MusicIcon />, cloud: "music" },
+  { to: "/music", label: "common.kind.music", icon: <MusicIcon />, cloud: "music", except: ["/music/organize"] },
 ];
 
 /* Active colour follows the cloud the section belongs to; sections that
@@ -62,7 +64,9 @@ function NavItem({ item, collapsed, nowPlaying }: { item: Item; collapsed: boole
      literal source of itself. Every tooltip-wrapped link silently lost all of
      its classes: no width, no centring, no active colour. A plain string
      className survives the merge. */
-  const active = useMatch({ path: item.to, end: item.end ?? false }) !== null;
+  const { pathname } = useLocation();
+  const active = useMatch({ path: item.to, end: item.end ?? false }) !== null
+    && !(item.except ?? []).some((p) => pathname === p || pathname.startsWith(p + "/"));
 
   const link = (
     <NavLink
