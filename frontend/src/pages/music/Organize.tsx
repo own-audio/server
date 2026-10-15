@@ -122,6 +122,13 @@ export default function OrganizePage() {
     qc.invalidateQueries({ queryKey: ["organize-batches"] });
   }
 
+  /** After an identify: the server fetches the release's cover in the background and
+   *  answers before it has it, so the table looks again a little later. */
+  function refreshAfterIdentify() {
+    refresh();
+    for (const ms of [4000, 12000]) setTimeout(refresh, ms);
+  }
+
   const draftCount = Object.keys(drafts).length;
   const save = useMutation({
     mutationFn: () => saveTracks(Object.entries(drafts).map(([id, f]) => ({ id, ...f }))),
@@ -235,7 +242,7 @@ export default function OrganizePage() {
             )}
           </section>
 
-          <MusicBrainzPane chosen={chosen} artist={filter.artist} onApplied={refresh} onArtistRenamed={(name) => setFilter((f) => ({ ...f, artist: name }))} />
+          <MusicBrainzPane chosen={chosen} artist={filter.artist} onApplied={refreshAfterIdentify} onArtistRenamed={(name) => setFilter((f) => ({ ...f, artist: name }))} />
         </div>
       )}
 

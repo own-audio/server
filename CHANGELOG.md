@@ -14,6 +14,12 @@ semver. Each release states the **API contract revision** it serves
   duplicates" is how you tell them apart. A click anywhere on a row selects it (shift for a
   range), and the checkboxes wear the console's accent.
 
+### Fixed
+
+- The organizer's table shows the cover an identify brought: the server fetches it in the
+  background after answering, and the table looked only once, too early; now it looks again a
+  few seconds later.
+
 ### Security
 
 - rustls 0.23.46: RUSTSEC-2026-0346 to 0349 (session values' `Debug` output, ECH rejection,
