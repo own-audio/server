@@ -377,6 +377,7 @@ function SongTable({ rows, loading, drafts, selected, setSelected, setDraft, sor
             <th className="w-20 px-2 py-1.5">
               <input
                 type="checkbox"
+                className="h-4 w-4 accent-[var(--accent)]"
                 aria-label={t("music.organize.selectAll")}
                 checked={allSelected}
                 onChange={() => setSelected(allSelected ? new Set() : new Set(rows.map((r) => r.id)))}
@@ -399,10 +400,19 @@ function SongTable({ rows, loading, drafts, selected, setSelected, setDraft, sor
           {rows.map((r, i) => {
             const draft = drafts[r.id] ?? {};
             return (
-              <tr key={r.id} className={cn("group border-b border-border/60 hover:bg-bg-alt/60", selected.has(r.id) && "bg-accent/5")}>
+              <tr
+                key={r.id}
+                className={cn("group cursor-default border-b border-border/60 hover:bg-bg-alt/60", selected.has(r.id) && "bg-accent/5")}
+                onClick={(e) => {
+                  // A click on the row selects it; the checkbox, the play button and a cell
+                  // being edited handle their own clicks.
+                  if ((e.target as HTMLElement).closest("input, button")) return;
+                  toggle(i, e.shiftKey);
+                }}
+              >
                 <td className="px-2 py-1">
                   <div className="flex items-center gap-1.5">
-                    <input type="checkbox" aria-label={r.title} checked={selected.has(r.id)} onChange={(e) => toggle(i, (e.nativeEvent as MouseEvent).shiftKey)} />
+                    <input type="checkbox" className="h-4 w-4 accent-[var(--accent)]" aria-label={r.title} checked={selected.has(r.id)} onChange={(e) => toggle(i, (e.nativeEvent as MouseEvent).shiftKey)} />
                     {/* The library rows' control: play and pause over the cover,
                         shown on hover and kept visible for the song playing. */}
                     <div className="relative shrink-0">

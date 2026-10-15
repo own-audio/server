@@ -11,7 +11,8 @@ semver. Each release states the **API contract revision** it serves
 
 - The organizer's table plays a song: a play button beside each row's checkbox starts that
   song on its own, and on the song playing it pauses and resumes. Hearing two "possible
-  duplicates" is how you tell them apart.
+  duplicates" is how you tell them apart. A click anywhere on a row selects it (shift for a
+  range), and the checkboxes wear the console's accent.
 
 ### Security
 
