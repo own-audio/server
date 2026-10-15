@@ -5,7 +5,7 @@
 // nothing is ever written to a file.
 import { useMemo, useState, type ReactNode } from "react";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Check, History, ImageUp, Loader2, Pencil, Search, Undo2, X } from "lucide-react";
+import { Check, History, ImageUp, Loader2, Pause, Pencil, Play, Search, Undo2, X } from "lucide-react";
 import {
   EDITABLE,
   applyRelease,
@@ -32,8 +32,10 @@ import {
 } from "../../api/organize";
 import { identifyError } from "../../api/identify";
 import { CoverArchiveThumb } from "../../components/CoverArchiveThumb";
-import { Button, Dialog, DialogContent, Input, Pill, SegmentedControl, Skeleton, toast } from "../../components/ui";
+import { Button, Cover, Dialog, DialogContent, Input, Pill, SegmentedControl, Skeleton, toast } from "../../components/ui";
 import { useServerFeatures } from "../../lib/features";
+import { playOne } from "../../lib/play";
+import { usePlayerStore } from "../../store/playerStore";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
 
@@ -338,6 +340,9 @@ function SongTable({ rows, loading, drafts, selected, setSelected, setDraft, sor
   const tx = loose(t);
   const [editing, setEditing] = useState<{ id: string; key: keyof TrackFields } | null>(null);
   const [anchor, setAnchor] = useState<number | null>(null);
+  const [starting, setStarting] = useState<string | null>(null);
+  const current = usePlayerStore((s) => (s.track?.kind === "music" ? s.track.trackId : null));
+  const playing = usePlayerStore((s) => s.playing);
   if (loading) return <div className="p-3"><Skeleton className="h-64" /></div>;
   if (rows.length === 0) return <p className="p-6 text-center text-sm text-muted">{t("music.organize.empty")}</p>;
 
@@ -353,12 +358,23 @@ function SongTable({ rows, loading, drafts, selected, setSelected, setDraft, sor
   }
   const allSelected = rows.every((r) => selected.has(r.id));
 
+  async function listen(id: string) {
+    setStarting(id);
+    try {
+      await playOne(id);
+    } catch (e) {
+      toast.error(errorText(e, t("music.organize.playFailed")));
+    } finally {
+      setStarting(null);
+    }
+  }
+
   return (
     <div className="scroll-subtle min-h-0 flex-1 overflow-auto">
       <table className="w-full border-collapse text-sm">
         <thead className="sticky top-0 z-10 bg-card">
           <tr className="border-b border-border text-left text-xs text-muted">
-            <th className="w-8 px-2 py-1.5">
+            <th className="w-20 px-2 py-1.5">
               <input
                 type="checkbox"
                 aria-label={t("music.organize.selectAll")}
@@ -383,9 +399,31 @@ function SongTable({ rows, loading, drafts, selected, setSelected, setDraft, sor
           {rows.map((r, i) => {
             const draft = drafts[r.id] ?? {};
             return (
-              <tr key={r.id} className={cn("border-b border-border/60 hover:bg-bg-alt/60", selected.has(r.id) && "bg-accent/5")}>
+              <tr key={r.id} className={cn("group border-b border-border/60 hover:bg-bg-alt/60", selected.has(r.id) && "bg-accent/5")}>
                 <td className="px-2 py-1">
-                  <input type="checkbox" aria-label={r.title} checked={selected.has(r.id)} onChange={(e) => toggle(i, (e.nativeEvent as MouseEvent).shiftKey)} />
+                  <div className="flex items-center gap-1.5">
+                    <input type="checkbox" aria-label={r.title} checked={selected.has(r.id)} onChange={(e) => toggle(i, (e.nativeEvent as MouseEvent).shiftKey)} />
+                    {/* The library rows' control: play and pause over the cover,
+                        shown on hover and kept visible for the song playing. */}
+                    <div className="relative shrink-0">
+                      <Cover kind="music" src={r.has_cover ? `/api/v1/music/tracks/${r.id}/cover` : null} alt="" aspect="square" className="h-8 w-8 rounded-md" />
+                      <button
+                        type="button"
+                        onClick={() => void listen(r.id)}
+                        disabled={starting !== null}
+                        aria-label={current === r.id && playing ? t("library.card.pause", { title: r.title }) : t("library.card.play", { title: r.title })}
+                        className={cn(
+                          "absolute inset-0 flex items-center justify-center rounded-md bg-black/60 text-white transition-opacity",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+                          current === r.id || starting === r.id ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100"
+                        )}
+                      >
+                        {starting === r.id ? <Loader2 className="h-4 w-4 animate-spin" />
+                          : current === r.id && playing ? <Pause className="h-4 w-4 fill-current" />
+                          : <Play className="h-4 w-4 fill-current" />}
+                      </button>
+                    </div>
+                  </div>
                 </td>
                 {COLUMNS.map((c) => {
                   const key = c.key as keyof TrackFields;

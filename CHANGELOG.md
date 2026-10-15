@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- The organizer's table plays a song: a play button beside each row's checkbox starts that
+  song on its own, and on the song playing it pauses and resumes. Hearing two "possible
+  duplicates" is how you tell them apart.
+
 ## [1.0.0-beta.21] - 2026-10-15
 
 ### Fixed

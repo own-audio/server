@@ -1079,6 +1079,7 @@
   "music.organize.mb.use": "Použít",
   "music.organize.mb.useGenre": "Převzít žánr z MusicBrainz",
   "music.organize.more": "Načíst další",
+  "music.organize.playFailed": "Skladbu se nepodařilo přehrát.",
   "music.organize.save": "{count, plural, one {Uložit # skladbu} few {Uložit # skladby} other {Uložit # skladeb}}",
   "music.organize.saveFailed": "Změny se nepodařilo uložit.",
   "music.organize.saved": "{count, plural, one {Uložena # skladba} few {Uloženy # skladby} other {Uloženo # skladeb}}",

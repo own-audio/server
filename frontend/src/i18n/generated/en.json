@@ -1079,6 +1079,7 @@
   "music.organize.mb.use": "Use",
   "music.organize.mb.useGenre": "Take MusicBrainz's genre",
   "music.organize.more": "Load more",
+  "music.organize.playFailed": "The song could not be played.",
   "music.organize.save": "{count, plural, one {Save # song} other {Save # songs}}",
   "music.organize.saveFailed": "Couldn't save the changes.",
   "music.organize.saved": "{count, plural, one {# song saved} other {# songs saved}}",

@@ -1085,6 +1085,7 @@ export interface MessageParams {
   "music.organize.mb.use": undefined;
   "music.organize.mb.useGenre": undefined;
   "music.organize.more": undefined;
+  "music.organize.playFailed": undefined;
   "music.organize.save": { "count": number };
   "music.organize.saveFailed": undefined;
   "music.organize.saved": { "count": number };

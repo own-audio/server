@@ -1603,6 +1603,10 @@
     "en": "Possible duplicates",
     "cs": "Možné duplicity"
   },
+  "music.organize.playFailed": {
+    "en": "The song could not be played.",
+    "cs": "Skladbu se nepodařilo přehrát."
+  },
   "music.organize.col.trackNumber": {
     "en": "#",
     "cs": "#"

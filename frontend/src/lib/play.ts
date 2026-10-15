@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { getBookFileStreamUrl, listBookChapters, listBookFiles } from "../api/audiobooks";
 import { getBookProgress } from "../api/playback";
-import { getTrackStreamUrl } from "../api/music";
+import { getTrack, getTrackStreamUrl } from "../api/music";
 import { offlineStreamUrl } from "./offline/downloads";
 import { downloadEpisode, getStreamUrl } from "../api/podcasts";
 import { usePlayerStore, type MusicPlayerTrack, type QueueSource } from "../store/playerStore";
@@ -108,6 +108,19 @@ export async function playTracks(tracks: MusicTrack[], index = 0, source: QueueS
   const queue = await Promise.all(tracks.map(toPlayerTrack));
   store.setChapters([]);
   store.playQueue(queue, index, source);
+}
+
+/** One song on its own, from a table that knows only its id — the organizer.
+ *  Pressed on the song already playing, it pauses or resumes it. */
+export async function playOne(trackId: string) {
+  const store = usePlayerStore.getState();
+  if (isCurrentTrack(trackId)) {
+    store.setPlaying(!store.playing);
+    return;
+  }
+  const track = await toPlayerTrack(await getTrack(trackId));
+  store.setChapters([]);
+  store.play(track);
 }
 
 /** Start a list at a given song and position — picking up where it was left. */
