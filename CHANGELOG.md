@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.21] - 2026-10-15
+
 ### Fixed
 
 - The organizer's *Possible duplicates* filter. It took any two songs with the same title and
