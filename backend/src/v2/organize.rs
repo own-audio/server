@@ -104,11 +104,15 @@ pub struct OrganizeFilter {
     /// Songs with changes in the history.
     #[serde(default)]
     pub edited: bool,
-    /// Songs whose title and artist another of yours has too.
+    /// Songs you probably have twice: the same file, the same MusicBrainz
+    /// recording, or the same title and artist (spelling and punctuation
+    /// aside) within a few seconds of the same length and not identified as
+    /// two different recordings.
     #[serde(default)]
     pub duplicates: bool,
     /// `title`, `artist`, `album`, `album_artist`, `genre`, `track`, `year`,
-    /// `path`, `duration`, `updated`; by album and track by default.
+    /// `path`, `duration`, `updated`; by album and track by default, and
+    /// pair by pair with `duplicates`.
     pub sort: Option<String>,
     #[serde(default)]
     pub desc: bool,
@@ -135,6 +139,7 @@ pub async fn list_tracks(
     Query(page): Query<PageQuery>,
 ) -> Result<Json<OrganizePage>, Problem> {
     let order = match q.sort.as_deref() {
+        None if q.duplicates => db::organize::DUPLICATES_SORT,
         None => db::organize::DEFAULT_SORT,
         Some(s) => db::organize::sort_sql(s).ok_or_else(|| {
             Problem::bad_request("invalid_sort", "unknown sort column").field("/sort", "invalid", "a column name")
@@ -192,6 +197,7 @@ pub struct FilterCounts {
     pub no_year: i64,
     pub no_genre: i64,
     pub edited: i64,
+    pub duplicates: i64,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -220,6 +226,7 @@ pub async fn facets(family: FamilyContext, State(state): State<AppState>) -> Res
             no_year: c.no_year,
             no_genre: c.no_genre,
             edited: c.edited,
+            duplicates: c.duplicates,
         },
     }))
 }

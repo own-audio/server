@@ -22,8 +22,12 @@ def run(ctx):
         ctx.skip("organizer", "no songs of the admin's (run on the fixture library)")
         return
     ctx.check("facets count the songs and the quick filters",
-              counts.get("all", 0) >= 3 and all(k in counts for k in ("unidentified", "no_cover", "no_year", "no_genre", "edited")),
+              counts.get("all", 0) >= 3 and all(k in counts for k in ("unidentified", "no_cover", "no_year", "no_genre", "edited", "duplicates")),
               str(counts))
+    twice = ctx.call("GET", "/api/v2/organize/tracks?duplicates=true&limit=500", ctx.admin_token)
+    ctx.check("the duplicates filter lists as many songs as its count says",
+              twice.get("total") == counts.get("duplicates") and len(twice.get("items", [])) == twice.get("total"),
+              f"total {twice.get('total')} count {counts.get('duplicates')} items {len(twice.get('items', []))}")
     folder = next((f for f in facets.get("folders", []) if f.get("id")), None)
     if not folder:
         ctx.skip("organizer", "no library folder with songs here")

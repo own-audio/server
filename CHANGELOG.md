@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- The organizer's *Possible duplicates* filter. It took any two songs with the same title and
+  artist for a pair, so a studio take beside a live one was a "duplicate", while two copies
+  whose titles differed in an apostrophe or a comma were not. Now a pair is the same file, the
+  same MusicBrainz recording, or the same title and artist (spelling and punctuation aside)
+  within three seconds of the same length and not identified as two different recordings; the
+  list comes pair by pair instead of album by album, and the filter shows its count like the
+  others (`counts.duplicates` in `GET /api/v2/organize/facets`).
+
 ## [1.0.0-beta.20] - 2026-10-14
 
 ### Changed

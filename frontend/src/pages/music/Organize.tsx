@@ -273,7 +273,7 @@ function FiltersPane({ facets, loading, filter, onPick }: {
           key={q}
           active={!!filter[q]}
           label={tx(`music.organize.filter.${camel(q)}`)}
-          count={q === "duplicates" ? undefined : facets.counts[q]}
+          count={facets.counts[q]}
           onClick={() => onPick({ ...keep, [q]: true })}
         />
       ))}

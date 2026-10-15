@@ -69,7 +69,7 @@ export interface Facets {
   folders: { id?: string | null; path?: string | null; tracks: number }[];
   artists: { name: string; tracks: number }[];
   albums: { id: string; title: string; artist: string; tracks: number }[];
-  counts: { all: number; unidentified: number; no_cover: number; no_year: number; no_genre: number; edited: number };
+  counts: { all: number; unidentified: number; no_cover: number; no_year: number; no_genre: number; edited: number; duplicates: number };
 }
 
 export async function getFacets(): Promise<Facets> {

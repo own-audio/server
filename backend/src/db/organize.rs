@@ -7,6 +7,7 @@ use crate::db::edits::{self, Edit};
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use sqlx::{FromRow, PgPool};
+use std::sync::LazyLock;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, FromRow)]
@@ -71,7 +72,26 @@ const SELECT: &str = "SELECT t.id, t.title, t.artist, t.album, t.album_artist, t
    LEFT JOIN albums al ON al.id = t.album_id
    LEFT JOIN music_track_identity i ON i.track_id = t.id";
 
-const WHERE: &str = "t.user_id = $1
+/// The duplicates filter's test, for the count beside it: the same file, the same MusicBrainz
+/// recording, or the same title and artist (spelling and punctuation aside) within a few
+/// seconds of the same length and not known to be two different recordings — a studio take
+/// and a live one share a title, and both identified they are not a pair. `WHERE`'s twelfth
+/// parameter is the same test.
+const DUPLICATE: &str = "EXISTS (SELECT 1 FROM music_tracks d JOIN media_objects dm ON dm.id = d.audio_object_id
+         WHERE d.user_id = t.user_id AND d.id <> t.id
+           AND (dm.sha256 = mo.sha256
+                OR d.musicbrainz_recording_id = t.musicbrainz_recording_id
+                OR (lower(regexp_replace(d.title, '[^[:alnum:]]+', '', 'g'))
+                      = lower(regexp_replace(t.title, '[^[:alnum:]]+', '', 'g'))
+                    AND d.primary_artist_key = t.primary_artist_key
+                    AND (d.musicbrainz_recording_id IS NULL OR t.musicbrainz_recording_id IS NULL
+                         OR d.musicbrainz_recording_id = t.musicbrainz_recording_id)
+                    AND (d.duration_secs IS NULL OR t.duration_secs IS NULL
+                         OR abs(d.duration_secs - t.duration_secs) <= 3))))";
+
+static WHERE: LazyLock<String> = LazyLock::new(|| {
+    format!(
+        "t.user_id = $1
     AND ($2::text IS NULL OR t.title ILIKE '%' || $2 || '%' OR t.artist ILIKE '%' || $2 || '%'
          OR t.album ILIKE '%' || $2 || '%' OR mo.object_key ILIKE '%' || $2 || '%')
     AND ($3::uuid IS NULL OR mo.object_key LIKE 'folder/' || $3 || '/%')
@@ -83,9 +103,9 @@ const WHERE: &str = "t.user_id = $1
     AND (NOT $9 OR al.release_date IS NULL)
     AND (NOT $10 OR t.genre IS NULL OR trim(t.genre) = '')
     AND (NOT $11 OR EXISTS (SELECT 1 FROM metadata_edits e WHERE e.item_kind = 'track' AND e.item_id = t.id))
-    AND (NOT $12 OR EXISTS (SELECT 1 FROM music_tracks d
-                             WHERE d.user_id = t.user_id AND d.id <> t.id
-                               AND lower(d.title) = lower(t.title) AND d.primary_artist_key = t.primary_artist_key))";
+    AND (NOT $12 OR {DUPLICATE})"
+    )
+});
 
 /// The columns a list may be sorted by, and the SQL for each.
 pub fn sort_sql(sort: &str) -> Option<&'static str> {
@@ -106,6 +126,11 @@ pub fn sort_sql(sort: &str) -> Option<&'static str> {
 
 pub const DEFAULT_SORT: &str = "t.album_artist_key, lower(t.album), t.disc_number, t.track_number, lower(t.title)";
 
+/// The order for the duplicates filter: a pair side by side, whatever albums the two are on.
+/// No space after the commas inside the call: `list` splits the columns on ", ".
+pub const DUPLICATES_SORT: &str =
+    "t.primary_artist_key, lower(regexp_replace(t.title,'[^[:alnum:]]+','','g')), t.duration_secs, mo.object_key";
+
 pub async fn list(
     pool: &PgPool,
     user_id: Uuid,
@@ -118,7 +143,8 @@ pub async fn list(
     let dir = if desc { "DESC" } else { "ASC" };
     let order = order.split(", ").map(|c| format!("{c} {dir} NULLS LAST")).collect::<Vec<_>>().join(", ");
     let rows = bind(sqlx::query_as::<_, OrganizeRow>(&format!(
-        "{SELECT} WHERE {WHERE} ORDER BY {order}, t.id LIMIT $13 OFFSET $14"
+        "{SELECT} WHERE {} ORDER BY {order}, t.id LIMIT $13 OFFSET $14",
+        *WHERE
     )), user_id, f)
     .bind(limit)
     .bind(offset)
@@ -128,7 +154,8 @@ pub async fn list(
     let total: i64 = bind_scalar(
         sqlx::query_scalar(&format!(
             "SELECT count(*) FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
-               LEFT JOIN albums al ON al.id = t.album_id WHERE {WHERE}"
+               LEFT JOIN albums al ON al.id = t.album_id WHERE {}",
+            *WHERE
         )),
         user_id,
         f,
@@ -202,6 +229,7 @@ pub struct Counts {
     pub no_year: i64,
     pub no_genre: i64,
     pub edited: i64,
+    pub duplicates: i64,
 }
 
 pub async fn facets(pool: &PgPool, user_id: Uuid) -> anyhow::Result<(Vec<FolderFacet>, Vec<ArtistFacet>, Vec<AlbumFacet>, Counts)> {
@@ -233,17 +261,19 @@ pub async fn facets(pool: &PgPool, user_id: Uuid) -> anyhow::Result<(Vec<FolderF
     .fetch_all(pool)
     .await
     .context("db: organize albums")?;
-    let counts = sqlx::query_as::<_, Counts>(
+    let counts = sqlx::query_as::<_, Counts>(&format!(
         "SELECT count(*) AS all,
                 count(*) FILTER (WHERE t.musicbrainz_recording_id IS NULL) AS unidentified,
                 count(*) FILTER (WHERE t.cover_object_id IS NULL) AS no_cover,
                 count(*) FILTER (WHERE al.release_date IS NULL) AS no_year,
                 count(*) FILTER (WHERE t.genre IS NULL OR trim(t.genre) = '') AS no_genre,
                 count(*) FILTER (WHERE EXISTS (SELECT 1 FROM metadata_edits e
-                                                WHERE e.item_kind = 'track' AND e.item_id = t.id)) AS edited
-           FROM music_tracks t LEFT JOIN albums al ON al.id = t.album_id
-          WHERE t.user_id = $1",
-    )
+                                                WHERE e.item_kind = 'track' AND e.item_id = t.id)) AS edited,
+                count(*) FILTER (WHERE {DUPLICATE}) AS duplicates
+           FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
+                LEFT JOIN albums al ON al.id = t.album_id
+          WHERE t.user_id = $1"
+    ))
     .bind(user_id)
     .fetch_one(pool)
     .await
