@@ -72,22 +72,26 @@ const SELECT: &str = "SELECT t.id, t.title, t.artist, t.album, t.album_artist, t
    LEFT JOIN albums al ON al.id = t.album_id
    LEFT JOIN music_track_identity i ON i.track_id = t.id";
 
-/// The duplicates filter's test, for the count beside it: the same file, the same MusicBrainz
-/// recording, or the same title and artist (spelling and punctuation aside) within a few
-/// seconds of the same length and not known to be two different recordings — a studio take
-/// and a live one share a title, and both identified they are not a pair. `WHERE`'s twelfth
-/// parameter is the same test.
-const DUPLICATE: &str = "EXISTS (SELECT 1 FROM music_tracks d JOIN media_objects dm ON dm.id = d.audio_object_id
-         WHERE d.user_id = t.user_id AND d.id <> t.id
-           AND (dm.sha256 = mo.sha256
-                OR d.musicbrainz_recording_id = t.musicbrainz_recording_id
-                OR (lower(regexp_replace(d.title, '[^[:alnum:]]+', '', 'g'))
-                      = lower(regexp_replace(t.title, '[^[:alnum:]]+', '', 'g'))
-                    AND d.primary_artist_key = t.primary_artist_key
-                    AND (d.musicbrainz_recording_id IS NULL OR t.musicbrainz_recording_id IS NULL
-                         OR d.musicbrainz_recording_id = t.musicbrainz_recording_id)
-                    AND (d.duration_secs IS NULL OR t.duration_secs IS NULL
-                         OR abs(d.duration_secs - t.duration_secs) <= 3))))";
+/// The duplicates filter's test: the same file, the same MusicBrainz recording, or the same
+/// title and artist (spelling and punctuation aside) within a few seconds of the same length
+/// and not known to be two different recordings — a studio take and a live one share a
+/// title, and both identified they are not a pair. Three hash joins over the caller's songs
+/// (`$1`), the title normalised once per song, not once per pair: as a correlated subquery
+/// it took over a second on 600 songs. `DUPLICATE` is the test a row's id is put to.
+const DUPLICATES_CTE: &str = "mine AS (
+         SELECT t.id, t.musicbrainz_recording_id AS rec, t.duration_secs AS dur, mo.sha256,
+                t.primary_artist_key AS pa, lower(regexp_replace(t.title, '[^[:alnum:]]+', '', 'g')) AS nt
+           FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
+          WHERE t.user_id = $1),
+     dups AS (
+         SELECT a.id FROM mine a JOIN mine b ON b.id <> a.id AND b.sha256 = a.sha256
+         UNION
+         SELECT a.id FROM mine a JOIN mine b ON b.id <> a.id AND b.rec = a.rec
+         UNION
+         SELECT a.id FROM mine a JOIN mine b ON b.id <> a.id AND b.pa = a.pa AND b.nt = a.nt
+          WHERE (b.rec IS NULL OR a.rec IS NULL OR b.rec = a.rec)
+            AND (b.dur IS NULL OR a.dur IS NULL OR abs(b.dur - a.dur) <= 3))";
+const DUPLICATE: &str = "t.id IN (SELECT id FROM dups)";
 
 static WHERE: LazyLock<String> = LazyLock::new(|| {
     format!(
@@ -143,7 +147,7 @@ pub async fn list(
     let dir = if desc { "DESC" } else { "ASC" };
     let order = order.split(", ").map(|c| format!("{c} {dir} NULLS LAST")).collect::<Vec<_>>().join(", ");
     let rows = bind(sqlx::query_as::<_, OrganizeRow>(&format!(
-        "{SELECT} WHERE {} ORDER BY {order}, t.id LIMIT $13 OFFSET $14",
+        "WITH {DUPLICATES_CTE} {SELECT} WHERE {} ORDER BY {order}, t.id LIMIT $13 OFFSET $14",
         *WHERE
     )), user_id, f)
     .bind(limit)
@@ -153,7 +157,7 @@ pub async fn list(
     .context("db: organize list")?;
     let total: i64 = bind_scalar(
         sqlx::query_scalar(&format!(
-            "SELECT count(*) FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
+            "WITH {DUPLICATES_CTE} SELECT count(*) FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
                LEFT JOIN albums al ON al.id = t.album_id WHERE {}",
             *WHERE
         )),
@@ -262,7 +266,7 @@ pub async fn facets(pool: &PgPool, user_id: Uuid) -> anyhow::Result<(Vec<FolderF
     .await
     .context("db: organize albums")?;
     let counts = sqlx::query_as::<_, Counts>(&format!(
-        "SELECT count(*) AS all,
+        "WITH {DUPLICATES_CTE} SELECT count(*) AS all,
                 count(*) FILTER (WHERE t.musicbrainz_recording_id IS NULL) AS unidentified,
                 count(*) FILTER (WHERE t.cover_object_id IS NULL) AS no_cover,
                 count(*) FILTER (WHERE al.release_date IS NULL) AS no_year,

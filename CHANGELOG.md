@@ -19,6 +19,9 @@ semver. Each release states the **API contract revision** it serves
 - The organizer's table shows the cover an identify brought: the server fetches it in the
   background after answering, and the table looked only once, too early; now it looks again a
   few seconds later.
+- The organizer's facets and the duplicates filter answer in milliseconds again: beta.21's
+  duplicates test compared every song with every other, over a second on 600 songs; it is now
+  three hash joins over the caller's songs.
 
 ### Security
 
