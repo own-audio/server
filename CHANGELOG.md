@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.22] - 2026-10-15
+
 ### Added
 
 - The organizer's table plays a song: a play button beside each row's checkbox starts that
