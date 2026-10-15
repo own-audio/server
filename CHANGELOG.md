@@ -13,6 +13,12 @@ semver. Each release states the **API contract revision** it serves
   song on its own, and on the song playing it pauses and resumes. Hearing two "possible
   duplicates" is how you tell them apart.
 
+### Security
+
+- rustls 0.23.46: RUSTSEC-2026-0346 to 0349 (session values' `Debug` output, ECH rejection,
+  Brotli certificate decompression, key-exchange downgrade). CI's advisory check had been
+  failing on them since beta.17.
+
 ## [1.0.0-beta.21] - 2026-10-15
 
 ### Fixed
