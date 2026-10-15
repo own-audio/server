@@ -1624,6 +1624,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "duplicates": {
+            "format": "int64",
+            "type": "integer"
+          },
           "edited": {
             "format": "int64",
             "type": "integer"
@@ -1651,7 +1655,8 @@
           "no_cover",
           "no_year",
           "no_genre",
-          "edited"
+          "edited",
+          "duplicates"
         ],
         "type": "object"
       },
@@ -13107,7 +13112,7 @@
             }
           },
           {
-            "description": "Songs whose title and artist another of yours has too.",
+            "description": "Songs you probably have twice: the same file, the same MusicBrainz\nrecording, or the same title and artist (spelling and punctuation\naside) within a few seconds of the same length and not identified as\ntwo different recordings.",
             "in": "query",
             "name": "duplicates",
             "required": false,
@@ -13116,7 +13121,7 @@
             }
           },
           {
-            "description": "`title`, `artist`, `album`, `album_artist`, `genre`, `track`, `year`,\n`path`, `duration`, `updated`; by album and track by default.",
+            "description": "`title`, `artist`, `album`, `album_artist`, `genre`, `track`, `year`,\n`path`, `duration`, `updated`; by album and track by default, and\npair by pair with `duplicates`.",
             "in": "query",
             "name": "sort",
             "required": false,
