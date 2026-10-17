@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.23] - 2026-10-17
+
 ### Added
 
 - gPodder sync (contract revision 16, `features.gpodder`): podcast apps that sync with a
@@ -17,7 +19,6 @@ semver. Each release states the **API contract revision** it serves
 ### Changed
 
 - *Settings → Other music apps* is *Other apps*: the same key signs in gPodder podcast apps.
-
 - The organizer is called *Identify music* in the console, opens on the songs not yet
   identified, and the sidebar lights only its own entry while it is open, not *Music* as well.
 
