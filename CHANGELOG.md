@@ -7,7 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- gPodder sync (contract revision 16, `features.gpodder`): podcast apps that sync with a
+  gPodder server — AntennaPod, Kasts, gPodder, own.audio Podcasts — sign in with your email and
+  the app key from *Settings → Other apps*, and keep your shows and positions in step with
+  this server and the own.audio apps. gpodder.net's API v2 at `/api/2` (`docs/gpodder.md`).
+
 ### Changed
+
+- *Settings → Other music apps* is *Other apps*: the same key signs in gPodder podcast apps.
 
 - The organizer is called *Identify music* in the console, opens on the songs not yet
   identified, and the sidebar lights only its own entry while it is open, not *Music* as well.

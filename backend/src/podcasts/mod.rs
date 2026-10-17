@@ -1186,6 +1186,22 @@ pub async fn refresh_feed_job(
         refresh_youtube_feed_inner(pool, storage, feed_id, &feed_url).await?;
     } else {
         let channel = fetch_rss_url(&feed_url).await?;
+        let image_url = channel
+            .itunes_ext()
+            .and_then(|e| e.image())
+            .map(str::to_string)
+            .or_else(|| channel.image().map(|i| i.url().to_string()));
+        db::podcasts::fill_placeholder(
+            pool,
+            feed_id,
+            channel.title.trim(),
+            Some(channel.description.as_str()).filter(|d| !d.is_empty()),
+            channel.itunes_ext.as_ref().and_then(|e| e.author.as_deref()),
+            Some(channel.link.as_str()).filter(|l| !l.is_empty()),
+            channel.language.as_deref(),
+            image_url.as_deref(),
+        )
+        .await?;
         ingest_episodes(pool, feed_id, &channel).await?;
         sqlx::query(
             "UPDATE podcast_feeds SET last_refreshed_at = CURRENT_TIMESTAMP, refresh_error = NULL WHERE id = $1",

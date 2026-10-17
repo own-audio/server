@@ -11,6 +11,7 @@ pub mod personal_tokens;
 pub mod refresh_tokens;
 pub mod device_auth;
 pub mod families;
+pub mod gpodder;
 pub mod access;
 pub mod stats;
 pub mod sync;

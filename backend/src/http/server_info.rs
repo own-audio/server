@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 15;
+pub const API_REVISION: u32 = 16;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -104,6 +104,8 @@ pub fn features(state: &AppState) -> Map<String, Value> {
         json!(crate::library_folders::configured(cfg).is_ok_and(|f| !f.is_empty())),
     );
     features.insert("subsonic".into(), json!(true));
+    // Revision 16: the gPodder sync API at /api/2 (docs/gpodder.md).
+    features.insert("gpodder".into(), json!(true));
     let mail = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some());
     features.insert("mail".into(), json!(mail));
     // Revision 4: every account joins the one family; clients hide "leave".

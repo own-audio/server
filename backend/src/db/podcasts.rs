@@ -253,6 +253,39 @@ pub async fn duplicate_feeds_by_guid(pool: &PgPool) -> anyhow::Result<Vec<(Strin
     .context("db: find duplicate podcast feeds")
 }
 
+/// A feed added by its URL alone (the gPodder API) has the URL for a title
+/// until its first refresh; that refresh fills in what the feed says about
+/// itself. Touches nothing once the title is real.
+#[allow(clippy::too_many_arguments)]
+pub async fn fill_placeholder(
+    pool: &PgPool,
+    id: Uuid,
+    title: &str,
+    description: Option<&str>,
+    author: Option<&str>,
+    link: Option<&str>,
+    language: Option<&str>,
+    image_url: Option<&str>,
+) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE podcast_feeds
+            SET title = $2, description = COALESCE(description, $3), author = COALESCE(author, $4),
+                link = COALESCE(link, $5), language = COALESCE(language, $6), image_url = COALESCE(image_url, $7)
+          WHERE id = $1 AND title = feed_url AND $2 <> ''",
+    )
+    .bind(id)
+    .bind(title)
+    .bind(description)
+    .bind(author)
+    .bind(link)
+    .bind(language)
+    .bind(image_url)
+    .execute(pool)
+    .await
+    .context("db: fill placeholder feed")?;
+    Ok(())
+}
+
 pub async fn delete_feed(pool: &PgPool, id: Uuid, user_id: Uuid) -> anyhow::Result<()> {
     sqlx::query("DELETE FROM podcast_feeds WHERE id = $1 AND user_id = $2")
         .bind(id)

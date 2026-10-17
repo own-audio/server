@@ -110,6 +110,9 @@ pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: 
         // client a page of HTML with status 200.
         .nest("/api/v1", limits.api.wrap(api).fallback(handlers::api_fallback).layer(api_cors.clone()))
         .nest("/api/v2", crate::v2::mount(&limits, &state, edition_v2).layer(api_cors))
+        // The gPodder sync API for podcast apps (AntennaPod, Kasts, …): fixed
+        // paths at /api/2, basic authentication with the app password.
+        .nest("/api/2", limits.api.wrap(crate::gpodder::router()))
         .route("/.well-known/own-audio", get(crate::v2::discovery::well_known))
         .merge(root)
         // OpenSubsonic-compatible surface for external music clients. A

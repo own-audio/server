@@ -87,8 +87,8 @@
     "cs": "Skladby, které nechcete slyšet. Zůstávají v knihovně a nikoho jiného se to netýká."
   },
   "settings.section.subsonic": {
-    "en": "Other music apps",
-    "cs": "Jiné hudební aplikace"
+    "en": "Other apps",
+    "cs": "Jiné aplikace"
   },
   "settings.section.danger": {
     "en": "Danger zone",
@@ -206,8 +206,8 @@
     "cs": "Nejste přihlášeni na žádném jiném zařízení."
   },
   "settings.subsonic.intro": {
-    "en": "Any OpenSubsonic music player can connect to your library with this key — it's music only, not audiobooks or podcasts.",
-    "cs": "S tímto klíčem se k vaší knihovně připojí jakýkoli hudební přehrávač s podporou OpenSubsonic — jen hudba, ne audioknihy ani podcasty."
+    "en": "Other apps sign in with your email and this key: any OpenSubsonic music player (music only), and podcast apps that sync with gPodder, such as AntennaPod and Kasts (your shows and where you are in each episode).",
+    "cs": "Jiné aplikace se přihlásí vaším e-mailem a tímto klíčem: jakýkoli hudební přehrávač s podporou OpenSubsonic (jen hudba) a podcastové aplikace se synchronizací gPodder, například AntennaPod a Kasts (vaše pořady a místo, kde v každé epizodě jste)."
   },
   "settings.subsonic.username": {
     "en": "Username: <code>{username}</code>",

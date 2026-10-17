@@ -22,6 +22,7 @@ pub mod db;
 pub mod devices;
 pub mod families;
 pub mod filesync;
+pub mod gpodder;
 pub mod hooks;
 pub mod http;
 pub mod jobs;
