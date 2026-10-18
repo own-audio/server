@@ -36,7 +36,7 @@ these shows; it only stores what it is given (see `SCOPE.md` decision 15 for You
 | 4 | Never fetched | Refresh is a no-op for upload feeds (excluded from the scheduler like YouTube leftovers); auto-store and store-all answer 409; gPodder does not list them as subscriptions (they have no URL another app could fetch). |
 | 5 | Permissions | Creating a show or an episode needs `can_upload`; adding to a shared show: its owner, or a family admin. Deleting an episode trashes it (30 days) like other items. |
 | 6 | Artwork | Show cover and per-episode image from uploads (`podcast_cover`, `episode_image`), stored like track covers. |
-| 7 | Contract | v2 only (v2 is still `beta`, `V2_REVISION` bumped). v1 lists the shows and episodes as it lists any feed (`source_type: "upload"`, a new value v1 clients already tolerate per `API_COMPATIBILITY.md` §4). |
+| 7 | Contract | Discovered as `features.uploaded_podcasts` in `GET /api/v1/server` (contract revision +1). v2 only (v2 is still `beta`, `V2_REVISION` bumped). v1 lists the shows and episodes as it lists any feed (`source_type: "upload"`, a new value v1 clients already tolerate per `API_COMPATIBILITY.md` §4). |
 
 ## 3. API (v2)
 
