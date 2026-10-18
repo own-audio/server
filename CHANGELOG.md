@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- The console's summaries come in three lengths (short, medium, long), and each summary and answer
+  shows what it cost. Questions can be asked without a summary first. Hosted only; contract unchanged
+  (revision 21).
+
 ## [1.0.0-beta.28] - 2026-10-18
 
 ### Added

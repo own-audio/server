@@ -1383,8 +1383,13 @@ export interface MessageParams {
   "podcasts.feed.episode.ai.cost": undefined;
   "podcasts.feed.episode.ai.error": undefined;
   "podcasts.feed.episode.ai.hide": undefined;
+  "podcasts.feed.episode.ai.length": undefined;
+  "podcasts.feed.episode.ai.length.long": undefined;
+  "podcasts.feed.episode.ai.length.medium": undefined;
+  "podcasts.feed.episode.ai.length.short": undefined;
   "podcasts.feed.episode.ai.make": undefined;
   "podcasts.feed.episode.ai.making": undefined;
+  "podcasts.feed.episode.ai.price": { "price": string | number };
   "podcasts.feed.episode.ai.summarize": undefined;
   "podcasts.feed.episode.ai.title": undefined;
   "podcasts.feed.episode.collapse": undefined;

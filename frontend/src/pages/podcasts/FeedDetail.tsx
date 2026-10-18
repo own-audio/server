@@ -5,7 +5,7 @@ import { Archive, Check, Compass, ChevronDown, ChevronUp, CircleCheck, CloudDown
 import { getEpisodeTranscript, getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
 import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
-import { askEpisode, createSummary, getSummary, type AskTurn } from "../../api/podcastAi";
+import { askEpisode, createSummary, formatPrice, getSummary, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
 import { apiErrorMessage } from "../../lib/apiError";
 import { formatDate, formatDuration, stripHtml } from "../../lib/format";
 import { playEpisode } from "../../lib/play";
@@ -651,22 +651,24 @@ function EpisodeTools({ feedId, episodeId }: { feedId: string; episodeId: string
   );
 }
 
-/** The household's summary (made on request, paid) and questions answered from the transcript. */
+/** The household's summary in three lengths (each made on request, paid) and questions answered
+ * from the transcript, each with what it cost. */
 function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
   const { t, locale } = useT();
   const queryClient = useQueryClient();
-  const key = ["podcast-summary", episodeId, locale];
-  const summary = useQuery({ queryKey: key, queryFn: () => getSummary(episodeId, locale), staleTime: 10 * 60 * 1000 });
+  const [length, setLength] = useState<SummaryLength>("medium");
+  const key = ["podcast-summary", episodeId, locale, length];
+  const summary = useQuery({ queryKey: key, queryFn: () => getSummary(episodeId, locale, length), staleTime: 10 * 60 * 1000 });
   const make = useMutation({
-    mutationFn: () => createSummary(episodeId, locale),
-    onSuccess: (made) => queryClient.setQueryData(key, made),
+    mutationFn: (l: SummaryLength) => createSummary(episodeId, locale, l),
+    onSuccess: (made) => queryClient.setQueryData(["podcast-summary", episodeId, locale, made.length ?? length], made),
   });
   const [question, setQuestion] = useState("");
-  const [turns, setTurns] = useState<AskTurn[]>([]);
+  const [turns, setTurns] = useState<AskedTurn[]>([]);
   const ask = useMutation({
     mutationFn: (q: string) => askEpisode(episodeId, q, turns),
-    onSuccess: (answer, q) => {
-      setTurns((prev) => [...prev, { question: q, answer }]);
+    onSuccess: (turn) => {
+      setTurns((prev) => [...prev, turn]);
       setQuestion("");
     },
   });
@@ -674,13 +676,33 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
     const q = question.trim();
     if (q && !ask.isPending) ask.mutate(q);
   };
+  const price = (micro: number) =>
+    micro > 0 ? <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.price", { price: formatPrice(micro, locale) })}</p> : null;
+  const lengths: SummaryLength[] = ["short", "medium", "long"];
   return (
     <div className="mt-2 space-y-3 rounded-lg border border-border p-3 text-sm leading-relaxed">
+      <div role="radiogroup" aria-label={t("podcasts.feed.episode.ai.length")} className="flex gap-1">
+        {lengths.map((l) => (
+          <button
+            key={l}
+            type="button"
+            role="radio"
+            aria-checked={length === l}
+            onClick={() => {
+              setLength(l);
+              make.reset();
+            }}
+            className={`rounded-full border px-3 py-1 text-xs ${length === l ? "border-accent bg-accent/15 font-medium" : "border-border text-muted"}`}
+          >
+            {t(`podcasts.feed.episode.ai.length.${l}`)}
+          </button>
+        ))}
+      </div>
       {summary.isPending && <p className="text-muted">{t("podcasts.feed.episode.transcript.loading")}</p>}
       {summary.data === null && (
         <div className="space-y-2">
           <p className="text-muted">{t("podcasts.feed.episode.ai.cost")}</p>
-          <Button size="sm" onClick={() => make.mutate()} disabled={make.isPending}>
+          <Button size="sm" onClick={() => make.mutate(length)} disabled={make.isPending}>
             {make.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {make.isPending ? t("podcasts.feed.episode.ai.making") : t("podcasts.feed.episode.ai.make")}
           </Button>
@@ -689,40 +711,40 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
       )}
       {summary.isError && <p className="text-error">{apiErrorMessage(summary.error, t("podcasts.feed.episode.ai.error"))}</p>}
       {summary.data && (
-        <>
-          <div>
-            <p className="mb-1 font-medium">{t("podcasts.feed.episode.ai.title")}</p>
-            <p className="whitespace-pre-line">{summary.data.text}</p>
-          </div>
-          {turns.map((turn, i) => (
-            <div key={i} className="space-y-1">
-              <p className="font-medium">{turn.question}</p>
-              <p className="whitespace-pre-line text-muted">{turn.answer}</p>
-            </div>
-          ))}
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              submit();
-            }}
-          >
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              maxLength={1000}
-              placeholder={t("podcasts.feed.episode.ai.askPlaceholder")}
-              aria-label={t("podcasts.feed.episode.ai.askPlaceholder")}
-              className="min-w-0 flex-1 rounded-lg border border-border bg-transparent px-3 py-1.5"
-            />
-            <Button size="sm" type="submit" disabled={!question.trim() || ask.isPending}>
-              {ask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("podcasts.feed.episode.ai.ask")}
-            </Button>
-          </form>
-          {ask.isError && <p className="text-error">{apiErrorMessage(ask.error, t("podcasts.feed.episode.ai.error"))}</p>}
-          <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.askNote")}</p>
-        </>
+        <div className="space-y-1">
+          <p className="font-medium">{t("podcasts.feed.episode.ai.title")}</p>
+          <p className="whitespace-pre-line">{summary.data.text}</p>
+          {price(summary.data.charged_micro)}
+        </div>
       )}
+      {turns.map((turn, i) => (
+        <div key={i} className="space-y-1">
+          <p className="font-medium">{turn.question}</p>
+          <p className="whitespace-pre-line text-muted">{turn.answer}</p>
+          {price(turn.charged_micro)}
+        </div>
+      ))}
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          submit();
+        }}
+      >
+        <input
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+          maxLength={1000}
+          placeholder={t("podcasts.feed.episode.ai.askPlaceholder")}
+          aria-label={t("podcasts.feed.episode.ai.askPlaceholder")}
+          className="min-w-0 flex-1 rounded-lg border border-border bg-transparent px-3 py-1.5"
+        />
+        <Button size="sm" type="submit" disabled={!question.trim() || ask.isPending}>
+          {ask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("podcasts.feed.episode.ai.ask")}
+        </Button>
+      </form>
+      {ask.isError && <p className="text-error">{apiErrorMessage(ask.error, t("podcasts.feed.episode.ai.error"))}</p>}
+      <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.askNote")}</p>
     </div>
   );
 }
