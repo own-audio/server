@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.25] - 2026-10-18
+
 ### Added
 
 - Uploaded podcasts (contract revision 18, `features.uploaded_podcasts`): a podcast whose
