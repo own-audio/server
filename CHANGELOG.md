@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.29] - 2026-10-18
+
 ### Changed
 
 - The console's summaries come in three lengths (short, medium, long), and each summary and answer
