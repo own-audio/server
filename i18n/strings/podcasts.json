@@ -588,8 +588,16 @@
     "cs": "Zeptat se"
   },
   "podcasts.feed.episode.ai.askNote": {
-    "en": "Answers come from the episode's transcript only, and each one is paid from the family's credit.",
-    "cs": "Odpovědi vycházejí jen z přepisu epizody a každá se platí z kreditu rodiny."
+    "en": "Answers come from the episode's transcript only, and each one is paid from the family's credit. Your questions are kept for you alone.",
+    "cs": "Odpovědi vycházejí jen z přepisu epizody a každá se platí z kreditu rodiny. Vaše otázky vidíte jen vy."
+  },
+  "podcasts.feed.episode.ai.clear": {
+    "en": "Clear questions",
+    "cs": "Smazat otázky"
+  },
+  "podcasts.feed.episode.ai.clearConfirm": {
+    "en": "Delete your questions and answers for this episode?",
+    "cs": "Smazat vaše otázky a odpovědi k této epizodě?"
   },
   "podcasts.feed.episode.ai.length": {
     "en": "Summary length",

@@ -21,9 +21,22 @@ export interface AskTurn {
   answer: string;
 }
 
-/** A turn as the page shows it: with the price the family paid for the answer. */
+/** A kept turn: the caller's own, with the price the family paid for the answer. */
 export interface AskedTurn extends AskTurn {
+  id: string;
   charged_micro: number;
+  created_at: string;
+}
+
+/** The caller's questions about this episode and their answers, oldest first. */
+export async function listQuestions(episodeId: string): Promise<AskedTurn[]> {
+  const { data } = await api.get<{ items: AskedTurn[] }>(`/summaries/episodes/${episodeId}/questions`, v2);
+  return data.items;
+}
+
+/** Clears the caller's conversation about this episode. */
+export async function clearQuestions(episodeId: string): Promise<void> {
+  await api.delete(`/summaries/episodes/${episodeId}/questions`, v2);
 }
 
 /** The household's summary in this language and length, or null when none has been made. */
@@ -43,14 +56,10 @@ export async function createSummary(episodeId: string, language: string, length:
   return data;
 }
 
-/** An answer from the transcript, paid; earlier turns go along for context. */
-export async function askEpisode(episodeId: string, question: string, history: AskTurn[]): Promise<AskedTurn> {
-  const { data } = await api.post<{ answer: string; charged_micro: number }>(
-    `/summaries/episodes/${episodeId}/ask`,
-    { question, history: history.map(({ question, answer }) => ({ question, answer })) },
-    v2,
-  );
-  return { question, answer: data.answer, charged_micro: data.charged_micro };
+/** An answer from the transcript, paid and kept; the server adds the earlier turns itself. */
+export async function askEpisode(episodeId: string, question: string): Promise<AskedTurn> {
+  const { data } = await api.post<AskedTurn>(`/summaries/episodes/${episodeId}/ask`, { question }, v2);
+  return data;
 }
 
 /** A price in the ledger's dollars; these are fractions of a cent, so three decimals below 10 ¢. */

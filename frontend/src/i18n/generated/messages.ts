@@ -1380,6 +1380,8 @@ export interface MessageParams {
   "podcasts.feed.episode.ai.ask": undefined;
   "podcasts.feed.episode.ai.askNote": undefined;
   "podcasts.feed.episode.ai.askPlaceholder": undefined;
+  "podcasts.feed.episode.ai.clear": undefined;
+  "podcasts.feed.episode.ai.clearConfirm": undefined;
   "podcasts.feed.episode.ai.cost": undefined;
   "podcasts.feed.episode.ai.error": undefined;
   "podcasts.feed.episode.ai.hide": undefined;

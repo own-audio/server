@@ -5,7 +5,7 @@ import { Archive, Check, Compass, ChevronDown, ChevronUp, CircleCheck, CloudDown
 import { getEpisodeTranscript, getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
 import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
-import { askEpisode, createSummary, formatPrice, getSummary, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
+import { askEpisode, clearQuestions, createSummary, formatPrice, getSummary, listQuestions, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
 import { apiErrorMessage } from "../../lib/apiError";
 import { formatDate, formatDuration, stripHtml } from "../../lib/format";
 import { playEpisode } from "../../lib/play";
@@ -664,13 +664,18 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
     onSuccess: (made) => queryClient.setQueryData(["podcast-summary", episodeId, locale, made.length ?? length], made),
   });
   const [question, setQuestion] = useState("");
-  const [turns, setTurns] = useState<AskedTurn[]>([]);
+  const turnsKey = ["podcast-questions", episodeId];
+  const turns = useQuery({ queryKey: turnsKey, queryFn: () => listQuestions(episodeId), staleTime: 10 * 60 * 1000 });
   const ask = useMutation({
-    mutationFn: (q: string) => askEpisode(episodeId, q, turns),
+    mutationFn: (q: string) => askEpisode(episodeId, q),
     onSuccess: (turn) => {
-      setTurns((prev) => [...prev, turn]);
+      queryClient.setQueryData<AskedTurn[]>(turnsKey, (prev) => [...(prev ?? []), turn]);
       setQuestion("");
     },
+  });
+  const clear = useMutation({
+    mutationFn: () => clearQuestions(episodeId),
+    onSuccess: () => queryClient.setQueryData<AskedTurn[]>(turnsKey, []),
   });
   const submit = () => {
     const q = question.trim();
@@ -717,8 +722,8 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
           {price(summary.data.charged_micro)}
         </div>
       )}
-      {turns.map((turn, i) => (
-        <div key={i} className="space-y-1">
+      {(turns.data ?? []).map((turn) => (
+        <div key={turn.id} className="space-y-1">
           <p className="font-medium">{turn.question}</p>
           <p className="whitespace-pre-line text-muted">{turn.answer}</p>
           {price(turn.charged_micro)}
@@ -744,7 +749,21 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
         </Button>
       </form>
       {ask.isError && <p className="text-error">{apiErrorMessage(ask.error, t("podcasts.feed.episode.ai.error"))}</p>}
-      <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.askNote")}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.askNote")}</p>
+        {(turns.data?.length ?? 0) > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (window.confirm(t("podcasts.feed.episode.ai.clearConfirm"))) clear.mutate();
+            }}
+            disabled={clear.isPending}
+            className="shrink-0 text-xs text-muted underline hover:text-fg"
+          >
+            {t("podcasts.feed.episode.ai.clear")}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
