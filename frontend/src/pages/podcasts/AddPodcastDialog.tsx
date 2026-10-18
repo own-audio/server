@@ -16,7 +16,7 @@ import { stripHtml } from "../../lib/format";
 import { useT } from "../../i18n";
 
 /* Three ways in: browse a category, search, or paste a URL for a show the
-   catalogue misses (or a YouTube channel).
+   catalogue misses.
 
    Browsing lives in the empty state of the search box, which used to just
    say "type at least two characters". That is the cold-start surface — it

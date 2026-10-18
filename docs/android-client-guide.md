@@ -313,7 +313,7 @@ audiobooks (see the error table above), a 404 for podcasts.
 | Browse by category | `GET /podcasts/discover/categories`, then `GET /podcasts/discover/browse?category=…` |
 | Shows like this one | `GET /podcasts/{id}/similar` — empty list when the feed is not in the catalogue |
 | Discovery languages | `users.discovery_languages` (in `/auth/me`, set with `PATCH /users/me`) filters **all three** of the above. Empty means every language. A `language` on search or browse overrides it for that one request; `similar` has no override and falls back to the seed show's own language when the list is empty. |
-| Subscribe | `POST /podcasts/subscribe` `{"feed_url":"…","visibility":"family"}` — also accepts a YouTube channel URL |
+| Subscribe | `POST /podcasts/subscribe` `{"feed_url":"…","visibility":"family"}` — RSS only; a YouTube address answers `400 youtube_not_supported` (revision 17) |
 | Episodes | `GET /podcasts/{id}/episodes?limit=50&offset=0` |
 | Refresh | `POST /podcasts/{id}/refresh` |
 | Search a show's episodes | `GET /podcasts/{id}/episodes?q=` — title and description, any case, accents ignored |
@@ -1468,7 +1468,7 @@ POST   /podcasts/search                               (directory search)
 GET    /podcasts/discover/categories                  (category list + counts)
 GET    /podcasts/discover/browse?category=            (cold-start discovery)
 GET    /podcasts/{id}/similar                         (more like this)
-POST   /podcasts/subscribe                            (visibility; RSS or YouTube)
+POST   /podcasts/subscribe                            (visibility; RSS only)
 GET    /podcasts/{id}
 DELETE /podcasts/{id}                                 (owner)
 PUT    /podcasts/{id}/visibility                      (owner)

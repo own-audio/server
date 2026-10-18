@@ -211,6 +211,10 @@ An endpoint or field being retired:
 Native app stores can take weeks to roll a client out, and users do not update
 promptly. Six months is the minimum, not the target.
 
+One exception so far: YouTube channels as feeds were removed outright in revision 17
+(1.0.0-beta.24). The feature had never worked in a released image, so nothing could
+depend on it; see `SCOPE.md` decision 15.
+
 ---
 
 ## 6. Error shape and "feature unavailable"

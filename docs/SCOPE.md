@@ -34,7 +34,6 @@ private hosted repository and never in this one.
 ### Podcasts
 - Feeds, episodes, hourly refresh, server-side episode download, transcripts
   where the feed publishes them, OpenSubsonic podcast surface.
-- YouTube channels as podcast feeds and audio download through `yt-dlp`.
 - Podcast search, similar shows, categories, browse — through public
   directories (iTunes Search; Podcast Index with a free key).
 
@@ -146,3 +145,4 @@ the client guide's "Known gaps".
 | 14 | PostgreSQL-only: whose problem are its costs? | **Ours.** It stays the only database (decision 10); before 1.0 the server ships family-sized PostgreSQL settings, nightly automatic backups with a tested restore, and a one-command PostgreSQL major upgrade (plan, Phase 6 item 4). | Kornel, 2026-10-07 |
 | 13 | Footprint goal | **Smaller than Navidrome and Audiobookshelf.** Measurements: `RAM_USAGE.md`. | Kornel, 2026-10-07 |
 | 9 | Public home GitHub, image on Docker Hub | **yes**: `github.com/own-audio/server` (public), Docker Hub `kornelko2/own-audio-server` (Kornel's existing account, like `mindmapvault-server`), GHCR `ghcr.io/own-audio/server` | Kornel, 2026-10-06 |
+| 15 | YouTube channels as podcast feeds? | **Out.** No listing or downloading from YouTube in either edition, and no `yt-dlp` in the image: downloading is against YouTube's terms and sits in a legal grey zone (technical protection measures), which a published server should not carry. Anyone who wants YouTube audio does it privately, outside the server, and adds the files as their own podcast. | Kornel, 2026-10-18 |

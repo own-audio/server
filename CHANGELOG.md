@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Removed
+
+- YouTube channels as podcast feeds (contract revision 17). The server no longer lists or
+  downloads anything from YouTube, and the image no longer contains `yt-dlp` (or the
+  Python it pulled in). `POST /podcasts/subscribe` with a YouTube address answers
+  `400 youtube_not_supported`. YouTube feeds followed earlier stay, with their episodes and
+  stored copies, but are never refreshed again; storing one of their episodes, auto-store
+  and store-all answer `409 youtube_not_supported`. This skips the six-month deprecation in
+  `docs/API_COMPATIBILITY.md` §5 on purpose: the feature never worked in a released image
+  (the bundled `yt-dlp` 2023.03.04 could no longer read YouTube), so no client depends on it.
+
 ## [1.0.0-beta.23] - 2026-10-17
 
 ### Added

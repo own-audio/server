@@ -8,7 +8,6 @@ use crate::db;
 use crate::db::access;
 use crate::families::FamilyContext;
 use crate::storage::ObjectStore;
-use crate::youtube;
 use axum::extract::{Json, Path, Query, State};
 use axum::http::{StatusCode, header};
 use axum::response::IntoResponse;
@@ -716,17 +715,19 @@ async fn discover_browse(
 
 /// POST /api/v1/podcasts/subscribe
 ///
-/// Subscribes to an RSS feed or a YouTube channel URL; an existing subscription is returned as-is.
+/// Subscribes to an RSS feed; an existing subscription is returned as-is. A YouTube address
+/// is refused with `400 youtube_not_supported`: YouTube channels are not podcast feeds, and
+/// this server does not download from YouTube.
 #[utoipa::path(post, path = "/subscribe", tag = "podcasts", security(("bearer" = [])),
     request_body = SubscribeRequest,
-    responses((status = 201, description = "Subscribed", body = FeedResponse), (status = 200, description = "Already subscribed: the existing feed", body = FeedResponse), (status = 400, description = "Bad visibility", body = crate::http::openapi::ErrorBody), (status = 500, description = "The feed or channel could not be fetched", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 201, description = "Subscribed", body = FeedResponse), (status = 200, description = "Already subscribed: the existing feed", body = FeedResponse), (status = 400, description = "Bad visibility, or `youtube_not_supported`", body = crate::http::openapi::ErrorBody), (status = 500, description = "The feed could not be fetched", body = crate::http::openapi::ErrorBody)))]
 async fn subscribe(
     family: FamilyContext,
     State(state): State<AppState>,
     Json(body): Json<SubscribeRequest>,
 ) -> Result<(StatusCode, Json<FeedResponse>), AuthError> {
-    if youtube::looks_like_channel_url(&body.feed_url) {
-        return subscribe_youtube(family, state, body).await;
+    if is_youtube_address(&body.feed_url) {
+        return Err(AuthError::BadRequest("youtube_not_supported".into()));
     }
 
     let feed_family_id =
@@ -933,79 +934,6 @@ pub(crate) async fn subscribe_rss_feed(
     Ok((fresh, true))
 }
 
-async fn subscribe_youtube(
-    family: FamilyContext,
-    state: AppState,
-    body: SubscribeRequest,
-) -> Result<(StatusCode, Json<FeedResponse>), AuthError> {
-    let pool = state.db();
-    let feed_family_id =
-        access::family_id_for_visibility(body.visibility.as_deref(), family.family_id)
-            .map_err(|e| AuthError::BadRequest(e.to_string()))?;
-
-    let snapshot = youtube::fetch_channel(&body.feed_url)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    let existing = db::podcasts::list_feeds(pool, family.viewer())
-        .await
-        .map_err(AuthError::Internal)?;
-
-    if let Some(existing_feed) = existing.into_iter().find(|f| {
-        f.feed_url == body.feed_url
-            || (f.source_type == "youtube"
-                && f.youtube_channel_id.is_some()
-                && f.youtube_channel_id == snapshot.channel_id)
-    }) {
-        return Ok((StatusCode::OK, Json(feed_to_response(existing_feed, family.user_id))));
-    }
-
-    let canonical_feed_url = snapshot.channel_url.clone().unwrap_or_else(|| body.feed_url.clone());
-    let feed = db::podcasts::insert_feed(pool, family.user_id, feed_family_id, &canonical_feed_url, &snapshot.title)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    let image_object_id = if let Some(ref url) = snapshot.image_url {
-        store_image_from_url(pool, state.storage(), url).await.ok()
-    } else {
-        None
-    };
-
-    sqlx::query(
-        "UPDATE podcast_feeds
-            SET source_type = 'youtube',
-                youtube_channel_id = $2,
-                description = $3,
-                author = $4,
-                link = $5,
-                language = NULL,
-                image_url = $6,
-                image_object_id = $7,
-                last_refreshed_at = CURRENT_TIMESTAMP,
-                refresh_error = NULL
-          WHERE id = $1",
-    )
-    .bind(feed.id)
-    .bind(snapshot.channel_id.as_deref())
-    .bind(snapshot.description.as_deref())
-    .bind(snapshot.author.as_deref())
-    .bind(snapshot.channel_url.as_deref())
-    .bind(snapshot.image_url.as_deref())
-    .bind(image_object_id)
-    .execute(pool)
-    .await
-    .map_err(|e| AuthError::Internal(e.into()))?;
-
-    ingest_youtube_episodes_inner(pool, feed.id, &snapshot, state.storage()).await?;
-
-    let fresh = db::podcasts::find_feed(pool, feed.id, family.viewer())
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or_else(|| AuthError::Internal(anyhow::anyhow!("feed vanished after insert")))?;
-
-    Ok((StatusCode::CREATED, Json(feed_to_response(fresh, family.user_id))))
-}
-
 /// GET /api/v1/podcasts/:id
 ///
 /// One feed.
@@ -1127,7 +1055,7 @@ async fn refresh_feed(
         .ok_or(AuthError::ItemNotFound)?;
 
     if feed.source_type == "youtube" {
-        refresh_youtube_feed_inner(pool, state.storage(), id, &feed.feed_url).await?;
+        retire_youtube_feed(pool, id).await.map_err(AuthError::Internal)?;
         return Ok(StatusCode::NO_CONTENT);
     }
 
@@ -1160,11 +1088,7 @@ async fn refresh_feed(
     Ok(StatusCode::NO_CONTENT)
 }
 
-pub async fn refresh_feed_job(
-    pool: &sqlx::PgPool,
-    storage: &ObjectStore,
-    feed_id: Uuid,
-) -> anyhow::Result<()> {
+pub async fn refresh_feed_job(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Result<()> {
     let row = sqlx::query_as::<_, (String, String)>(
         "SELECT feed_url, source_type FROM podcast_feeds WHERE id = $1",
     )
@@ -1183,7 +1107,8 @@ pub async fn refresh_feed_job(
             .await?;
 
     if source_type == "youtube" {
-        refresh_youtube_feed_inner(pool, storage, feed_id, &feed_url).await?;
+        // Followed before YouTube support was removed: kept as it is, never refreshed.
+        return retire_youtube_feed(pool, feed_id).await;
     } else {
         let channel = fetch_rss_url(&feed_url).await?;
         let image_url = channel
@@ -1285,49 +1210,25 @@ async fn notify_new_episodes(pool: &sqlx::PgPool, feed_id: Uuid, new_count: i64)
     }
 }
 
-async fn refresh_youtube_feed_inner(
-    pool: &sqlx::PgPool,
-    storage: &ObjectStore,
-    feed_id: Uuid,
-    feed_url: &str,
-) -> Result<(), AuthError> {
-    let snapshot = youtube::fetch_channel(feed_url)
-        .await
-        .map_err(AuthError::Internal)?;
+/// A YouTube feed followed before YouTube support was removed (1.0.0-beta.24). Its episodes
+/// and stored copies stay; it is never fetched again, and its refresh error says why.
+async fn retire_youtube_feed(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query("UPDATE podcast_feeds SET refresh_error = $2, auto_store_since = NULL WHERE id = $1")
+        .bind(feed_id)
+        .bind(YOUTUBE_RETIRED)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
 
-    let image_object_id = if let Some(ref url) = snapshot.image_url {
-        store_image_from_url(pool, storage, url).await.ok()
-    } else {
-        None
-    };
+const YOUTUBE_RETIRED: &str = "YouTube channels are no longer refreshed: this server does not download from YouTube.";
 
-    sqlx::query(
-        "UPDATE podcast_feeds
-            SET source_type = 'youtube',
-                youtube_channel_id = COALESCE($2, youtube_channel_id),
-                title = $3,
-                description = $4,
-                author = $5,
-                link = $6,
-                image_url = $7,
-                image_object_id = COALESCE($8, image_object_id),
-                    last_refreshed_at = CURRENT_TIMESTAMP,
-                refresh_error = NULL
-          WHERE id = $1",
-    )
-    .bind(feed_id)
-    .bind(snapshot.channel_id.as_deref())
-    .bind(&snapshot.title)
-    .bind(snapshot.description.as_deref())
-    .bind(snapshot.author.as_deref())
-    .bind(snapshot.channel_url.as_deref())
-    .bind(snapshot.image_url.as_deref())
-    .bind(image_object_id)
-    .execute(pool)
-    .await
-    .map_err(|e| AuthError::Internal(e.into()))?;
-
-    ingest_youtube_episodes_inner(pool, feed_id, &snapshot, storage).await
+/// youtube.com, its subdomains, and youtu.be — refused on subscribe.
+fn is_youtube_address(input: &str) -> bool {
+    url::Url::parse(input.trim())
+        .ok()
+        .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|h| h == "youtu.be" || h == "youtube.com" || h.ends_with(".youtube.com"))
 }
 
 /// PUT /api/v1/podcasts/:id/visibility — owner only.
@@ -1381,7 +1282,7 @@ pub(crate) async fn set_feed_visibility(
 #[utoipa::path(put, path = "/{id}/auto-store", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id")),
     request_body = SetAutoStoreRequest,
-    responses((status = 200, body = FeedResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, body = FeedResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
 async fn set_auto_store(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1397,6 +1298,9 @@ async fn set_auto_store(
         || (family.is_family_admin() && feed.family_id == Some(family.family_id));
     if !may {
         return Err(AuthError::Forbidden);
+    }
+    if feed.source_type == "youtube" {
+        return Err(AuthError::Conflict("youtube_not_supported".into()));
     }
     sqlx::query(
         "UPDATE podcast_feeds
@@ -1450,7 +1354,7 @@ const UNSTORED: &str = "id IN (SELECT id FROM podcast_episodes
 #[utoipa::path(post, path = "/{id}/store-all", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id")),
     request_body = StoreAllRequest,
-    responses((status = 200, description = "Episodes queued, or that would be for a preview", body = StoreAllResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, description = "Episodes queued, or that would be for a preview", body = StoreAllResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
 async fn store_all(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1466,6 +1370,9 @@ async fn store_all(
         || (family.is_family_admin() && feed.family_id == Some(family.family_id));
     if !may {
         return Err(AuthError::Forbidden);
+    }
+    if feed.source_type == "youtube" {
+        return Err(AuthError::Conflict("youtube_not_supported".into()));
     }
     let latest = body.latest.filter(|n| *n > 0);
     let (episodes, seconds): (i64, Option<i64>) = sqlx::query_as(&format!(
@@ -1557,59 +1464,6 @@ pub async fn ingest_episodes(
             AuthError::Internal(inner) => inner,
             other => anyhow::anyhow!("{other:?}"),
         })
-}
-
-async fn ingest_youtube_episodes_inner(
-    pool: &sqlx::PgPool,
-    feed_id: Uuid,
-    channel: &youtube::YouTubeChannelSnapshot,
-    storage: &ObjectStore,
-) -> Result<(), AuthError> {
-    for item in &channel.entries {
-        let guid = item.video_id.clone();
-        let title = item.title.clone();
-        let description = item.description.clone();
-        let audio_url = Some(item.watch_url.clone());
-        let published_at = item.published_at;
-        let duration_secs = item.duration_secs;
-        let episode_number = None::<i32>;
-
-        let ep_image_object_id = if let Some(ref url) = item.image_url {
-            store_image_from_url(pool, storage, url).await.ok()
-        } else {
-            None
-        };
-
-        sqlx::query(
-            "INSERT INTO podcast_episodes
-             (feed_id, guid, title, description, audio_url, published_at,
-              duration_secs, episode_number, image_url, image_object_id)
-             VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-             ON CONFLICT (feed_id, guid) DO UPDATE
-               SET title            = EXCLUDED.title,
-                   description      = COALESCE(EXCLUDED.description, podcast_episodes.description),
-                   audio_url        = COALESCE(EXCLUDED.audio_url, podcast_episodes.audio_url),
-                   published_at     = COALESCE(EXCLUDED.published_at, podcast_episodes.published_at),
-                   duration_secs    = COALESCE(EXCLUDED.duration_secs, podcast_episodes.duration_secs),
-                   image_url        = COALESCE(EXCLUDED.image_url, podcast_episodes.image_url),
-                   image_object_id  = COALESCE(EXCLUDED.image_object_id, podcast_episodes.image_object_id)",
-        )
-        .bind(feed_id)
-        .bind(&guid)
-        .bind(&title)
-        .bind(&description)
-        .bind(&audio_url)
-        .bind(published_at)
-        .bind(duration_secs)
-        .bind(episode_number)
-        .bind(item.image_url.as_deref())
-        .bind(ep_image_object_id)
-        .execute(pool)
-        .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
-    }
-
-    Ok(())
 }
 
 async fn ingest_episodes_inner(
@@ -1875,7 +1729,7 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600; // 4 hours
 /// and marks the episode as local. Returns the updated episode.
 #[utoipa::path(post, path = "/{id}/episodes/{ep_id}/download", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
-    responses((status = 200, description = "The episode, now stored", body = EpisodeResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 500, description = "The audio could not be fetched or stored", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, description = "The episode, now stored", body = EpisodeResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody), (status = 500, description = "The audio could not be fetched or stored", body = crate::http::openapi::ErrorBody)))]
 async fn download_episode(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1902,6 +1756,9 @@ async fn download_episode(
     // If already downloaded, return immediately
     if episode.audio_object_id.is_some() {
         return Ok(Json(episode_to_response(episode)));
+    }
+    if feed.source_type == "youtube" {
+        return Err(AuthError::Conflict("youtube_not_supported".into()));
     }
 
     let guard = crate::storage::quota::Guard::for_state(&state);
@@ -2003,53 +1860,30 @@ pub(crate) async fn fetch_and_store_episode_audio(
 
     info!(%ep_id, source_type = %feed.source_type, audio_url = %audio_url, "starting episode download");
 
-    enum Body {
-        Bytes(bytes::Bytes),
-        Temp(tempfile::NamedTempFile, u64),
+    if feed.source_type == "youtube" {
+        anyhow::bail!("{YOUTUBE_RETIRED}");
     }
-    let (body, content_type) = if feed.source_type == "youtube" {
-        let (bytes, content_type) = youtube::download_audio_to_bytes(audio_url).await?;
-        (Body::Bytes(bytes), content_type)
-    } else {
-        // Through the outbound guard: the enclosure URL comes from the feed,
-        // and the body goes to a temporary file under a size cap rather than
-        // into memory (security hardening plan C2, C3).
-        let response = crate::http::outbound::get(audio_url).await.map_err(|e| e.context("fetch audio"))?;
-        let content_type = crate::http::outbound::content_type(&response, "audio/mpeg");
-        if content_type.starts_with("text/") {
-            anyhow::bail!("fetch audio: host returned {content_type}, not audio");
-        }
-        let (temp, len) = crate::http::outbound::to_temp(response, *MAX_EPISODE_BYTES)
-            .await
-            .map_err(|e| e.context("read audio body"))?;
-        (Body::Temp(temp, len), content_type)
-    };
-
-    let fetched_len = match &body {
-        Body::Bytes(bytes) => bytes.len() as i64,
-        Body::Temp(_, len) => *len as i64,
-    };
+    // Through the outbound guard: the enclosure URL comes from the feed,
+    // and the body goes to a temporary file under a size cap rather than
+    // into memory (security hardening plan C2, C3).
+    let response = crate::http::outbound::get(audio_url).await.map_err(|e| e.context("fetch audio"))?;
+    let content_type = crate::http::outbound::content_type(&response, "audio/mpeg");
+    if content_type.starts_with("text/") {
+        anyhow::bail!("fetch audio: host returned {content_type}, not audio");
+    }
+    let (temp, fetched_len) = crate::http::outbound::to_temp(response, *MAX_EPISODE_BYTES)
+        .await
+        .map_err(|e| e.context("read audio body"))?;
+    let fetched_len = fetched_len as i64;
     guard.check(pool, storage.bucket(), family_id, fetched_len).await?;
 
     let object_key = crate::storage::family_key(family_id, format!("episodes/{ep_id}"));
     let bucket = storage.bucket().to_string();
-    let byte_len = match body {
-        Body::Bytes(bytes) => {
-            let len = bytes.len();
-            storage
-                .put(&object_key, bytes, &content_type)
-                .await
-                .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
-            len
-        }
-        Body::Temp(temp, len) => {
-            storage
-                .put_temp(&object_key, temp, &content_type)
-                .await
-                .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
-            len as usize
-        }
-    };
+    storage
+        .put_temp(&object_key, temp, &content_type)
+        .await
+        .map_err(|e| e.context(format!("store episode audio: ep_id={ep_id}")))?;
+    let byte_len = fetched_len as usize;
 
     // `size_bytes` is recorded because Subsonic reports a `size` per episode,
     // which clients use to show what a download will cost before starting it.
@@ -2381,6 +2215,16 @@ async fn get_episode_image(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn youtube_addresses_are_recognised_and_feeds_are_not() {
+        for yes in ["https://www.youtube.com/@kurzgesagt", "https://youtube.com/channel/UCx", "https://m.youtube.com/watch?v=x", "https://youtu.be/x", " https://WWW.YOUTUBE.COM/@x "] {
+            assert!(is_youtube_address(yes), "{yes}");
+        }
+        for no in ["https://feeds.example.com/youtube.rss", "https://notyoutube.com/feed", "https://example.com/?u=youtube.com", "not a url"] {
+            assert!(!is_youtube_address(no), "{no}");
+        }
+    }
 
     /// Deliberately out of order, with one item carrying no date at all.
     const FEED_OUT_OF_ORDER: &str = r#"<?xml version="1.0" encoding="UTF-8"?>

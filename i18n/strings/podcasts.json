@@ -105,8 +105,8 @@
     "cs": "Zatím žádné pořady"
   },
   "podcasts.list.empty.noneBody": {
-    "en": "Search the directory, or paste an RSS or YouTube URL.",
-    "cs": "Hledejte v katalogu, nebo vložte adresu RSS či YouTube."
+    "en": "Search the directory, or paste a feed's RSS address.",
+    "cs": "Hledejte v katalogu, nebo vložte RSS adresu kanálu."
   },
   "podcasts.list.findShow": {
     "en": "Find a show",
@@ -170,12 +170,12 @@
     "cs": "Nebo vložte adresu kanálu"
   },
   "podcasts.add.urlPlaceholder": {
-    "en": "https://example.com/feed.rss or https://youtube.com/@channel",
-    "cs": "https://example.com/feed.rss nebo https://youtube.com/@channel"
+    "en": "https://example.com/feed.rss",
+    "cs": "https://example.com/feed.rss"
   },
   "podcasts.add.urlHint": {
-    "en": "Use this for a show the directory misses, or a YouTube channel.",
-    "cs": "Pro pořad, který katalog nezná, nebo pro kanál na YouTube."
+    "en": "Use this for a show the directory misses.",
+    "cs": "Pro pořad, který katalog nezná."
   },
   "podcasts.add.shareHint": {
     "en": "Everyone in your family sees this show and its episodes.",

@@ -2,7 +2,7 @@
 /// Background job worker — polls the `jobs` table and executes due tasks.
 ///
 /// Currently handles:
-///   - `feed_refresh`: re-fetches an RSS or YouTube-backed feed and syncs new episodes
+///   - `feed_refresh`: re-fetches an RSS feed and syncs new episodes
 ///   - `media_checksum`: DEDUPLICATION_PLAN.md P2 — hashes one object's stored bytes
 use anyhow::Context;
 use crate::app::AppConfig;
@@ -489,7 +489,7 @@ async fn execute_job(
         return handler.run(pool, storage, job).await;
     }
     match job.job_type.as_str() {
-        "feed_refresh" => execute_feed_refresh(pool, storage, job).await,
+        "feed_refresh" => execute_feed_refresh(pool, job).await,
         "stats_rollup" => execute_stats_rollup(pool, job).await,
         "media_checksum" => execute_media_checksum(pool, storage, job).await,
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
@@ -1203,11 +1203,7 @@ async fn execute_podcast_catalog_sync(
     Ok(())
 }
 
-async fn execute_feed_refresh(
-    pool: &PgPool,
-    storage: &ObjectStore,
-    job: &crate::jobs::models::Job,
-) -> anyhow::Result<()> {
+async fn execute_feed_refresh(pool: &PgPool, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
     let feed_id_str = job
         .payload
         .as_ref()
@@ -1217,8 +1213,8 @@ async fn execute_feed_refresh(
 
     let feed_id: uuid::Uuid = feed_id_str.parse()?;
 
-    // Refresh the feed from its source (RSS or YouTube)
-    podcasts::refresh_feed_job(pool, storage, feed_id).await?;
+    // Refresh the feed from its RSS source
+    podcasts::refresh_feed_job(pool, feed_id).await?;
 
     debug!(%feed_id, "feed refresh complete");
     Ok(())

@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.16"
+    "version": "1.17"
   },
   "servers": [
     {
@@ -11495,7 +11495,8 @@
         "tags": [
           "podcasts"
         ],
-        "summary": "Subscribes to an RSS feed or a YouTube channel URL; an existing subscription is returned as-is",
+        "summary": "Subscribes to an RSS feed; an existing subscription is returned as-is",
+        "description": "Subscribes to an RSS feed; an existing subscription is returned as-is. A YouTube address\nis refused with `400 youtube_not_supported`: YouTube channels are not podcast feeds, and\nthis server does not download from YouTube.",
         "operationId": "podcasts_subscribe",
         "requestBody": {
           "content": {
@@ -11529,7 +11530,7 @@
             }
           },
           "400": {
-            "description": "Bad visibility",
+            "description": "Bad visibility, or `youtube_not_supported`",
             "content": {
               "application/json": {
                 "schema": {
@@ -11539,7 +11540,7 @@
             }
           },
           "500": {
-            "description": "The feed or channel could not be fetched",
+            "description": "The feed could not be fetched",
             "content": {
               "application/json": {
                 "schema": {
@@ -11733,6 +11734,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "`youtube_not_supported`: a YouTube feed followed before that support was removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
           }
         },
         "security": [
@@ -11863,6 +11874,16 @@
           },
           "404": {
             "description": "No such feed or episode, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`youtube_not_supported`: a YouTube feed followed before that support was removed",
             "content": {
               "application/json": {
                 "schema": {
@@ -12286,6 +12307,16 @@
           },
           "404": {
             "description": "No such feed, or not visible to the caller",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`youtube_not_supported`: a YouTube feed followed before that support was removed",
             "content": {
               "application/json": {
                 "schema": {

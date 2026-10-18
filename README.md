@@ -41,7 +41,7 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
 - **Audiobooks**: upload or index in place, multi-file books, authors,
   series, collections, bookmarks, progress that follows you between devices.
 - **Podcasts**: subscribe, refresh, download on the server, transcripts
-  where the feed has them, YouTube channels as feeds.
+  where the feed has them.
 - **Music**: tags-based library, albums, artists and genres, playlists, smart
   playlists, lyrics, stars and ratings, duplicate detection; an OpenSubsonic
   API so your favourite music app works too. Identify tracks and albums

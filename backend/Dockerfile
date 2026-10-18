@@ -76,12 +76,10 @@ LABEL org.opencontainers.image.title="own.audio server" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 # `upgrade` first: the base tag lags Debian's security updates by days, and
-# the image scan in CI refuses fixed CRITICAL/HIGH findings (yt-dlp pulls in
-# python, which gets them regularly).
+# the image scan in CI refuses fixed CRITICAL/HIGH findings.
 RUN apt-get update && apt-get upgrade -y --no-install-recommends && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
-    yt-dlp \
     ffmpeg \
     aubio-tools \
     && rm -rf /var/lib/apt/lists/*

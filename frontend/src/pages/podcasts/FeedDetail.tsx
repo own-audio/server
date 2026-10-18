@@ -436,7 +436,6 @@ export default function FeedDetail({ feedId }: { feedId: string }) {
           <h1 className="text-2xl font-semibold leading-tight tracking-tight sm:text-xl">{feed.title}</h1>
           {feed.author && <p className="mt-0.5 text-sm text-muted">{feed.author}</p>}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            {feed.source_type === "youtube" && <Pill tone="error">YouTube</Pill>}
             <Pill>{t("podcasts.episodeCount", { count: episodes.length })}</Pill>
             {feed.has_transcripts && (
               <Pill tone="accent" className="gap-1">
