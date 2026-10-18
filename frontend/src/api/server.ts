@@ -38,6 +38,8 @@ export interface ServerFeatures {
   payments: boolean;
   narration: boolean;
   translation: boolean;
+  /** Hosted: summarize an episode and answer questions about it, from its transcript. */
+  summaries: boolean;
 }
 
 export interface ServerInfo {
@@ -69,6 +71,7 @@ export const NO_FEATURES: ServerFeatures = {
   payments: false,
   narration: false,
   translation: false,
+  summaries: false,
 };
 
 /* A server older than `GET /server` answers 404. The hosted console is

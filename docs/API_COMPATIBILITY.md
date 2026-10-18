@@ -96,6 +96,9 @@ Rules:
   `podcast_discovery`, and also without it when the server searches Apple's
   public directory instead of its own catalogue; then categories, browse and
   similar shows stay off.
+- `summaries` (revision 20): the hosted edition summarizes an episode and answers questions
+  about it from its transcript (`/api/v1/podcast-ai/…`, paid from the family's credit). Always
+  `false` in the open-source edition, like `narration` and `translation`.
 - `uploaded_podcasts` (revision 18): `POST /api/v2/podcasts` creates a podcast
   whose episodes its owner uploads, and `POST /api/v2/podcasts/{id}/episodes`
   adds one from uploads (`POST /api/v2/uploads`, kinds `episode`,

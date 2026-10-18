@@ -1377,6 +1377,16 @@ export interface MessageParams {
   "podcasts.feed.autoStore.on": undefined;
   "podcasts.feed.empty.body": undefined;
   "podcasts.feed.empty.title": undefined;
+  "podcasts.feed.episode.ai.ask": undefined;
+  "podcasts.feed.episode.ai.askNote": undefined;
+  "podcasts.feed.episode.ai.askPlaceholder": undefined;
+  "podcasts.feed.episode.ai.cost": undefined;
+  "podcasts.feed.episode.ai.error": undefined;
+  "podcasts.feed.episode.ai.hide": undefined;
+  "podcasts.feed.episode.ai.make": undefined;
+  "podcasts.feed.episode.ai.making": undefined;
+  "podcasts.feed.episode.ai.summarize": undefined;
+  "podcasts.feed.episode.ai.title": undefined;
   "podcasts.feed.episode.collapse": undefined;
   "podcasts.feed.episode.downloadToLibrary": undefined;
   "podcasts.feed.episode.expand": undefined;

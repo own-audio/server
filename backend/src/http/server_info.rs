@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 19;
+pub const API_REVISION: u32 = 20;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -115,7 +115,7 @@ pub fn features(state: &AppState) -> Map<String, Value> {
     features.insert("one_family".into(), json!(state.hooks().one_family()));
     // The edition's own keys; absent in the open-source edition, so set the
     // documented defaults first and let the hooks overwrite.
-    for key in ["billing", "payments", "narration", "translation"] {
+    for key in ["billing", "payments", "narration", "translation", "summaries"] {
         features.insert(key.into(), json!(false));
     }
     for (k, v) in state.hooks().features() {

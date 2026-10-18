@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- `features.summaries` (contract revision 20), `false` in this edition: the hosted edition's
+  episode summaries and questions. The console shows "Summarize" with a question box under an
+  episode with a transcript when a server reports it.
+
+### Changed
+
+- An expanded episode in the console shows its transcript button (and Summarize) above the
+  description, and long descriptions are cut to four lines with "More".
+
 ## [1.0.0-beta.26] - 2026-10-18
 
 ### Added

@@ -554,5 +554,45 @@
   "podcasts.feed.episode.transcript.empty": {
     "en": "The transcript is empty.",
     "cs": "Přepis je prázdný."
+  },
+  "podcasts.feed.episode.ai.summarize": {
+    "en": "Summarize",
+    "cs": "Shrnout"
+  },
+  "podcasts.feed.episode.ai.hide": {
+    "en": "Hide summary",
+    "cs": "Skrýt shrnutí"
+  },
+  "podcasts.feed.episode.ai.cost": {
+    "en": "The summary is made from the transcript with AI and paid from the family's credit, usually a cent or two. Everyone in the family can then read it.",
+    "cs": "Shrnutí se vytvoří z přepisu pomocí AI a zaplatí z kreditu rodiny, obvykle méně než korunu. Pak si ho může přečíst celá rodina."
+  },
+  "podcasts.feed.episode.ai.make": {
+    "en": "Make a summary",
+    "cs": "Vytvořit shrnutí"
+  },
+  "podcasts.feed.episode.ai.making": {
+    "en": "Summarizing…",
+    "cs": "Shrnuji…"
+  },
+  "podcasts.feed.episode.ai.title": {
+    "en": "Summary",
+    "cs": "Shrnutí"
+  },
+  "podcasts.feed.episode.ai.askPlaceholder": {
+    "en": "Ask about this episode…",
+    "cs": "Zeptejte se na tuto epizodu…"
+  },
+  "podcasts.feed.episode.ai.ask": {
+    "en": "Ask",
+    "cs": "Zeptat se"
+  },
+  "podcasts.feed.episode.ai.askNote": {
+    "en": "Answers come from the episode's transcript only, and each one is paid from the family's credit.",
+    "cs": "Odpovědi vycházejí jen z přepisu epizody a každá se platí z kreditu rodiny."
+  },
+  "podcasts.feed.episode.ai.error": {
+    "en": "That didn't work. Try again.",
+    "cs": "Nepodařilo se. Zkuste to znovu."
   }
 }

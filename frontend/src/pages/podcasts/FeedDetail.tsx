@@ -5,6 +5,8 @@ import { Archive, Check, Compass, ChevronDown, ChevronUp, CircleCheck, CloudDown
 import { getEpisodeTranscript, getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
 import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
+import { askEpisode, createSummary, getSummary, type AskTurn } from "../../api/podcastAi";
+import { apiErrorMessage } from "../../lib/apiError";
 import { formatDate, formatDuration, stripHtml } from "../../lib/format";
 import { playEpisode } from "../../lib/play";
 import { getTranslationProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
@@ -596,8 +598,8 @@ export default function FeedDetail({ feedId }: { feedId: string }) {
                 </div>
                 {isOpen && (
                   <div className="border-t border-border px-3 py-3">
-                    {ep.description && <p className="whitespace-pre-line text-sm leading-relaxed text-muted">{stripHtml(ep.description)}</p>}
-                    {ep.has_transcript && <EpisodeTranscriptView feedId={feedId} episodeId={ep.id} />}
+                    {ep.has_transcript && <EpisodeTools feedId={feedId} episodeId={ep.id} />}
+                    {ep.description && <ClampedText text={stripHtml(ep.description)} className={ep.has_transcript ? "mt-3" : undefined} />}
                     {ep.has_transcript && (
                       <Translations
                         episodeId={ep.id}
@@ -624,14 +626,113 @@ export default function FeedDetail({ feedId }: { feedId: string }) {
   );
 }
 
-/** The episode's transcript, fetched when asked for: timed lines with their start, or text. */
+/** Above an episode's description: its transcript and, where the server offers it, a summary
+ *  with questions — both from the transcript, so only for episodes that have one. */
+function EpisodeTools({ feedId, episodeId }: { feedId: string; episodeId: string }) {
+  const { t } = useT();
+  const summaries = useServerFeatures().features.summaries === true;
+  const [panel, setPanel] = useState<"transcript" | "summary" | null>(null);
+  const toggle = (p: "transcript" | "summary") => setPanel(panel === p ? null : p);
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" size="sm" onClick={() => toggle("transcript")} aria-expanded={panel === "transcript"}>
+          {panel === "transcript" ? t("podcasts.feed.episode.transcript.hide") : t("podcasts.feed.episode.transcript.show")}
+        </Button>
+        {summaries && (
+          <Button variant="secondary" size="sm" onClick={() => toggle("summary")} aria-expanded={panel === "summary"}>
+            {panel === "summary" ? t("podcasts.feed.episode.ai.hide") : t("podcasts.feed.episode.ai.summarize")}
+          </Button>
+        )}
+      </div>
+      {panel === "transcript" && <EpisodeTranscriptView feedId={feedId} episodeId={episodeId} />}
+      {panel === "summary" && <EpisodeSummaryView episodeId={episodeId} />}
+    </div>
+  );
+}
+
+/** The household's summary (made on request, paid) and questions answered from the transcript. */
+function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
+  const { t, locale } = useT();
+  const queryClient = useQueryClient();
+  const key = ["podcast-summary", episodeId, locale];
+  const summary = useQuery({ queryKey: key, queryFn: () => getSummary(episodeId, locale), staleTime: 10 * 60 * 1000 });
+  const make = useMutation({
+    mutationFn: () => createSummary(episodeId, locale),
+    onSuccess: (made) => queryClient.setQueryData(key, made),
+  });
+  const [question, setQuestion] = useState("");
+  const [turns, setTurns] = useState<AskTurn[]>([]);
+  const ask = useMutation({
+    mutationFn: (q: string) => askEpisode(episodeId, q, turns),
+    onSuccess: (answer, q) => {
+      setTurns((prev) => [...prev, { question: q, answer }]);
+      setQuestion("");
+    },
+  });
+  const submit = () => {
+    const q = question.trim();
+    if (q && !ask.isPending) ask.mutate(q);
+  };
+  return (
+    <div className="mt-2 space-y-3 rounded-lg border border-border p-3 text-sm leading-relaxed">
+      {summary.isPending && <p className="text-muted">{t("podcasts.feed.episode.transcript.loading")}</p>}
+      {summary.data === null && (
+        <div className="space-y-2">
+          <p className="text-muted">{t("podcasts.feed.episode.ai.cost")}</p>
+          <Button size="sm" onClick={() => make.mutate()} disabled={make.isPending}>
+            {make.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            {make.isPending ? t("podcasts.feed.episode.ai.making") : t("podcasts.feed.episode.ai.make")}
+          </Button>
+          {make.isError && <p className="text-error">{apiErrorMessage(make.error, t("podcasts.feed.episode.ai.error"))}</p>}
+        </div>
+      )}
+      {summary.isError && <p className="text-error">{apiErrorMessage(summary.error, t("podcasts.feed.episode.ai.error"))}</p>}
+      {summary.data && (
+        <>
+          <div>
+            <p className="mb-1 font-medium">{t("podcasts.feed.episode.ai.title")}</p>
+            <p className="whitespace-pre-line">{summary.data.text}</p>
+          </div>
+          {turns.map((turn, i) => (
+            <div key={i} className="space-y-1">
+              <p className="font-medium">{turn.question}</p>
+              <p className="whitespace-pre-line text-muted">{turn.answer}</p>
+            </div>
+          ))}
+          <form
+            className="flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              submit();
+            }}
+          >
+            <input
+              value={question}
+              onChange={(e) => setQuestion(e.target.value)}
+              maxLength={1000}
+              placeholder={t("podcasts.feed.episode.ai.askPlaceholder")}
+              aria-label={t("podcasts.feed.episode.ai.askPlaceholder")}
+              className="min-w-0 flex-1 rounded-lg border border-border bg-transparent px-3 py-1.5"
+            />
+            <Button size="sm" type="submit" disabled={!question.trim() || ask.isPending}>
+              {ask.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t("podcasts.feed.episode.ai.ask")}
+            </Button>
+          </form>
+          {ask.isError && <p className="text-error">{apiErrorMessage(ask.error, t("podcasts.feed.episode.ai.error"))}</p>}
+          <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.askNote")}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** The episode's transcript: timed lines with their start, or text. */
 function EpisodeTranscriptView({ feedId, episodeId }: { feedId: string; episodeId: string }) {
   const { t } = useT();
-  const [open, setOpen] = useState(false);
   const transcript = useQuery({
     queryKey: ["podcast-transcript", feedId, episodeId],
     queryFn: () => getEpisodeTranscript(feedId, episodeId),
-    enabled: open,
     staleTime: 10 * 60 * 1000,
   });
   const stamp = (ms: number) => {
@@ -642,32 +743,25 @@ function EpisodeTranscriptView({ feedId, episodeId }: { feedId: string; episodeI
     return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
   };
   return (
-    <div className="mt-3">
-      <Button variant="ghost" size="sm" onClick={() => setOpen(!open)} aria-expanded={open}>
-        {open ? t("podcasts.feed.episode.transcript.hide") : t("podcasts.feed.episode.transcript.show")}
-      </Button>
-      {open && (
-        <div className="mt-2 max-h-96 overflow-y-auto rounded-lg border border-border p-3 text-sm leading-relaxed">
-          {transcript.isPending && <p className="text-muted">{t("podcasts.feed.episode.transcript.loading")}</p>}
-          {transcript.isError && <p className="text-error">{t("podcasts.feed.episode.transcript.error")}</p>}
-          {transcript.data?.format === "cues" && (
-            <ol className="space-y-1">
-              {transcript.data.cues.map((cue, i) => (
-                <li key={i} className="flex gap-3">
-                  <span className="w-14 shrink-0 tabular-nums text-muted">{stamp(cue.start_ms)}</span>
-                  <span>{cue.text}</span>
-                </li>
-              ))}
-            </ol>
-          )}
-          {transcript.data?.format === "text" &&
-            (transcript.data.text ? (
-              <p className="whitespace-pre-line">{transcript.data.text}</p>
-            ) : (
-              <p className="text-muted">{t("podcasts.feed.episode.transcript.empty")}</p>
-            ))}
-        </div>
+    <div className="mt-2 max-h-96 overflow-y-auto rounded-lg border border-border p-3 text-sm leading-relaxed">
+      {transcript.isPending && <p className="text-muted">{t("podcasts.feed.episode.transcript.loading")}</p>}
+      {transcript.isError && <p className="text-error">{t("podcasts.feed.episode.transcript.error")}</p>}
+      {transcript.data?.format === "cues" && (
+        <ol className="space-y-1">
+          {transcript.data.cues.map((cue, i) => (
+            <li key={i} className="flex gap-3">
+              <span className="w-14 shrink-0 tabular-nums text-muted">{stamp(cue.start_ms)}</span>
+              <span>{cue.text}</span>
+            </li>
+          ))}
+        </ol>
       )}
+      {transcript.data?.format === "text" &&
+        (transcript.data.text ? (
+          <p className="whitespace-pre-line">{transcript.data.text}</p>
+        ) : (
+          <p className="text-muted">{t("podcasts.feed.episode.transcript.empty")}</p>
+        ))}
     </div>
   );
 }
