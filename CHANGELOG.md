@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.30] - 2026-10-18
+
+### Changed
+
+- The console keeps your questions about an episode and their answers (hosted, for you alone), with
+  a button to clear them. Contract unchanged (revision 21).
+
 ## [1.0.0-beta.29] - 2026-10-18
 
 ### Changed
