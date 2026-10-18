@@ -7,6 +7,8 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.27] - 2026-10-18
+
 ### Added
 
 - `features.summaries` (contract revision 20), `false` in this edition: the hosted edition's
