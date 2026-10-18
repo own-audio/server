@@ -2,7 +2,7 @@
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Archive, Check, Compass, ChevronDown, ChevronUp, CircleCheck, CloudDownload, Download, ImageDown, Inbox, Languages, Loader2, Pause, Play, RefreshCw, Save, Undo2, UserCheck } from "lucide-react";
-import { getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
+import { getEpisodeTranscript, getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
 import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
 import { formatDate, formatDuration, stripHtml } from "../../lib/format";
@@ -597,6 +597,7 @@ export default function FeedDetail({ feedId }: { feedId: string }) {
                 {isOpen && (
                   <div className="border-t border-border px-3 py-3">
                     {ep.description && <p className="whitespace-pre-line text-sm leading-relaxed text-muted">{stripHtml(ep.description)}</p>}
+                    {ep.has_transcript && <EpisodeTranscriptView feedId={feedId} episodeId={ep.id} />}
                     {ep.has_transcript && (
                       <Translations
                         episodeId={ep.id}
@@ -619,6 +620,54 @@ export default function FeedDetail({ feedId }: { feedId: string }) {
       </div>
 
       {translating && <TranslateEpisodeModal episodeId={translating} sourceLanguage={feed.language} onClose={() => setTranslating(null)} />}
+    </div>
+  );
+}
+
+/** The episode's transcript, fetched when asked for: timed lines with their start, or text. */
+function EpisodeTranscriptView({ feedId, episodeId }: { feedId: string; episodeId: string }) {
+  const { t } = useT();
+  const [open, setOpen] = useState(false);
+  const transcript = useQuery({
+    queryKey: ["podcast-transcript", feedId, episodeId],
+    queryFn: () => getEpisodeTranscript(feedId, episodeId),
+    enabled: open,
+    staleTime: 10 * 60 * 1000,
+  });
+  const stamp = (ms: number) => {
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const mm = String(Math.floor((s % 3600) / 60)).padStart(h ? 2 : 1, "0");
+    const ss = String(s % 60).padStart(2, "0");
+    return h ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
+  return (
+    <div className="mt-3">
+      <Button variant="ghost" size="sm" onClick={() => setOpen(!open)} aria-expanded={open}>
+        {open ? t("podcasts.feed.episode.transcript.hide") : t("podcasts.feed.episode.transcript.show")}
+      </Button>
+      {open && (
+        <div className="mt-2 max-h-96 overflow-y-auto rounded-lg border border-border p-3 text-sm leading-relaxed">
+          {transcript.isPending && <p className="text-muted">{t("podcasts.feed.episode.transcript.loading")}</p>}
+          {transcript.isError && <p className="text-error">{t("podcasts.feed.episode.transcript.error")}</p>}
+          {transcript.data?.format === "cues" && (
+            <ol className="space-y-1">
+              {transcript.data.cues.map((cue, i) => (
+                <li key={i} className="flex gap-3">
+                  <span className="w-14 shrink-0 tabular-nums text-muted">{stamp(cue.start_ms)}</span>
+                  <span>{cue.text}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          {transcript.data?.format === "text" &&
+            (transcript.data.text ? (
+              <p className="whitespace-pre-line">{transcript.data.text}</p>
+            ) : (
+              <p className="text-muted">{t("podcasts.feed.episode.transcript.empty")}</p>
+            ))}
+        </div>
+      )}
     </div>
   );
 }

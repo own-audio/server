@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.18"
+    "version": "1.19"
   },
   "servers": [
     {
@@ -12098,6 +12098,74 @@
         ]
       }
     },
+    "/api/v1/podcasts/{id}/episodes/{ep_id}/transcript": {
+      "get": {
+        "tags": [
+          "podcasts"
+        ],
+        "summary": "The episode's transcript to read: the publisher's `<podcast:transcript>` (fetched through the outbound guard) or the file uploaded with the episode, as timed lines or plain text",
+        "operationId": "podcasts_get_episode_transcript",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Feed id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "ep_id",
+            "in": "path",
+            "description": "Episode id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Transcript"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such feed or episode, not visible to the caller, or no transcript",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "The publisher's transcript could not be fetched",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/podcasts/{id}/image": {
       "get": {
         "tags": [
@@ -16383,6 +16451,27 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "Cue": {
+        "type": "object",
+        "required": [
+          "start_ms",
+          "end_ms",
+          "text"
+        ],
+        "properties": {
+          "start_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "end_ms": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "text": {
+            "type": "string"
           }
         }
       },
@@ -20679,6 +20768,31 @@
           }
         ],
         "description": "A created track and where it sits in the own.audio folder — the path\nasked for, or with ` (2)` when another of the owner's files holds it."
+      },
+      "Transcript": {
+        "type": "object",
+        "required": [
+          "format",
+          "cues"
+        ],
+        "properties": {
+          "format": {
+            "type": "string",
+            "description": "`cues` (timed lines from WebVTT or SRT) or `text` (plain text, or a format without timing)."
+          },
+          "cues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Cue"
+            }
+          },
+          "text": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
       },
       "TrashEmptyResponse": {
         "type": "object",

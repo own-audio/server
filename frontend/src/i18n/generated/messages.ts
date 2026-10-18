@@ -1388,6 +1388,11 @@ export interface MessageParams {
   "podcasts.feed.episode.number": { "number": string | number };
   "podcasts.feed.episode.played": undefined;
   "podcasts.feed.episode.saveCopy": undefined;
+  "podcasts.feed.episode.transcript.empty": undefined;
+  "podcasts.feed.episode.transcript.error": undefined;
+  "podcasts.feed.episode.transcript.hide": undefined;
+  "podcasts.feed.episode.transcript.loading": undefined;
+  "podcasts.feed.episode.transcript.show": undefined;
   "podcasts.feed.error.download": undefined;
   "podcasts.feed.error.fetch": undefined;
   "podcasts.feed.error.fetchBody": undefined;

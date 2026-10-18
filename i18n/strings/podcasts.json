@@ -534,5 +534,25 @@
   "podcasts.feed.episode.expand": {
     "en": "Expand",
     "cs": "Rozbalit"
+  },
+  "podcasts.feed.episode.transcript.show": {
+    "en": "Show transcript",
+    "cs": "Zobrazit přepis"
+  },
+  "podcasts.feed.episode.transcript.hide": {
+    "en": "Hide transcript",
+    "cs": "Skrýt přepis"
+  },
+  "podcasts.feed.episode.transcript.loading": {
+    "en": "Loading the transcript…",
+    "cs": "Načítám přepis…"
+  },
+  "podcasts.feed.episode.transcript.error": {
+    "en": "The transcript could not be loaded.",
+    "cs": "Přepis se nepodařilo načíst."
+  },
+  "podcasts.feed.episode.transcript.empty": {
+    "en": "The transcript is empty.",
+    "cs": "Přepis je prázdný."
   }
 }

@@ -476,3 +476,10 @@ export interface PrivateItem {
   /** Songs only. */
   album?: string | null;
 }
+
+/** `GET /podcasts/{id}/episodes/{ep}/transcript`: timed lines (`cues`) or plain `text`. */
+export interface EpisodeTranscript {
+  format: "cues" | "text";
+  cues: { start_ms: number; end_ms: number; text: string }[];
+  text: string | null;
+}

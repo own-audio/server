@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Podcasts module — feeds, episodes, ingest, refresh jobs, playback metadata.
 pub mod models;
+pub mod transcript;
 
 use crate::app::AppState;
 use crate::auth::error::AuthError;
@@ -201,6 +202,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(store_all))
         .routes(routes!(download_episode, delete_episode_download))
         .routes(routes!(stream_episode))
+        .routes(routes!(get_episode_transcript))
         .routes(routes!(get_episode_image))
 }
 
@@ -1929,6 +1931,51 @@ pub(crate) async fn fetch_and_store_episode_audio(
         tracing::warn!(%ep_id, "no path for the stored episode: {e:#}");
     }
     Ok(())
+}
+
+/// GET /api/v1/podcasts/{id}/episodes/{ep_id}/transcript
+///
+/// The episode's transcript to read: the publisher's `<podcast:transcript>` (fetched through
+/// the outbound guard) or the file uploaded with the episode, as timed lines or plain text.
+#[utoipa::path(get, path = "/{id}/episodes/{ep_id}/transcript", tag = "podcasts", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
+    responses((status = 200, body = transcript::Transcript), (status = 404, description = "No such feed or episode, not visible to the caller, or no transcript", body = crate::http::openapi::ErrorBody), (status = 500, description = "The publisher's transcript could not be fetched", body = crate::http::openapi::ErrorBody)))]
+async fn get_episode_transcript(
+    family: FamilyContext,
+    State(state): State<AppState>,
+    Path((feed_id, ep_id)): Path<(Uuid, Uuid)>,
+) -> Result<Json<transcript::Transcript>, AuthError> {
+    let pool = state.db();
+    db::podcasts::find_feed(pool, feed_id, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
+    let episode = db::podcasts::find_episode(pool, ep_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
+    if episode.feed_id != feed_id {
+        return Err(AuthError::ItemNotFound);
+    }
+    let mime = episode.transcript_type.clone().unwrap_or_default();
+    let raw = if let Some(object_id) = episode.transcript_object_id {
+        let key = db::subsonic::media_object_key(pool, object_id)
+            .await
+            .map_err(AuthError::Internal)?
+            .ok_or(AuthError::ItemNotFound)?;
+        state.storage().get(&key).await.map_err(AuthError::Internal)?
+    } else if let Some(url) = episode.transcript_url.as_deref() {
+        let response = crate::http::outbound::get(url).await.map_err(|e| AuthError::Internal(e.context("fetch the publisher's transcript")))?;
+        crate::http::outbound::bytes(response, transcript::MAX_BYTES)
+            .await
+            .map_err(|e| AuthError::Internal(e.context("read the publisher's transcript")))?
+    } else {
+        return Err(AuthError::ItemNotFound);
+    };
+    if raw.len() as u64 > transcript::MAX_BYTES {
+        return Err(AuthError::BadRequest("the transcript is too large to show".into()));
+    }
+    Ok(Json(transcript::parse(&String::from_utf8_lossy(&raw), &mime)))
 }
 
 /// GET /api/v1/podcasts/{id}/episodes/{ep_id}/stream

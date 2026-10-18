@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- An episode's transcript to read (contract revision 19):
+  `GET /api/v1/podcasts/{id}/episodes/{ep_id}/transcript` answers the publisher's
+  `<podcast:transcript>` or the file uploaded with the episode as timed lines (WebVTT, SRT,
+  Podcast Index JSON) or plain text; YouTube-style rolling captions read once. The console shows it
+  under an expanded episode ("Show transcript").
+
 ## [1.0.0-beta.25] - 2026-10-18
 
 ### Added

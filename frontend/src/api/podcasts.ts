@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
 import type {
+  EpisodeTranscript,
   PodcastCategory,
   PodcastFeed,
   PodcastEpisode,
@@ -130,6 +131,12 @@ export async function downloadEpisode(
   const { data } = await api.post<PodcastEpisode>(
     `/podcasts/${feedId}/episodes/${epId}/download`
   );
+  return data;
+}
+
+/** The episode's transcript to read: timed lines, or plain text. */
+export async function getEpisodeTranscript(feedId: string, epId: string): Promise<EpisodeTranscript> {
+  const { data } = await api.get<EpisodeTranscript>(`/podcasts/${feedId}/episodes/${epId}/transcript`);
   return data;
 }
 
