@@ -64,13 +64,15 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
 /// `billing::routes()` is the other half of this list.
 pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
     if let Some(p) = path.strip_prefix("/api/v2") {
-        // v2 names them by what they are: billing, narration, translation.
+        // v2 names them by what they are: billing, narration, translation, summaries.
         return if p.starts_with("/family/billing") {
             Some("billing")
         } else if p.starts_with("/narration") {
             Some("narration")
         } else if p.starts_with("/translation") {
             Some("translation")
+        } else if p.starts_with("/summaries") {
+            Some("summaries")
         } else {
             None
         };
@@ -83,6 +85,8 @@ pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
         Some("narration")
     } else if p.starts_with("/podcast-translate") {
         Some("translation")
+    } else if p.starts_with("/podcast-ai") {
+        Some("summaries")
     } else {
         None
     }
@@ -184,6 +188,8 @@ mod tests {
         assert_eq!(hosted_feature_for("/api/v2/family/billing/topup"), Some("billing"));
         assert_eq!(hosted_feature_for("/api/v2/narration/jobs"), Some("narration"));
         assert_eq!(hosted_feature_for("/api/v2/translation/recent"), Some("translation"));
+        assert_eq!(hosted_feature_for("/api/v2/summaries/episodes/x/summary"), Some("summaries"));
+        assert_eq!(hosted_feature_for("/api/v1/podcast-ai/episodes/x/ask"), Some("summaries"));
         assert_eq!(hosted_feature_for("/api/v2/family/members"), None);
         assert_eq!(hosted_feature_for("/api/v1/audiobook-gen/jobs"), Some("narration"));
         assert_eq!(hosted_feature_for("/api/v1/podcast-translate/episodes/x"), Some("translation"));

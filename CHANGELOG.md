@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- The hosted summaries on `/api/v2/summaries/…` too (contract revision 21): a server without them
+  answers those paths and `/api/v1/podcast-ai/…` with `501 feature_unavailable`. The console calls
+  the v2 paths, and its error messages read v2's `detail` as well as v1's `error`.
+
 ## [1.0.0-beta.27] - 2026-10-18
 
 ### Added
