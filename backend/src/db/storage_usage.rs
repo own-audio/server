@@ -32,6 +32,7 @@ const PODCAST_REFS: &[(&str, &str)] = &[
     ("podcast_feeds", "image_object_id"),
     ("podcast_episodes", "audio_object_id"),
     ("podcast_episodes", "image_object_id"),
+    ("podcast_episodes", "transcript_object_id"),
 ];
 
 const MUSIC_REFS: &[(&str, &str)] = &[

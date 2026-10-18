@@ -96,6 +96,14 @@ Rules:
   `podcast_discovery`, and also without it when the server searches Apple's
   public directory instead of its own catalogue; then categories, browse and
   similar shows stay off.
+- `uploaded_podcasts` (revision 18): `POST /api/v2/podcasts` creates a podcast
+  whose episodes its owner uploads, and `POST /api/v2/podcasts/{id}/episodes`
+  adds one from uploads (`POST /api/v2/uploads`, kinds `episode`,
+  `episode_transcript`, `podcast_cover`, `episode_image`). A `guid` makes both
+  safe to retry. Such a show has `source_type: "upload"` and a `feed_url` of
+  `upload:<id>` that is never fetched; refresh does nothing, auto-store and
+  store-all answer `409 uploaded_podcast`. An uploaded transcript is served
+  through `transcript_url` like a publisher's.
 - `one_family` (revision 4): the install has one family. Every new account
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each

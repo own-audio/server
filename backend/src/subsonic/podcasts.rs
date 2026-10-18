@@ -438,6 +438,7 @@ mod tests {
             sha256: None,
             transcript_url: None,
             transcript_type: None,
+            transcript_object_id: None,
         }
     }
 

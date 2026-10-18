@@ -27,7 +27,7 @@ macro_rules! bind_viewer {
 const EPISODE_COLS: &str =
     "e.id, e.feed_id, e.guid, e.title, e.description, e.published_at, e.duration_secs,
      e.episode_number, e.season_number, e.audio_url, e.audio_object_id, e.image_url, e.image_object_id, e.created_at,
-     mo.size_bytes, mo.sha256, e.transcript_url, e.transcript_type";
+     mo.size_bytes, mo.sha256, e.transcript_url, e.transcript_type, e.transcript_object_id";
 
 // ── Feeds ─────────────────────────────────────────────────────────────────
 
@@ -61,7 +61,7 @@ pub async fn feeds_with_transcripts(pool: &PgPool, ids: &[Uuid]) -> anyhow::Resu
     let rows: Vec<(Uuid,)> = sqlx::query_as(
         "SELECT f FROM unnest($1::uuid[]) AS f
           WHERE EXISTS (SELECT 1 FROM podcast_episodes e
-                         WHERE e.feed_id = f AND e.transcript_url IS NOT NULL AND e.trashed_at IS NULL)",
+                         WHERE e.feed_id = f AND (e.transcript_url IS NOT NULL OR e.transcript_object_id IS NOT NULL) AND e.trashed_at IS NULL)",
     )
     .bind(ids)
     .fetch_all(pool)
@@ -385,4 +385,108 @@ pub async fn episode_counts(pool: &PgPool, feed_ids: &[Uuid]) -> anyhow::Result<
     .fetch_all(pool)
     .await
     .context("db: podcast episode counts")
+}
+
+// ── Uploaded podcasts (docs/uploaded-podcasts-plan.md) ───────────────────────
+
+/// What an uploaded show is made with.
+pub struct NewUploadedFeed<'a> {
+    pub user_id: Uuid,
+    pub family_id: Option<Uuid>,
+    pub title: &'a str,
+    pub author: Option<&'a str>,
+    pub description: Option<&'a str>,
+    pub language: Option<&'a str>,
+    pub language_base: Option<&'a str>,
+    pub guid: Option<&'a str>,
+    pub image_object_id: Option<Uuid>,
+}
+
+/// The caller's uploaded show with this guid, if one exists.
+pub async fn find_uploaded_feed_by_guid(pool: &PgPool, user_id: Uuid, guid: &str) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar(
+        "SELECT id FROM podcast_feeds WHERE user_id = $1 AND podcast_guid = $2 AND source_type = 'upload'",
+    )
+    .bind(user_id)
+    .bind(guid)
+    .fetch_optional(pool)
+    .await
+    .context("db: find uploaded feed by guid")
+}
+
+/// A new uploaded show. Its `feed_url` is `upload:<id>`: unique per owner like every
+/// feed's, and never fetched.
+pub async fn insert_uploaded_feed(pool: &PgPool, feed: NewUploadedFeed<'_>) -> anyhow::Result<Uuid> {
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO podcast_feeds
+            (id, user_id, family_id, feed_url, title, author, description, language, language_base,
+             podcast_guid, image_object_id, source_type, last_refreshed_at)
+         VALUES ($1, $2, $3, 'upload:' || $1::text, $4, $5, $6, $7, $8, $9, $10, 'upload', now())",
+    )
+    .bind(id)
+    .bind(feed.user_id)
+    .bind(feed.family_id)
+    .bind(feed.title)
+    .bind(feed.author)
+    .bind(feed.description)
+    .bind(feed.language)
+    .bind(feed.language_base)
+    .bind(feed.guid)
+    .bind(feed.image_object_id)
+    .execute(pool)
+    .await
+    .context("db: insert uploaded feed")?;
+    Ok(id)
+}
+
+/// An episode of this feed with this guid, trashed or not: a guid is used once per show.
+pub async fn find_episode_id_by_guid(pool: &PgPool, feed_id: Uuid, guid: &str) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar("SELECT id FROM podcast_episodes WHERE feed_id = $1 AND guid = $2")
+        .bind(feed_id)
+        .bind(guid)
+        .fetch_optional(pool)
+        .await
+        .context("db: find episode by guid")
+}
+
+/// What an uploaded episode is made with; its audio is stored from the start.
+pub struct NewUploadedEpisode<'a> {
+    pub feed_id: Uuid,
+    pub guid: &'a str,
+    pub title: &'a str,
+    pub description: Option<&'a str>,
+    pub published_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub duration_secs: Option<i32>,
+    pub episode_number: Option<i32>,
+    pub season_number: Option<i32>,
+    pub audio_object_id: Uuid,
+    pub image_object_id: Option<Uuid>,
+    pub transcript_object_id: Option<Uuid>,
+    pub transcript_type: Option<&'a str>,
+}
+
+pub async fn insert_uploaded_episode(pool: &PgPool, ep: NewUploadedEpisode<'_>) -> anyhow::Result<Uuid> {
+    sqlx::query_scalar(
+        "INSERT INTO podcast_episodes
+            (feed_id, guid, title, description, published_at, duration_secs, episode_number, season_number,
+             audio_object_id, image_object_id, transcript_object_id, transcript_type)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+         RETURNING id",
+    )
+    .bind(ep.feed_id)
+    .bind(ep.guid)
+    .bind(ep.title)
+    .bind(ep.description)
+    .bind(ep.published_at)
+    .bind(ep.duration_secs)
+    .bind(ep.episode_number)
+    .bind(ep.season_number)
+    .bind(ep.audio_object_id)
+    .bind(ep.image_object_id)
+    .bind(ep.transcript_object_id)
+    .bind(ep.transcript_type)
+    .fetch_one(pool)
+    .await
+    .context("db: insert uploaded episode")
 }

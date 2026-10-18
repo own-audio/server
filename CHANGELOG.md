@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Uploaded podcasts (contract revision 18, `features.uploaded_podcasts`): a podcast whose
+  episodes its owner uploads instead of a feed the server fetches — lectures, a family's own
+  recordings, a show bought as files. `POST /api/v2/podcasts` and
+  `POST /api/v2/podcasts/{id}/episodes` take the files from `POST /api/v2/uploads` (new kinds
+  `episode`, `episode_transcript`, `podcast_cover`, `episode_image`); a `guid` makes both safe to
+  retry. The show is shared with the family or private like any other, its episodes are stored
+  from the start, play, sync and notify as usual, and an uploaded transcript (WebVTT, SRT, text,
+  JSON) is served through `transcript_url`. Migration 0116 (`transcript_object_id`).
+
 ## [1.0.0-beta.24] - 2026-10-18
 
 ### Removed

@@ -1058,6 +1058,10 @@ async fn refresh_feed(
         retire_youtube_feed(pool, id).await.map_err(AuthError::Internal)?;
         return Ok(StatusCode::NO_CONTENT);
     }
+    // An uploaded podcast has nothing to fetch: its episodes come from its owner.
+    if feed.source_type == "upload" {
+        return Ok(StatusCode::NO_CONTENT);
+    }
 
     let channel = fetch_rss(&feed.feed_url, &state.config().auth.session_secret).await?;
 
@@ -1109,6 +1113,8 @@ pub async fn refresh_feed_job(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Res
     if source_type == "youtube" {
         // Followed before YouTube support was removed: kept as it is, never refreshed.
         return retire_youtube_feed(pool, feed_id).await;
+    } else if source_type == "upload" {
+        return Ok(());
     } else {
         let channel = fetch_rss_url(&feed_url).await?;
         let image_url = channel
@@ -1156,7 +1162,7 @@ pub async fn refresh_feed_job(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Res
 ///
 /// Best-effort — a refresh must not fail because a notification could not be
 /// queued.
-async fn notify_new_episodes(pool: &sqlx::PgPool, feed_id: Uuid, new_count: i64) {
+pub(crate) async fn notify_new_episodes(pool: &sqlx::PgPool, feed_id: Uuid, new_count: i64) {
     let feed = match sqlx::query_as::<_, (String, Uuid, Option<Uuid>)>(
         "SELECT title, user_id, family_id FROM podcast_feeds WHERE id = $1",
     )
@@ -1223,6 +1229,16 @@ async fn retire_youtube_feed(pool: &sqlx::PgPool, feed_id: Uuid) -> anyhow::Resu
 
 const YOUTUBE_RETIRED: &str = "YouTube channels are no longer refreshed: this server does not download from YouTube.";
 
+/// Storing from the publisher means nothing for a feed the server does not fetch: an
+/// uploaded podcast (its episodes are stored already) or a retired YouTube feed.
+fn not_fetched(source_type: &str) -> Option<AuthError> {
+    match source_type {
+        "youtube" => Some(AuthError::Conflict("youtube_not_supported".into())),
+        "upload" => Some(AuthError::Conflict("uploaded_podcast".into())),
+        _ => None,
+    }
+}
+
 /// youtube.com, its subdomains, and youtu.be — refused on subscribe.
 fn is_youtube_address(input: &str) -> bool {
     url::Url::parse(input.trim())
@@ -1282,7 +1298,7 @@ pub(crate) async fn set_feed_visibility(
 #[utoipa::path(put, path = "/{id}/auto-store", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id")),
     request_body = SetAutoStoreRequest,
-    responses((status = 200, body = FeedResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, body = FeedResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`uploaded_podcast`: its episodes are uploaded, not fetched; `youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
 async fn set_auto_store(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1299,8 +1315,8 @@ async fn set_auto_store(
     if !may {
         return Err(AuthError::Forbidden);
     }
-    if feed.source_type == "youtube" {
-        return Err(AuthError::Conflict("youtube_not_supported".into()));
+    if let Some(refusal) = not_fetched(&feed.source_type) {
+        return Err(refusal);
     }
     sqlx::query(
         "UPDATE podcast_feeds
@@ -1354,7 +1370,7 @@ const UNSTORED: &str = "id IN (SELECT id FROM podcast_episodes
 #[utoipa::path(post, path = "/{id}/store-all", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id")),
     request_body = StoreAllRequest,
-    responses((status = 200, description = "Episodes queued, or that would be for a preview", body = StoreAllResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, description = "Episodes queued, or that would be for a preview", body = StoreAllResponse), (status = 403, description = "Neither the subscriber nor a family admin of a shared feed", body = crate::http::openapi::ErrorBody), (status = 404, description = "No such feed, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`uploaded_podcast`: its episodes are uploaded, not fetched; `youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody)))]
 async fn store_all(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1371,8 +1387,8 @@ async fn store_all(
     if !may {
         return Err(AuthError::Forbidden);
     }
-    if feed.source_type == "youtube" {
-        return Err(AuthError::Conflict("youtube_not_supported".into()));
+    if let Some(refusal) = not_fetched(&feed.source_type) {
+        return Err(refusal);
     }
     let latest = body.latest.filter(|n| *n > 0);
     let (episodes, seconds): (i64, Option<i64>) = sqlx::query_as(&format!(
@@ -1657,7 +1673,7 @@ fn episode_to_response_with_progress(
         completed: progress.map(|(_, done)| done).unwrap_or(false),
         size_bytes: e.size_bytes,
         sha256: e.sha256,
-        has_transcript: e.transcript_url.is_some(),
+        has_transcript: e.transcript_url.is_some() || e.transcript_object_id.is_some(),
     }
 }
 
@@ -1729,7 +1745,7 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600; // 4 hours
 /// and marks the episode as local. Returns the updated episode.
 #[utoipa::path(post, path = "/{id}/episodes/{ep_id}/download", tag = "podcasts", security(("bearer" = [])),
     params(("id" = Uuid, Path, description = "Feed id"), ("ep_id" = Uuid, Path, description = "Episode id")),
-    responses((status = 200, description = "The episode, now stored", body = EpisodeResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody), (status = 500, description = "The audio could not be fetched or stored", body = crate::http::openapi::ErrorBody)))]
+    responses((status = 200, description = "The episode, now stored", body = EpisodeResponse), (status = 404, description = "No such feed or episode, or not visible to the caller", body = crate::http::openapi::ErrorBody), (status = 409, description = "`uploaded_podcast`: its episodes are uploaded, not fetched; `youtube_not_supported`: a YouTube feed followed before that support was removed", body = crate::http::openapi::ErrorBody), (status = 500, description = "The audio could not be fetched or stored", body = crate::http::openapi::ErrorBody)))]
 async fn download_episode(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -1757,8 +1773,8 @@ async fn download_episode(
     if episode.audio_object_id.is_some() {
         return Ok(Json(episode_to_response(episode)));
     }
-    if feed.source_type == "youtube" {
-        return Err(AuthError::Conflict("youtube_not_supported".into()));
+    if let Some(refusal) = not_fetched(&feed.source_type) {
+        return Err(refusal);
     }
 
     let guard = crate::storage::quota::Guard::for_state(&state);

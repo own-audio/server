@@ -124,6 +124,11 @@ pub(crate) async fn presign(
         "music_cover" => "music-covers",
         // Images, booklets, lyrics, cue sheets kept next to the audio.
         "companion_file" => "companions",
+        // Uploaded podcasts (docs/uploaded-podcasts-plan.md).
+        "podcast_episode" => "podcast-episodes",
+        "podcast_transcript" => "podcast-transcripts",
+        "podcast_cover" => "podcast-covers",
+        "episode_image" => "podcast-images",
         other => {
             return Err(AuthError::BadRequest(format!(
                 "unknown upload kind '{other}'"
@@ -239,6 +244,42 @@ pub fn require_own_key(family: &FamilyContext, object_key: &str) -> Result<(), A
     } else {
         Err(AuthError::NotFound)
     }
+}
+
+/// A file put under a presigned upload, checked the way `complete` checks it and registered
+/// as a media object: the key is the caller's family's, something arrived under it, it is
+/// no larger than declared, and the family has room for it. An oversized or unaffordable
+/// object is deleted. For creates that take an upload id directly (uploaded podcasts).
+pub struct Adopted {
+    pub media_object_id: Uuid,
+    pub content_type: String,
+    pub size_bytes: i64,
+}
+
+pub async fn adopt(state: &AppState, family: &FamilyContext, object_key: &str) -> Result<Adopted, AuthError> {
+    require_own_key(family, object_key)?;
+    let (size_bytes, content_type) = state
+        .storage()
+        .head_object(object_key)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or_else(|| AuthError::BadRequest("no object was uploaded under that key".to_string()))?;
+    let declared = crate::db::uploads::take_intent(state.db(), object_key)
+        .await
+        .map_err(AuthError::Internal)?
+        .flatten();
+    if size_bytes > MAX_UPLOAD_BYTES || declared.is_some_and(|d| size_bytes > d.saturating_add(d / 100)) {
+        let _ = state.storage().delete(object_key).await;
+        return Err(AuthError::BadRequest(format!("the uploaded object is larger than allowed ({size_bytes} bytes)")));
+    }
+    if let Err(e) = quota::Guard::for_state(state).check(state.db(), state.storage().bucket(), family.family_id, size_bytes).await {
+        let _ = state.storage().delete(object_key).await;
+        return Err(quota::to_auth_error(e));
+    }
+    let media_object_id = register_object(state.db(), state.storage(), object_key, &content_type, size_bytes)
+        .await
+        .map_err(AuthError::Internal)?;
+    Ok(Adopted { media_object_id, content_type, size_bytes })
 }
 
 /// Upsert the `media_objects` row for an already-uploaded object.

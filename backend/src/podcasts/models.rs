@@ -83,4 +83,7 @@ pub struct PodcastEpisode {
     /// MIME type of `transcript_url` (`text/vtt`, `application/srt`, `application/json`, …).
     #[sqlx(default)]
     pub transcript_type: Option<String>,
+    /// An uploaded episode's transcript file (migration 0116); `transcript_type` is its type.
+    #[sqlx(default)]
+    pub transcript_object_id: Option<Uuid>,
 }

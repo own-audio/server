@@ -756,6 +756,8 @@ pub struct EpisodeRow {
     pub image_url: Option<String>,
     pub transcript_url: Option<String>,
     pub transcript_type: Option<String>,
+    /// An uploaded episode's transcript file (migration 0116).
+    pub transcript_object_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     /// The order: published, or added when the feed gives no date.
     pub sort_at: DateTime<Utc>,
@@ -764,7 +766,7 @@ pub struct EpisodeRow {
 const EPISODE_COLS: &str = "e.id, e.feed_id AS podcast_id, e.guid, e.title, e.description, e.published_at,
     e.duration_secs, e.episode_number, e.season_number, e.audio_url, e.audio_object_id IS NOT NULL AS stored,
     m.size_bytes, m.content_type, e.image_object_id, e.image_url,
-    e.transcript_url, e.transcript_type, e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
+    e.transcript_url, e.transcript_type, e.transcript_object_id, e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
 
 /// A podcast's episodes, newest first.
 pub async fn list_episodes(

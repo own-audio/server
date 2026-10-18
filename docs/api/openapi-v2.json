@@ -1486,6 +1486,7 @@
             ]
           },
           "transcript_url": {
+            "description": "The publisher's transcript, or for an uploaded episode a signed link to its stored\ntranscript (renewed with the record, like `image`).",
             "type": [
               "string",
               "null"
@@ -2434,6 +2435,132 @@
         ],
         "type": "object"
       },
+      "NewEpisode": {
+        "properties": {
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "duration_ms": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "episode_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "guid": {
+            "description": "The uploader's id for the episode, unique within the show: the same guid again\nanswers the existing episode.",
+            "type": "string"
+          },
+          "image_upload_id": {
+            "description": "Kind `episode_image`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "published_at": {
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "season_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "transcript_type": {
+            "description": "The transcript's type when its upload did not say (`text/vtt`, `application/srt`, …).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "transcript_upload_id": {
+            "description": "Kind `episode_transcript`: WebVTT, SRT, plain text or JSON.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "upload_id": {
+            "description": "The audio, from `POST /uploads` with kind `episode`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "upload_id",
+          "guid",
+          "title"
+        ],
+        "type": "object"
+      },
+      "NewPodcast": {
+        "properties": {
+          "author": {
+            "description": "The host or hosts, `;` or ` & ` between several.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cover_upload_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "guid": {
+            "description": "The uploader's own id for the show: the same guid again answers the existing show.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "visibility": {
+            "description": "`private` (default) or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "title"
+        ],
+        "type": "object"
+      },
       "NewRun": {
         "properties": {
           "scope": {
@@ -3375,6 +3502,7 @@
                   ]
                 },
                 "transcript_url": {
+                  "description": "The publisher's transcript, or for an uploaded episode a signed link to its stored\ntranscript (renewed with the record, like `image`).",
                   "type": [
                     "string",
                     "null"
@@ -6583,7 +6711,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `book_file`, `track_cover`, `book_cover` or `companion`.",
+            "description": "`track`, `book_file`, `track_cover`, `book_cover`, `companion`; for uploaded\npodcasts `episode`, `episode_transcript`, `podcast_cover`, `episode_image`.",
             "type": "string"
           },
           "size_bytes": {
@@ -14119,6 +14247,93 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "post": {
+        "description": "A podcast whose episodes its owner uploads. Never fetched from anywhere.",
+        "operationId": "library_create_podcast",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewPodcast"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Podcast"
+                }
+              }
+            },
+            "description": "A show with this guid exists: that show"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Podcast"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No title, a bad visibility, or a cover that is not an image"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not allowed to add to the library"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A podcast whose episodes its owner uploads",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "can_upload",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/podcasts/{id}": {
@@ -14378,6 +14593,124 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "post": {
+        "description": "An episode of an uploaded podcast, from uploaded files. The show's owner, or a family\nadmin for a show shared with the family.",
+        "operationId": "library_create_episode",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewEpisode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Episode"
+                }
+              }
+            },
+            "description": "An episode with this guid exists: that episode"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Episode"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No title or guid, audio that is not audio, or a transcript of an unknown type"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Neither the show's owner nor a family admin of a shared show"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_uploaded_podcast`: a feed the server fetches"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "An episode of an uploaded podcast, from uploaded files",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "can_upload",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/podcasts/{id}/visibility": {

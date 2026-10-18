@@ -117,6 +117,8 @@ pub struct Episode {
     pub content_type: Option<String>,
     /// The episode's own art, on this server or the publisher's.
     pub image: Option<String>,
+    /// The publisher's transcript, or for an uploaded episode a signed link to its stored
+    /// transcript (renewed with the record, like `image`).
     pub transcript_url: Option<String>,
     pub transcript_type: Option<String>,
     pub created_at: DateTime<Utc>,
@@ -248,7 +250,9 @@ pub(crate) fn episode(state: &AppState, row: catalog::EpisodeRow) -> Episode {
         size_bytes: row.size_bytes,
         content_type: row.content_type,
         image: crate::v2::images::maybe(state, row.image_object_id).or(row.image_url),
-        transcript_url: row.transcript_url,
+        // An uploaded episode's transcript is a stored file: a signed link to it, through the
+        // same endpoint as images, which serves any stored object with its own type.
+        transcript_url: row.transcript_url.or_else(|| crate::v2::images::maybe(state, row.transcript_object_id)),
         transcript_type: row.transcript_type,
         created_at: row.created_at,
     }
@@ -326,6 +330,19 @@ pub async fn list_podcasts(family: FamilyContext, State(state): State<AppState>,
     }).collect();
     let included = if include { contributors_of(&state, &family, items.iter().flat_map(|p| p.credits.iter())).await? } else { None };
     Ok(Json(Page { items, next: page.1, included }))
+}
+
+/// A podcast as the caller sees it, with its hosts.
+pub(crate) async fn podcast_by_id(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Podcast, Problem> {
+    let row = catalog::find_podcast(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    let credits = credits_of(state, "podcast", &[id]).await?.remove(&id).unwrap_or_default();
+    Ok(podcast(state, row, credits))
+}
+
+/// An episode as the caller sees it.
+pub(crate) async fn episode_by_id(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Episode, Problem> {
+    let row = catalog::find_episode(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    Ok(episode(state, row))
 }
 
 /// One podcast.

@@ -300,8 +300,9 @@ pub async fn enqueue_due_feed_refreshes(
              SELECT max(published_at) AS newest
              FROM podcast_episodes e WHERE e.feed_id = f.id
          ) latest ON TRUE
-         -- YouTube feeds followed before that support was removed are never fetched again.
-         WHERE f.source_type <> 'youtube' AND (f.last_refreshed_at IS NULL
+         -- Only RSS feeds are fetched: uploaded podcasts have nothing to fetch, and YouTube
+         -- feeds followed before that support was removed are never fetched again.
+         WHERE f.source_type = 'rss' AND (f.last_refreshed_at IS NULL
             OR f.last_refreshed_at < CURRENT_TIMESTAMP - make_interval(secs =>
                    $1::bigint * CASE
                        -- No episodes yet: a feed that has never produced one

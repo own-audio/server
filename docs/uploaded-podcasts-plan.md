@@ -56,16 +56,16 @@ DELETE /api/v2/episodes/{id}    → trash
 
 ## 4. Phases
 
-### U1 — Model and migration ⬜
+### U1 — Model and migration ✅ (2026-10-18)
 Migration 0116: `transcript_object_id`, a check that `source_type IN ('rss','youtube','upload')`,
 scheduler exclusion, refresh no-op, 409s, gPodder filter. Upload kinds in `uploads::presign`.
 
-### U2 — Create show and episodes ⬜
+### U2 — Create show and episodes ✅ (2026-10-18)
 `POST /podcasts`, `POST /podcasts/{id}/episodes` with idempotent guid, duration from the
 client or the `duration` job, `ensure_episode` path in the own.audio folder, "new episodes"
 notification to the family.
 
-### U3 — Transcripts and edits ⬜
+### U3 — Transcripts ✅ (2026-10-18); edits ⬜
 Transcript link in v2 episodes, `has_transcript` for uploads, `PATCH` routes, delete → trash.
 
 ### U4 — Console ⬜
@@ -75,6 +75,15 @@ name, guid = file hash); edit; a badge "Uploaded" instead of a refresh button.
 ### U5 — Conformance and docs ⬜
 Conformance suite `uploaded_podcasts` (create, upload, idempotent guid, transcript link, 409s,
 family visibility); client guide and API spec.
+
+**Verified 2026-10-18** on a stack built from the working tree: a private uploader created a
+family-shared show and uploaded two real episodes (M4A, WebVTT, square images); they are stored as
+`audio/mp4`, play directly, the transcript links serve the WebVTT, v1 reports `has_transcript`,
+refresh is a no-op, store-all answers `409 uploaded_podcast`, and a second run changed nothing.
+Conformance: server, smoke, families, mobile, library, access, v2 all pass. Not built yet: the
+`PATCH` and `DELETE` routes, the console (U4), a conformance suite of its own (U5). Shows dedupe on
+`guid` (unique per owner, migration 0116) instead of an `Idempotency-Key`, because a retry
+re-uploads its files and so sends a different body.
 
 **Verify (whole plan):** a script creates a show, uploads three M4A episodes with VTT
 transcripts, shares it with the family; another family member sees it in own.audio
