@@ -11,7 +11,29 @@ import shutil
 import time
 import urllib.request
 
+from core import ApiError
+
 NAME = "library"
+
+
+class MusicBrainzBusy(Exception):
+    """MusicBrainz stayed busy through every wait."""
+
+
+def musicbrainz(ctx, method, path, token, body=None, expect=(200, 201, 204)):
+    """A call the server answers by asking MusicBrainz. Without a private metadata service the
+    server asks the public musicbrainz.org, which allows about one request a second per address;
+    CI runs two conformance jobs from one runner, so `503 source_busy` is the server saying so,
+    as designed. Waited out as the answer advises; still busy raises MusicBrainzBusy, which the
+    caller records as a skip: the outside service said "not now", the server said it correctly."""
+    for wait in (3, 6, 12, 24):
+        try:
+            return ctx.call(method, path, token, body=body, expect=expect)
+        except ApiError as e:
+            if e.status != 503 or b"source_busy" not in (e.body or b""):
+                raise
+            time.sleep(wait)
+    raise MusicBrainzBusy(path)
 
 
 def _items(x):
@@ -188,10 +210,13 @@ def identify_run(ctx):
     reverted = ctx.call("POST", f"{path}/revert", ctx.admin_token)["reverted"]
     ctx.check("a run's revert undoes what it accepted", reverted == accepted - one, f"{reverted} vs {accepted} - {one}")
     _, _, other = ctx.make_user("stranger", "Stranger123!-long")
-    if ctx.server["api"]["revision"] >= 13 and proposals:
-        own_words(ctx, proposals[0], other)
-    if ctx.server["api"]["revision"] >= 14:
-        album_in_own_words(ctx, proposals)
+    try:
+        if ctx.server["api"]["revision"] >= 13 and proposals:
+            own_words(ctx, proposals[0], other)
+        if ctx.server["api"]["revision"] >= 14:
+            album_in_own_words(ctx, proposals)
+    except MusicBrainzBusy as busy:
+        ctx.skip("searching in your own words", f"MusicBrainz stayed busy ({busy}); the server answered 503 source_busy as designed")
     ctx.call("GET", path, other, expect=(404,))
     ctx.call("DELETE", path, ctx.admin_token, expect=(204,))
     ctx.call("GET", path, ctx.admin_token, expect=(404,))
@@ -209,7 +234,7 @@ def own_words(ctx, proposal, other):
     # The fixtures' tags are made up, as a "Track 02" is: the owner types what
     # the song really is.
     words = {"title": "Yesterday", "artist": "The Beatles"}
-    found = ctx.call("POST", f"/api/v2/identify/proposals/{pid}/search", ctx.admin_token, body=words).get("items", [])
+    found = musicbrainz(ctx, "POST", f"/api/v2/identify/proposals/{pid}/search", ctx.admin_token, body=words).get("items", [])
     stored = ctx.call("GET", f"/api/v2/identify/proposals/{pid}/alternatives", ctx.admin_token).get("items", [])
     ctx.check("a search's results become the alternatives",
               [c["mb_recording_id"] for c in stored] == [c["mb_recording_id"] for c in found])
@@ -218,18 +243,18 @@ def own_words(ctx, proposal, other):
         return
     pick = found[0]
     link = f"https://musicbrainz.org/recording/{pick['mb_recording_id']}"
-    chosen = ctx.call("PUT", f"/api/v2/identify/proposals/{pid}/recording", ctx.admin_token,
-                      body={"recording": link, "release": pick.get("mb_release_id")})
+    chosen = musicbrainz(ctx, "PUT", f"/api/v2/identify/proposals/{pid}/recording", ctx.admin_token,
+                         body={"recording": link, "release": pick.get("mb_release_id")})
     ctx.check("a picked recording is the owner's proposal, to accept",
               chosen.get("chosen_by_owner") is True and chosen.get("reasons") == ["chosen"]
               and chosen.get("decision") == "pending"
               and (chosen.get("proposal") or {}).get("mb_recording_id") == pick["mb_recording_id"], str(chosen)[:200])
     ctx.call("POST", f"/api/v2/tracks/{tid}/identity/search", other, body=words, expect=(403, 404))
-    again = ctx.call("POST", f"/api/v2/tracks/{tid}/identity/search", ctx.admin_token, body=words).get("items", [])
+    again = musicbrainz(ctx, "POST", f"/api/v2/tracks/{tid}/identity/search", ctx.admin_token, body=words).get("items", [])
     ctx.check("any track can be searched for with the owner's words", isinstance(again, list) and len(again) >= 1)
     ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", other, body={"recording": pick["mb_recording_id"]}, expect=(403, 404))
-    track = ctx.call("PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token,
-                     body={"recording": pick["mb_recording_id"], "release": pick.get("mb_release_id")})
+    track = musicbrainz(ctx, "PUT", f"/api/v2/tracks/{tid}/identity", ctx.admin_token,
+                        body={"recording": pick["mb_recording_id"], "release": pick.get("mb_release_id")})
     ctx.check("any track can be identified as a recording", track.get("id") == tid, str(track)[:120])
     if ctx.server["api"]["revision"] >= 15:
         # The release's cover follows in the background, in the identify's batch.
@@ -261,8 +286,8 @@ def album_in_own_words(ctx, proposals):
         return
     gid = album["group"]["id"]
     ctx.call("POST", f"/api/v2/identify/groups/{gid}/search", ctx.admin_token, body={"album": " "}, expect=(400,))
-    group = ctx.call("POST", f"/api/v2/identify/groups/{gid}/search", ctx.admin_token,
-                     body={"album": "Abbey Road", "artist": "The Beatles"})
+    group = musicbrainz(ctx, "POST", f"/api/v2/identify/groups/{gid}/search", ctx.admin_token,
+                        body={"album": "Abbey Road", "artist": "The Beatles"})
     ctx.check("an album can be searched for with the owner's words",
               group.get("id") == gid and isinstance(group.get("editions"), list), str(group)[:160])
     single = next((p for p in proposals if p["group"]["kind"] == "track"), None)

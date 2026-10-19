@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Conformance: the identify searches that ask MusicBrainz wait out a `503 source_busy` (after 3, 6,
+  12 and 24 s, as the answer advises) and record a skip if it stays busy, instead of failing the
+  run. Without a private metadata service the server asks the public musicbrainz.org, which takes
+  about one request a second per address, and CI runs two conformance jobs from one runner — the
+  beta.30 run failed on exactly that. Any other status still fails.
+
 ## [1.0.0-beta.30] - 2026-10-18
 
 ### Changed
