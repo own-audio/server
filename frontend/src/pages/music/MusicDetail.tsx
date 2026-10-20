@@ -30,7 +30,7 @@ import { useT } from "../../i18n";
 export type MusicSelection =
   | { kind: "allSongs" }
   | { kind: "artist"; artist: string }
-  | { kind: "album"; artist: string; album: string }
+  | { kind: "album"; artist: string; album: string; id?: string }
   | { kind: "genre"; genre: string }
   | { kind: "playlist"; playlistId: string };
 
@@ -78,7 +78,9 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
     switch (selection.kind) {
       // "Unknown Artist"/"Unknown Album" are the server's grouping values, not UI text.
       case "artist": return list.filter((tr) => (tr.artist ?? "Unknown Artist") === selection.artist);
-      case "album": return list.filter((tr) => (tr.artist ?? "Unknown Artist") === selection.artist && (tr.album ?? "Unknown Album") === selection.album)
+      case "album": return list.filter((tr) => selection.id && tr.album_id
+          ? tr.album_id === selection.id
+          : (tr.artist ?? "Unknown Artist") === selection.artist && (tr.album ?? "Unknown Album") === selection.album)
         .sort((a, b) => (a.track_number ?? 0) - (b.track_number ?? 0) || a.title.localeCompare(b.title));
       case "genre": return list.filter((tr) => (tr.genre ?? "") === selection.genre);
       default: return list;
@@ -122,7 +124,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
 
   const cover = isPlaylist ? playlist.data?.cover_url ?? null
     : selection.kind === "album"
-      ? albums.data?.find((a) => a.artist === selection.artist && a.album === selection.album)?.cover_url ?? tracks.find((t) => t.cover_url)?.cover_url ?? null
+      ? albums.data?.find((a) => (selection.id ? a.id === selection.id : a.artist === selection.artist && a.album === selection.album))?.cover_url ?? tracks.find((t) => t.cover_url)?.cover_url ?? null
       : tracks.find((t) => t.cover_url)?.cover_url ?? null;
 
   // A track with no picture of its own shows its album's.
@@ -136,7 +138,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
     selection.kind === "playlist"
       ? { kind: "playlist", label: heading, path: `/music/playlists/${selection.playlistId}` }
       : selection.kind === "album"
-        ? { kind: "album", label: heading, path: `/music/albums/${encodeURIComponent(albumKey(selection.artist, selection.album))}` }
+        ? { kind: "album", label: heading, path: `/music/albums/${encodeURIComponent(albumKey(selection.artist, selection.album, selection.id))}` }
         : selection.kind === "artist"
           ? { kind: "artist", label: heading, path: `/music/artists/${encodeURIComponent(selection.artist)}` }
           : selection.kind === "genre"

@@ -261,7 +261,7 @@ fn image_content_type(name: &str) -> &'static str {
 fn probe(path: &Path) -> (Option<i32>, Option<String>) {
     use lofty::file::{AudioFile, TaggedFileExt};
     use lofty::tag::Accessor;
-    let Ok(file) = lofty::read_from_path(path) else { return (None, None) };
+    let Ok(file) = lofty::read_from_path(path) else { return ffprobe_probe(path) };
     let secs = file.properties().duration().as_secs();
     let title = file
         .primary_tag()
@@ -269,6 +269,25 @@ fn probe(path: &Path) -> (Option<i32>, Option<String>) {
         .and_then(|t| t.title().map(|t| t.trim().to_string()))
         .filter(|t| !t.is_empty());
     ((secs > 0).then_some(secs.min(i32::MAX as u64) as i32), title)
+}
+
+/// `probe` for a file `lofty` cannot open (WMA): ffprobe's length and title.
+fn ffprobe_probe(path: &Path) -> (Option<i32>, Option<String>) {
+    let Some(format) = crate::music::ffprobe_format(path) else { return (None, None) };
+    let secs = format
+        .get("duration")
+        .and_then(|d| d.as_str())
+        .and_then(|d| d.parse::<f64>().ok())
+        .filter(|d| d.is_finite() && *d >= 1.0)
+        .map(|d| d.round().min(i32::MAX as f64) as i32);
+    let title = format
+        .get("tags")
+        .and_then(|t| t.as_object())
+        .and_then(|t| t.iter().find(|(k, _)| k.eq_ignore_ascii_case("title")))
+        .and_then(|(_, v)| v.as_str())
+        .map(|v| v.trim().to_string())
+        .filter(|v| !v.is_empty());
+    (secs, title)
 }
 
 fn duration_secs(path: &Path) -> Option<i32> {

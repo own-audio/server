@@ -42,6 +42,15 @@ const PREFIX_DURATION_MS: i64 = 10_000;
 /// The time of the last request, process-wide: the limit is per client.
 static LAST: tokio::sync::Mutex<Option<Instant>> = tokio::sync::Mutex::const_new(None);
 
+/// Releases looked up lately, with their tracklists. Identifying an album and then
+/// applying it asks for the same release once per song; at one request a second
+/// that alone was a second per song. Releases rarely change, and a stale tracklist
+/// for a quarter of an hour costs nothing.
+static RELEASES: std::sync::LazyLock<std::sync::Mutex<HashMap<String, (Instant, serde_json::Value)>>> =
+    std::sync::LazyLock::new(Default::default);
+const RELEASE_TTL: Duration = Duration::from_secs(15 * 60);
+const RELEASE_CACHE_MAX: usize = 256;
+
 pub struct MusicBrainz {
     http: reqwest::Client,
 }
@@ -79,6 +88,31 @@ impl MusicBrainz {
             return response.json().await.with_context(|| format!("unexpected answer from {HOST}"));
         }
         bail!("{HOST} is rate limiting this server; try again in a moment")
+    }
+
+    /// A release with its recordings, artist credits and release group, from the
+    /// cache when it was looked up in the last quarter of an hour.
+    async fn release(&self, id: &str) -> anyhow::Result<Release> {
+        let cached = {
+            let cache = RELEASES.lock().unwrap_or_else(|e| e.into_inner());
+            cache.get(id).filter(|(at, _)| at.elapsed() < RELEASE_TTL).map(|(_, v)| v.clone())
+        };
+        let value = match cached {
+            Some(v) => v,
+            None => {
+                let v: serde_json::Value = self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?;
+                let mut cache = RELEASES.lock().unwrap_or_else(|e| e.into_inner());
+                cache.retain(|_, (at, _)| at.elapsed() < RELEASE_TTL);
+                if cache.len() >= RELEASE_CACHE_MAX {
+                    if let Some(oldest) = cache.iter().min_by_key(|(_, (at, _))| *at).map(|(k, _)| k.clone()) {
+                        cache.remove(&oldest);
+                    }
+                }
+                cache.insert(id.to_string(), (Instant::now(), v.clone()));
+                v
+            }
+        };
+        serde_json::from_value(value).with_context(|| format!("unexpected answer from {HOST}"))
     }
 
     /// Candidate recordings for a track, best first.
@@ -157,7 +191,7 @@ impl MusicBrainz {
 
         let mut scored = Vec::new();
         for (id, _) in &ranked {
-            let release: Release = self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?;
+            let release: Release = self.release(id).await?;
             let detail = ReleaseDetail::from(&release);
             let matches = match_tracks(&tracks, &detail.tracks);
             if !matches.is_empty() {
@@ -187,7 +221,7 @@ impl MusicBrainz {
                 .min();
             if let Some((key, id)) = better {
                 tracing::debug!(%id, ?key, "identify: a better-fitting release of the same recordings");
-                let release: Release = self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?;
+                let release: Release = self.release(&id).await?;
                 let detail = ReleaseDetail::from(&release);
                 let matches = match_tracks(&tracks, &detail.tracks);
                 if !matches.is_empty() {
@@ -210,7 +244,7 @@ impl MusicBrainz {
             None => preferred_release(&recording.releases, None).map(|r| r.id.clone()),
         };
         let release: Option<Release> = match &release_id {
-            Some(id) => Some(self.get(&format!("release/{id}"), &[("inc", "recordings+artist-credits+release-groups")]).await?),
+            Some(id) => Some(self.release(id).await?),
             None => None,
         };
         let track_number = release.as_ref().and_then(|r| {

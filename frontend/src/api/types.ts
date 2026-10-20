@@ -209,6 +209,8 @@ export interface MusicTrack {
   album: string | null;
   /** The album's credited artist, when the file tags one; groups albums ("Various Artists"). */
   album_artist?: string | null;
+  /** The album entity the track is filed under; two albums can share a name. */
+  album_id?: string | null;
   genre: string | null;
   track_number: number | null;
   duration_secs: number | null;
@@ -231,6 +233,8 @@ export interface ArtistSummary {
 }
 
 export interface AlbumSummary {
+  /** The album entity; its tracks carry it as `album_id`. */
+  id?: string;
   artist: string;
   album: string;
   track_count: number;

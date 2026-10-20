@@ -18,6 +18,7 @@ import { usePlayerStore } from "../../store/playerStore";
 import NowPlayingGlyph from "./NowPlayingGlyph";
 import UploadIndicator from "./UploadIndicator";
 import NotificationsPanel from "./NotificationsPanel";
+import MyAvatar from "../MyAvatar";
 import { cn } from "../../lib/cn";
 import { clearDownloads } from "../../lib/offline/downloads";
 import { t, type PlainKey } from "../../i18n";
@@ -257,8 +258,8 @@ export default function Sidebar({ forceExpanded = false }: { forceExpanded?: boo
                 collapsed ? "mx-auto w-10 justify-center" : "w-full gap-2.5 px-2"
               )}
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-pill bg-accent/15 text-accent">
-                <User className="h-4 w-4" />
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-pill bg-accent/15 text-accent">
+                <MyAvatar className="h-7 w-7 object-cover" fallback={<User className="h-4 w-4" />} />
               </span>
               {!collapsed && (
                 <span className="min-w-0 flex-1">

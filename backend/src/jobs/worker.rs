@@ -427,6 +427,14 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
         // The permit is taken before the claim so a job is never marked running
         // with nowhere to run it.
         claimed_last_pass = false;
+        // A checksum reads the whole file. During a library scan that is a second full read
+        // of every file the scan just looked at, on the same disks: on a busy NAS the scan
+        // fell from ~100 to under 10 files a minute. The jobs wait and run once it is done.
+        let held: Vec<String> = if crate::library_folders::scan_status().0 {
+            vec!["media_checksum".to_string()]
+        } else {
+            Vec::new()
+        };
         loop {
             let Ok(permit) = slots.clone().try_acquire_owned() else {
                 // Every slot is busy. That still counts as "there was work", so
@@ -435,7 +443,7 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
                 claimed_last_pass = true;
                 break;
             };
-            match db::jobs::claim_next(&pool, job_types.as_deref()).await {
+            match db::jobs::claim_next(&pool, job_types.as_deref(), &held).await {
                 Ok(Some(job)) => {
                     claimed_last_pass = true;
                     let pool2 = pool.clone();

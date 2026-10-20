@@ -9,6 +9,31 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- A cover embedded in the audio files is stored once per picture, not once per track. Every track
+  of an album carries the same art, so the per-track copies were mostly duplicates: 1,702 stored
+  covers for 379 different pictures in the first 2,000 tracks of a NAS library
+  (`docs/SYNOLOGY.md`). Covers already stored stay as they are.
+- File checksums wait while a library folder is being scanned. Each one reads the whole file, so
+  during a first scan every file was read twice from the same disks; they run once the scan is
+  done.
+- The web console plays every format in the library: it tells the server what the browser plays
+  (`POST /api/v2/playback-info`) and gets an MP3 for the rest. WMA did not play in any browser,
+  and neither did FLAC in older Safari. Contract unchanged (revision 21).
+- Applying an identified album no longer takes about 4 seconds a song. Each song asked
+  MusicBrainz for the album's release again and downloaded its cover again; releases are now kept
+  for a quarter of an hour, and the cover is stored once per release and reused by the album's
+  other songs. Against musicbrainz.org that leaves one request (about a second) a song.
+- WMA files in a library folder get their tags and length: the tag reader cannot open WMA, so
+  they were added with a title made from the file name and no length. When it cannot open a file,
+  `ffprobe` reads it instead. Files added before are read again when they change.
+- The console tells albums with the same name apart: it selects, highlights and lists an album by
+  its id. A folder tagged partly with MusicBrainz release ids becomes two albums (open, see
+  `docs/library-scale-plan.md`), and the console showed both as selected with their songs together.
+- Console pages opened directly (`/music`, `/settings`, …) answer with status 200 instead of 404.
+- The console shows your profile picture: in Settings, with a preview of a newly chosen one, and on
+  the account button in the sidebar. It was saved before, but shown only on the Family page, so
+  uploading one looked as if nothing had happened.
+
 - Conformance: the identify searches that ask MusicBrainz wait out a `503 source_busy` (after 3, 6,
   12 and 24 s, as the answer advises) and record a skip if it stays busy, instead of failing the
   run. Without a private metadata service the server asks the public musicbrainz.org, which takes

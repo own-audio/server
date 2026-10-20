@@ -1206,12 +1206,29 @@ async fn create_track(
             .await
             .map_err(AuthError::Internal)?;
     } else if let Some((bytes, ext, content_type)) = embedded.cover {
+        // Keyed by the picture, not the track: every track of an album carries the same
+        // art, and a per-track copy stored it a dozen times over (78% duplicates on a
+        // 9,000-track NAS library). Sharing is safe — objects are only ever deleted once
+        // nothing references them (`db::media::delete_object_if_unreferenced`).
+        use sha2::Digest;
+        let digest = format!("{:x}", sha2::Sha256::digest(&bytes));
         let cover_key = crate::storage::family_key(
             family.family_id,
-            format!("music/{}/covers/{}.{ext}", family.user_id, track.id),
+            format!("music/{}/covers/{digest}.{ext}", family.user_id),
         );
-        let cover = write_temp_upload(&bytes, format!("cover.{ext}"), content_type.to_string())?;
-        let cover_media_id = store_temp_upload(state.storage(), &mut tx, &cover_key, &cover).await?;
+        let stored: Option<Uuid> = sqlx::query_scalar("SELECT id FROM media_objects WHERE bucket = $1 AND object_key = $2")
+            .bind(state.storage().bucket())
+            .bind(&cover_key)
+            .fetch_optional(&mut *tx)
+            .await
+            .map_err(|e| AuthError::Internal(e.into()))?;
+        let cover_media_id = match stored {
+            Some(id) => id,
+            None => {
+                let cover = write_temp_upload(&bytes, format!("cover.{ext}"), content_type.to_string())?;
+                store_temp_upload(state.storage(), &mut tx, &cover_key, &cover).await?
+            }
+        };
         db::music::update_track_cover(&mut *tx, track.id, family.user_id, cover_media_id)
             .await
             .map_err(AuthError::Internal)?;
@@ -1917,6 +1934,27 @@ pub(crate) async fn apply_cover_art(
         album: recording.album.as_deref(),
     };
 
+    // Stored under the release, as the background release covers are: applying an
+    // album song by song asks for the same cover each time, and only the first one
+    // needs to download it.
+    let release_key = recording.mb_release_id.as_deref().map(|r| {
+        crate::storage::family_key(family.family_id, format!("music/{}/covers/release-{r}", family.user_id))
+    });
+    if let Some(prefix) = &release_key {
+        let keys: Vec<String> = ["jpg", "png", "webp"].iter().map(|ext| format!("{prefix}.{ext}")).collect();
+        let stored: Option<Uuid> = sqlx::query_scalar("SELECT id FROM media_objects WHERE bucket = $1 AND object_key = ANY($2) LIMIT 1")
+            .bind(state.storage().bucket())
+            .bind(&keys)
+            .fetch_optional(state.db())
+            .await
+            .ok()
+            .flatten();
+        if let Some(media) = stored {
+            let _ = db::music::update_track_cover(state.db(), track_id, family.user_id, media).await;
+            return;
+        }
+    }
+
     // The cascade has already downloaded and sniffed the bytes — a provider
     // whose response was unreachable, or was an error page wearing an
     // `image/jpeg` content type, was skipped in favour of the next one rather
@@ -1948,10 +1986,10 @@ pub(crate) async fn apply_cover_art(
         size_bytes: bytes.len() as i64,
     };
 
-    let cover_key = crate::storage::family_key(
-        family.family_id,
-        format!("music/{}/covers/{}.{ext}", family.user_id, track_id),
-    );
+    let cover_key = match &release_key {
+        Some(prefix) => format!("{prefix}.{ext}"),
+        None => crate::storage::family_key(family.family_id, format!("music/{}/covers/{}.{ext}", family.user_id, track_id)),
+    };
 
     let Ok(mut tx) = state.db().begin().await else {
         return;
@@ -2236,9 +2274,9 @@ fn read_embedded_tags(path: &std::path::Path) -> EmbeddedTags {
     use lofty::probe::Probe;
     use lofty::tag::Accessor;
 
-    let Ok(probe) = Probe::open(path) else { return EmbeddedTags::default(); };
-    let Ok(probe) = probe.guess_file_type() else { return EmbeddedTags::default(); };
-    let Ok(tagged_file) = probe.read() else { return EmbeddedTags::default(); };
+    let Ok(probe) = Probe::open(path) else { return ffprobe_tags(path); };
+    let Ok(probe) = probe.guess_file_type() else { return ffprobe_tags(path); };
+    let Ok(tagged_file) = probe.read() else { return ffprobe_tags(path); };
     let Some(tag) = tagged_file.primary_tag().or_else(|| tagged_file.first_tag()) else {
         return EmbeddedTags::default();
     };
@@ -2282,6 +2320,52 @@ fn read_embedded_tags(path: &std::path::Path) -> EmbeddedTags {
         disc_total: tag.disk_total().map(|n| n as i32),
         mbids: tag_mbids(|key| tag.get_string(key)),
         cover,
+    }
+}
+
+/// What `ffprobe` reports about a file's container: `format.duration` and
+/// `format.tags`. For the formats `lofty` cannot open — WMA above all, which a
+/// NAS library of old rips is full of — so they still get a title, an artist
+/// and a length. `None` when ffprobe is missing or cannot read the file.
+pub(crate) fn ffprobe_format(path: &std::path::Path) -> Option<serde_json::Value> {
+    let out = std::process::Command::new("ffprobe")
+        .args(["-v", "error", "-show_entries", "format=duration:format_tags", "-of", "json"])
+        .arg(path)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let json: serde_json::Value = serde_json::from_slice(&out.stdout).ok()?;
+    json.get("format").cloned()
+}
+
+/// The tags `ffprobe` reads, under its common names (`WM/AlbumArtist` is
+/// `album_artist`, `WM/TrackNumber` is `track`). No pictures or MusicBrainz ids.
+fn ffprobe_tags(path: &std::path::Path) -> EmbeddedTags {
+    let Some(format) = ffprobe_format(path) else { return EmbeddedTags::default() };
+    let tags: std::collections::HashMap<String, String> = format
+        .get("tags")
+        .and_then(|t| t.as_object())
+        .map(|o| {
+            o.iter()
+                .filter_map(|(k, v)| Some((k.to_ascii_lowercase(), v.as_str()?.trim().to_string())))
+                .filter(|(_, v)| !v.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+    // ffprobe renames most WMA attributes; some files keep the raw `WM/` names.
+    let get = |keys: &[&str]| keys.iter().find_map(|k| tags.get(*k)).cloned();
+    let number = |keys: &[&str]| get(keys).and_then(|v| v.split('/').next().and_then(|n| n.trim().parse::<i32>().ok()));
+    EmbeddedTags {
+        title: get(&["title"]),
+        artist: get(&["artist"]),
+        album: get(&["album"]),
+        album_artist: get(&["album_artist", "wm/albumartist"]),
+        genre: get(&["genre"]),
+        track_number: number(&["track", "wm/tracknumber"]),
+        disc_number: number(&["disc", "wm/partofset"]),
+        ..EmbeddedTags::default()
     }
 }
 

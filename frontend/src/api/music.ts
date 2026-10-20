@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import api from "./client";
+import api, { apiBaseUrl } from "./client";
 import { batchHeaders } from "./trash";
 import type { MusicTrack, MusicPlaylist, MusicPlaylistTrack, ArtistSummary, AlbumSummary, GenreSummary, Visibility } from "./types";
 
@@ -72,8 +72,32 @@ export async function uploadTrackCover(trackId: string, file: File): Promise<voi
   await api.post(`/music/tracks/${trackId}/upload-cover`, formData);
 }
 
+/** Content types a library can hold; the ones this browser decodes go as they are. */
+const AUDIO_TYPES = [
+  "audio/mpeg", "audio/mp3", "audio/mp4", "audio/x-m4a", "audio/m4a", "audio/aac",
+  "audio/flac", "audio/x-flac", "audio/ogg", "audio/opus", "audio/wav", "audio/x-wav", "audio/wave",
+  "audio/aiff", "audio/x-aiff", "audio/x-ms-wma",
+];
+
+let playable: string[] | null = null;
+function browserPlayable(): string[] {
+  if (!playable) {
+    const probe = typeof document === "undefined" ? null : document.createElement("audio");
+    playable = probe ? AUDIO_TYPES.filter((t) => probe.canPlayType(t) !== "") : AUDIO_TYPES.filter((t) => t !== "audio/x-ms-wma");
+  }
+  return playable;
+}
+
+/**
+ * A link to the track's audio, the original when this browser plays it and an
+ * MP3 the server makes otherwise (WMA in every browser, FLAC in old Safari).
+ */
 export async function getTrackStreamUrl(trackId: string): Promise<string> {
-  const { data } = await api.get<{ url: string }>(`/music/tracks/${trackId}/stream`);
+  const { data } = await api.post<{ url: string }>(
+    "/playback-info",
+    { kind: "track", id: trackId, capabilities: { direct: browserPlayable(), transcode: ["mp3"] } },
+    { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") },
+  );
   return data.url;
 }
 

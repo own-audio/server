@@ -51,7 +51,9 @@ pub async fn pending_count(pool: &PgPool, job_type: &str) -> anyhow::Result<i64>
     .context("db: pending job count")
 }
 
-pub async fn claim_next(pool: &PgPool, job_types: Option<&[String]>) -> anyhow::Result<Option<Job>> {
+/// The oldest due job of `job_types` (any type when `None`), never one of `held`:
+/// types that wait for now, while the claim goes on to the next due job.
+pub async fn claim_next(pool: &PgPool, job_types: Option<&[String]>, held: &[String]) -> anyhow::Result<Option<Job>> {
     let query = match job_types {
         Some(_) => format!(
             "UPDATE jobs SET status = 'running', started_at = CURRENT_TIMESTAMP, attempts = attempts + 1
@@ -61,6 +63,7 @@ pub async fn claim_next(pool: &PgPool, job_types: Option<&[String]>) -> anyhow::
                    AND scheduled_at <= CURRENT_TIMESTAMP
                    AND attempts < max_attempts
                    AND job_type = ANY($1)
+                   AND job_type <> ALL($2)
                  ORDER BY scheduled_at
                  LIMIT 1
                  FOR UPDATE SKIP LOCKED
@@ -74,6 +77,7 @@ pub async fn claim_next(pool: &PgPool, job_types: Option<&[String]>) -> anyhow::
                  WHERE status = 'pending'
                    AND scheduled_at <= CURRENT_TIMESTAMP
                    AND attempts < max_attempts
+                   AND job_type <> ALL($1)
                  ORDER BY scheduled_at
                  LIMIT 1
                  FOR UPDATE SKIP LOCKED
@@ -86,6 +90,7 @@ pub async fn claim_next(pool: &PgPool, job_types: Option<&[String]>) -> anyhow::
     if let Some(types) = job_types {
         q = q.bind(types);
     }
+    q = q.bind(held);
     q.fetch_optional(pool).await.context("db: claim next job")
 }
 

@@ -136,9 +136,10 @@ pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: 
         // A real SPA fallback: unknown paths get index.html so the console's own router
         // can render /join/<code>, /audiobooks/<id> and friends. ServeDir alone 404s
         // them, because they are routes rather than files on disk — which is why every
-        // deep link into a self-hosted console was broken.
+        // deep link into a self-hosted console was broken. `fallback`, not
+        // `not_found_service`: the latter sends the page with status 404.
         .fallback_service(
-            ServeDir::new("ui/dist").not_found_service(ServeFile::new("ui/dist/index.html")),
+            ServeDir::new("ui/dist").fallback(ServeFile::new("ui/dist/index.html")),
         )
         // Browser-facing headers on everything (security hardening plan §7.1).
         .layer(axum::middleware::from_fn_with_state(

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, ImageUp, Laptop, LogOut, Monitor, RefreshCw, Smartphone, Sparkles, Tv } from "lucide-react";
+import { Copy, ImageUp, Laptop, LogOut, Monitor, RefreshCw, Smartphone, Sparkles, Tv, User } from "lucide-react";
 import {
   changePassword,
   deleteMyAccount,
@@ -25,6 +25,8 @@ import { apiErrorMessage } from "../../lib/apiError";
 import { timeAgo } from "../../lib/format";
 import { cn } from "../../lib/cn";
 import { clearDownloads } from "../../lib/offline/downloads";
+import MyAvatar from "../../components/MyAvatar";
+import { avatarChanged } from "../../lib/avatar";
 import TotpSection from "./TotpSection";
 import SecurityActivity from "./SecurityActivity";
 
@@ -88,6 +90,10 @@ function Profile() {
   const { user, setAuth, token } = useAuthStore();
   const [name, setName] = useState(user?.display_name ?? "");
   const [avatar, setAvatar] = useState<File | null>(null);
+  const preview = useMemo(() => (avatar ? URL.createObjectURL(avatar) : null), [avatar]);
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview);
+  }, [preview]);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -96,6 +102,7 @@ function Profile() {
     },
     onSuccess: () => {
       if (user && token) setAuth(token, { ...user, display_name: name.trim() });
+      if (avatar) avatarChanged();
       setAvatar(null);
       toast.success(t("settings.profile.saved"));
     },
@@ -104,6 +111,13 @@ function Profile() {
 
   return (
     <div className="rounded-card border border-border p-4">
+      <div className="mb-3 flex h-16 w-16 items-center justify-center overflow-hidden rounded-pill bg-accent/15 text-accent">
+        {preview ? (
+          <img src={preview} alt="" className="h-16 w-16 object-cover" />
+        ) : (
+          <MyAvatar className="h-16 w-16 object-cover" fallback={<User className="h-7 w-7" />} />
+        )}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Input label={t("settings.profile.name")} value={name} onChange={(e) => setName(e.target.value)} />
         <label className="block">

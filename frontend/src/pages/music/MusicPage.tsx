@@ -187,12 +187,12 @@ export default function MusicPage() {
         const list = rows as NonNullable<typeof albums.data>;
         const props = (a: (typeof list)[number]) => ({
           kind: "music" as const, title: a.album, subtitle: a.artist, cover: a.cover_url,
-          selected: selection?.kind === "album" && selection.album === a.album && selection.artist === a.artist,
-          onClick: () => navigate(`/music/albums/${encodeURIComponent(albumKey(a.artist, a.album))}`),
+          selected: selection?.kind === "album" && (selection.id && a.id ? selection.id === a.id : selection.album === a.album && selection.artist === a.artist),
+          onClick: () => navigate(`/music/albums/${encodeURIComponent(albumKey(a.artist, a.album, a.id))}`),
         });
         return view === "grid"
-          ? <MediaGrid>{list.map((a) => <MediaCard key={albumKey(a.artist, a.album)} {...props(a)} meta={t("music.count.songs", { count: a.track_count })} />)}</MediaGrid>
-          : <div className="p-3">{list.map((a) => <MediaRow key={albumKey(a.artist, a.album)} {...props(a)} trailing={t("music.count.songs", { count: a.track_count })} />)}</div>;
+          ? <MediaGrid>{list.map((a) => <MediaCard key={albumKey(a.artist, a.album, a.id)} {...props(a)} meta={t("music.count.songs", { count: a.track_count })} />)}</MediaGrid>
+          : <div className="p-3">{list.map((a) => <MediaRow key={albumKey(a.artist, a.album, a.id)} {...props(a)} trailing={t("music.count.songs", { count: a.track_count })} />)}</div>;
       }
       case "genres": {
         const list = rows as NonNullable<typeof genres.data>;
