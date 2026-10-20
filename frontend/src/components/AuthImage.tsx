@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import React, { useEffect, useState } from "react";
 import { useAuthStore } from "../store/authStore";
-import { mediaUrl } from "../api/client";
-import { offlineCoverUrl } from "../lib/offline/downloads";
+import { loadAuthImage } from "../lib/authImages";
 
 type Props = React.ImgHTMLAttributes<HTMLImageElement> & {
   src: string;
@@ -18,45 +17,12 @@ export default function AuthImage({ src, alt, className, fallback, ...rest }: Pr
   useEffect(() => {
     if (!src) return;
     let mounted = true;
-    let createdUrl: string | null = null;
-
-    const show = (url: string) => {
-      if (!mounted) {
-        URL.revokeObjectURL(url);
-        return;
-      }
-      createdUrl = url;
-      setObjectUrl(url);
-    };
-
-    // A cover kept on the device for offline listening is used as is: no
-    // request at all, which is what lets an offline player open without one.
-    void offlineCoverUrl(src).then((stored) => {
-      if (stored) {
-        show(stored);
-        return;
-      }
-      fetch(mediaUrl(src) as string, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      })
-        .then((res) => {
-          if (!res.ok) throw new Error(`Image fetch failed: ${res.status}`);
-          // A 200 is not proof of an image: an SPA fallback answers every path
-          // with index.html, and blob-ifying that yields an <img> that silently
-          // fails to decode instead of falling back to the placeholder.
-          const type = res.headers.get("content-type") ?? "";
-          if (!type.startsWith("image/")) throw new Error(`Not an image: ${type}`);
-          return res.blob();
-        })
-        .then((blob) => show(URL.createObjectURL(blob)))
-        .catch(() => {
-          // ignore — caller may render fallback
-        });
-    });
-
+    // Shared, queued and cached across every image on the page (lib/authImages.ts).
+    const { url, release } = loadAuthImage(src, token);
+    void url.then((u) => mounted && u && setObjectUrl(u));
     return () => {
       mounted = false;
-      if (createdUrl) URL.revokeObjectURL(createdUrl);
+      release();
       setObjectUrl(null);
     };
   }, [src, token]);

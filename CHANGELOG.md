@@ -33,7 +33,19 @@ semver. Each release states the **API contract revision** it serves
 - The console shows your profile picture: in Settings, with a preview of a newly chosen one, and on
   the account button in the sidebar. It was saved before, but shown only on the Family page, so
   uploading one looked as if nothing had happened.
-
+- The console stays light with a large library. With 9,351 songs the music pages held 340,000 DOM
+  nodes and 390 MB of memory and froze the browser for seconds: the song list and the "all songs"
+  column rendered every song at once. Long lists now render a part at a time as you scroll (28 MB,
+  13,000 nodes), and the filter no longer redoes the whole list on every keystroke.
+- Covers in the console load when they come into view, a few at a time, once per address. Scrolling
+  a large library asked for every cover together: the browser refused 20,000 requests and the
+  server's rate limit 440 more.
+- Settings no longer downloads the whole library (6.6 MB) to show muted songs when there are none.
+- A selected album or song is marked for screen readers (`aria-current`), not by colour alone.
+- Members no longer get an error on the identify page (library folders are for family admins), and
+  the trash page no longer asks a server without billing for prices.
+- `frontend/e2e/library-scale.mjs`: the console in a browser against a large library — load times,
+  bytes, long tasks, memory, playback, accessibility.
 - Conformance: the identify searches that ask MusicBrainz wait out a `503 source_busy` (after 3, 6,
   12 and 24 s, as the answer advises) and record a skip if it stays busy, instead of failing the
   run. Without a private metadata service the server asks the public musicbrainz.org, which takes

@@ -39,6 +39,7 @@ import { Button, EmptyState, Input, Pill, SegmentedControl, Select, Skeleton, to
 import { CoverArchiveThumb } from "../../components/CoverArchiveThumb";
 import { Page } from "../../components/shell/SplitView";
 import { useServerFeatures } from "../../lib/features";
+import { useMyPermissions } from "../../lib/permissions";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
 import { MUSIC_KEYS } from "./musicKeys";
@@ -134,7 +135,9 @@ function RunsPage() {
     queryFn: listRuns,
     refetchInterval: (q) => ((q.state.data ?? []).some(isActive) ? 3000 : false),
   });
-  const folders = useQuery({ queryKey: ["library-folders-music"], queryFn: listLibraryFolders, enabled: features.library_folders });
+  // The folders are a family admin's to see; a member's run cannot reach their songs anyway.
+  const { isFamilyAdmin } = useMyPermissions();
+  const folders = useQuery({ queryKey: ["library-folders-music"], queryFn: listLibraryFolders, enabled: features.library_folders && isFamilyAdmin });
 
   const start = useMutation({
     mutationFn: async (): Promise<IdentifyRun | null> => {

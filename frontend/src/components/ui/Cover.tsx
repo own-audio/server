@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
+import { useEffect, useRef, useState } from "react";
 import { BookIcon, MusicIcon, PodcastIcon } from "./CloudIcon";
 import AuthImage from "../AuthImage";
 import { mediaUrl } from "../../api/client";
@@ -35,9 +36,23 @@ export function Cover({ kind, src, alt, aspect, auth = kind !== "podcast", round
       <Icon kind={kind} className="h-[28%] w-[28%] opacity-70" />
     </div>
   );
+  // An authenticated cover is asked for only while it is near the screen: a long
+  // list would otherwise ask for every cover in it, and a fast scroll for every
+  // cover it passed. One that scrolls away before its turn is never fetched; one
+  // already loaded comes back from the cache (lib/authImages.ts).
+  const box = useRef<HTMLDivElement>(null);
+  const [near, setNear] = useState(false);
+  useEffect(() => {
+    const el = box.current;
+    if (!el || !src || !auth) return;
+    const io = new IntersectionObserver(([e]) => setNear(e.isIntersecting), { rootMargin: "400px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [src, auth]);
+
   return (
-    <div className={cn("relative overflow-hidden bg-bg-alt", round ? "rounded-full" : "rounded-cover", ratio, className)}>
-      {src ? (
+    <div ref={box} className={cn("relative overflow-hidden bg-bg-alt", round ? "rounded-full" : "rounded-cover", ratio, className)}>
+      {src && (!auth || near) ? (
         auth ? (
           // The placeholder stands in while it loads and if it fails, so a
           // cover that cannot be fetched looks deliberate rather than broken.

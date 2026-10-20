@@ -106,6 +106,27 @@ Fixed in 1.0.0-beta.31:
 - **The profile picture did not show.** It was saved, but the console showed
   it only on the Family page.
 
+## The console with 9,351 songs
+
+`frontend/e2e/library-scale.mjs` loads every page of the console in Chromium
+against the NAS and plays, skips, searches and scrolls. Before and after the
+console fixes in 1.0.0-beta.31:
+
+| | beta.30 | beta.31 |
+|---|---|---|
+| Music pages: browser blocked | 3.3–4.1 s | 0 |
+| Memory on a music page | 390 MB, 341,000 DOM nodes | 28 MB, 13,000 nodes |
+| Settings | 6.6 MB downloaded | 10 KB |
+| Search, typing to settled | 4.3 s | 1.6 s |
+| Scrolling the whole song list | 20,160 failed and 443 refused cover requests | none |
+| Accessibility check (axe) on the music pages | the tab crashed | no violations |
+| WMA in the browser | does not play | plays (MP3 from the server) |
+
+Every page still loads in 0.8–1.6 s, and the music pages download the whole
+track list (6.6 MB) to build their columns. After scrolling through all songs
+the page holds 6,400 rows and about 460 MB: a list that renders only the rows
+on screen would keep it flat.
+
 Still open, planned in `docs/library-scale-plan.md`: scanning several files
 at once, duplicates, the album split, cheaper identify runs, a MusicBrainz
 mirror setting, and a browser test of the console with 10,000 songs.

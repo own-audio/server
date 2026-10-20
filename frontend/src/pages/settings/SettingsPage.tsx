@@ -311,7 +311,8 @@ function MutedTracks() {
     queryKey: ["track-feedback"],
     queryFn: () => listTrackFeedback(),
   });
-  const { data: tracks } = useQuery({ queryKey: ["music-tracks"], queryFn: listTracks });
+  // Only for the titles of muted songs: without any, the whole library is not worth fetching.
+  const { data: tracks } = useQuery({ queryKey: ["music-tracks"], queryFn: listTracks, enabled: (feedback?.length ?? 0) > 0 });
 
   const undo = useMutation({
     mutationFn: (trackId: string) => clearTrackFeedback(trackId),

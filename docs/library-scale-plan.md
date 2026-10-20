@@ -70,12 +70,16 @@ result depend on scan order. Instead:
 
 ## 6. The console with 10,000 songs
 
-A Playwright run against a large library, repeatable after each change:
+`frontend/e2e/library-scale.mjs` measures it (results in `docs/SYNOLOGY.md`);
+run it after each change. What it still shows:
 
-- Time to usable for Songs, Albums, an artist, search, Settings, Playback.
-- Navigation while a song changes (the console stalled there once).
-- Memory after scrolling the full song list, and bytes per page: the console
-  loads the whole track list for several pages.
+- The music pages download the whole track list (6.6 MB for 9,351 songs) and
+  filter it in the browser. An album's or an artist's songs should come from
+  the server on their own.
+- Long lists render a part at a time and keep what they rendered: after the
+  whole song list, 6,400 rows and about 460 MB. Render only the rows on screen.
+- Covers count against the API rate limit like any request; the console paces
+  them at 10 a second. Cheap cached reads could have their own limit.
 
 ## Also seen
 

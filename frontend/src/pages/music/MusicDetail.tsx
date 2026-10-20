@@ -8,6 +8,7 @@ import { formatDuration } from "../../lib/format";
 import { playTracks, shuffleTracks } from "../../lib/play";
 import { usePlayerStore, type QueueSource } from "../../store/playerStore";
 import { albumKey } from "./albumKey";
+import Progressive from "../../components/library/Progressive";
 import { Button, Cover, EmptyState, Skeleton, MenuItem, toast } from "../../components/ui";
 import { EditPlaylistSheet, SharePlaylistDialog } from "./PlaylistTools";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
@@ -258,7 +259,9 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
         {tracks.length === 0 ? (
           <EmptyState title={t("music.detail.noSongs")} description={t(isPlaylist ? "music.detail.noSongsPlaylist" : "music.detail.noSongsSelection")} />
         ) : (
-          tracks.map((track, i) => {
+          // A part at a time: "all songs" is the whole library, and 9,000 rows
+          // with their menus took 340,000 DOM nodes and 400 MB.
+          <Progressive key={JSON.stringify(selection)} items={tracks} render={(track, i) => {
             const active = current?.kind === "music" && current.trackId === track.id;
             return (
               <MediaRow
@@ -294,7 +297,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
                 }
               />
             );
-          })
+          }} />
         )}
       </div>
 

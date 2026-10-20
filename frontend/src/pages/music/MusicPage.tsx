@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useMemo, useState } from "react";
+import { useMemo, useState, useDeferredValue } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Disc3, Download, ListMusic, ListPlus, Plus, ScanSearch, Sparkles, Tag, User } from "lucide-react";
@@ -17,6 +17,7 @@ import DownloadsView, { TrackTrailing } from "./Downloads";
 import MusicDetail, { type MusicSelection } from "./MusicDetail";
 import { useTrackActions } from "./useTrackActions";
 import { albumKey, parseAlbumKey } from "./albumKey";
+import Progressive from "../../components/library/Progressive";
 import UploadMusicDialog from "./UploadMusicDialog";
 import { CreatePlaylistDialog } from "./PlaylistTools";
 import { playTracks } from "../../lib/play";
@@ -90,7 +91,8 @@ export default function MusicPage() {
     track.cover_url ?? (track.album ? albumCover.get(albumKey(track.album_artist ?? track.artist ?? "", track.album)) ?? null : null);
 
   const isLoading = [tracks, artists, albums, genres, playlists].some((q) => q.isLoading && q.fetchStatus !== "idle");
-  const q = filter.trim().toLowerCase();
+  // Deferred: filtering 9,000 songs on every keystroke made typing lag.
+  const q = useDeferredValue(filter.trim().toLowerCase());
 
   const rows = useMemo(() => {
     const by = <T,>(list: T[], name: (x: T) => string, count: (x: T) => number, recent: (x: T) => string) => {
@@ -117,6 +119,9 @@ export default function MusicPage() {
     }
   }, [mode, q, sort, owner, tracks.data, artists.data, albums.data, genres.data, playlists.data]);
 
+  // A new list (other mode, filter, sort or view) starts its rendering from the top.
+  const listKey = `${mode}|${q}|${sort}|${owner}|${view}`;
+
   function renderRows() {
     if (mode === "smart") return <SmartPlaylists />;
     if (mode === "downloads") return <DownloadsView />;
@@ -140,7 +145,7 @@ export default function MusicPage() {
         const play = (i: number) => () => void playTracks(list, i);
         return view === "grid" ? (
           <MediaGrid dense>
-            {list.map((track, i) => (
+            <Progressive key={listKey} items={list} render={(track, i) => (
               <MediaCard
                 key={track.id}
                 kind="music"
@@ -150,11 +155,11 @@ export default function MusicPage() {
                 onClick={play(i)}
                 menu={<MoreMenuTrigger>{trackActions.items(track, play(i))}</MoreMenuTrigger>}
               />
-            ))}
+            )} />
           </MediaGrid>
         ) : (
           <div className="p-3">
-            {list.map((track, i) => (
+            <Progressive key={listKey} items={list} render={(track, i) => (
               <MediaRow
                 key={track.id}
                 kind="music"
@@ -167,7 +172,7 @@ export default function MusicPage() {
                 onPlay={play(i)}
                 menu={<MoreMenuTrigger>{trackActions.items(track, play(i))}</MoreMenuTrigger>}
               />
-            ))}
+            )} />
           </div>
         );
       }
@@ -180,8 +185,8 @@ export default function MusicPage() {
           onClick: () => navigate(`/music/artists/${encodeURIComponent(a.artist)}`),
         });
         return view === "grid"
-          ? <MediaGrid dense>{list.map((a) => <MediaCard key={a.artist} {...props(a)} />)}</MediaGrid>
-          : <div className="p-3">{list.map((a) => <MediaRow key={a.artist} {...props(a)} />)}</div>;
+          ? <MediaGrid dense><Progressive key={listKey} items={list} render={(a) => <MediaCard key={a.artist} {...props(a)} />} /></MediaGrid>
+          : <div className="p-3"><Progressive key={listKey} items={list} render={(a) => <MediaRow key={a.artist} {...props(a)} />} /></div>;
       }
       case "albums": {
         const list = rows as NonNullable<typeof albums.data>;
@@ -191,8 +196,8 @@ export default function MusicPage() {
           onClick: () => navigate(`/music/albums/${encodeURIComponent(albumKey(a.artist, a.album, a.id))}`),
         });
         return view === "grid"
-          ? <MediaGrid>{list.map((a) => <MediaCard key={albumKey(a.artist, a.album, a.id)} {...props(a)} meta={t("music.count.songs", { count: a.track_count })} />)}</MediaGrid>
-          : <div className="p-3">{list.map((a) => <MediaRow key={albumKey(a.artist, a.album, a.id)} {...props(a)} trailing={t("music.count.songs", { count: a.track_count })} />)}</div>;
+          ? <MediaGrid><Progressive key={listKey} items={list} render={(a) => <MediaCard key={albumKey(a.artist, a.album, a.id)} {...props(a)} meta={t("music.count.songs", { count: a.track_count })} />} /></MediaGrid>
+          : <div className="p-3"><Progressive key={listKey} items={list} render={(a) => <MediaRow key={albumKey(a.artist, a.album, a.id)} {...props(a)} trailing={t("music.count.songs", { count: a.track_count })} />} /></div>;
       }
       case "genres": {
         const list = rows as NonNullable<typeof genres.data>;

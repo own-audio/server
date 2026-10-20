@@ -15,6 +15,7 @@ import {
   type TrashScope,
 } from "../../api/trash";
 import { formatBytes, formatMicro, getBilling } from "../../api/billing";
+import { useServerFeatures } from "../../lib/features";
 import { Page } from "../../components/shell/SplitView";
 import { Button, Dialog, DialogContent, EmptyState, IconButton, SegmentedControl, Skeleton, toast } from "../../components/ui";
 import { useMyPermissions } from "../../lib/permissions";
@@ -61,7 +62,8 @@ export default function TrashPage() {
     queryKey: ["trash", effective],
     queryFn: () => listTrash(effective),
   });
-  const { data: billing } = useQuery({ queryKey: ["billing"], queryFn: getBilling, retry: false });
+  const { features } = useServerFeatures();
+  const { data: billing } = useQuery({ queryKey: ["billing"], queryFn: getBilling, retry: false, enabled: features.billing });
   const currency = billing?.pricing.currency ?? "USD";
   const money = (micro: number) => formatMicro(micro, currency);
   // A few KB for a few days is a fraction of a cent; "$0.00" would read as free.

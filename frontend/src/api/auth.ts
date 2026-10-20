@@ -164,6 +164,12 @@ export async function getMe(): Promise<LoginResponse["user"]> {
 
 // ── User self-management ──────────────────────────────────────────────────
 
+/** The signed-in account as `/users/me` has it: `avatar_url` is set only when there is a picture. */
+export async function getMyProfile(): Promise<{ id: string; avatar_url: string | null }> {
+  const { data } = await api.get<{ id: string; avatar_url: string | null }>("/users/me");
+  return data;
+}
+
 export async function updateMyProfile(displayName: string): Promise<void> {
   await api.patch("/users/me", { display_name: displayName });
 }

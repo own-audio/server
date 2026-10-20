@@ -71,6 +71,7 @@ export function MediaCard({
 
   return (
     <div
+      aria-current={selected || undefined}
       className={cn(
         "group relative flex flex-col rounded-[14px] p-1.5 transition-colors",
         // A 10% tint drops muted subtitle text to 4.38:1 for every accent
@@ -216,6 +217,7 @@ export function MediaRow({
 
   return (
     <div
+      aria-current={selected || undefined}
       className={cn(
         "group flex items-center gap-3 rounded-[10px] px-2 py-1.5 transition-colors",
         selected ? "bg-accent/6 ring-1 ring-inset ring-accent/30" : "hover:bg-bg-alt"
