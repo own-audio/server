@@ -711,6 +711,8 @@ pub struct AlbumRow {
     pub artist_id: Option<Uuid>,
     pub title: String,
     pub release_group_id: Option<Uuid>,
+    /// Its release group's kind: `album`, `live`…
+    pub release_kind: Option<String>,
     pub track_count: i64,
     pub duration_secs: Option<i64>,
     /// NULL when no track in the album has art at all: handing back a track id
@@ -720,12 +722,13 @@ pub struct AlbumRow {
 
 /// Albums with at least one visible track, optionally only one artist's —
 /// by contributor id, or by name (the album artist line, or any contributor
-/// credited on the album).
+/// credited on the album); `kind` keeps those of one release kind (`live`).
 pub async fn list_albums(
     pool: &PgPool,
     viewer: Viewer,
     artist: Option<&str>,
     artist_id: Option<Uuid>,
+    kind: Option<&str>,
 ) -> anyhow::Result<Vec<AlbumRow>> {
     let sql = format!(
         "SELECT a.id, a.artist_display AS artist,
@@ -733,6 +736,7 @@ pub async fn list_albums(
                   WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.role = 'artist'
                   ORDER BY c.position LIMIT 1) AS artist_id,
                 a.title, a.release_group_id,
+                (SELECT g.kind FROM release_groups g WHERE g.id = a.release_group_id) AS release_kind,
                 COUNT(*) AS track_count,
                 SUM(t.duration_secs)::bigint AS duration_secs,
                 (array_agg(t.id ORDER BY t.created_at)
@@ -746,6 +750,8 @@ pub async fn list_albums(
            AND ($6::uuid IS NULL
                 OR EXISTS (SELECT 1 FROM credits c
                             WHERE c.item_kind = 'album' AND c.item_id = a.id AND c.contributor_id = $6))
+           AND ($7::text IS NULL
+                OR EXISTS (SELECT 1 FROM release_groups g WHERE g.id = a.release_group_id AND g.kind = $7))
          GROUP BY a.id
          ORDER BY lower(a.artist_display), lower(a.title), a.id"
     );
@@ -753,6 +759,7 @@ pub async fn list_albums(
     bind_viewer!(sqlx::query_as::<_, AlbumRow>(&sql), viewer, MUSIC)
         .bind(artist)
         .bind(artist_id)
+        .bind(kind)
         .fetch_all(pool)
         .await
         .context("db: list albums")
@@ -2451,4 +2458,65 @@ pub async fn set_release_info(
     .await
     .context("db: set music release info")?;
     Ok(())
+}
+
+// ── Chapters (docs/concerts-plan.md) ──────────────────────────────────────
+
+/// Put the marks read from a track's file in place of what was there, and note
+/// that the file was read. `chapters` from `crate::chapters::for_track`.
+pub async fn replace_track_chapters(conn: &mut sqlx::PgConnection, track_id: Uuid, chapters: &[(String, i64)]) -> anyhow::Result<()> {
+    sqlx::query("DELETE FROM music_track_chapters WHERE track_id = $1")
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await
+        .context("db: clear track chapters")?;
+    for (i, (title, start_ms)) in chapters.iter().enumerate() {
+        sqlx::query("INSERT INTO music_track_chapters (track_id, position, title, start_ms) VALUES ($1, $2, $3, $4)")
+            .bind(track_id)
+            .bind(i as i32 + 1)
+            .bind(title)
+            .bind(start_ms)
+            .execute(&mut *conn)
+            .await
+            .context("db: insert track chapter")?;
+    }
+    sqlx::query("UPDATE music_tracks_all SET chapters_read_at = now() WHERE id = $1")
+        .bind(track_id)
+        .execute(&mut *conn)
+        .await
+        .context("db: mark track chapters read")?;
+    Ok(())
+}
+
+/// Chapters someone set by hand: they stay whatever the file says from now on.
+pub async fn set_track_chapters_by_hand(pool: &PgPool, track_id: Uuid, chapters: &[(String, i64)]) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await.context("db: begin track chapters")?;
+    replace_track_chapters(&mut tx, track_id, chapters).await?;
+    sqlx::query("UPDATE music_tracks_all SET chapters_edited_at = now(), updated_at = now() WHERE id = $1")
+        .bind(track_id)
+        .execute(&mut *tx)
+        .await
+        .context("db: mark track chapters edited")?;
+    tx.commit().await.context("db: commit track chapters")
+}
+
+/// A track's chapters in order: (position, title, start in ms).
+pub async fn list_track_chapters(pool: &PgPool, track_id: Uuid) -> anyhow::Result<Vec<(i32, String, i64)>> {
+    sqlx::query_as("SELECT position, title, start_ms FROM music_track_chapters WHERE track_id = $1 ORDER BY position")
+        .bind(track_id)
+        .fetch_all(pool)
+        .await
+        .context("db: list track chapters")
+}
+
+/// How many chapters each of these tracks has; tracks without any are left out.
+pub async fn track_chapter_counts(pool: &PgPool, ids: &[Uuid]) -> anyhow::Result<std::collections::HashMap<Uuid, i64>> {
+    let rows: Vec<(Uuid, i64)> = sqlx::query_as(
+        "SELECT track_id, count(*) FROM music_track_chapters WHERE track_id = ANY($1) GROUP BY track_id",
+    )
+    .bind(ids)
+    .fetch_all(pool)
+    .await
+    .context("db: count track chapters")?;
+    Ok(rows.into_iter().collect())
 }

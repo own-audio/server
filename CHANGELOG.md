@@ -7,6 +7,26 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+Contract revision 22.
+
+### Added
+
+- Concerts: a whole concert as one track with a chapter mark where each song starts
+  (docs/concerts-plan.md). The server reads the marks from the file (M4A, M4B, MP3) when a track
+  is uploaded, and in library folders for tracks of 20 minutes or more (migration 0118). A
+  concert is an album whose release group is `live`: `release_kind` on `POST /api/v2/tracks`,
+  `PATCH /api/v2/release-groups/{id}`, and `kind=live` on the album lists of v1 and v2.
+  Chapters: `chapter_count` on v2 tracks, `chapters` on `GET /api/v2/tracks/{id}`,
+  `GET /api/v1/music/tracks/{id}/chapters`; the owner corrects them with
+  `PUT /api/v2/tracks/{id}/chapters`, and corrected chapters are never read from the file again.
+  Discovered as `features.track_chapters`.
+
+### Fixed
+
+- A track uploaded through v2 (`POST /api/v2/tracks`) has its length: the server measures the
+  file when the client does not say it, as it already did for library folders. Such tracks had
+  no `duration_ms`, so players showed no length and could not seek or resume.
+
 ## [1.0.0-beta.34] - 2026-10-21
 
 Contract revision 21.

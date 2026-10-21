@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.21"
+    "version": "1.22"
   },
   "servers": [
     {
@@ -7126,6 +7126,15 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "Only albums of this release kind: `live` lists the concerts.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -9517,6 +9526,58 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/music/tracks/{id}/chapters": {
+      "get": {
+        "tags": [
+          "music"
+        ],
+        "summary": "The chapter marks in a track's file — a concert's songs (docs/concerts-plan.md)",
+        "description": "The chapter marks in a track's file — a concert's songs\n(docs/concerts-plan.md). Empty for an ordinary track.",
+        "operationId": "music_get_track_chapters",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Track id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrackChapterResponse"
+                  }
                 }
               }
             }
@@ -14949,6 +15010,13 @@
               "null"
             ],
             "description": "The release group: editions of one release share it."
+          },
+          "release_kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The release group's kind: `album`, `live` for a concert…"
           },
           "track_count": {
             "type": "integer",
@@ -20575,6 +20643,28 @@
             "type": "integer",
             "format": "int64",
             "description": "Recovery codes not used yet; 0 when two-factor is off."
+          }
+        }
+      },
+      "TrackChapterResponse": {
+        "type": "object",
+        "required": [
+          "position",
+          "title",
+          "start_time_secs"
+        ],
+        "properties": {
+          "position": {
+            "type": "integer",
+            "format": "int32",
+            "description": "1-based, in order."
+          },
+          "title": {
+            "type": "string"
+          },
+          "start_time_secs": {
+            "type": "number",
+            "format": "double"
           }
         }
       },

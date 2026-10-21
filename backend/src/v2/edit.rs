@@ -10,6 +10,8 @@
 //!   merge and split (a family admin's, as they rewrite everyone's credits).
 //! - Albums: title and release details, release group (any member who sees
 //!   them); merge (a family admin's).
+//! - Release groups: their kind, `live` for a concert (any member who sees one
+//!   of its editions).
 
 use crate::app::AppState;
 use crate::db;
@@ -105,6 +107,61 @@ pub async fn set_track_credits(family: FamilyContext, State(state): State<AppSta
     let credits = resolve_credits(&state, &family, TRACK_ROLES, body).await?;
     db::entities::set_credits(state.db(), "track", id, &credits).await?;
     answer_credits(&state, "track", id).await
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct ChapterInput {
+    pub title: String,
+    pub start_ms: i64,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct ChaptersRequest {
+    /// The whole list, in order of time; `[]` removes them.
+    pub chapters: Vec<ChapterInput>,
+}
+
+const MAX_CHAPTERS: usize = 500;
+
+/// Correct a track's chapters — a concert's songs (docs/concerts-plan.md). The
+/// list replaces what the file's marks said, and stays: the file is no longer read.
+#[utoipa::path(put, path = "/tracks/{id}/chapters", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = ChaptersRequest,
+    responses((status = 200, description = "The track's chapters now", body = Vec<crate::v2::music::TrackChapter>),
+        (status = 400, description = "`invalid_chapters`: an empty title, a negative start, starts not in order, or too many", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not the track's owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
+pub async fn set_track_chapters(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ChaptersRequest>) -> Result<Json<Vec<crate::v2::music::TrackChapter>>, Problem> {
+    let track = catalog::find_track(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    owner(track.user_id, &family)?;
+    let chapters = valid_chapters(body.chapters, track.duration_secs)?;
+    db::music::set_track_chapters_by_hand(state.db(), id, &chapters).await?;
+    let rows = db::music::list_track_chapters(state.db(), id).await?;
+    Ok(Json(rows.into_iter().map(|(position, title, start_ms)| crate::v2::music::TrackChapter { position, title, start_ms }).collect()))
+}
+
+fn valid_chapters(input: Vec<ChapterInput>, duration_secs: Option<i32>) -> Result<Vec<(String, i64)>, Problem> {
+    let bad = |i: usize, why: &str| Problem::bad_request("invalid_chapters", format!("chapter {}: {why}", i + 1)).field(format!("/chapters/{i}"), "invalid", why.to_string());
+    if input.len() > MAX_CHAPTERS {
+        return Err(Problem::bad_request("invalid_chapters", format!("at most {MAX_CHAPTERS} chapters")));
+    }
+    let end_ms = duration_secs.map(|s| i64::from(s) * 1000);
+    let mut out: Vec<(String, i64)> = Vec::with_capacity(input.len());
+    for (i, c) in input.into_iter().enumerate() {
+        let title = c.title.trim().to_string();
+        if title.is_empty() || title.chars().count() > 300 {
+            return Err(bad(i, "a title of 1 to 300 characters"));
+        }
+        if c.start_ms < 0 || end_ms.is_some_and(|end| c.start_ms >= end) {
+            return Err(bad(i, "a start inside the track"));
+        }
+        if out.last().is_some_and(|(_, prev)| c.start_ms <= *prev) {
+            return Err(bad(i, "starts after the chapter before it"));
+        }
+        out.push((title, c.start_ms));
+    }
+    Ok(out)
 }
 
 /// Correct a book's credits.
@@ -348,6 +405,38 @@ pub async fn set_release_group(family: FamilyContext, State(state): State<AppSta
     Ok(Json(Updated { id: group }))
 }
 
+/// A release group's kind as a client may set it: one word of lowercase
+/// letters, as MusicBrainz types read (`album`, `live`, `soundtrack`…).
+pub(crate) fn release_kind(kind: &str, field: &str) -> Result<String, Problem> {
+    let kind = kind.trim().to_lowercase();
+    if kind.is_empty() || kind.len() > 32 || !kind.chars().all(|c| c.is_ascii_lowercase() || c == '-') {
+        return Err(Problem::bad_request("invalid_kind", format!("`{kind}`: a release kind such as `album` or `live`")).field(field, "invalid", kind));
+    }
+    Ok(kind)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct ReleaseGroupPatch {
+    /// `live` makes its albums concerts; `album` puts them back.
+    pub kind: String,
+}
+
+/// Change what a release group is.
+#[utoipa::path(patch, path = "/release-groups/{id}", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member"))),
+    params(("id" = Uuid, Path)), request_body = ReleaseGroupPatch,
+    responses((status = 200, body = Updated),
+        (status = 400, description = "Not a release kind", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown, or no edition is visible", body = crate::v2::problem::ProblemBody)))]
+pub async fn patch_release_group(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ReleaseGroupPatch>) -> Result<Json<Updated>, Problem> {
+    let kind = release_kind(&body.kind, "/kind")?;
+    catalog::find_release_group(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    if !db::entities::set_release_group_kind(state.db(), family.family_id, id, &kind).await? {
+        return Err(Problem::not_found());
+    }
+    Ok(Json(Updated { id }))
+}
+
 /// Two albums are one release tagged two ways: `id`'s tracks, stars and
 /// ratings go to `into`, and so will the same tags at every later scan.
 #[utoipa::path(post, path = "/albums/{id}/merge", tag = "corrections", security(("bearer" = [])),
@@ -363,4 +452,24 @@ pub async fn merge_album(FamilyAdmin(family): FamilyAdmin, State(state): State<A
         return Err(Problem::not_found());
     }
     Ok(Json(Updated { id: body.into }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn input(list: &[(&str, i64)]) -> Vec<ChapterInput> {
+        list.iter().map(|(t, s)| ChapterInput { title: t.to_string(), start_ms: *s }).collect()
+    }
+
+    #[test]
+    fn chapters_in_order_inside_the_track() {
+        let ok = valid_chapters(input(&[(" Intro ", 0), ("Crawling", 566_000)]), Some(5865)).unwrap();
+        assert_eq!(ok, vec![("Intro".to_string(), 0), ("Crawling".to_string(), 566_000)]);
+        assert!(valid_chapters(Vec::new(), None).unwrap().is_empty());
+        assert!(valid_chapters(input(&[("A", 10), ("B", 10)]), None).is_err());
+        assert!(valid_chapters(input(&[("A", 0), ("  ", 5)]), None).is_err());
+        assert!(valid_chapters(input(&[("A", -1)]), None).is_err());
+        assert!(valid_chapters(input(&[("A", 0), ("B", 5_865_000)]), Some(5865)).is_err());
+    }
 }

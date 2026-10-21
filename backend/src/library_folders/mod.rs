@@ -300,7 +300,7 @@ fn ffprobe_probe(path: &Path) -> (Option<i32>, Option<String>) {
     (secs, title)
 }
 
-fn duration_secs(path: &Path) -> Option<i32> {
+pub(crate) fn duration_secs(path: &Path) -> Option<i32> {
     probe(path).0
 }
 
@@ -516,6 +516,11 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
                         if let Err(e) = crate::music::refresh_folder_track(state, folder.owner_id, item, &path, size as i64, duration).await {
                             tracing::warn!(file = %rel, error = %format!("{e:#}"), "library scan: tags not refreshed");
                         }
+                        // A changed file may carry other chapter marks: read them again.
+                        sqlx::query("UPDATE music_tracks_all SET chapters_read_at = NULL WHERE id = $1")
+                            .bind(item)
+                            .execute(pool)
+                            .await?;
                         remember(pool, folder.id, &rel, size, mtime, "track", Some(item)).await?;
                         continue;
                     }
@@ -556,6 +561,9 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
 
     if folder.kind == "audiobooks" {
         read_pending_chapters(pool, folder, &root).await?;
+    }
+    if folder.kind == "music" {
+        read_pending_track_chapters(pool, folder, &root).await?;
     }
 
     let missing: i64 = sqlx::query_scalar(
@@ -617,40 +625,6 @@ async fn sync_missing_items(pool: &sqlx::PgPool, folder_id: Uuid) -> anyhow::Res
 /// A folder of audio files is one book: its name the title, its parent's
 /// name the author (`Author/Title/*.mp3`). New files join the book that the
 /// folder's other files already belong to.
-/// The chapter marks inside one file (M4B, M4A, MP3 with chapter frames), as
-/// (start in seconds within the file, title).
-fn embedded_chapters(path: &Path) -> Vec<(f64, Option<String>)> {
-    let Ok(out) = std::process::Command::new("ffprobe")
-        .args(["-v", "error", "-show_chapters", "-of", "json"])
-        .arg(path)
-        .output()
-    else {
-        return Vec::new();
-    };
-    if !out.status.success() {
-        return Vec::new();
-    }
-    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) else { return Vec::new() };
-    json.get("chapters")
-        .and_then(|c| c.as_array())
-        .map(|marks| {
-            marks
-                .iter()
-                .filter_map(|c| {
-                    let start = c.get("start_time")?.as_str()?.parse::<f64>().ok().filter(|s| s.is_finite() && *s >= 0.0)?;
-                    let title = c
-                        .get("tags")
-                        .and_then(|t| t.get("title"))
-                        .and_then(|t| t.as_str())
-                        .map(|t| t.trim().to_string())
-                        .filter(|t| !t.is_empty());
-                    Some((start, title))
-                })
-                .collect()
-        })
-        .unwrap_or_default()
-}
-
 /// A folder book's chapters, from the marks inside its files, each measured from
 /// the start of the whole book. Kept only when the files hold two or more
 /// between them; otherwise the files are the chapters, as clients already show.
@@ -672,7 +646,7 @@ async fn read_book_chapters(pool: &PgPool, folder: &FolderRow, root: &Path, book
     let mut offset = 0.0;
     for (file_id, duration, rel) in files {
         let path = root.join(&rel);
-        let marks = tokio::task::spawn_blocking(move || embedded_chapters(&path)).await.unwrap_or_default();
+        let marks = tokio::task::spawn_blocking(move || crate::chapters::embedded(&path)).await.unwrap_or_default();
         chapters.extend(marks.into_iter().map(|(start, title)| (file_id, offset + start, title)));
         offset += f64::from(duration.unwrap_or(0));
     }
@@ -716,6 +690,40 @@ async fn read_pending_chapters(pool: &PgPool, folder: &FolderRow, root: &Path) -
             Ok(n) if n > 0 => tracing::debug!(%book, chapters = n, "library scan: chapters from the files"),
             Ok(_) => {}
             Err(e) => tracing::warn!(%book, error = %format!("{e:#}"), "library scan: chapters not read"),
+        }
+    }
+    Ok(())
+}
+
+/// Chapter marks of the folder's long tracks never read, or whose file changed
+/// since; never those someone edited by hand. Only tracks of 20 minutes or more are probed: a concert or a DJ set
+/// carries marks, a song does not, and probing every song of a large library
+/// once would cost minutes for nothing.
+async fn read_pending_track_chapters(pool: &PgPool, folder: &FolderRow, root: &Path) -> anyhow::Result<()> {
+    let tracks: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT t.id, lf.rel_path
+         FROM library_files lf
+         JOIN music_tracks_all t ON t.id = lf.item_id
+         WHERE lf.folder_id = $1 AND lf.item_kind = 'track' AND NOT lf.missing
+           AND t.chapters_read_at IS NULL AND t.chapters_edited_at IS NULL AND t.duration_secs >= 1200",
+    )
+    .bind(folder.id)
+    .fetch_all(pool)
+    .await?;
+    for (track, rel) in tracks {
+        let path = root.join(&rel);
+        let chapters = tokio::task::spawn_blocking(move || crate::chapters::for_track(crate::chapters::embedded(&path)))
+            .await
+            .unwrap_or_default();
+        let mut tx = pool.begin().await?;
+        let replaced = match crate::db::music::replace_track_chapters(&mut tx, track, &chapters).await {
+            Ok(()) => tx.commit().await.map_err(anyhow::Error::from),
+            Err(e) => Err(e),
+        };
+        match replaced {
+            Ok(()) if !chapters.is_empty() => tracing::debug!(%track, chapters = chapters.len(), "library scan: track chapters from the file"),
+            Ok(()) => {}
+            Err(e) => tracing::warn!(%track, error = %format!("{e:#}"), "library scan: track chapters not read"),
         }
     }
     Ok(())

@@ -106,6 +106,9 @@ pub struct NewTrack {
     pub track_number: Option<i32>,
     /// Where it goes in the own.audio folder (`Music/…`).
     pub path: Option<String>,
+    /// The kind of the release group its album lands in: `live` for a concert
+    /// (docs/concerts-plan.md). Needs an album, from `album` or the tags.
+    pub release_kind: Option<String>,
 }
 
 /// A track from an uploaded file.
@@ -116,6 +119,7 @@ pub struct NewTrack {
         (status = 400, description = "Nothing was put under that upload", body = crate::v2::problem::ProblemBody),
         (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody)))]
 pub async fn create_track(family: FamilyContext, State(state): State<AppState>, Json(body): Json<NewTrack>) -> Result<(StatusCode, Json<music::Track>), Problem> {
+    let release_kind = body.release_kind.as_deref().map(|k| crate::v2::edit::release_kind(k, "/release_kind")).transpose()?;
     let request: crate::music::FromUploadRequest = serde_json::from_value(json!({
         "object_key": body.upload_id,
         "original_filename": body.filename,
@@ -132,6 +136,9 @@ pub async fn create_track(family: FamilyContext, State(state): State<AppState>, 
     let viewer = family.viewer();
     let (_, Json(made)) = crate::music::create_track_from_upload(family, State(state.clone()), Json(request)).await?;
     let id: Uuid = made.track.id.parse().map_err(|e: uuid::Error| Problem::internal(anyhow::anyhow!(e)))?;
+    if let Some(kind) = release_kind {
+        db::entities::set_track_release_kind(state.db(), id, &kind).await?;
+    }
     let row = db::catalog::find_track(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
     let track = music::tracks(&state, vec![row]).await?.pop().ok_or_else(Problem::not_found)?;
     Ok((StatusCode::CREATED, Json(track)))

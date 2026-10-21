@@ -16,6 +16,7 @@
 pub mod app;
 pub mod auth;
 pub mod audiobooks;
+pub mod chapters;
 pub mod dashboard;
 pub mod demo;
 pub mod db;

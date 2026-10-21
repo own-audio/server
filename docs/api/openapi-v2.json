@@ -798,6 +798,37 @@
         ],
         "type": "object"
       },
+      "ChapterInput": {
+        "properties": {
+          "start_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "title",
+          "start_ms"
+        ],
+        "type": "object"
+      },
+      "ChaptersRequest": {
+        "properties": {
+          "chapters": {
+            "description": "The whole list, in order of time; `[]` removes them.",
+            "items": {
+              "$ref": "#/components/schemas/ChapterInput"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "chapters"
+        ],
+        "type": "object"
+      },
       "Contributor": {
         "description": "Anyone credited with something: an artist, an author, a narrator, a host. The\nsame person is one contributor whatever they do.",
         "properties": {
@@ -2604,6 +2635,13 @@
           },
           "path": {
             "description": "Where it goes in the own.audio folder (`Music/…`).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_kind": {
+            "description": "The kind of the release group its album lands in: `live` for a concert\n(docs/concerts-plan.md). Needs an album, from `album` or the tags.",
             "type": [
               "string",
               "null"
@@ -4437,6 +4475,11 @@
                     "null"
                   ]
                 },
+                "chapter_count": {
+                  "description": "Chapter marks in its file, as a whole concert has one per song; the\nmarks themselves are on `GET /tracks/{id}`. 0 for an ordinary track.",
+                  "format": "int64",
+                  "type": "integer"
+                },
                 "content_type": {
                   "type": [
                     "string",
@@ -4534,6 +4577,7 @@
                 "visibility",
                 "owner_id",
                 "source",
+                "chapter_count",
                 "created_at",
                 "updated_at"
               ],
@@ -5716,6 +5760,18 @@
         ],
         "type": "object"
       },
+      "ReleaseGroupPatch": {
+        "properties": {
+          "kind": {
+            "description": "`live` makes its albums concerts; `album` puts them back.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
       "ReleaseGroupRequest": {
         "properties": {
           "release_group_id": {
@@ -6389,6 +6445,11 @@
               "null"
             ]
           },
+          "chapter_count": {
+            "description": "Chapter marks in its file, as a whole concert has one per song; the\nmarks themselves are on `GET /tracks/{id}`. 0 for an ordinary track.",
+            "format": "int64",
+            "type": "integer"
+          },
           "content_type": {
             "type": [
               "string",
@@ -6486,6 +6547,7 @@
           "visibility",
           "owner_id",
           "source",
+          "chapter_count",
           "created_at",
           "updated_at"
         ],
@@ -6498,6 +6560,16 @@
           },
           {
             "properties": {
+              "chapters": {
+                "description": "Its chapters, when its file has marks (`chapter_count` > 0).",
+                "items": {
+                  "$ref": "#/components/schemas/TrackChapter"
+                },
+                "type": [
+                  "array",
+                  "null"
+                ]
+              },
               "included": {
                 "oneOf": [
                   {
@@ -6512,6 +6584,29 @@
             "type": "object"
           }
         ]
+      },
+      "TrackChapter": {
+        "description": "Where a part of a track begins, read from the marks in its file.",
+        "properties": {
+          "position": {
+            "description": "1-based, in order.",
+            "format": "int32",
+            "type": "integer"
+          },
+          "start_ms": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "position",
+          "title",
+          "start_ms"
+        ],
+        "type": "object"
       },
       "TrackIdentity": {
         "allOf": [
@@ -6825,6 +6920,15 @@
             "required": false,
             "schema": {
               "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Its release group's kind: `live` lists the concerts.",
+            "in": "query",
+            "name": "kind",
+            "required": false,
+            "schema": {
               "type": "string"
             }
           },
@@ -14928,6 +15032,93 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "patch": {
+        "operationId": "corrections_patch_release_group",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleaseGroupPatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Updated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not a release kind"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, or no edition is visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Change what a release group is",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/search": {
@@ -16480,6 +16671,109 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/tracks/{id}/chapters": {
+      "put": {
+        "description": "Correct a track's chapters — a concert's songs (docs/concerts-plan.md). The\nlist replaces what the file's marks said, and stays: the file is no longer read.",
+        "operationId": "corrections_set_track_chapters",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChaptersRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TrackChapter"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": "The track's chapters now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_chapters`: an empty title, a negative start, starts not in order, or too many"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Correct a track's chapters — a concert's songs (docs/concerts-plan.md)",
+        "tags": [
+          "corrections"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/tracks/{id}/credits": {

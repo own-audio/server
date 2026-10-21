@@ -107,6 +107,15 @@ Rules:
   `upload:<id>` that is never fetched; refresh does nothing, auto-store and
   store-all answer `409 uploaded_podcast`. An uploaded transcript is served
   through `transcript_url` like a publisher's.
+- `track_chapters` (revision 22): a music track carries the chapter marks of its
+  file, a concert's songs: `chapter_count` on every v2 track, the marks on
+  `GET /api/v2/tracks/{id}` (`chapters`) and `GET /api/v1/music/tracks/{id}/chapters`;
+  the track's owner replaces them with `PUT /api/v2/tracks/{id}/chapters`, after
+  which the file's marks are no longer read.
+  A concert is an album whose release group has `kind: "live"`: list them with
+  `GET /api/v2/albums?kind=live` or `GET /api/v1/music/albums?kind=live`
+  (`release_kind` on each), set it with `release_kind` on `POST /api/v2/tracks`
+  or `PATCH /api/v2/release-groups/{id}`.
 - `one_family` (revision 4): the install has one family. Every new account
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each

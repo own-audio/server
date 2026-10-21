@@ -129,8 +129,20 @@ pub struct Track {
     pub size_bytes: Option<i64>,
     /// Its cover (`GET /images/{id}`; add `w` for the size).
     pub image: Option<String>,
+    /// Chapter marks in its file, as a whole concert has one per song; the
+    /// marks themselves are on `GET /tracks/{id}`. 0 for an ordinary track.
+    pub chapter_count: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// Where a part of a track begins, read from the marks in its file.
+#[derive(Serialize, ToSchema)]
+pub struct TrackChapter {
+    /// 1-based, in order.
+    pub position: i32,
+    pub title: String,
+    pub start_ms: i64,
 }
 
 /// The records a list's items refer to, each once (`include=`).
@@ -224,6 +236,7 @@ pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Re
     for (track, genre) in catalog::track_genres(state.db(), &ids).await? {
         genres.entry(track).or_default().push(genre);
     }
+    let chapter_counts = crate::db::music::track_chapter_counts(state.db(), &ids).await?;
     Ok(rows
         .into_iter()
         .map(|t| Track {
@@ -242,6 +255,7 @@ pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Re
             content_type: t.content_type,
             size_bytes: t.size_bytes,
             image: crate::v2::images::maybe(state, t.cover_object_id),
+            chapter_count: chapter_counts.get(&t.id).copied().unwrap_or(0),
             created_at: t.created_at,
             updated_at: t.updated_at,
         })
@@ -407,6 +421,8 @@ pub struct AlbumsQuery {
     pub contributor_id: Option<Uuid>,
     pub release_group_id: Option<Uuid>,
     pub genre_id: Option<Uuid>,
+    /// Its release group's kind: `live` lists the concerts.
+    pub kind: Option<String>,
     /// Part of the title, any case.
     pub q: Option<String>,
     /// `title` (default) or `added`, newest first.
@@ -436,7 +452,7 @@ pub async fn list_albums(family: FamilyContext, State(state): State<AppState>, Q
     } else {
         page.after::<(String, Uuid)>()?.map(|(t, id)| AlbumAfter::Title(t, id))
     };
-    let filter = catalog::AlbumFilter { contributor_id: q.contributor_id, release_group_id: q.release_group_id, genre_id: q.genre_id, query: q.q };
+    let filter = catalog::AlbumFilter { contributor_id: q.contributor_id, release_group_id: q.release_group_id, genre_id: q.genre_id, kind: q.kind, query: q.q };
     let viewer = family.viewer();
     let rows = catalog::list_albums(state.db(), viewer, &filter, by_added, after, limit + 1).await?;
     let page = if by_added {
@@ -599,6 +615,9 @@ pub async fn list_tracks(family: FamilyContext, State(state): State<AppState>, Q
 pub struct TrackAnswer {
     #[serde(flatten)]
     pub track: Track,
+    /// Its chapters, when its file has marks (`chapter_count` > 0).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub chapters: Option<Vec<TrackChapter>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub included: Option<Included>,
 }
@@ -621,5 +640,11 @@ pub async fn get_track(
     let credit_ids: Vec<Uuid> = track.credits.iter().map(|c| c.contributor_id).collect();
     let genre_ids = track.genre_ids.clone();
     let included = included(&state, viewer, &w, credit_ids.into_iter(), track.album_id.into_iter(), std::iter::empty(), genre_ids.into_iter()).await?;
-    Ok(Json(TrackAnswer { track, included }))
+    let chapters = if track.chapter_count > 0 {
+        let rows = crate::db::music::list_track_chapters(state.db(), track.id).await?;
+        Some(rows.into_iter().map(|(position, title, start_ms)| TrackChapter { position, title, start_ms }).collect())
+    } else {
+        None
+    };
+    Ok(Json(TrackAnswer { track, chapters, included }))
 }

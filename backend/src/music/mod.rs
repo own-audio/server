@@ -347,6 +347,7 @@ pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppSt
         .routes(routes!(get_track, update_track, delete_track))
         .routes(routes!(stream_track))
         .routes(routes!(get_track_lyrics, set_track_lyrics))
+        .routes(routes!(get_track_chapters))
         .routes(routes!(get_cover))
         .routes(map(routes!(upload_cover), |m| m.layer(DefaultBodyLimit::disable())))
         .routes(routes!(set_track_visibility))
@@ -417,6 +418,8 @@ pub struct AlbumSummary {
     pub album: String,
     /// The release group: editions of one release share it.
     pub release_group_id: Option<String>,
+    /// The release group's kind: `album`, `live` for a concert…
+    pub release_kind: Option<String>,
     pub track_count: i64,
     pub duration_secs: Option<i64>,
     pub cover_url: Option<String>,
@@ -437,6 +440,9 @@ pub struct AlbumsQuery {
     /// Restrict to one artist by id (from `/music/artists`).
     #[serde(default)]
     pub artist_id: Option<Uuid>,
+    /// Only albums of this release kind: `live` lists the concerts.
+    #[serde(default)]
+    pub kind: Option<String>,
 }
 
 /// GET /api/v1/music/artists
@@ -704,7 +710,7 @@ async fn list_albums(
     State(state): State<AppState>,
     Query(q): Query<AlbumsQuery>,
 ) -> Result<Json<Vec<AlbumSummary>>, AuthError> {
-    let rows = db::music::list_albums(state.db(), family.viewer(), q.artist.as_deref(), q.artist_id)
+    let rows = db::music::list_albums(state.db(), family.viewer(), q.artist.as_deref(), q.artist_id, q.kind.as_deref())
         .await
         .map_err(AuthError::Internal)?;
 
@@ -716,6 +722,7 @@ async fn list_albums(
                 artist_id: r.artist_id.map(|id| id.to_string()),
                 album: r.title,
                 release_group_id: r.release_group_id.map(|id| id.to_string()),
+                release_kind: r.release_kind,
                 track_count: r.track_count,
                 duration_secs: r.duration_secs,
                 cover_url: r.cover_track.map(|id| format!("/api/v1/music/tracks/{id}/cover")),
@@ -1150,6 +1157,19 @@ async fn create_track(
         .map(ToOwned::to_owned)
         .or_else(|| embedded.title.clone())
         .unwrap_or_else(|| infer_title(file_name));
+    // A whole concert in one file carries a mark where each song starts. The length is
+    // measured too when the client did not say it: v2 uploads never do.
+    let (chapters, measured) = {
+        let path = local_audio.to_path_buf();
+        let measure = duration_secs.is_none();
+        tokio::task::spawn_blocking(move || {
+            let chapters = crate::chapters::for_track(crate::chapters::embedded(&path));
+            (chapters, if measure { crate::library_folders::duration_secs(&path) } else { None })
+        })
+        .await
+        .unwrap_or_default()
+    };
+    let duration_secs = duration_secs.or(measured);
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     let audio_media_id = match audio {
@@ -1178,6 +1198,9 @@ async fn create_track(
     .await
     .map_err(AuthError::Internal)?;
     db::music::set_disc(&mut *tx, track.id, embedded.disc_number, embedded.disc_total)
+        .await
+        .map_err(AuthError::Internal)?;
+    db::music::replace_track_chapters(&mut tx, track.id, &chapters)
         .await
         .map_err(AuthError::Internal)?;
     let mut track = track;
@@ -2181,6 +2204,37 @@ async fn set_track_lyrics(
     Ok(Json(LyricsResponse {
         lyrics: (!trimmed.is_empty()).then(|| trimmed.to_string()),
     }))
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct TrackChapterResponse {
+    /// 1-based, in order.
+    pub position: i32,
+    pub title: String,
+    pub start_time_secs: f64,
+}
+
+/// GET /api/v1/music/tracks/{id}/chapters
+/// The chapter marks in a track's file — a concert's songs
+/// (docs/concerts-plan.md). Empty for an ordinary track.
+#[utoipa::path(get, path = "/tracks/{id}/chapters", tag = "music", security(("bearer" = [])),
+    params(("id" = Uuid, Path, description = "Track id")),
+    responses((status = 200, body = Vec<TrackChapterResponse>), (status = 404, body = crate::http::openapi::ErrorBody)))]
+async fn get_track_chapters(
+    family: FamilyContext,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<Vec<TrackChapterResponse>>, AuthError> {
+    db::music::find_track(state.db(), id, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
+    let rows = db::music::list_track_chapters(state.db(), id).await.map_err(AuthError::Internal)?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|(position, title, start_ms)| TrackChapterResponse { position, title, start_time_secs: start_ms as f64 / 1000.0 })
+            .collect(),
+    ))
 }
 
 /// GET /api/v1/music/tracks/{id}/lyrics — the embedded lyrics tag from the

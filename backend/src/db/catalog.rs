@@ -199,6 +199,8 @@ pub struct AlbumFilter {
     pub contributor_id: Option<Uuid>,
     pub release_group_id: Option<Uuid>,
     pub genre_id: Option<Uuid>,
+    /// The release group's kind (`live`).
+    pub kind: Option<String>,
     pub query: Option<String>,
 }
 
@@ -230,6 +232,7 @@ pub async fn list_albums(
                              WHERE t.album_id = a.id AND c.contributor_id = $4 AND {music}))
             AND ($5::uuid IS NULL OR a.release_group_id = $5)
             AND ($7::text IS NULL OR a.title ILIKE '%' || $7 || '%')
+            AND ($12::text IS NULL OR EXISTS (SELECT 1 FROM release_groups g WHERE g.id = a.release_group_id AND g.kind = $12))
             AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {music}
                           AND ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM track_genres g WHERE g.track_id = t.id AND g.genre_id = $6)))
           ORDER BY {order}
@@ -249,6 +252,7 @@ pub async fn list_albums(
         .bind(added)
         .bind(id)
         .bind(limit)
+        .bind(filter.kind.as_deref())
         .fetch_all(pool)
         .await
         .context("db: list albums")

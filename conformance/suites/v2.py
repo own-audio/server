@@ -7,6 +7,9 @@ from __future__ import annotations
 
 import json
 import pathlib
+import shutil
+import subprocess
+import tempfile
 import uuid
 
 from core import Ctx
@@ -96,6 +99,7 @@ def run(ctx: Ctx) -> None:
     household(ctx, problem)
     live(ctx, problem)
     library(ctx, problem)
+    concerts(ctx, problem)
     playlists(ctx, problem)
     finding(ctx, problem)
     smart_playlists(ctx, problem)
@@ -814,6 +818,94 @@ def library(ctx: Ctx, problem) -> None:
               and [f["position"] for f in book["files"]] == sorted(f["position"] for f in book["files"]), str(book)[:200])
     disco = json.loads(ctx.request("GET", "/.well-known/own-audio")[2])
     ctx.check("discovery states the upload and batch limits", disco["limits"].get("upload_max_bytes", 0) > 0 and disco["limits"].get("batch_max") == 500)
+
+
+def _chaptered_m4a() -> bytes | None:
+    """Four seconds of AAC with three chapter marks, as a concert's file carries them."""
+    if not shutil.which("ffmpeg"):
+        return None
+    with tempfile.TemporaryDirectory() as d:
+        meta, out = pathlib.Path(d, "meta.txt"), pathlib.Path(d, "concert.m4a")
+        meta.write_text(";FFMETADATA1\n" + "".join(
+            f"[CHAPTER]\nTIMEBASE=1/1000\nSTART={a}\nEND={b}\ntitle={t}\n"
+            for a, b, t in ((0, 1000, "Intro"), (1000, 2500, "First Song"), (2500, 4000, "Encore"))))
+        subprocess.run(["ffmpeg", "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-i", str(meta),
+                        "-map", "0:a", "-map_metadata", "1", "-map_chapters", "1", "-c:a", "aac", "-t", "4", str(out)], check=True)
+        return out.read_bytes()
+
+
+def concerts(ctx: Ctx, problem) -> None:
+    """Concerts (docs/concerts-plan.md): a track's chapter marks from its file, and albums whose
+    release group is `live`."""
+    if not ctx.feature("track_chapters"):
+        ctx.skip("concerts", "features.track_chapters is off")
+        return
+    audio = _chaptered_m4a()
+    if audio is None:
+        ctx.skip("concerts", "ffmpeg is not installed here")
+        return
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2concert", PW)
+
+    def req(method: str, path: str, body=None):
+        st, _h, raw = ctx.request(method, path, tok, body)
+        return st, (json.loads(raw) if raw else None)
+
+    st, up = req("POST", "/api/v2/uploads", {"kind": "track", "filename": f"live-{sfx}.m4a", "content_type": "audio/mp4",
+                                              "size_bytes": len(audio)})
+    if st == 201:
+        ctx.put_bytes(up["url"], audio, up["headers"]["Content-Type"])
+    ctx.check("release_kind must be a kind", problem(ctx.request("POST", "/api/v2/tracks", tok, {
+        "upload_id": (up or {}).get("upload_id"), "filename": "x.m4a", "release_kind": "Live Show!"}), 400, "invalid_kind"))
+    st, track = req("POST", "/api/v2/tracks", {"upload_id": (up or {}).get("upload_id"), "filename": f"live-{sfx}.m4a",
+                                               "title": f"Live {sfx}", "artist": f"Live Band {sfx}", "album": f"Live {sfx}",
+                                               "album_artist": f"Live Band {sfx}", "release_kind": "live"})
+    ctx.check("a concert from an upload, its chapters counted", st == 201 and (track or {}).get("chapter_count") == 3, str(track)[:200])
+    if st != 201:
+        return
+    st, one = req("GET", f"/api/v2/tracks/{track['id']}")
+    ctx.check("the track carries its chapter marks, in order, with their titles and starts",
+              [(c["position"], c["title"], c["start_ms"]) for c in (one or {}).get("chapters") or []]
+              == [(1, "Intro", 0), (2, "First Song", 1000), (3, "Encore", 2500)], str((one or {}).get("chapters"))[:200])
+    v1 = ctx.call("GET", f"/api/v1/music/tracks/{track['id']}/chapters", tok)
+    ctx.check("v1 lists the same chapters in seconds", [(c["title"], c["start_time_secs"]) for c in v1]
+              == [("Intro", 0.0), ("First Song", 1.0), ("Encore", 2.5)], str(v1)[:200])
+    st, edited = req("PUT", f"/api/v2/tracks/{track['id']}/chapters",
+                     {"chapters": [{"title": "Intro", "start_ms": 0}, {"title": "Crawling", "start_ms": 1200}]})
+    ctx.check("the owner corrects the chapters; the answer is the new list",
+              st == 200 and [(c["title"], c["start_ms"]) for c in edited] == [("Intro", 0), ("Crawling", 1200)], str(edited)[:200])
+    ctx.check("…which the track now carries", req("GET", f"/api/v2/tracks/{track['id']}")[1].get("chapter_count") == 2)
+    ctx.check("starts out of order: 400 invalid_chapters", problem(ctx.request("PUT", f"/api/v2/tracks/{track['id']}/chapters", tok,
+              {"chapters": [{"title": "B", "start_ms": 2000}, {"title": "A", "start_ms": 1000}]}), 400, "invalid_chapters"))
+    req("PUT", f"/api/v2/tracks/{track['id']}/visibility", {"visibility": "family"})
+    _mid, _me, member = ctx.make_user("v2concert-member", PW)
+    expected = 403 if ctx.feature("one_family") else 404
+    ctx.check(f"only the track's owner changes its chapters ({expected} for another account)", problem(ctx.request(
+        "PUT", f"/api/v2/tracks/{track['id']}/chapters", member, {"chapters": []}), expected))
+    plain = ctx.upload_track(tok, f"Studio Song {sfx}", artist=f"Live Band {sfx}", album=f"Studio {sfx}")
+    st, studio = req("GET", f"/api/v2/tracks/{plain['id']}")
+    ctx.check("an ordinary track has no chapters", st == 200 and studio.get("chapter_count") == 0 and "chapters" not in studio)
+
+    st, live = req("GET", "/api/v2/albums?kind=live&include=release_groups")
+    ids = [a["id"] for a in (live or {}).get("items", [])]
+    groups = {g["id"]: g["kind"] for g in ((live or {}).get("included") or {}).get("release_groups", [])}
+    ctx.check("the concert is listed under kind=live, the studio album is not",
+              track["album_id"] in ids and studio.get("album_id") not in ids and set(groups.values()) == {"live"}, str(live)[:200])
+    albums = ctx.call("GET", "/api/v1/music/albums?kind=live", tok)
+    ctx.check("v1 lists it too, with its release_kind, and only concerts",
+              (track["album_id"], "live") in [(a["id"], a["release_kind"]) for a in albums]
+              and {a["release_kind"] for a in albums} == {"live"}, str(albums)[:200])
+
+    st, album = req("GET", f"/api/v2/albums/{studio['album_id']}")
+    group = album["release_group_id"]
+    st, _ = req("PATCH", f"/api/v2/release-groups/{group}", {"kind": "live"})
+    st2, now_live = req("GET", "/api/v2/albums?kind=live")
+    ctx.check("an album marked live joins the concerts", st == 200 and studio["album_id"] in [a["id"] for a in now_live["items"]])
+    req("PATCH", f"/api/v2/release-groups/{group}", {"kind": "album"})
+    ctx.check("…and leaves them when marked an album again",
+              studio["album_id"] not in [a["id"] for a in req("GET", "/api/v2/albums?kind=live")[1]["items"]])
+    ctx.check("a release group of another household: 404",
+              problem(ctx.request("PATCH", f"/api/v2/release-groups/{uuid.uuid4()}", tok, {"kind": "live"}), 404))
 
 
 def playlists(ctx: Ctx, problem) -> None:

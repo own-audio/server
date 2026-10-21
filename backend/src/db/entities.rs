@@ -482,3 +482,32 @@ pub async fn set_contributor_mbid(
     tx.commit().await.context("db: commit contributor mbid")?;
     Ok(Ok(()))
 }
+
+/// What a release group is: `album`, `live` (a concert, docs/concerts-plan.md)…
+/// False when the group is not the household's.
+pub async fn set_release_group_kind(pool: &PgPool, family_id: Uuid, id: Uuid, kind: &str) -> anyhow::Result<bool> {
+    let updated = sqlx::query("UPDATE release_groups SET kind = $3, edited_at = now() WHERE id = $1 AND family_id = $2")
+        .bind(id)
+        .bind(family_id)
+        .bind(kind)
+        .execute(pool)
+        .await
+        .context("db: set release group kind")?;
+    Ok(updated.rows_affected() > 0)
+}
+
+/// The kind of the release group a track's album is in; the group the track
+/// landed in when it was created from its tags. None when it has no album.
+pub async fn set_track_release_kind(pool: &PgPool, track_id: Uuid, kind: &str) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar(
+        "UPDATE release_groups g SET kind = $2, edited_at = now()
+           FROM albums a JOIN music_tracks_all t ON t.album_id = a.id
+          WHERE t.id = $1 AND g.id = a.release_group_id
+         RETURNING g.id",
+    )
+    .bind(track_id)
+    .bind(kind)
+    .fetch_optional(pool)
+    .await
+    .context("db: set track release kind")
+}
