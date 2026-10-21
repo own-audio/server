@@ -7,6 +7,19 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- A book in a library folder gets the chapters marked inside its files (M4B, M4A, MP3 with chapter
+  frames), each starting where its mark does in the whole book's time. A single-file book showed
+  as one chapter of up to 24 hours: on the NAS test, "Atomic Habits" carries 24 marks, "The
+  Complete Robot" 43. Books already indexed are read at the next scan, once (migration 0117);
+  a book whose files carry fewer than two marks keeps its files as its parts. Contract unchanged
+  (revision 21): `GET /audiobooks/{id}/chapters` and the v2 book's `chapters` simply fill in.
+- The console no longer asks for the progress of a book you have not started: it takes it from
+  the list of started books, so opening a new book is not a 404 in the browser's console.
+- Conformance: the fixtures gain an M4B book with three chapter marks; the `library` suite checks
+  its chapters and that a book without marks has none.
+
 ## [1.0.0-beta.33] - 2026-10-21
 
 Contract revision 21.

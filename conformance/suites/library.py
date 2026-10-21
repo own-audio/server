@@ -88,6 +88,19 @@ def run(ctx):
         ctx.check("chapters in natural order (1, 2, 10) with titles from the tags",
                   [f.get("title") for f in files] == ["Part one", "Part two", "Part ten"], str([f.get("title") for f in files]))
         ctx.check("the folder book is read-only", books[0].get("read_only") is True)
+        plain = ctx.call("GET", f"/api/v1/audiobooks/{books[0]['id']}/chapters", ctx.admin_token)
+        ctx.check("a book whose files carry no chapter marks has no chapters (its files are the parts)", plain == [], str(plain)[:120])
+
+    marked = [b for b in _items(ctx.call("GET", "/api/v1/audiobooks", ctx.admin_token)) if b.get("title") == "Marked Book"]
+    if marked:
+        chapters = ctx.call("GET", f"/api/v1/audiobooks/{marked[0]['id']}/chapters", ctx.admin_token)
+        ctx.check("chapter marks inside a file become the book's chapters, in order, with their titles",
+                  [c.get("title") for c in chapters] == ["Opening", "Middle", "Ending"], str([c.get("title") for c in chapters]))
+        ctx.check("…each starting where its mark does, in the whole book's time",
+                  [round(c.get("start_time_secs", -1)) for c in chapters] == [0, 2, 4]
+                  and all(c.get("file_id") for c in chapters), str([(c.get("start_time_secs"), c.get("file_id")) for c in chapters]))
+    else:
+        ctx.skip("chapter marks", "the fixture's Marked Book is not in this library")
 
     if tracks:
         stream = ctx.call("GET", f"/api/v1/music/tracks/{tracks[0]['id']}/stream", ctx.admin_token)

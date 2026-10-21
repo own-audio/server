@@ -154,7 +154,7 @@ for (const [name, path] of PAGES) {
 }
 
 // ── Accessibility, on the heaviest pages ─────────────────────────────────────
-for (const path of ["/", "/music", "/music/albums", albumPath, "/music/duplicates", "/music/organize", "/family", "/settings", "/settings/playback", "/stats"]) {
+for (const path of ["/", "/music", "/music/albums", albumPath, "/music/duplicates", "/music/organize", "/audiobooks", "/family", "/settings", "/settings/playback", "/stats"]) {
   try {
     await freshPage();
     await page.goto(BASE + path);
@@ -330,6 +330,29 @@ await flow("songs on screen: first visit, then reopened", async () => {
   const again = await firstRow();
   return { firstVisitMs: first, reopenedMs: again };
 });
+
+for (const [label, pick] of [
+  ["a book of several files plays", (files) => files.length > 1],
+  // The file list does not name the format; BOOK_M4B names a one-file M4B book by title.
+  ["a one-file M4B book plays", (files, b) => files.length === 1 && b.title.includes(process.env.BOOK_M4B ?? "\u0000")],
+]) {
+  await flow(label, async () => {
+    const books = await api("/audiobooks", login.token);
+    if (!books.length) return { skipped: "no audiobooks visible to this account" };
+    let book = null;
+    for (const b of books.slice(0, 60)) {
+      const files = await api(`/audiobooks/${b.id}/files`, login.token);
+      if (pick(files, b)) { book = { ...b, files: files.length }; break; }
+    }
+    if (!book) return { skipped: "no such book" };
+    await page.goto(BASE + `/audiobooks/${book.id}`);
+    await settle();
+    await page.getByRole("button", { name: /^(Play|Resume|Continue)/ }).first().click();
+    await page.waitForFunction(() => [...document.querySelectorAll("audio")].some((a) => !a.paused && a.currentTime > 1), null, { timeout: 30_000 });
+    const at = await page.evaluate(() => Math.round([...document.querySelectorAll("audio")].find((a) => !a.paused).currentTime));
+    return { book: `${book.author} — ${book.title}`.slice(0, 80), files: book.files, playingAtSecs: at };
+  });
+}
 
 await flow("search", async () => {
   await page.goto(BASE + "/music");

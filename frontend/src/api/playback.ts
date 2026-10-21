@@ -73,16 +73,22 @@ export async function listBookProgress(): Promise<BookProgressSummary[]> {
   return res.data;
 }
 
+/**
+ * Where the caller is in one book, or null before they start it. Taken from the
+ * list of started books: asking for a single book they never opened is a 404,
+ * which every browser logs as an error.
+ */
 export async function getBookProgress(
   bookId: string
 ): Promise<ProgressResponse | null> {
   try {
-    const res = await client.get<ProgressResponse>(`/playback/books/${bookId}/progress`);
-    return res.data;
-  } catch (err: unknown) {
-    if ((err as { response?: { status?: number } })?.response?.status === 404) {
-      return null;
-    }
+    const found = (await listBookProgress()).find((p) => p.book_id === bookId);
+    return found
+      // The single-book answer's position is inside the file, as playback seeks;
+      // the list's `position_secs` is book time, its `file_position_secs` the file's.
+      ? { media_id: found.book_id, position_secs: found.file_position_secs, completed: found.completed, updated_at: found.updated_at, file_id: found.file_id }
+      : null;
+  } catch {
     return null;
   }
 }

@@ -43,4 +43,11 @@ tone "$out/music/@eaDir/01 Song 1.mp3/SYNO_PREVIEW.mp3" 1 200 -metadata title="N
 tone "$out/audiobooks/Test Author/Test Book/2.mp3" 2 500 -metadata title="Part two"
 tone "$out/audiobooks/Test Author/Test Book/10.mp3" 2 600 -metadata title="Part ten"
 tone "$out/audiobooks/Test Author/Test Book/1.mp3" 2 400 -metadata title="Part one"
+# One file with its chapter marks inside, as M4B audiobooks come.
+mkdir -p "$out/audiobooks/Test Author/Marked Book"
+meta=$(mktemp)
+printf ';FFMETADATA1\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=0\nEND=2000\ntitle=Opening\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=2000\nEND=4000\ntitle=Middle\n[CHAPTER]\nTIMEBASE=1/1000\nSTART=4000\nEND=6000\ntitle=Ending\n' > "$meta"
+ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=700:duration=6" -i "$meta" -map 0:a -map_metadata 1 -map_chapters 1 \
+  -ac 1 -ar 22050 -c:a aac -b:a 32k -metadata title="Marked Book" "$out/audiobooks/Test Author/Marked Book/Marked Book.m4b"
+rm -f "$meta"
 echo "fixtures in $out"

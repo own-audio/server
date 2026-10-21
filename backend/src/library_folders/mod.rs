@@ -554,6 +554,10 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
         }
     }
 
+    if folder.kind == "audiobooks" {
+        read_pending_chapters(pool, folder, &root).await?;
+    }
+
     let missing: i64 = sqlx::query_scalar(
         "WITH m AS (
              UPDATE library_files SET missing = true
@@ -613,6 +617,110 @@ async fn sync_missing_items(pool: &sqlx::PgPool, folder_id: Uuid) -> anyhow::Res
 /// A folder of audio files is one book: its name the title, its parent's
 /// name the author (`Author/Title/*.mp3`). New files join the book that the
 /// folder's other files already belong to.
+/// The chapter marks inside one file (M4B, M4A, MP3 with chapter frames), as
+/// (start in seconds within the file, title).
+fn embedded_chapters(path: &Path) -> Vec<(f64, Option<String>)> {
+    let Ok(out) = std::process::Command::new("ffprobe")
+        .args(["-v", "error", "-show_chapters", "-of", "json"])
+        .arg(path)
+        .output()
+    else {
+        return Vec::new();
+    };
+    if !out.status.success() {
+        return Vec::new();
+    }
+    let Ok(json) = serde_json::from_slice::<serde_json::Value>(&out.stdout) else { return Vec::new() };
+    json.get("chapters")
+        .and_then(|c| c.as_array())
+        .map(|marks| {
+            marks
+                .iter()
+                .filter_map(|c| {
+                    let start = c.get("start_time")?.as_str()?.parse::<f64>().ok().filter(|s| s.is_finite() && *s >= 0.0)?;
+                    let title = c
+                        .get("tags")
+                        .and_then(|t| t.get("title"))
+                        .and_then(|t| t.as_str())
+                        .map(|t| t.trim().to_string())
+                        .filter(|t| !t.is_empty());
+                    Some((start, title))
+                })
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// A folder book's chapters, from the marks inside its files, each measured from
+/// the start of the whole book. Kept only when the files hold two or more
+/// between them; otherwise the files are the chapters, as clients already show.
+/// A folder book has no other source of chapters, so what was there is replaced.
+async fn read_book_chapters(pool: &PgPool, folder: &FolderRow, root: &Path, book_id: Uuid) -> anyhow::Result<usize> {
+    let files: Vec<(Uuid, Option<i32>, String)> = sqlx::query_as(
+        "SELECT af.id, af.duration_secs, lf.rel_path
+         FROM audiobook_files af
+         JOIN library_files lf ON lf.item_id = af.id AND lf.folder_id = $2
+         WHERE af.book_id = $1
+         ORDER BY af.position",
+    )
+    .bind(book_id)
+    .bind(folder.id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut chapters: Vec<(Uuid, f64, Option<String>)> = Vec::new();
+    let mut offset = 0.0;
+    for (file_id, duration, rel) in files {
+        let path = root.join(&rel);
+        let marks = tokio::task::spawn_blocking(move || embedded_chapters(&path)).await.unwrap_or_default();
+        chapters.extend(marks.into_iter().map(|(start, title)| (file_id, offset + start, title)));
+        offset += f64::from(duration.unwrap_or(0));
+    }
+
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM audiobook_chapters WHERE book_id = $1").bind(book_id).execute(&mut *tx).await?;
+    let kept = if chapters.len() >= 2 { chapters.len() } else { 0 };
+    for (i, (file_id, start, title)) in chapters.iter().take(kept).enumerate() {
+        sqlx::query(
+            "INSERT INTO audiobook_chapters (book_id, file_id, position, title, start_time_secs)
+             VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(book_id)
+        .bind(file_id)
+        .bind(i as i32 + 1)
+        .bind(title.clone().unwrap_or_else(|| format!("Chapter {}", i + 1)))
+        .bind(start)
+        .execute(&mut *tx)
+        .await?;
+    }
+    sqlx::query("UPDATE audiobook_books_all SET chapters_read_at = now() WHERE id = $1").bind(book_id).execute(&mut *tx).await?;
+    tx.commit().await?;
+    Ok(kept)
+}
+
+/// The folder's books whose chapters were never read, or whose files changed
+/// since: books indexed before chapters were read, and books just added.
+async fn read_pending_chapters(pool: &PgPool, folder: &FolderRow, root: &Path) -> anyhow::Result<()> {
+    let books: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT DISTINCT af.book_id
+         FROM audiobook_files af
+         JOIN library_files lf ON lf.item_id = af.id AND lf.folder_id = $1
+         JOIN audiobook_books_all b ON b.id = af.book_id
+         WHERE b.chapters_read_at IS NULL",
+    )
+    .bind(folder.id)
+    .fetch_all(pool)
+    .await?;
+    for book in books {
+        match read_book_chapters(pool, folder, root, book).await {
+            Ok(n) if n > 0 => tracing::debug!(%book, chapters = n, "library scan: chapters from the files"),
+            Ok(_) => {}
+            Err(e) => tracing::warn!(%book, error = %format!("{e:#}"), "library scan: chapters not read"),
+        }
+    }
+    Ok(())
+}
+
 #[allow(clippy::too_many_arguments)]
 async fn scan_book_dir(
     state: &AppState,
@@ -629,9 +737,13 @@ async fn scan_book_dir(
 
     // Files already known keep their place; only bookkeeping moves.
     let mut new_files = Vec::new();
+    let mut changed = Vec::new();
     for f in fresh {
         match known.get(&f.0).and_then(|k| k.item_id) {
-            Some(item) => remember(pool, folder.id, &f.0, f.2, f.3, "book_file", Some(item)).await?,
+            Some(item) => {
+                changed.push(item);
+                remember(pool, folder.id, &f.0, f.2, f.3, "book_file", Some(item)).await?
+            }
             None if known.contains_key(&f.0) => {
                 // Known, its item removed by someone: stays hidden.
                 remember(pool, folder.id, &f.0, f.2, f.3, "book_file", None).await?
@@ -642,6 +754,16 @@ async fn scan_book_dir(
                 }
             }
         }
+    }
+    if !changed.is_empty() {
+        // A file that changed may carry other chapter marks: read them again.
+        sqlx::query(
+            "UPDATE audiobook_books_all SET chapters_read_at = NULL
+             WHERE id IN (SELECT book_id FROM audiobook_files WHERE id = ANY($1))",
+        )
+        .bind(&changed)
+        .execute(pool)
+        .await?;
     }
     if new_files.is_empty() {
         return Ok(0);
@@ -745,6 +867,11 @@ async fn scan_book_dir(
         .execute(&mut *tx)
         .await?;
     }
+    // More files, more chapter marks: the book's chapters are read again after the scan.
+    sqlx::query("UPDATE audiobook_books_all SET chapters_read_at = NULL WHERE id = $1")
+        .bind(book_id)
+        .execute(&mut *tx)
+        .await?;
     tx.commit().await?;
 
     for ((rel, _, size, mtime), id) in new_files.iter().zip(&file_ids) {
