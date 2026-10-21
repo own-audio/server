@@ -76,8 +76,12 @@ run it after each change. What it still shows:
 - The music pages download the whole track list (6.6 MB for 9,351 songs) and
   filter it in the browser. An album's or an artist's songs should come from
   the server on their own.
-- Long lists render a part at a time and keep what they rendered: after the
-  whole song list, 6,400 rows and about 460 MB. Render only the rows on screen.
+- Done after beta.32: the device's copy of the library (first song 2.8 s →
+  0.8 s on a reopened page), song lists that keep only the rows on screen
+  (565 → 25 MB after scrolling all songs), covers with an `ETag` (304).
+- Still open: the track list has no `ETag`, so the server builds all 9,351
+  rows (~0.6 s) on every page load even when nothing changed. A version stamp
+  for the library would let it answer 304.
 - Covers count against the API rate limit like any request; the console paces
   them at 10 a second. Cheap cached reads could have their own limit.
 

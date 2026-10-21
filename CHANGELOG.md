@@ -17,6 +17,21 @@ semver. Each release states the **API contract revision** it serves
   took 1–2 s; on object storage it was three requests per page view.
 - The console's player shows the length of a song the server converts on the fly (WMA): such a
   stream has no length the browser can read, so the bar showed none.
+- The library scan starts as soon as setup creates the first admin, instead of at the scanner's
+  next look up to 30 s later.
+
+### Changed
+
+- The console opens the music pages from the device's last copy of the library and refreshes it in
+  the background: with 9,351 songs the first song shows after 0.8 s instead of 2.8 s. The copy is
+  kept per account in the offline database and deleted on sign-out.
+- Long song lists in the console keep only the rows on screen. Scrolling all 9,351 songs held 6,400
+  rows and 565 MB and blocked the browser for 5 s; now 81 rows, 25 MB and no blocking. Each row
+  says its place in the list (`aria-posinset`) for screen readers; the browser's own find only
+  sees the rows on screen.
+- A track's cover answers with an `ETag` and `Cache-Control: private, no-cache`: the browser keeps
+  it and asks again, and an unchanged cover is a `304` that never reads the file. Contract
+  unchanged (revision 21).
 
 ## [1.0.0-beta.32] - 2026-10-21
 

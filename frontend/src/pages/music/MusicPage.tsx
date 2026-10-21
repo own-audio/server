@@ -18,6 +18,7 @@ import MusicDetail, { type MusicSelection } from "./MusicDetail";
 import { useTrackActions } from "./useTrackActions";
 import { albumKey, parseAlbumKey } from "./albumKey";
 import Progressive from "../../components/library/Progressive";
+import VirtualRows from "../../components/library/VirtualRows";
 import UploadMusicDialog from "./UploadMusicDialog";
 import { CreatePlaylistDialog } from "./PlaylistTools";
 import { playTracks } from "../../lib/play";
@@ -159,7 +160,7 @@ export default function MusicPage() {
           </MediaGrid>
         ) : (
           <div className="p-3">
-            <Progressive key={listKey} items={list} render={(track, i) => (
+            <VirtualRows key={listKey} items={list} keyOf={(track) => track.id} render={(track, i) => (
               <MediaRow
                 key={track.id}
                 kind="music"

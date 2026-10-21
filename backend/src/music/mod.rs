@@ -2421,14 +2421,15 @@ async fn get_cover(
     family: FamilyContext,
     State(state): State<AppState>,
     Path(id): Path<Uuid>,
+    headers: axum::http::HeaderMap,
 ) -> Result<Response, AuthError> {
     db::music::find_track(state.db(), id, family.viewer())
         .await
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    let row = sqlx::query_as::<_, (String, String)>(
-        "SELECT mo.object_key, mo.content_type
+    let row = sqlx::query_as::<_, (String, String, Uuid, Option<i64>)>(
+        "SELECT mo.object_key, mo.content_type, mo.id, mo.size_bytes
          FROM media_objects mo
          JOIN music_tracks mt ON mt.cover_object_id = mo.id
          WHERE mt.id = $1",
@@ -2439,8 +2440,16 @@ async fn get_cover(
     .map_err(|e| AuthError::Internal(e.into()))?
     .ok_or(AuthError::ItemNotFound)?;
 
+    // The browser keeps a cover and asks again each time (`no-cache`); an
+    // unchanged one is a 304 that never reads the file. A cover replaced in
+    // place gets a new size, and with it a new tag.
+    let etag = format!("\"{}-{}\"", row.2.simple(), row.3.unwrap_or(0));
+    let cache = [(header::ETAG, etag.clone()), (header::CACHE_CONTROL, "private, no-cache".to_string())];
+    if headers.get(header::IF_NONE_MATCH).and_then(|v| v.to_str().ok()).is_some_and(|v| v.split(',').any(|t| t.trim() == etag)) {
+        return Ok((StatusCode::NOT_MODIFIED, cache).into_response());
+    }
     let bytes = state.storage().get(&row.0).await.map_err(AuthError::Internal)?;
-    Ok(([(header::CONTENT_TYPE, row.1)], Body::from(bytes)).into_response())
+    Ok(([(header::CONTENT_TYPE, row.1)], cache, Body::from(bytes)).into_response())
 }
 
 #[derive(Deserialize, utoipa::IntoParams)]

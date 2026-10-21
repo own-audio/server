@@ -254,7 +254,8 @@ await flow("albums with the same name are told apart", async () => {
   await page.goto(BASE + path);
   await settle();
   // The album's column lists its own songs, not those of its namesake.
-  const listed = await page.locator("section .px-3 > .group").count();
+  // The album's own column is the last one; the first lists the library.
+  const listed = await page.locator("section").last().locator('[role="listitem"]').count();
   if (listed !== a.track_count) throw new Error(`${a.artist} — ${a.album}: ${listed} songs listed, the album has ${a.track_count}`);
   return { pairs: pairs.length, example: `${a.artist} — ${a.album}`, songsListed: listed };
 });
@@ -303,6 +304,31 @@ await flow("a profile picture shows after uploading it", async () => {
   const shown = await page.locator('aside img[src^="blob:"], main img[src^="blob:"]').count();
   if (!preview || !shown) throw new Error(`preview ${preview}, shown after reload ${shown}`);
   return { previewShown: preview > 0, picturesAfterReload: shown };
+});
+
+await flow("songs on screen: first visit, then reopened", async () => {
+  const firstRow = async () => {
+    const t0 = Date.now();
+    await page.goto(BASE + "/music", { waitUntil: "commit" });
+    await page.locator('main [role="listitem"]').first().waitFor({ timeout: 30_000 });
+    return Date.now() - t0;
+  };
+  // A real first visit: no copy of the library on the device yet.
+  await page.goto(BASE + "/settings");
+  await page.evaluate(() => new Promise((ok) => {
+    const req = indexedDB.open("own-audio-offline");
+    req.onsuccess = () => {
+      const tx = req.result.transaction("meta", "readwrite");
+      tx.objectStore("meta").delete(IDBKeyRange.bound("library:", "library:\uffff"));
+      tx.oncomplete = () => { req.result.close(); ok(); };
+    };
+    req.onerror = () => ok();
+  }));
+  const first = await firstRow();
+  // The device's copy is written a moment after the answer arrives.
+  await page.waitForTimeout(3000);
+  const again = await firstRow();
+  return { firstVisitMs: first, reopenedMs: again };
 });
 
 await flow("search", async () => {

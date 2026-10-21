@@ -153,6 +153,10 @@ async fn complete_setup(
         "initial admin user created via setup wizard"
     );
 
+    // The library folders have waited for an owner; scan them now rather than
+    // at the scanner's next look, up to 30 s later.
+    crate::library_folders::request_scan();
+
     // 5. Auto-login: mint access + refresh tokens
     let issued = crate::auth::issue_tokens(&state, &user, None, Some("web"), None).await?;
 

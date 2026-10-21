@@ -7,6 +7,7 @@ import Localized from './Localized.tsx'
 import { initTheme } from './lib/theme'
 import { initHomeScreenIcon } from './lib/homeScreenIcon'
 import { initDownloads } from './lib/offline/downloads'
+import { initLibraryCache } from './lib/libraryCache'
 import { initI18n } from './i18n'
 
 initTheme()
@@ -18,6 +19,7 @@ const queryClient = new QueryClient({
 })
 
 void initDownloads()
+initLibraryCache(queryClient)
 
 // Production only: a worker caching the dev server's modules would serve stale
 // code under hot reload.
