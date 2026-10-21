@@ -188,6 +188,9 @@ fn list_dir(dir: &Path) -> std::io::Result<Listing> {
         }
         let Ok(meta) = entry.metadata() else { continue };
         if meta.is_dir() {
+            if system_folder(&name) {
+                continue;
+            }
             dirs.push(name);
         } else if meta.is_file() {
             let mtime = meta
@@ -202,6 +205,13 @@ fn list_dir(dir: &Path) -> std::io::Result<Listing> {
     dirs.sort_by(|a, b| natural_cmp(b, a)); // popped from the end: ascending
     files.sort_by(|a, b| natural_cmp(&a.0, &b.0));
     Ok((dirs, files))
+}
+
+/// Folders a NAS keeps for itself inside shared folders: Synology's `@eaDir`
+/// (thumbnails and index data, partly unreadable), `#recycle` and `#snapshot`,
+/// QNAP's `@Recycle` and `.@__thumb`. Nothing in them is the owner's music.
+fn system_folder(name: &str) -> bool {
+    name.starts_with('@') || name.eq_ignore_ascii_case("#recycle") || name.eq_ignore_ascii_case("#snapshot")
 }
 
 /// Order names the way people number files: `2` before `10`.
@@ -749,6 +759,15 @@ async fn scan_book_dir(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn nas_system_folders_are_skipped() {
+        assert!(system_folder("@eaDir"));
+        assert!(system_folder("@Recycle"));
+        assert!(system_folder("#recycle"));
+        assert!(!system_folder("Bob Dylan"));
+        assert!(!system_folder("#1 Hits"));
+    }
 
     #[test]
     fn natural_order() {

@@ -154,7 +154,7 @@ for (const [name, path] of PAGES) {
 }
 
 // ── Accessibility, on the heaviest pages ─────────────────────────────────────
-for (const path of ["/music", "/music/albums", albumPath, "/settings"]) {
+for (const path of ["/", "/music", "/music/albums", albumPath, "/music/duplicates", "/music/organize", "/family", "/settings", "/settings/playback", "/stats"]) {
   try {
     await freshPage();
     await page.goto(BASE + path);
@@ -257,6 +257,52 @@ await flow("albums with the same name are told apart", async () => {
   const listed = await page.locator("section .px-3 > .group").count();
   if (listed !== a.track_count) throw new Error(`${a.artist} — ${a.album}: ${listed} songs listed, the album has ${a.track_count}`);
   return { pairs: pairs.length, example: `${a.artist} — ${a.album}`, songsListed: listed };
+});
+
+await flow("every console address answers 200", async () => {
+  const bad = [];
+  for (const [, path] of PAGES) {
+    const res = await fetch(BASE + path);
+    if (res.status !== 200) bad.push(`${path} ${res.status}`);
+  }
+  if (bad.length) throw new Error(bad.join(", "));
+  return { checked: PAGES.length };
+});
+
+await flow("a WMA album plays in the console's own player", async () => {
+  const wma = tracks.find((t) => t.id === process.env.WMA_TRACK_ID);
+  if (!wma) return { skipped: "set WMA_TRACK_ID" };
+  const album = albums.find((a) => wma.album_id ? a.id === wma.album_id : a.album === wma.album);
+  if (!album) throw new Error(`no album for ${wma.title}`);
+  await page.goto(BASE + `/music/albums/${encodeURIComponent(`${album.artist}\u241F${album.album}${album.id ? `\u241F${album.id}` : ""}`)}`);
+  await settle();
+  const played = [];
+  page.on("request", (r) => /playback-info|\/stream\b|\/media\//.test(r.url()) && played.push(r.url().slice(BASE.length, BASE.length + 40)));
+  await page.getByRole("button", { name: /^Play$/ }).first().click();
+  await page.waitForFunction(() => [...document.querySelectorAll("audio")].some((a) => !a.paused && a.currentTime > 1), null, { timeout: 30_000 });
+  const info = await page.evaluate(() => {
+    const a = [...document.querySelectorAll("audio")].find((x) => !x.paused);
+    return { secs: Math.round(a.currentTime * 10) / 10, duration: Math.round(a.duration) };
+  });
+  return { album: `${album.artist} — ${album.album}`, ...info, requests: played.slice(0, 3) };
+});
+
+await flow("a profile picture shows after uploading it", async () => {
+  await page.goto(BASE + "/settings");
+  await settle();
+  const png = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR4nGM4YRNFEmIY1TCqYfhqAACAeF4QeTHioQAAAABJRU5ErkJggg==",
+    "base64",
+  );
+  await page.locator('input[type="file"][accept="image/*"]').first().setInputFiles({ name: "ui-test.png", mimeType: "image/png", buffer: png });
+  const preview = await page.locator('img[src^="blob:"]').count();
+  await page.getByRole("button", { name: /^Save$/ }).first().click();
+  await page.waitForTimeout(2500);
+  await page.reload();
+  await settle();
+  const shown = await page.locator('aside img[src^="blob:"], main img[src^="blob:"]').count();
+  if (!preview || !shown) throw new Error(`preview ${preview}, shown after reload ${shown}`);
+  return { previewShown: preview > 0, picturesAfterReload: shown };
 });
 
 await flow("search", async () => {

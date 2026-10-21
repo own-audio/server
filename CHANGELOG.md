@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Library scans skip the folders a NAS keeps for itself inside shared folders (Synology's `@eaDir`,
+  `#recycle`, `#snapshot`, QNAP's `@Recycle`): they hold thumbnails and index data, and part of
+  `@eaDir` is unreadable, which logged a warning on every scan.
+- `GET /api/v1/setup/status`, which the console asks on every page load, no longer writes, reads
+  and deletes a test file each time: the storage check is kept for five minutes. On a busy NAS it
+  took 1–2 s; on object storage it was three requests per page view.
+- The console's player shows the length of a song the server converts on the fly (WMA): such a
+  stream has no length the browser can read, so the bar showed none.
+
 ## [1.0.0-beta.32] - 2026-10-21
 
 Contract revision 21.

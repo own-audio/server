@@ -60,12 +60,11 @@ async fn setup_status(
 ) -> Result<Json<SetupStatusResponse>, AuthError> {
     let pool = state.db();
 
-    // Check if any users exist
-    let users = db::users::list_all(pool)
+    // Whether any user exists: one row, not the whole list.
+    let setup_complete: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM users)")
+        .fetch_one(pool)
         .await
-        .map_err(AuthError::Internal)?;
-
-    let setup_complete = !users.is_empty();
+        .map_err(|e| AuthError::Internal(e.into()))?;
 
     // Database check — if we got here, the DB is connected (the query above worked)
     let database_ok = true;
@@ -164,7 +163,22 @@ async fn complete_setup(
 }
 
 /// Check that the storage backend is functional.
+/// The console asks for the status on every page load. Writing, reading and
+/// deleting a file each time cost 1–2 s on a busy NAS (and three object-store
+/// requests on a hosted one), so a result is kept for five minutes.
 async fn check_storage(state: &AppState) -> bool {
+    static LAST: std::sync::Mutex<Option<(std::time::Instant, bool)>> = std::sync::Mutex::new(None);
+    if let Some((at, ok)) = *LAST.lock().unwrap_or_else(|e| e.into_inner()) {
+        if at.elapsed() < std::time::Duration::from_secs(300) {
+            return ok;
+        }
+    }
+    let ok = probe_storage(state).await;
+    *LAST.lock().unwrap_or_else(|e| e.into_inner()) = Some((std::time::Instant::now(), ok));
+    ok
+}
+
+async fn probe_storage(state: &AppState) -> bool {
     let test_key = "__setup_check_test__";
     let test_data = bytes::Bytes::from_static(b"audio2-setup-check");
 

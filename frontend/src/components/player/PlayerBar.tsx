@@ -586,9 +586,12 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     const audio = audioRef.current;
     if (!audio) return;
     setCurrentTime(audio.currentTime);
-    if (audio.duration && !isNaN(audio.duration)) {
-      setDuration(audio.duration);
-      setMediaSessionPosition(audio.currentTime, audio.duration, speed);
+    // A stream the server converts on the fly (WMA, say) has no length the
+    // browser can read: `duration` is Infinity. The track's own length stands in.
+    const length = Number.isFinite(audio.duration) && audio.duration > 0 ? audio.duration : track?.durationSecs ?? 0;
+    if (length > 0) {
+      setDuration(length);
+      setMediaSessionPosition(audio.currentTime, length, speed);
     }
     if (stalled) setStalled(null);
 
