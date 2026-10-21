@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- The console plays concerts: a **Concerts** tab in Music (servers with `track_chapters`), the
+  player naming the song of the show playing — in the bar, Now Playing and the media keys — next
+  and previous moving between its songs, a list of the songs to jump to one, and for the owner
+  an editor for them (rename, set a start to where the player is, add one there, delete; saved
+  with `PUT /api/v2/tracks/{id}/chapters`). A concert opens where it was left, from the
+  position the server keeps for every device. "This is a concert" / "Not a concert" in an
+  album's menu. Chapters are read through v2. Browser check: `frontend/e2e/concerts.mjs`.
+
 ## [1.0.0-beta.35] - 2026-10-21
 
 Contract revision 22.

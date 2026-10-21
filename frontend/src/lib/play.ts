@@ -90,6 +90,7 @@ export async function toPlayerTrack(t: MusicTrack): Promise<MusicPlayerTrack> {
     streamUrl: (await offlineStreamUrl(t.id)) ?? (await getTrackStreamUrl(t.id)),
     durationSecs: t.duration_secs,
     resumePosition: 0,
+    isOwner: t.is_owner,
   };
 }
 

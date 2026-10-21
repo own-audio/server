@@ -237,6 +237,10 @@ export interface AlbumSummary {
   id?: string;
   artist: string;
   album: string;
+  /** Editions of one release share it; a concert's is of kind `live`. */
+  release_group_id?: string | null;
+  /** The release group's kind: `album`, `live` for a concert… (revision 22). */
+  release_kind?: string | null;
   track_count: number;
   duration_secs: number | null;
   cover_url: string | null;

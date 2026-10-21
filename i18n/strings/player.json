@@ -89,6 +89,66 @@
     "cs": "{book} · Část {n}",
     "note": "Player subtitle: book title and file number."
   },
+  "player.concert.songs": {
+    "en": "Songs of the concert",
+    "cs": "Skladby koncertu",
+    "note": "Button and list title in the player: the songs of a concert recorded as one file (its chapters)."
+  },
+  "player.concert.songOf": {
+    "en": "Song {n} of {total}",
+    "cs": "Skladba {n} z {total}",
+    "note": "Player: which song of the concert is playing."
+  },
+  "player.concert.editSongs": {
+    "en": "Edit the songs",
+    "cs": "Upravit skladby",
+    "note": "Dialog title: edit a concert's songs (chapters)."
+  },
+  "player.concert.editHint": {
+    "en": "Where each song of the concert starts. Saved, they stay as you set them, whatever the file says.",
+    "cs": "Kde začíná každá skladba koncertu. Po uložení zůstanou tak, jak je nastavíte, ať soubor říká cokoli.",
+    "note": "Dialog description."
+  },
+  "player.concert.time": {
+    "en": "Start",
+    "cs": "Začátek",
+    "note": "Field: when a song starts, like 9:26."
+  },
+  "player.concert.song": {
+    "en": "Song",
+    "cs": "Skladba",
+    "note": "Field: the song's name."
+  },
+  "player.concert.startHere": {
+    "en": "Start it here",
+    "cs": "Začíná tady",
+    "note": "Button: set the song's start to where the player is now."
+  },
+  "player.concert.addHere": {
+    "en": "Add a song here",
+    "cs": "Přidat skladbu sem",
+    "note": "Button: a new song starting where the player is now."
+  },
+  "player.concert.badTime": {
+    "en": "“{time}” is not a time. Write it as 9:26 or 1:02:03.",
+    "cs": "„{time}“ není čas. Zapište ho jako 9:26 nebo 1:02:03.",
+    "note": "Validation."
+  },
+  "player.concert.needsName": {
+    "en": "Every song needs a name.",
+    "cs": "Každá skladba potřebuje název.",
+    "note": "Validation."
+  },
+  "player.concert.sameStart": {
+    "en": "Two songs start at the same time.",
+    "cs": "Dvě skladby začínají ve stejný čas.",
+    "note": "Validation."
+  },
+  "player.concert.saveFailed": {
+    "en": "The songs could not be saved.",
+    "cs": "Skladby se nepodařilo uložit.",
+    "note": "Error."
+  },
   "player.skipBack": {
     "en": "{seconds, plural, one {Back # second} other {Back # seconds}}",
     "cs": "{seconds, plural, one {Zpět o # sekundu} few {Zpět o # sekundy} other {Zpět o # sekund}}"

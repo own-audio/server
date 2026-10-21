@@ -24,6 +24,31 @@
     "cs": "Chytré",
     "note": "Tab: smart playlists (built on demand from a rule)."
   },
+  "music.mode.concerts": {
+    "en": "Concerts",
+    "cs": "Koncerty",
+    "note": "Tab: whole concerts recorded as one file each, a chapter per song (albums of release kind live)."
+  },
+  "music.browse.noConcerts": {
+    "en": "No concerts yet",
+    "cs": "Zatím žádné koncerty",
+    "note": "Empty state of the Concerts tab."
+  },
+  "music.browse.concertsHint": {
+    "en": "A whole concert in one file, with a chapter where each song starts, shows up here.",
+    "cs": "Tady se objeví celý koncert v jednom souboru, s kapitolou na začátku každé skladby.",
+    "note": "Empty state hint."
+  },
+  "music.album.markConcert": {
+    "en": "This is a concert",
+    "cs": "Je to koncert",
+    "note": "Album menu: list this album under Concerts."
+  },
+  "music.album.unmarkConcert": {
+    "en": "Not a concert",
+    "cs": "Není to koncert",
+    "note": "Album menu: take this album out of Concerts."
+  },
   "music.mode.downloads": {
     "en": "Downloads",
     "cs": "Stažené"

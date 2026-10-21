@@ -2,6 +2,10 @@
 import api, { apiBaseUrl } from "./client";
 import { batchHeaders } from "./trash";
 import type { MusicTrack, MusicPlaylist, MusicPlaylistTrack, ArtistSummary, AlbumSummary, GenreSummary, Visibility } from "./types";
+import type { TrackChapter } from "../lib/chapters";
+
+/** The v2 API beside v1: same origin, same session. */
+const v2 = { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") };
 
 // ── Tracks ─────────────────────────────────────────────────────────────────
 
@@ -127,9 +131,33 @@ export async function listArtists(): Promise<ArtistSummary[]> {
   return data;
 }
 
-export async function listAlbums(artist?: string): Promise<AlbumSummary[]> {
-  const { data } = await api.get<AlbumSummary[]>("/music/albums", { params: artist ? { artist } : undefined });
+export async function listAlbums(artist?: string, kind?: string): Promise<AlbumSummary[]> {
+  const params = { ...(artist ? { artist } : {}), ...(kind ? { kind } : {}) };
+  const { data } = await api.get<AlbumSummary[]>("/music/albums", { params: Object.keys(params).length ? params : undefined });
   return data;
+}
+
+// ── Concerts (`features.track_chapters`, revision 22) ──────────────────────
+
+/** A track's chapters — a concert's songs — in order; empty for an ordinary track. */
+export async function getTrackChapters(trackId: string): Promise<TrackChapter[]> {
+  const { data } = await api.get<{ chapters?: { position: number; title: string; start_ms: number }[] }>(`/tracks/${trackId}`, v2);
+  return (data.chapters ?? []).map((c) => ({ title: c.title, startSecs: c.start_ms / 1000 }));
+}
+
+/** Replaces a track's chapters (its owner's); the file's marks are no longer read for it. */
+export async function saveTrackChapters(trackId: string, chapters: TrackChapter[]): Promise<TrackChapter[]> {
+  const { data } = await api.put<{ position: number; title: string; start_ms: number }[]>(
+    `/tracks/${trackId}/chapters`,
+    { chapters: chapters.map((c) => ({ title: c.title, start_ms: Math.round(c.startSecs * 1000) })) },
+    v2
+  );
+  return data.map((c) => ({ title: c.title, startSecs: c.start_ms / 1000 }));
+}
+
+/** `live` makes a release group's albums concerts; `album` puts them back. */
+export async function setReleaseKind(releaseGroupId: string, kind: "live" | "album"): Promise<void> {
+  await api.patch(`/release-groups/${releaseGroupId}`, { kind }, v2);
 }
 
 export async function listGenres(): Promise<GenreSummary[]> {

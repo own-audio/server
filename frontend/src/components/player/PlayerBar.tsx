@@ -23,7 +23,10 @@ import {
 } from "lucide-react";
 import { usePlayerStore, type PlayerTrack } from "../../store/playerStore";
 import { saveBookProgress, saveEpisodeProgress, type EndedReason } from "../../api/playback";
-import { saveTrackProgress } from "../../api/music";
+import { getTrackChapters, getTrackProgress, saveTrackProgress } from "../../api/music";
+import { chapterIndex, nextChapterStart, previousChapterStart } from "../../lib/chapters";
+import { useServerFeatures } from "../../lib/features";
+import { ConcertSongsPopover } from "./ConcertSongs";
 import { getBookFileStreamUrl } from "../../api/audiobooks";
 import { getStreamUrl } from "../../api/podcasts";
 import { getTrackStreamUrl } from "../../api/music";
@@ -136,7 +139,10 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     cycleRepeat,
     setShowQueue,
     setSleepTimer,
+    trackChapters,
+    setTrackChapters,
   } = usePlayerStore();
+  const { features } = useServerFeatures();
 
   const { t } = useT();
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -231,12 +237,30 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
   // these — the buttons, the keyboard, and the media-session handlers the OS
   // calls — because a skip that reports as `stopped` because it came from a
   // media key is a silently wrong signal nothing would ever flag.
+  // Inside a concert (one track, a chapter per song) next and previous move between its songs;
+  // past the last one, next goes to the next track.
   const skipToNext = useCallback(() => {
+    const audio = audioRef.current;
+    const state = usePlayerStore.getState();
+    const start = audio && state.track?.kind === "music" ? nextChapterStart(state.trackChapters, audio.currentTime) : null;
+    if (audio && start != null) {
+      audio.currentTime = start;
+      setCurrentTime(start);
+      return;
+    }
     skipIntentRef.current = "skipped";
     playNext();
   }, [playNext]);
 
   const skipToPrev = useCallback(() => {
+    const audio = audioRef.current;
+    const state = usePlayerStore.getState();
+    const start = audio && state.track?.kind === "music" ? previousChapterStart(state.trackChapters, audio.currentTime) : null;
+    if (audio && start != null) {
+      audio.currentTime = start;
+      setCurrentTime(start);
+      return;
+    }
     skipIntentRef.current = "skipped";
     playPrev();
   }, [playPrev]);
@@ -480,10 +504,47 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     return () => window.removeEventListener("pagehide", onHide);
   }, [track, endSpan, persist]);
 
+  // ── Concerts: the songs of a track, and where it was left ──────────────
+
+  const musicTrackId = track?.kind === "music" ? track.trackId : null;
+  useEffect(() => {
+    setTrackChapters([]);
+    if (!musicTrackId || !features.track_chapters) return;
+    let gone = false;
+    void (async () => {
+      const chapters = await getTrackChapters(musicTrackId).catch(() => []);
+      if (gone || chapters.length === 0) return;
+      setTrackChapters(chapters);
+      // A concert opens where it was left, on any device: the server keeps the position.
+      const current = usePlayerStore.getState().track;
+      if (current?.kind !== "music" || current.resumePosition > 0) return;
+      const saved = await getTrackProgress(musicTrackId);
+      const audio = audioRef.current;
+      const length = current.durationSecs ?? Infinity;
+      if (gone || !audio || !saved || saved.completed || saved.position_secs <= 0 || saved.position_secs > length - 30) return;
+      audio.currentTime = saved.position_secs;
+      setCurrentTime(saved.position_secs);
+    })();
+    return () => {
+      gone = true;
+    };
+  }, [musicTrackId, features.track_chapters, setTrackChapters]);
+
+  const concertSongs = track?.kind === "music" ? trackChapters : [];
+  const songAt = chapterIndex(concertSongs, currentTime);
+  const song = songAt != null ? concertSongs[songAt] : null;
+
+  // The lock screen and media keys name the song playing, with the concert as its album.
+  useEffect(() => {
+    if (track?.kind !== "music" || !song) return;
+    void setMediaSessionMetadata({ ...track, title: song.title, album: track.title });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [songAt, musicTrackId]);
+
   // ── Transport ───────────────────────────────────────────────────────────
 
-  const hasNext = repeat !== "none" || queueIndex + 1 < queue.length;
-  const hasPrev = repeat === "all" || queueIndex > 0;
+  const hasNext = repeat !== "none" || queueIndex + 1 < queue.length || nextChapterStart(concertSongs, currentTime) != null;
+  const hasPrev = repeat === "all" || queueIndex > 0 || (songAt ?? 0) > 0;
 
   const seekTo = useCallback((time: number) => {
     const audio = audioRef.current;
@@ -661,7 +722,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     track.kind === "podcast"
       ? track.feedTitle
       : track.kind === "music"
-        ? track.artist
+        ? song ? [track.artist, track.title].filter(Boolean).join(" · ") : track.artist
         : track.filePosition > 0
           ? t("player.bookPart", { book: track.bookTitle, n: track.filePosition })
           : track.bookTitle;
@@ -723,6 +784,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       {!isMusic && <SpeedPopover />}
       <SleepTimerPopover />
       {isBook && <ChaptersPopover />}
+      {isMusic && <ConcertSongsPopover current={songAt} position={currentTime} onSeek={seekTo} />}
       {isBook && track.kind === "audiobook" && (
         <BookmarksPopover bookId={track.bookId} fileId={track.fileId} positionInBook={positionInBook} onSeek={seekInBook} />
       )}
@@ -786,7 +848,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
         </div>
 
         <div className="mx-auto w-full max-w-xl px-8 pb-2 pt-6">
-          <h2 className="truncate text-2xl font-semibold tracking-tight">{track.title}</h2>
+          <h2 className="truncate text-2xl font-semibold tracking-tight">{song?.title ?? track.title}</h2>
           {artistLink || albumLink ? (
             <p className="mt-1 flex min-w-0 items-center gap-1.5 text-base text-muted">
               {artistLink && (
@@ -865,7 +927,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
         >
           <Cover kind={track.kind} src={track.imageUrl} alt={track.title} aspect="square" className="h-11 w-11 shrink-0 rounded-lg" />
           <span className="min-w-0">
-            <span className="block truncate text-sm font-semibold leading-tight">{track.title}</span>
+            <span className="block truncate text-sm font-semibold leading-tight">{song?.title ?? track.title}</span>
             {subtitle && <span className="block truncate text-xs text-muted">{subtitle}</span>}
           </span>
         </button>

@@ -12,6 +12,7 @@ export const MUSIC_KEYS = [
   "music-tracks",
   "music-artists",
   "music-albums",
+  "music-concerts",
   "music-genres",
   "playlist-tracks",
 ];

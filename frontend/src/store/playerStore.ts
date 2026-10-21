@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { create } from "zustand";
 import type { AudioBookChapter } from "../api/types";
+import type { TrackChapter } from "../lib/chapters";
 
 export interface PodcastPlayerTrack {
   kind: "podcast";
@@ -53,6 +54,8 @@ export interface MusicPlayerTrack {
   streamUrl: string;
   durationSecs: number | null;
   resumePosition: number;
+  /** Whose it is decides who may edit a concert's songs. */
+  isOwner?: boolean;
 }
 
 export type PlayerTrack = PodcastPlayerTrack | AudiobookPlayerTrack | MusicPlayerTrack;
@@ -95,6 +98,8 @@ interface PlayerState {
   /** Chapters of the audiobook now playing, when it has any. Empty is normal —
    *  nothing extracts chapters from M4B/ID3 server-side yet. */
   chapters: AudioBookChapter[];
+  /** The songs of the concert now playing — chapters inside one music track. */
+  trackChapters: TrackChapter[];
   /** How far into the whole book each queued file starts, by file id. */
   skipForwardSecs: number;
   skipBackwardSecs: number;
@@ -121,6 +126,7 @@ interface PlayerState {
   setSpeed: (v: number) => void;
   setSleepTimer: (t: SleepTimer) => void;
   setChapters: (c: AudioBookChapter[]) => void;
+  setTrackChapters: (c: TrackChapter[]) => void;
   setSkipSecs: (forward: number, backward: number) => void;
   setPosition: (secs: number) => void;
   /** Jump to a queue index directly (queue panel, chapter list). */
@@ -152,6 +158,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   speed: 1,
   sleepTimer: { mode: "off" },
   chapters: [],
+  trackChapters: [],
   skipForwardSecs: 30,
   skipBackwardSecs: 15,
   position: 0,
@@ -296,6 +303,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setSpeed: (v) => set({ speed: Math.min(SPEED_MAX, Math.max(SPEED_MIN, v)) }),
   setSleepTimer: (sleepTimer) => set({ sleepTimer }),
   setChapters: (chapters) => set({ chapters }),
+  setTrackChapters: (trackChapters) => set({ trackChapters }),
   setSkipSecs: (forward, backward) => set({ skipForwardSecs: forward, skipBackwardSecs: backward }),
   setPosition: (position) => set({ position }),
 
@@ -309,6 +317,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       playing: false,
       showQueue: false,
       chapters: [],
+      trackChapters: [],
       sleepTimer: { mode: "off" },
     }),
 

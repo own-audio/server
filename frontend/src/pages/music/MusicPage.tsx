@@ -2,7 +2,7 @@
 import { useMemo, useState, useDeferredValue } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Disc3, Download, ListMusic, ListPlus, Plus, ScanSearch, Sparkles, Tag, User } from "lucide-react";
+import { Copy, Disc3, Download, ListMusic, ListPlus, Plus, ScanSearch, Sparkles, Tag, Ticket, User } from "lucide-react";
 import { MusicIcon } from "../../components/ui/CloudIcon";
 import { artistImageUrl, listAlbums, listArtists, listGenres, listPlaylists, listTracks } from "../../api/music";
 import { SplitView, ColumnHeader } from "../../components/shell/SplitView";
@@ -25,13 +25,14 @@ import { playTracks } from "../../lib/play";
 import { useMyPermissions } from "../../lib/permissions";
 import { useT, type PlainKey } from "../../i18n";
 
-export type MusicMode = "songs" | "artists" | "albums" | "genres" | "playlists" | "smart" | "downloads";
+export type MusicMode = "songs" | "artists" | "albums" | "concerts" | "genres" | "playlists" | "smart" | "downloads";
 type Sort = "name" | "count" | "recent";
 
 const MODES: { value: MusicMode; icon: React.ReactNode; label: PlainKey }[] = [
   { value: "songs", icon: <MusicIcon />, label: "music.mode.songs" },
   { value: "artists", icon: <User />, label: "music.mode.artists" },
   { value: "albums", icon: <Disc3 />, label: "music.mode.albums" },
+  { value: "concerts", icon: <Ticket />, label: "music.mode.concerts" },
   { value: "genres", icon: <Tag />, label: "music.mode.genres" },
   { value: "playlists", icon: <ListMusic />, label: "music.mode.playlists" },
   { value: "smart", icon: <Sparkles />, label: "music.mode.smart" },
@@ -52,8 +53,8 @@ export default function MusicPage() {
   const navigate = useNavigate();
   const { features } = useServerFeatures();
   const [savedMode, setMode] = usePersistedState<MusicMode>("own-audio-music-mode", "songs");
-  // Its own URL, so the offline banner can link straight to it.
-  const mode: MusicMode = pathname === "/music/downloads" ? "downloads" : savedMode;
+  // Its own URL, so the offline banner can link straight to it. Concerts only where the server keeps them.
+  const mode: MusicMode = pathname === "/music/downloads" ? "downloads" : savedMode === "concerts" && !features.track_chapters ? "albums" : savedMode;
   const [view, setView] = usePersistedState<"grid" | "list">("own-audio-music-view", "list");
   const [sort, setSort] = usePersistedState<Sort>("own-audio-music-sort", "name");
   // Only meaningful for the flat Songs list — an album or artist can already mix tracks from
@@ -82,6 +83,7 @@ export default function MusicPage() {
   // Songs use it too: a track with no picture of its own shows its album's.
   const albums = useQuery({ queryKey: ["music-albums"], queryFn: () => listAlbums(), enabled: mode === "albums" || mode === "songs" });
   const genres = useQuery({ queryKey: ["music-genres"], queryFn: listGenres, enabled: mode === "genres" });
+  const concerts = useQuery({ queryKey: ["music-concerts"], queryFn: () => listAlbums(undefined, "live"), enabled: mode === "concerts" });
   const playlists = useQuery({ queryKey: ["playlists"], queryFn: listPlaylists, enabled: mode === "playlists" });
 
   const albumCover = useMemo(
@@ -91,7 +93,7 @@ export default function MusicPage() {
   const coverOf = (track: { cover_url: string | null; album: string | null; album_artist?: string | null; artist: string | null }) =>
     track.cover_url ?? (track.album ? albumCover.get(albumKey(track.album_artist ?? track.artist ?? "", track.album)) ?? null : null);
 
-  const isLoading = [tracks, artists, albums, genres, playlists].some((q) => q.isLoading && q.fetchStatus !== "idle");
+  const isLoading = [tracks, artists, albums, concerts, genres, playlists].some((q) => q.isLoading && q.fetchStatus !== "idle");
   // Deferred: filtering 9,000 songs on every keystroke made typing lag.
   const q = useDeferredValue(filter.trim().toLowerCase());
 
@@ -110,6 +112,7 @@ export default function MusicPage() {
       }
       case "artists": return by(artists.data ?? [], (a) => a.artist, (a) => a.track_count, () => "");
       case "albums": return by(albums.data ?? [], (a) => `${a.album} ${a.artist}`, (a) => a.track_count, () => "");
+      case "concerts": return by(concerts.data ?? [], (a) => `${a.album} ${a.artist}`, (a) => a.track_count, () => "");
       case "genres": return by(genres.data ?? [], (g) => g.genre, (g) => g.track_count, () => "");
       case "playlists": return by(playlists.data ?? [], (p) => p.name, (p) => p.track_count, (p) => p.updated_at);
       // Smart playlists are not rows to sort or filter — they are built on
@@ -118,7 +121,7 @@ export default function MusicPage() {
       case "smart":
       case "downloads": return [];
     }
-  }, [mode, q, sort, owner, tracks.data, artists.data, albums.data, genres.data, playlists.data]);
+  }, [mode, q, sort, owner, tracks.data, artists.data, albums.data, concerts.data, genres.data, playlists.data]);
 
   // A new list (other mode, filter, sort or view) starts its rendering from the top.
   const listKey = `${mode}|${q}|${sort}|${owner}|${view}`;
@@ -126,6 +129,9 @@ export default function MusicPage() {
   function renderRows() {
     if (mode === "smart") return <SmartPlaylists />;
     if (mode === "downloads") return <DownloadsView />;
+    if (rows.length === 0 && mode === "concerts" && !q) {
+      return <EmptyState icon={<Ticket />} title={t("music.browse.noConcerts")} description={t("music.browse.concertsHint")} />;
+    }
     if (rows.length === 0) {
       return (
         <EmptyState
@@ -189,7 +195,8 @@ export default function MusicPage() {
           ? <MediaGrid dense><Progressive key={listKey} items={list} render={(a) => <MediaCard key={a.artist} {...props(a)} />} /></MediaGrid>
           : <div className="p-3"><Progressive key={listKey} items={list} render={(a) => <MediaRow key={a.artist} {...props(a)} />} /></div>;
       }
-      case "albums": {
+      case "albums":
+      case "concerts": {
         const list = rows as NonNullable<typeof albums.data>;
         const props = (a: (typeof list)[number]) => ({
           kind: "music" as const, title: a.album, subtitle: a.artist, cover: a.cover_url,
@@ -253,7 +260,7 @@ export default function MusicPage() {
           value={mode}
           onChange={(m) => { setMode(m); navigate(m === "downloads" ? "/music/downloads" : "/music"); }}
           toggle={mode === "songs" ? { label: t("music.browse.mine"), on: owner === "mine", onChange: (on) => setOwner(on ? "mine" : "all") } : undefined}
-          chips={MODES.map((m) => ({ value: m.value, label: <span className="flex items-center gap-1.5 [&>svg]:h-4 [&>svg]:w-4">{m.icon}{t(m.label)}</span> }))}
+          chips={MODES.filter((m) => m.value !== "concerts" || features.track_chapters).map((m) => ({ value: m.value, label: <span className="flex items-center gap-1.5 [&>svg]:h-4 [&>svg]:w-4">{m.icon}{t(m.label)}</span> }))}
         />
       </ColumnHeader>
       {isLoading ? <MediaGrid>{[...Array(6)].map((_, i) => <Skeleton key={i} className="aspect-square" />)}</MediaGrid> : renderRows()}

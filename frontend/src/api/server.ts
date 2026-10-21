@@ -40,6 +40,8 @@ export interface ServerFeatures {
   translation: boolean;
   /** Hosted: summarize an episode and answer questions about it, from its transcript. */
   summaries: boolean;
+  /** Revision 22: concerts — chapter marks on music tracks, albums of release kind `live`. */
+  track_chapters: boolean;
 }
 
 export interface ServerInfo {
@@ -72,6 +74,7 @@ export const NO_FEATURES: ServerFeatures = {
   narration: false,
   translation: false,
   summaries: false,
+  track_chapters: false,
 };
 
 /* A server older than `GET /server` answers 404. The hosted console is

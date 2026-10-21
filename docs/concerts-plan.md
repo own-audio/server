@@ -83,7 +83,11 @@ uploaded through v2 came back with its 27 chapters, its cover, its length and un
   conformance: upload a chaptered m4a with `release_kind: live`, see it under
   `albums?kind=live`, read its chapters through v1 and v2, mark and unmark an album.
 
-### C2 — Web console ⬜
+### C2 — Web console ✅ (2026-10-21)
+Checked in a real browser against a stack built from the tree: `frontend/e2e/concerts.mjs`
+(upload, Concerts tab, song names, next, the songs list, an edit kept by the server, resume after
+a reload) passes, 10 of 10.
+
 - **Concerts** chip in `MusicPage` (`music.mode.concerts`, cs "Koncerty"): albums with
   `kind=live`, the album view on select. i18n in `i18n/strings/music.json`.
 - Player: chapters generalised to `{title, startSecs}` so books and tracks share them;
@@ -96,12 +100,12 @@ uploaded through v2 came back with its 27 chapters, its cover, its length and un
   with one `PUT` (v2); "now" fills the time from the playing position, so a song is marked
   while listening. Owner only.
 
-### C3 — iOS music app (`music-ios`) ⬜
-Planned in that repo's `IMPLEMENTATION_PLAN.md` when C1 is released; it is a public,
-multi-server app, so concerts appear only on own.audio servers that report
-`features.track_chapters`. Outline: a Concerts library section, a chapter list in Now
-Playing, lock-screen previous/next per decision 6, resume per decision 5, and editing the
-songs (rename, move to the current position, add, delete) through the same `PUT`.
+### C3 — iOS music app (`music-ios`) ✅ (2026-10-21)
+Phases M11a–c in that repo's `IMPLEMENTATION_PLAN.md`: chapters in the player engine (next and
+previous by song, the song on the lock screen and in CarPlay), the API calls, a Concerts library
+section, a songs list in Now Playing, resume from the server's position, and the owner's editor.
+Package, unit and UI tests pass; the UI test ran against a stack built from this tree, where the
+concert resumed in the song a browser had paused in.
 
 ### Later
 Android, Mac, tvOS and Windows music clients.

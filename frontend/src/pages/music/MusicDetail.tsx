@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Users, UserX } from "lucide-react";
-import { artistImageUrl, deletePlaylist, deleteTrack, keepPlaylist, listAlbums, listPlaylistTracks, listTracks, getPlaylist, setTrackVisibility } from "../../api/music";
+import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX } from "lucide-react";
+import { useServerFeatures } from "../../lib/features";
+import { artistImageUrl, deletePlaylist, deleteTrack, keepPlaylist, listAlbums, listPlaylistTracks, listTracks, getPlaylist, setReleaseKind, setTrackVisibility } from "../../api/music";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { formatDuration } from "../../lib/format";
 import { playTracks, shuffleTracks } from "../../lib/play";
@@ -57,6 +58,15 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   const playlist = useQuery({ queryKey: ["playlist", isPlaylist ? selection.playlistId : ""], queryFn: () => getPlaylist((selection as { playlistId: string }).playlistId), enabled: isPlaylist });
   // Every selection: the album header uses it, and so does any track without a picture of its own.
   const albums = useQuery({ queryKey: ["music-albums"], queryFn: () => listAlbums() });
+  const { features } = useServerFeatures();
+  // An album marked live is listed under Concerts (any member who sees it may mark it).
+  const albumSummary = selection.kind === "album" && selection.id ? albums.data?.find((a) => a.id === selection.id) : undefined;
+  const isConcert = albumSummary?.release_kind === "live";
+  const concertMutation = useMutation({
+    mutationFn: () => setReleaseKind(albumSummary!.release_group_id!, isConcert ? "album" : "live"),
+    onSuccess: () => invalidate(),
+    onError: () => toast.error(t("common.error.generic")),
+  });
 
   const current = usePlayerStore((s) => s.track);
   const playing = usePlayerStore((s) => s.playing);
@@ -192,6 +202,14 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
     });
   if (isPlaylist && playlist.data?.is_owner)
     actions.push({ key: "share", label: t("music.share.action"), icon: <Share2 className="h-4 w-4" />, onSelect: () => setSharingPlaylist(true) });
+  if (features.track_chapters && albumSummary?.release_group_id)
+    actions.push({
+      key: "concert",
+      label: t(isConcert ? "music.album.unmarkConcert" : "music.album.markConcert"),
+      icon: <Ticket className="h-4 w-4" />,
+      loading: concertMutation.isPending,
+      onSelect: () => concertMutation.mutate(),
+    });
   if (isPlaylist && playlist.data?.is_owner)
     actions.push({ key: "edit", label: t("common.action.edit"), icon: <Pencil className="h-4 w-4" />, onSelect: () => setEditingPlaylist(true) });
 
