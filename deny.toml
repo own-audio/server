@@ -23,4 +23,5 @@ yanked = "warn"
 ignore = [
   { id = "RUSTSEC-2024-0436", reason = "paste (proc-macro) via lofty and exr; build-time only" },
   { id = "RUSTSEC-2026-0192", reason = "ttf-parser via ab_glyph (cover watermark text); no maintained drop-in" },
+  { id = "RUSTSEC-2026-0381", reason = "webpki-roots 0.26.11 (via sqlx 0.8) only re-exports webpki-roots 1, which is 1.0.10 with the fix; drop with sqlx 0.9" },
 ]

@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.32] - 2026-10-21
+
+Contract revision 21.
+
+### Security
+
+- `rustls-webpki` 0.103.16 and `webpki-roots` 1.0.10 (RUSTSEC-2026-0382, RUSTSEC-2026-0381): TLS
+  certificate checks could accept distrusted intermediate certificates. The server makes TLS
+  requests to MusicBrainz, podcast feeds, cover art and sign-in providers. `webpki-roots` 0.26.11,
+  which sqlx 0.8 still pulls in, only re-exports version 1 and is listed as an exception.
+
 ## [1.0.0-beta.31] - 2026-10-21
 
 Contract revision 21.
