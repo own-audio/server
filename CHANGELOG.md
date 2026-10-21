@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.34] - 2026-10-21
+
+Contract revision 21.
+
 ### Fixed
 
 - A book in a library folder gets the chapters marked inside its files (M4B, M4A, MP3 with chapter
