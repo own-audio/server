@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.33] - 2026-10-21
+
+Contract revision 21.
+
 ### Fixed
 
 - Library scans skip the folders a NAS keeps for itself inside shared folders (Synology's `@eaDir`,
