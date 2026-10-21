@@ -19,6 +19,8 @@ semver. Each release states the **API contract revision** it serves
   stream has no length the browser can read, so the bar showed none.
 - The library scan starts as soon as setup creates the first admin, instead of at the scanner's
   next look up to 30 s later.
+- Conformance: the library fixtures gain a WMA song and a Synology `@eaDir` folder; the `library`
+  suite checks the WMA's tags and length and that the folder is not scanned.
 
 ### Changed
 

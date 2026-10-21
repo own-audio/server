@@ -30,6 +30,15 @@ ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=800:duration=3" -ac 1 -ar 
   -metadata MUSICBRAINZ_ALBUMID=6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e02 \
   -metadata MUSICBRAINZ_RELEASEGROUPID=6f1a7e3c-0b5d-4c1e-9a2f-3d4b5c6d7e03 \
   "$out/music/Test Artist/Tagged Album/01 Tagged Song.flac"
+# WMA, which the tag reader cannot open: its tags and length come through ffprobe.
+mkdir -p "$out/music/Test Artist/Windows Album"
+ffmpeg -loglevel error -y -f lavfi -i "sine=frequency=900:duration=3" -ac 1 -ar 22050 -c:a wmav2 -b:a 64k \
+  -metadata title="Windows Song" -metadata artist="Test Artist" -metadata album="Windows Album" \
+  "$out/music/Test Artist/Windows Album/01 Windows Song.wma"
+# A NAS's own folder inside the share (Synology thumbnails and index data):
+# never part of the library, whatever it holds.
+mkdir -p "$out/music/@eaDir/01 Song 1.mp3"
+tone "$out/music/@eaDir/01 Song 1.mp3/SYNO_PREVIEW.mp3" 1 200 -metadata title="Not Music"
 # Files named so that only natural order is right: 2 before 10.
 tone "$out/audiobooks/Test Author/Test Book/2.mp3" 2 500 -metadata title="Part two"
 tone "$out/audiobooks/Test Author/Test Book/10.mp3" 2 600 -metadata title="Part ten"

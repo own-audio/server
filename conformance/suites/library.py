@@ -70,6 +70,13 @@ def run(ctx):
     ctx.check("folder songs are read-only", all(t.get("source") == "folder" and t.get("read_only") is True for t in tracks))
     ctx.check("songs know their length", all((t.get("duration_secs") or 0) >= 2 for t in tracks))
 
+    every = _items(ctx.call("GET", "/api/v1/music/tracks?limit=500", ctx.admin_token))
+    wma = [t for t in every if t.get("title") == "Windows Song"]
+    ctx.check("a WMA file gets its tags and length (through ffprobe)",
+              len(wma) == 1 and wma[0].get("artist") == "Test Artist" and wma[0].get("album") == "Windows Album"
+              and (wma[0].get("duration_secs") or 0) >= 2, str(wma)[:160])
+    ctx.check("a NAS's own folders (@eaDir) are not scanned", not any(t.get("title") == "Not Music" for t in every))
+
     tagged(ctx)
     identify_run(ctx)
 
