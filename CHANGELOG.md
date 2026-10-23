@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Security
+
+- `libexpat1` 2.5.0-1+deb12u5 in the image (CVE-2025-59375, CVE-2026-77214). The image's
+  `apt-get upgrade` sat in a cached build layer and had not run since that layer was made, so
+  beta.37 and beta.38 shipped the older package; CI and releases now pass the day as `APT_DAY`, and
+  the system packages are at most a day behind Debian's security updates.
+
 ### Added
 
 - The console marks a song identified in MusicBrainz with a small check badge at the end of its

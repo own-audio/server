@@ -48,6 +48,9 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Today, for the system packages' cache
+        id: day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
       - id: build
         uses: docker/build-push-action@v7
         with:
@@ -61,6 +64,8 @@ jobs:
           sbom: false
           cache-from: type=gha,scope=${{ matrix.platform }}
           cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
+          # Debian's security updates at most a day old (backend/Dockerfile).
+          build-args: APT_DAY=${{ steps.day.outputs.day }}
       - name: Export digest
         run: |
           mkdir -p /tmp/digests

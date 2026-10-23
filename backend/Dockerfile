@@ -76,8 +76,11 @@ LABEL org.opencontainers.image.title="own.audio server" \
       org.opencontainers.image.licenses="AGPL-3.0-or-later"
 
 # `upgrade` first: the base tag lags Debian's security updates by days, and
-# the image scan in CI refuses fixed CRITICAL/HIGH findings.
-RUN apt-get update && apt-get upgrade -y --no-install-recommends && apt-get install -y --no-install-recommends \
+# the image scan in CI refuses fixed CRITICAL/HIGH findings. CI passes the
+# day as APT_DAY: a cached layer is reused for a day at most, or the upgrade
+# would never run again (libexpat stayed at a fixed CVE for weeks that way).
+ARG APT_DAY=unset
+RUN echo "packages of $APT_DAY" && apt-get update && apt-get upgrade -y --no-install-recommends && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     ffmpeg \

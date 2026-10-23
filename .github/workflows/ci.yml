@@ -94,6 +94,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
+      - name: Today, for the system packages' cache
+        id: day
+        run: echo "day=$(date -u +%F)" >> "$GITHUB_OUTPUT"
       - name: Build the server image (layer cache shared across runs)
         uses: docker/build-push-action@v7
         with:
@@ -103,6 +106,8 @@ jobs:
           tags: ownaudio/server:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Debian's security updates at most a day old (backend/Dockerfile).
+          build-args: APT_DAY=${{ steps.day.outputs.day }}
       - name: Scan the image (fixed CRITICAL/HIGH only)
         uses: aquasecurity/trivy-action@v0.36.0
         with:
