@@ -211,6 +211,8 @@ export interface MusicTrack {
   album_artist?: string | null;
   /** The album entity the track is filed under; two albums can share a name. */
   album_id?: string | null;
+  /** Which disc of a multi-disc album; null when the file does not say. */
+  disc_number?: number | null;
   genre: string | null;
   track_number: number | null;
   duration_secs: number | null;

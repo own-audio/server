@@ -174,7 +174,7 @@ export default function MusicPage() {
                 title={track.title}
                 subtitle={[track.artist, track.album].filter(Boolean).join(" — ") || null}
                 cover={coverOf(track)}
-                trailing={<TrackTrailing id={track.id} durationSecs={track.duration_secs} />}
+                trailing={<TrackTrailing id={track.id} durationSecs={track.duration_secs} identified={!!track.musicbrainz_recording_id} />}
                 onClick={play(i)}
                 onPlay={play(i)}
                 menu={<MoreMenuTrigger>{trackActions.items(track, play(i))}</MoreMenuTrigger>}

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowDownCircle, Clock, Download, ExternalLink, Loader2, Play, Shuffle, Smartphone, Trash2, WifiOff, X } from "lucide-react";
+import { BadgeCheck, ArrowDownCircle, Clock, Download, ExternalLink, Loader2, Play, Shuffle, Smartphone, Trash2, WifiOff, X } from "lucide-react";
 import { Button, EmptyState, IconButton, MenuItem, toast } from "../../components/ui";
 import { MediaRow } from "../../components/library/MediaCard";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
@@ -49,9 +49,16 @@ export function DownloadBadge({ id }: { id: string }) {
 }
 
 /** Row trailing: the marker plus the duration, as one element. */
-export function TrackTrailing({ id, durationSecs }: { id: string; durationSecs: number | null }) {
+export function TrackTrailing({ id, durationSecs, identified }: { id: string; durationSecs: number | null; identified?: boolean }) {
+  const { t } = useT();
   return (
     <>
+      {identified && (
+        <span title={t("music.identified")} className="mr-1.5 inline-flex text-accent-text">
+          <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" />
+          <span className="sr-only">{t("music.identified")}</span>
+        </span>
+      )}
       <DownloadBadge id={id} />
       {durationSecs ? formatDuration(durationSecs) : null}
     </>

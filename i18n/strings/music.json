@@ -163,6 +163,10 @@
     "en": "Identify",
     "cs": "Identifikovat"
   },
+  "music.action.editAlbum": {
+    "en": "Edit album",
+    "cs": "Upravit album"
+  },
   "music.action.identifyMenu": {
     "en": "Identify…",
     "cs": "Identifikovat…"
@@ -1963,5 +1967,45 @@
   "music.organize.artist.mergeFailed": {
     "en": "Couldn't merge. Only a family admin can.",
     "cs": "Sloučení se nepodařilo. Může jen správce rodiny."
+  },
+  "music.identified": {
+    "en": "Identified in MusicBrainz",
+    "cs": "Identifikováno v MusicBrainz"
+  },
+  "music.editAlbum.title": {
+    "en": "Edit the album of {count, plural, one {# song} other {# songs}}",
+    "cs": "Upravit album {count, plural, one {# skladby} few {# skladeb} other {# skladeb}}"
+  },
+  "music.editAlbum.description": {
+    "en": "Changes the album name, and the album artist if you fill it in. Only your own songs change; you can undo it.",
+    "cs": "Změní název alba, a když ho vyplníte, i interpreta alba. Změní se jen vaše skladby; jde to vrátit zpět."
+  },
+  "music.editAlbum.album": {
+    "en": "Album",
+    "cs": "Album"
+  },
+  "music.editAlbum.albumArtist": {
+    "en": "Album artist",
+    "cs": "Interpret alba"
+  },
+  "music.editAlbum.keep": {
+    "en": "Leave as it is",
+    "cs": "Ponechat beze změny"
+  },
+  "music.editAlbum.notOwned": {
+    "en": "{count, plural, one {# song shared by someone else stays} other {# songs shared by others stay}} as {count, plural, one {it is} other {they are}}.",
+    "cs": "{count, plural, one {# skladba sdílená někým jiným zůstane} few {# skladby sdílené ostatními zůstanou} other {# skladeb sdílených ostatními zůstane}} beze změny."
+  },
+  "music.editAlbum.saved": {
+    "en": "{count, plural, one {# song} other {# songs}} updated",
+    "cs": "Upraveno: {count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+  },
+  "music.editAlbum.error": {
+    "en": "The album was not changed",
+    "cs": "Album se nezměnilo"
+  },
+  "music.artist.albums": {
+    "en": "Albums",
+    "cs": "Alba"
   }
 }

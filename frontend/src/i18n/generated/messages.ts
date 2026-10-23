@@ -752,6 +752,7 @@ export interface MessageParams {
   "music.action.addToQueue": undefined;
   "music.action.apply": undefined;
   "music.action.create": undefined;
+  "music.action.editAlbum": undefined;
   "music.action.editMenu": undefined;
   "music.action.fixIdentityMenu": undefined;
   "music.action.identify": undefined;
@@ -784,6 +785,7 @@ export interface MessageParams {
   "music.addToPlaylist.title": undefined;
   "music.album.markConcert": undefined;
   "music.album.unmarkConcert": undefined;
+  "music.artist.albums": undefined;
   "music.browse.concertsHint": undefined;
   "music.browse.emptyHint": undefined;
   "music.browse.everything": undefined;
@@ -861,6 +863,14 @@ export interface MessageParams {
   "music.duplicates.trashTitle": undefined;
   "music.edit.audience": undefined;
   "music.edit.title": undefined;
+  "music.editAlbum.album": undefined;
+  "music.editAlbum.albumArtist": undefined;
+  "music.editAlbum.description": undefined;
+  "music.editAlbum.error": undefined;
+  "music.editAlbum.keep": undefined;
+  "music.editAlbum.notOwned": { "count": number };
+  "music.editAlbum.saved": { "count": number };
+  "music.editAlbum.title": { "count": number };
   "music.error.lookup": undefined;
   "music.error.noResults": undefined;
   "music.error.saveChanges": undefined;
@@ -878,6 +888,7 @@ export interface MessageParams {
   "music.field.playlistPlaceholder": undefined;
   "music.field.title": undefined;
   "music.field.trackNumber": undefined;
+  "music.identified": undefined;
   "music.identify.albumDescription": { "details": string | number };
   "music.identify.albumLookupFailed": undefined;
   "music.identify.applyFailed": undefined;

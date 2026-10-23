@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX } from "lucide-react";
+import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX, Disc3 } from "lucide-react";
 import { useServerFeatures } from "../../lib/features";
 import { artistImageUrl, deletePlaylist, deleteTrack, keepPlaylist, listAlbums, listPlaylistTracks, listTracks, getPlaylist, setReleaseKind, setTrackVisibility } from "../../api/music";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -10,6 +10,10 @@ import { playTracks, shuffleTracks } from "../../lib/play";
 import { usePlayerStore, type QueueSource } from "../../store/playerStore";
 import { albumKey } from "./albumKey";
 import VirtualRows from "../../components/library/VirtualRows";
+import EditAlbumDialog from "./EditAlbumDialog";
+import ArtistAlbums from "./ArtistAlbums";
+import { albumsOf, artistAlbumKey } from "./albumGroups";
+import { cn } from "../../lib/cn";
 import { Button, Cover, EmptyState, Skeleton, MenuItem, toast } from "../../components/ui";
 import { EditPlaylistSheet, SharePlaylistDialog } from "./PlaylistTools";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
@@ -23,7 +27,7 @@ import { BatchBar } from "../../components/library/BatchBar";
 import { useSelection } from "../../lib/useSelection";
 import { useMyPermissions } from "../../lib/permissions";
 import { canDelete, moveToTrash } from "../../lib/trash";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { removeDownload } from "../../lib/offline/downloads";
 import { runWithLimit } from "../../lib/uploadQueue";
 import { useState } from "react";
@@ -46,6 +50,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   const [sharingPlaylist, setSharingPlaylist] = useState(false);
   const [editingPlaylist, setEditingPlaylist] = useState(false);
   const [batchIdentify, setBatchIdentify] = useState<MusicTrack[] | null>(null);
+  const [editingAlbum, setEditingAlbum] = useState<MusicTrack[] | null>(null);
   const trackActions = useTrackActions();
   const [sharing, setSharing] = useState(false);
   const setAddingToPlaylist = trackActions.setAddingToPlaylist;
@@ -83,7 +88,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   });
 
 
-  const tracks: MusicTrack[] = useMemo(() => {
+  const selectedTracks: MusicTrack[] = useMemo(() => {
     if (isPlaylist) return (playlistTracks.data ?? []).map((e) => e.track);
     const list = allTracks.data ?? [];
     switch (selection.kind) {
@@ -97,6 +102,35 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
       default: return list;
     }
   }, [isPlaylist, playlistTracks.data, allTracks.data, selection]);
+
+  /* Artist → albums → songs: an artist's songs split by album in a column of
+     their own; the album picked is in the address, so a link keeps it. */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const artistAlbums = useMemo(
+    () => (selection.kind === "artist" ? albumsOf(selectedTracks, "Unknown Album") : []),
+    [selection.kind, selectedTracks],
+  );
+  const splitByAlbum = artistAlbums.length > 1;
+  const pickedAlbum = splitByAlbum ? searchParams.get("album") : null;
+  const tracks = useMemo(
+    () =>
+      pickedAlbum
+        ? selectedTracks
+            .filter((tr) => artistAlbumKey(tr) === pickedAlbum)
+            .sort((a, b) => (a.disc_number ?? 0) - (b.disc_number ?? 0) || (a.track_number ?? 0) - (b.track_number ?? 0) || a.title.localeCompare(b.title))
+        : selectedTracks,
+    [pickedAlbum, selectedTracks],
+  );
+  const pickAlbum = (key: string | null) =>
+    setSearchParams(
+      (params) => {
+        const next = new URLSearchParams(params);
+        if (key) next.set("album", key);
+        else next.delete("album");
+        return next;
+      },
+      { replace: true },
+    );
 
   const ownedTracks = tracks.filter((t) => t.is_owner);
   const sharedCount = ownedTracks.filter((t) => t.visibility === "family").length;
@@ -131,6 +165,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
 
   const subheading = isPlaylist ? playlist.data?.description ?? null
     : selection.kind === "album" ? selection.artist
+      : pickedAlbum ? artistAlbums.find((a) => a.key === pickedAlbum)?.title ?? null
       : null;
 
   const cover = isPlaylist ? playlist.data?.cover_url ?? null
@@ -273,7 +308,9 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
         </div>
       </div>
 
-      <div className="px-3">
+      <div className={cn("px-3", splitByAlbum && "lg:grid lg:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)] lg:gap-3")}>
+        {splitByAlbum && <ArtistAlbums albums={artistAlbums} total={selectedTracks.length} picked={pickedAlbum} onPick={pickAlbum} />}
+        <div className="min-w-0">
         {tracks.length === 0 ? (
           <EmptyState title={t("music.detail.noSongs")} description={t(isPlaylist ? "music.detail.noSongsPlaylist" : "music.detail.noSongsSelection")} />
         ) : (
@@ -293,7 +330,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
                 playing={active && playing}
                 family={track.visibility === "family"}
                 selected={picked.has(track.id)}
-                trailing={<TrackTrailing id={track.id} durationSecs={track.duration_secs} />}
+                trailing={<TrackTrailing id={track.id} durationSecs={track.duration_secs} identified={!!track.musicbrainz_recording_id} />}
                 onClick={() => (picked.count > 0 ? picked.toggle(track.id) : void playTracks(tracks, i, source))}
                 onPlay={() => void playTracks(tracks, i, source)}
                 menu={
@@ -317,6 +354,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
             );
           }} />
         )}
+        </div>
       </div>
 
       <BatchBar
@@ -342,6 +380,15 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
             >
               {t("music.action.identify")}
             </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              icon={<Disc3 className="h-4 w-4" />}
+              disabled={!tracks.some((tr) => picked.has(tr.id) && tr.is_owner)}
+              onClick={() => setEditingAlbum(tracks.filter((tr) => picked.has(tr.id)))}
+            >
+              {t("music.action.editAlbum")}
+            </Button>
           </>
         }
         onSetVisibility={async (id, v) => {
@@ -365,6 +412,16 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
         />
       )}
       {editingPlaylist && playlist.data && <EditPlaylistSheet playlist={playlist.data} onClose={() => setEditingPlaylist(false)} />}
+      {editingAlbum && (
+        <EditAlbumDialog
+          tracks={editingAlbum}
+          onClose={() => setEditingAlbum(null)}
+          onSaved={() => {
+            picked.clear();
+            invalidate();
+          }}
+        />
+      )}
       {batchIdentify && batchIdentify.length > 0 && (
         <IdentifyBatchSheet
           tracks={batchIdentify}

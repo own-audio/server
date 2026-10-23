@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- The console marks a song identified in MusicBrainz with a small check badge at the end of its
+  row ("Identified in MusicBrainz" as its tooltip and for screen readers).
+- **Edit album** for selected songs: one album name, and the album artist if filled in, for all of
+  them at once — a folder whose files spell their album three ways, or songs that belong together.
+  Only your own songs change, as one batch of the edit history, undone from the confirmation. It
+  uses `PATCH /api/v2/tracks`; contract unchanged.
+- Artist → albums → songs: an artist with more than one album gets a column of its albums ("All
+  songs" first) beside the songs, chips above them on a phone. The album picked is in the address
+  (`?album=`), so a link or a reload keeps it.
+
 ## [1.0.0-beta.38] - 2026-10-23
 
 Contract revision 23.
