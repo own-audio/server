@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.37] - 2026-10-23
+
+Contract revision 23.
+
 ### Fixed
 
 - A MusicBrainz that keeps answering "slow down" is a `503 source_busy` the caller may retry, not
