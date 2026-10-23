@@ -259,6 +259,14 @@ pub async fn fallback(axum::extract::OriginalUri(uri): axum::extract::OriginalUr
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn a_rate_limiting_musicbrainz_is_busy_not_broken() {
+        let e = anyhow::anyhow!("musicbrainz.org answered 503 Service Unavailable twice: it is rate limiting this server");
+        let p = Problem::from(e.context("identify album"));
+        assert_eq!(p.status(), StatusCode::SERVICE_UNAVAILABLE);
+        assert_eq!(p.code(), "source_busy");
+    }
     use super::*;
 
     #[test]

@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- A MusicBrainz that keeps answering "slow down" is a `503 source_busy` the caller may retry, not
+  a `500`: the message the client gave up with lacked the status the error mapping looks for.
+  `POST /api/v2/organize/releases` failed a conformance run on exactly that.
+
 ### Changed
 
 - `GET /api/v1/music/tracks` carries a weak `ETag` and answers `304` while nothing the caller can

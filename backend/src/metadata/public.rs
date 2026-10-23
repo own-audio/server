@@ -87,7 +87,9 @@ impl MusicBrainz {
             }
             return response.json().await.with_context(|| format!("unexpected answer from {HOST}"));
         }
-        bail!("{HOST} is rate limiting this server; try again in a moment")
+        // Worded with the status: `v2::problem` turns "503 Service Unavailable" into a
+        // `503 source_busy` the caller may retry, where anything else is a 500.
+        bail!("{HOST} answered 503 Service Unavailable twice: it is rate limiting this server")
     }
 
     /// A release with its recordings, artist credits and release group, from the
