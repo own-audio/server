@@ -101,37 +101,117 @@ fn backoff(level: i16) -> Duration {
     Duration::from_secs((5u64 << (level.clamp(1, 7) - 1) as u32).min(300))
 }
 
-/// Split the scope into groups: the tracks of one album entity together, every
-/// track without an album tag on its own.
+/// Split the scope into groups and store them (see [`cluster`]).
 async fn plan_groups(pool: &PgPool, run: &db::identify::Run) -> anyhow::Result<()> {
     let tracks = db::identify::scope_tracks(pool, run).await?;
-    // An album with one track in scope is looked up as that track: an album
-    // search on one title finds any record that holds it.
-    let mut album_sizes: std::collections::HashMap<Uuid, usize> = std::collections::HashMap::new();
-    for t in &tracks {
-        if let Some(a) = t.album_id {
-            *album_sizes.entry(a).or_default() += 1;
+    let groups = cluster(&tracks);
+    let groups: Vec<(&str, String, Vec<Uuid>)> = groups.iter().map(|(k, l, ids)| (*k, l.clone(), ids.clone())).collect();
+    db::identify::insert_groups(pool, run.id, &groups, tracks.len() as i32).await
+}
+
+/// An album's name as files spell it, made comparable: case, "Disc 2" and
+/// "CD1", bracketed notes ("[FLAC]", "(Remastered)") and punctuation aside.
+fn album_norm(album: &str) -> String {
+    let lower = album.to_lowercase();
+    let mut out = String::with_capacity(lower.len());
+    let mut depth = 0usize;
+    for c in lower.chars() {
+        match c {
+            '(' | '[' | '{' => depth += 1,
+            ')' | ']' | '}' => depth = depth.saturating_sub(1),
+            c if depth == 0 => out.push(if c.is_alphanumeric() { c } else { ' ' }),
+            _ => {}
         }
     }
-    let mut albums: BTreeMap<Uuid, (String, Vec<Uuid>)> = BTreeMap::new();
-    let mut groups: Vec<(&str, String, Vec<Uuid>)> = Vec::new();
-    for t in &tracks {
-        match (t.album_id, t.album.as_deref().filter(|a| !a.trim().is_empty())) {
-            (Some(album_id), Some(album)) if album_sizes.get(&album_id).copied().unwrap_or(0) > 1 => {
-                let entry = albums.entry(album_id).or_insert_with(|| {
-                    let by = t.album_artist.as_deref().or(t.artist.as_deref()).unwrap_or("");
-                    (if by.is_empty() { album.to_string() } else { format!("{album} — {by}") }, Vec::new())
-                });
-                entry.1.push(t.id);
-            }
-            _ => groups.push(("track", t.title.clone(), vec![t.id])),
+    let words: Vec<&str> = out.split_whitespace().collect();
+    let mut kept = Vec::with_capacity(words.len());
+    let mut i = 0;
+    while i < words.len() {
+        let w = words[i];
+        let disc_word = matches!(w, "disc" | "disk" | "cd");
+        const SPELT: [&str; 10] = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+        if disc_word && words.get(i + 1).is_some_and(|n| n.chars().all(|c| c.is_ascii_digit()) || SPELT.contains(n)) {
+            i += 2;
+            continue;
+        }
+        // "cd1", "disc2" written as one word.
+        if ["cd", "disc", "disk"].iter().any(|p| w.strip_prefix(p).is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit()))) {
+            i += 1;
+            continue;
+        }
+        kept.push(w);
+        i += 1;
+    }
+    kept.join(" ")
+}
+
+/// A song's directory, with a disc's own subdirectory ("CD1", "Disc 2") folded
+/// into the album's: one album, one cluster.
+fn folder_norm(folder: &str) -> String {
+    let Some((parent, last)) = folder.rsplit_once('/') else { return folder.to_string() };
+    let l = last.to_lowercase().replace([' ', '_', '-', '.'], "");
+    let disc = ["cd", "disc", "disk"]
+        .iter()
+        .any(|p| l.strip_prefix(p).is_some_and(|n| !n.is_empty() && n.chars().all(|c| c.is_ascii_digit())));
+    if disc { parent.to_string() } else { folder.to_string() }
+}
+
+/// The scope's songs in groups, each looked up once, as MusicBrainz Picard
+/// clusters before a lookup:
+///
+/// - songs of one folder (a disc's subfolder counted in its album's) whose
+///   album names match once [`album_norm`]ed are one album, even when they
+///   ended up on different album entities: a folder tagged partly with release
+///   ids, an album spelt three ways;
+/// - a song without an album tag joins its folder's album when that folder
+///   holds exactly one;
+/// - an uploaded song (no folder) is grouped by its album entity, as before,
+///   so two copies of an album are never merged;
+/// - a group of one is looked up as that song: an album search on one title
+///   finds any record that holds it.
+///
+/// Albums first, by label; then the songs on their own.
+fn cluster(tracks: &[db::identify::ScopeTrack]) -> Vec<(&'static str, String, Vec<Uuid>)> {
+    let mut albums: BTreeMap<String, Vec<&db::identify::ScopeTrack>> = BTreeMap::new();
+    let mut untagged: BTreeMap<String, Vec<&db::identify::ScopeTrack>> = BTreeMap::new();
+    let mut singles: Vec<&db::identify::ScopeTrack> = Vec::new();
+    for t in tracks {
+        let album = t.album.as_deref().map(album_norm).filter(|a| !a.is_empty());
+        match (&t.folder, album, t.album_id) {
+            (Some(folder), Some(album), _) => albums.entry(format!("dir:{}\u{1f}{album}", folder_norm(folder))).or_default().push(t),
+            (Some(folder), None, _) => untagged.entry(folder_norm(folder)).or_default().push(t),
+            (None, Some(_), Some(id)) => albums.entry(format!("id:{id}")).or_default().push(t),
+            _ => singles.push(t),
         }
     }
-    let mut album_groups: Vec<(&str, String, Vec<Uuid>)> =
-        albums.into_values().map(|(label, ids)| ("album", label, ids)).collect();
-    album_groups.sort_by_key(|g| g.1.to_lowercase());
-    album_groups.extend(groups);
-    db::identify::insert_groups(pool, run.id, &album_groups, tracks.len() as i32).await
+    for (folder, songs) in untagged {
+        let prefix = format!("dir:{folder}\u{1f}");
+        let mut in_folder = albums.keys().filter(|k| k.starts_with(&prefix));
+        match (in_folder.next().cloned(), in_folder.next()) {
+            (Some(only), None) => albums.get_mut(&only).expect("listed").extend(songs),
+            _ => singles.extend(songs),
+        }
+    }
+
+    let mut groups: Vec<(&'static str, String, Vec<Uuid>)> = Vec::new();
+    for songs in albums.into_values() {
+        if songs.len() < 2 {
+            singles.extend(songs);
+            continue;
+        }
+        let mut songs = songs;
+        songs.sort_by(|a, b| (a.disc_number, a.track_number, &a.title).cmp(&(b.disc_number, b.track_number, &b.title)));
+        let album = most_common(songs.iter().map(|t| t.album.as_deref())).unwrap_or_default();
+        let by = most_common(songs.iter().map(|t| t.album_artist.as_deref().or(t.artist.as_deref())));
+        let label = match by {
+            Some(by) => format!("{album} — {by}"),
+            None => album,
+        };
+        groups.push(("album", label, songs.iter().map(|t| t.id).collect()));
+    }
+    groups.sort_by_key(|g| g.1.to_lowercase());
+    groups.extend(singles.into_iter().map(|t| ("track", t.title.clone(), vec![t.id])));
+    groups
 }
 
 fn file_track(t: &db::identify::ScopeTrack) -> FileTrack {
@@ -167,7 +247,9 @@ async fn look_up(
     let mut singles: Vec<usize> = (0..files.len()).collect();
 
     let artist = most_common(found.iter().map(|t| t.album_artist.as_deref().or(t.artist.as_deref())));
-    let album = files.first().and_then(|f| f.album.clone());
+    // A cluster can hold songs whose album is spelt differently, or not at all:
+    // the name most of them carry is the one to search for.
+    let album = most_common(files.iter().map(|f| f.album.as_deref()));
     if let (true, Some(artist), Some(album)) = (group.kind == "album", artist, album) {
         let queries: Vec<AlbumTrackQuery> =
             files.iter().map(|f| AlbumTrackQuery { title: &f.title, duration_ms: f.duration_ms }).collect();
@@ -386,6 +468,75 @@ pub async fn revert_run(pool: &PgPool, run: &db::identify::Run) -> anyhow::Resul
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn song(title: &str, album: Option<&str>, folder: Option<&str>, album_id: Option<u128>) -> db::identify::ScopeTrack {
+        db::identify::ScopeTrack {
+            id: Uuid::new_v4(),
+            title: title.into(),
+            artist: Some("Artist".into()),
+            album: album.map(Into::into),
+            album_artist: None,
+            track_number: None,
+            disc_number: None,
+            duration_secs: Some(200),
+            album_id: album_id.map(Uuid::from_u128),
+            folder: folder.map(Into::into),
+        }
+    }
+
+    #[test]
+    fn album_names_compare_without_discs_notes_and_case() {
+        assert_eq!(album_norm("Alchemy - Disc One"), "alchemy");
+        assert_eq!(album_norm("Alchemy: Dire Straits Live (Disc Two)"), "alchemy dire straits live");
+        assert_eq!(album_norm("Alchemy (Disc 2) [FLAC]"), "alchemy");
+        assert_eq!(album_norm("ALCHEMY  CD1"), "alchemy");
+        assert_eq!(album_norm("Back to Black (Deluxe Edition)"), "back to black");
+        assert_eq!(folder_norm("f/Dire Straits/Alchemy/CD 2"), "f/Dire Straits/Alchemy");
+        assert_eq!(folder_norm("f/Dire Straits/Alchemy/Disc_1"), "f/Dire Straits/Alchemy");
+        assert_eq!(folder_norm("f/Dire Straits/Alchemy"), "f/Dire Straits/Alchemy");
+    }
+
+    #[test]
+    fn a_folder_split_across_album_entities_is_one_cluster() {
+        // Two songs tagged with a release id, one without: three album entities' worth of one album.
+        let songs = [
+            song("Alles aus Liebe", Some("Alles aus Liebe"), Some("f/Singles/1993"), Some(1)),
+            song("Auf dem Weg", Some("Alles aus Liebe"), Some("f/Singles/1993"), Some(1)),
+            song("5 Minuten", Some("alles aus liebe"), Some("f/Singles/1993"), Some(2)),
+        ];
+        let groups = cluster(&songs);
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].0, "album");
+        assert_eq!(groups[0].2.len(), 3);
+    }
+
+    #[test]
+    fn discs_in_their_own_folders_are_one_album_and_untagged_songs_join_it() {
+        let songs = [
+            song("One", Some("Alchemy (Disc 1)"), Some("f/Alchemy/CD1"), Some(1)),
+            song("Two", Some("Alchemy (Disc 2)"), Some("f/Alchemy/CD2"), Some(2)),
+            song("Bonus", None, Some("f/Alchemy"), None),
+        ];
+        let groups = cluster(&songs);
+        assert_eq!(groups.len(), 1, "{groups:?}");
+        assert_eq!(groups[0].2.len(), 3);
+    }
+
+    #[test]
+    fn uploads_stay_by_album_entity_and_lone_songs_are_looked_up_alone() {
+        let songs = [
+            song("A", Some("Same Name"), None, Some(1)),
+            song("B", Some("Same Name"), None, Some(1)),
+            song("C", Some("Same Name"), None, Some(2)),
+            song("Lonely", Some("Other"), Some("f/x"), Some(3)),
+            song("No album", None, None, None),
+        ];
+        let groups = cluster(&songs);
+        let kinds: Vec<(&str, usize)> = groups.iter().map(|g| (g.0, g.2.len())).collect();
+        // Two copies of "Same Name" (two entities) never merge; one of them is a single song.
+        assert_eq!(kinds.iter().filter(|(k, n)| *k == "album" && *n == 2).count(), 1);
+        assert_eq!(kinds.iter().filter(|(k, _)| *k == "track").count(), 3, "{kinds:?}");
+    }
 
     #[test]
     fn backoff_doubles_to_five_minutes() {

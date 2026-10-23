@@ -15,6 +15,11 @@ semver. Each release states the **API contract revision** it serves
   them at once — a folder whose files spell their album three ways, or songs that belong together.
   Only your own songs change, as one batch of the edit history, undone from the confirmation. It
   uses `PATCH /api/v2/tracks`; contract unchanged.
+- Identify runs cluster before they look up, as MusicBrainz Picard does: songs of one folder whose
+  album names match (case, "Disc 2"/"CD1", bracketed notes aside) are one album even across album
+  entities, a disc's own subfolder counts as its album's, and a song without an album tag joins
+  its folder's only album. Uploads stay grouped by album entity, so two copies never merge. On the
+  NAS library, 188 of 1,213 songs that were looked up alone now go with their album.
 - Artist → albums → songs: an artist with more than one album gets a column of its albums ("All
   songs" first) beside the songs, chips above them on a phone. The album picked is in the address
   (`?album=`), so a link or a reload keeps it.
