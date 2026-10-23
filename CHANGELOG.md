@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.39] - 2026-10-23
+
+Contract revision 23.
+
 ### Security
 
 - `libexpat1` 2.5.0-1+deb12u5 in the image (CVE-2025-59375, CVE-2026-77214). The image's
