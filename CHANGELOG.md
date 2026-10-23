@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- **Merge albums** in the console: an album with others of its name by the same artist offers
+  "Merge N albums" (family admins), on its page and in artist → albums → songs. They become the one
+  with the most songs, with stars and ratings, and later scans keep them together
+  (`POST /api/v2/albums/{id}/merge`; contract unchanged). Songs identified one by one can land on
+  different editions of one release, and each edition was an album of its own: on the NAS, Dookie
+  became three albums and Insomniac four.
+
 ## [1.0.0-beta.39] - 2026-10-23
 
 Contract revision 23.

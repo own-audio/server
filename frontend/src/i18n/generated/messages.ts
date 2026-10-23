@@ -760,6 +760,7 @@ export interface MessageParams {
   "music.action.identifyMenu": undefined;
   "music.action.lyricsMenu": undefined;
   "music.action.makePrivate": undefined;
+  "music.action.mergeAlbums": { "count": string | number };
   "music.action.moveToTrash": undefined;
   "music.action.moveToTrashConfirm": undefined;
   "music.action.neverPlay": undefined;
@@ -1001,6 +1002,11 @@ export interface MessageParams {
   "music.lyrics.placeholder": undefined;
   "music.lyrics.saveFailed": undefined;
   "music.lyrics.saved": undefined;
+  "music.merge.confirm": undefined;
+  "music.merge.description": { "count": string | number; "artist": string | number };
+  "music.merge.done": undefined;
+  "music.merge.error": undefined;
+  "music.merge.title": { "album": string | number };
   "music.mode.albums": undefined;
   "music.mode.artists": undefined;
   "music.mode.concerts": undefined;

@@ -2007,5 +2007,29 @@
   "music.artist.albums": {
     "en": "Albums",
     "cs": "Alba"
+  },
+  "music.action.mergeAlbums": {
+    "en": "Merge {count} albums",
+    "cs": "Sloučit {count, plural, one {# album} few {# alba} other {# alb}}"
+  },
+  "music.merge.title": {
+    "en": "Merge the albums called “{album}”",
+    "cs": "Sloučit alba s názvem „{album}“"
+  },
+  "music.merge.description": {
+    "en": "{count} albums by {artist} with this name become one: the one with the most songs. Their songs, stars and ratings come along, and later scans keep them together.",
+    "cs": "{count, plural, one {# album} few {# alba} other {# alb}} od {artist} s tímto názvem se spojí do jednoho, toho s nejvíce skladbami. Skladby, hvězdičky i hodnocení přejdou s nimi a další skenování je nechá pohromadě."
+  },
+  "music.merge.confirm": {
+    "en": "Merge",
+    "cs": "Sloučit"
+  },
+  "music.merge.done": {
+    "en": "Albums merged",
+    "cs": "Alba sloučena"
+  },
+  "music.merge.error": {
+    "en": "The albums were not merged",
+    "cs": "Alba se nesloučila"
   }
 }

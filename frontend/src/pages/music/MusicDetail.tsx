@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX, Disc3 } from "lucide-react";
+import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX, Disc3, Combine } from "lucide-react";
 import { useServerFeatures } from "../../lib/features";
 import { artistImageUrl, deletePlaylist, deleteTrack, keepPlaylist, listAlbums, listPlaylistTracks, listTracks, getPlaylist, setReleaseKind, setTrackVisibility } from "../../api/music";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { usePlayerStore, type QueueSource } from "../../store/playerStore";
 import { albumKey } from "./albumKey";
 import VirtualRows from "../../components/library/VirtualRows";
 import EditAlbumDialog from "./EditAlbumDialog";
+import MergeAlbumsDialog from "./MergeAlbumsDialog";
 import ArtistAlbums from "./ArtistAlbums";
 import { albumsOf, artistAlbumKey } from "./albumGroups";
 import { cn } from "../../lib/cn";
@@ -18,7 +19,7 @@ import { Button, Cover, EmptyState, Skeleton, MenuItem, toast } from "../../comp
 import { EditPlaylistSheet, SharePlaylistDialog } from "./PlaylistTools";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
 import { MediaRow } from "../../components/library/MediaCard";
-import type { MusicTrack, Visibility } from "../../api/types";
+import type { AlbumSummary, MusicTrack, Visibility } from "../../api/types";
 import { useTrackActions } from "./useTrackActions";
 import { MUSIC_KEYS } from "./musicKeys";
 import { DownloadAllButton, HomeScreenButton, TrackTrailing } from "./Downloads";
@@ -51,6 +52,7 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   const [editingPlaylist, setEditingPlaylist] = useState(false);
   const [batchIdentify, setBatchIdentify] = useState<MusicTrack[] | null>(null);
   const [editingAlbum, setEditingAlbum] = useState<MusicTrack[] | null>(null);
+  const [merging, setMerging] = useState<AlbumSummary[] | null>(null);
   const trackActions = useTrackActions();
   const [sharing, setSharing] = useState(false);
   const setAddingToPlaylist = trackActions.setAddingToPlaylist;
@@ -217,6 +219,16 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   };
 
   const actions: { key: string; label: string; icon: ReactNode; onSelect: () => void; loading?: boolean }[] = [];
+  /* Albums of this one's name by this artist: editions of one release that songs
+     identified one by one ended up on, each an album of its own. */
+  const shownAlbumId = selection.kind === "album" ? selection.id ?? null : pickedAlbum && !pickedAlbum.startsWith("name:") ? pickedAlbum : null;
+  const shownAlbum = albums.data?.find((a) => a.id === shownAlbumId);
+  const sameName = shownAlbum
+    ? (albums.data ?? []).filter((a) => a.id && a.artist === shownAlbum.artist && a.album.trim().toLowerCase() === shownAlbum.album.trim().toLowerCase())
+    : [];
+  if (isFamilyAdmin && sameName.length > 1) {
+    actions.push({ key: "merge", label: t("music.action.mergeAlbums", { count: sameName.length }), icon: <Combine className="h-4 w-4" />, onSelect: () => setMerging(sameName) });
+  }
   if (!isPlaylist && tracks.length > 0)
     actions.push({ key: "playlist", label: t("music.action.addToPlaylist"), icon: <ListMusic className="h-4 w-4" />, onSelect: () => setAddingToPlaylist({ ids: tracks.map((tr) => tr.id), label: heading }) });
   if (!isPlaylist && tracks.length > 1 && tracks.some((tr) => tr.is_owner))
@@ -412,6 +424,17 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
         />
       )}
       {editingPlaylist && playlist.data && <EditPlaylistSheet playlist={playlist.data} onClose={() => setEditingPlaylist(false)} />}
+      {merging && (
+        <MergeAlbumsDialog
+          albums={merging}
+          onClose={() => setMerging(null)}
+          onMerged={(into) => {
+            invalidate();
+            if (selection.kind === "artist") pickAlbum(into.id ?? null);
+            else if (selection.kind === "album" && into.id !== selection.id) navigate(`/music/albums/${encodeURIComponent(albumKey(into.artist, into.album, into.id))}`);
+          }}
+        />
+      )}
       {editingAlbum && (
         <EditAlbumDialog
           tracks={editingAlbum}

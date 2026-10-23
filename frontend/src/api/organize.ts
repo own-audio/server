@@ -86,6 +86,11 @@ export interface Saved {
   batch_id: string;
 }
 
+/** Two albums are one: `id`'s songs, stars and ratings go to `into`, and later scans keep them there. Family admins. */
+export async function mergeAlbum(id: string, into: string): Promise<void> {
+  await api.post(`/albums/${id}/merge`, { into }, v2);
+}
+
 export async function saveTracks(tracks: ({ id: string } & TrackFields)[]): Promise<Saved> {
   const { data } = await api.patch<Saved>("/tracks", { tracks }, v2);
   return data;
