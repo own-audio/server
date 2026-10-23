@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.40] - 2026-10-23
+
+Contract revision 23.
+
 ### Added
 
 - **Merge albums** in the console: an album with others of its name by the same artist offers
