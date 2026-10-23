@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.38] - 2026-10-23
+
+Contract revision 23.
+
+### Security
+
+- `tokio` 1.54.1 (RUSTSEC-2026-0386, `AsyncFd::new` and related constructors violate I/O safety)
+  and `ctutils` 0.4.5 (RUSTSEC-2026-0385, non-constant-time comparisons). beta.37's CI stopped on
+  them before its conformance ran; this release carries beta.37's changes as well.
+
 ## [1.0.0-beta.37] - 2026-10-23
 
 Contract revision 23.
