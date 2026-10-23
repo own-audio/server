@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.22"
+    "version": "1.23"
   },
   "servers": [
     {
@@ -9218,7 +9218,7 @@
         "operationId": "music_list_tracks",
         "responses": {
           "200": {
-            "description": "Every track the caller can play, streamed as one array",
+            "description": "Every track the caller can play, streamed as one array; carries a weak `ETag`",
             "content": {
               "application/json": {
                 "schema": {
@@ -9229,6 +9229,9 @@
                 }
               }
             }
+          },
+          "304": {
+            "description": "Unchanged since the `If-None-Match` version"
           }
         },
         "security": [

@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- `GET /api/v1/music/tracks` carries a weak `ETag` and answers `304` while nothing the caller can
+  see has changed (revision 23, `docs/API_COMPATIBILITY.md` §6b). The version is a fingerprint the
+  database makes in ~30 ms from the rows' transaction stamps, instead of building and compressing
+  the whole list: with 10,311 songs on the NAS, 7.5 MB and ~0.6 s.
+- Answers are compressed with gzip's fastest level. The default level took ~0.35 s of the NAS's
+  CPU for the 10,000-song list, longer than sending it uncompressed on a LAN.
+- Conformance: a `caching` suite checks the track list's version, its 304, a new version after a
+  change, and that one person's version is not another's.
+
 ## [1.0.0-beta.36] - 2026-10-21
 
 Contract revision 22.

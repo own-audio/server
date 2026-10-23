@@ -758,17 +758,37 @@ const STREAM_EXPIRY_SECS: u64 = 4 * 3600;
 /// them, so the server holds a few hundred tracks at a time whatever the
 /// catalog's size (docs/CAPACITY.md, issue #2). Same JSON array as ever.
 #[utoipa::path(get, path = "/tracks", tag = "music", security(("bearer" = [])),
-    responses((status = 200, description = "Every track the caller can play, streamed as one array", body = Vec<TrackResponse>)))]
-async fn list_tracks(family: FamilyContext, State(state): State<AppState>) -> axum::response::Response {
+    responses((status = 200, description = "Every track the caller can play, streamed as one array; carries a weak `ETag`", body = Vec<TrackResponse>), (status = 304, description = "Unchanged since the `If-None-Match` version")))]
+async fn list_tracks(family: FamilyContext, State(state): State<AppState>, headers: axum::http::HeaderMap) -> axum::response::Response {
     use axum::response::IntoResponse;
+    // A browser that has this version gets a 304 in milliseconds instead of the
+    // whole list (with 10,000 songs: 7.5 MB, ~0.3 s to build, more to compress).
+    // Weak: the same list goes out gzipped or not. Who asks is part of it, since
+    // `is_owner` and what may be seen differ per person.
+    let viewer = family.viewer();
+    let etag = match db::music::tracks_version(state.db(), viewer).await {
+        Ok(v) => Some(format!("W/\"tracks-{v}-{}-{}\"", viewer.user_id.simple(), u8::from(viewer.is_family_admin))),
+        Err(e) => {
+            tracing::warn!(error = %format!("{e:#}"), "track list: no version");
+            None
+        }
+    };
+    let cache = |etag: &str| [(header::ETAG, etag.to_string()), (header::CACHE_CONTROL, "private, no-cache".to_string())];
+    if let Some(etag) = &etag {
+        if headers.get(header::IF_NONE_MATCH).and_then(|v| v.to_str().ok()).is_some_and(|v| v.split(',').any(|t| t.trim() == etag)) {
+            return (StatusCode::NOT_MODIFIED, cache(etag)).into_response();
+        }
+    }
     let (tx, rx) = tokio::sync::mpsc::channel(256);
     tokio::spawn(db::music::send_tracks(state.db().clone(), family.viewer(), tx));
     let viewer_id = family.user_id;
     let body = crate::http::json_stream::array(rx, Vec::new(), b"", "track list", move |track| {
         track_to_response(track, viewer_id)
     });
-    ([(axum::http::header::CONTENT_TYPE, "application/json")], body)
-        .into_response()
+    match etag {
+        Some(etag) => ([(header::CONTENT_TYPE, "application/json")], cache(&etag), body).into_response(),
+        None => ([(header::CONTENT_TYPE, "application/json")], body).into_response(),
+    }
 }
 
 /// GET /api/v1/music/duplicates — DEDUPLICATION_PLAN.md P3. Exact-duplicate (`sha256`-matched)

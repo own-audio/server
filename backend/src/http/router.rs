@@ -147,7 +147,9 @@ pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: 
             crate::http::security_headers::middleware,
         ))
         .layer(TraceLayer::new_for_http())
-        .layer(CompressionLayer::new())
+        // The fastest gzip: on a NAS the default level took ~0.35 s of CPU to
+        // compress a 10,000-song list, longer than sending it whole on a LAN.
+        .layer(CompressionLayer::new().quality(tower_http::CompressionLevel::Fastest))
         .with_state(state)
 }
 

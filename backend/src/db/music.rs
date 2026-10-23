@@ -168,6 +168,26 @@ pub async fn list_tracks(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<Mu
         .context("db: list music tracks")
 }
 
+/// A fingerprint of what `list_tracks` would return to this viewer, in a few
+/// milliseconds instead of building the list: how many rows, and the sum of
+/// the transaction stamps (`xmin`) of each track row and its audio object. Any
+/// insert, update, delete, trash, restore or change of what the viewer may see
+/// changes it; a stamp changed by a vacuum's freeze only costs one fresh list.
+/// The conditions are those of the `music_tracks` view, whose rows carry no stamp.
+pub async fn tracks_version(pool: &PgPool, viewer: Viewer) -> anyhow::Result<String> {
+    let sql = format!(
+        "SELECT count(*), COALESCE(sum(t.xmin::text::bigint), 0)::bigint, COALESCE(sum(mo.xmin::text::bigint), 0)::bigint
+         FROM music_tracks_all t
+         JOIN media_objects mo ON mo.id = t.audio_object_id
+         WHERE t.trashed_at IS NULL AND t.missing_at IS NULL AND {VISIBLE}"
+    );
+    let (rows, tracks, objects): (i64, i64, i64) = bind_viewer!(sqlx::query_as(&sql), viewer, MUSIC)
+        .fetch_one(pool)
+        .await
+        .context("db: music tracks version")?;
+    Ok(format!("{rows}-{tracks:x}-{objects:x}"))
+}
+
 /// `list_tracks`, row by row: sends each track as PostgreSQL returns it, so a
 /// caller can stream the list out without holding the catalog in memory
 /// (docs/CAPACITY.md). Stops at the first error, or when the receiver is gone.

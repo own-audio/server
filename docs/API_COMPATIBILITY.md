@@ -262,6 +262,15 @@ fetches as given, within `expires_in_secs`. It may be a presigned S3 URL or a
 route on the server itself (`/api/v1/media/…`), depending on where the file
 lives. Clients never parse it, never persist it, and never assume its host.
 
+## 6b. Revalidation
+
+Since revision 23, `GET /api/v1/music/tracks` answers with a weak `ETag` and
+`Cache-Control: private, no-cache`; a request with that tag in `If-None-Match`
+gets `304 Not Modified` and no body while nothing the caller can see has
+changed. A track's cover (`GET /api/v1/music/tracks/{id}/cover`) does the same
+with a strong tag. Browsers and `URLSession` do this on their own; a client
+that sends no `If-None-Match` gets the full answer as before.
+
 ## 7. Authentication tokens
 
 - Access and refresh tokens are opaque to clients. Their format, lifetime and
