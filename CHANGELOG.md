@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Acoustic fingerprints: every song gets a Chromaprint fingerprint, made by the image's ffmpeg from
+  its first two minutes, in the form AcoustID takes (migration 0119, job `fingerprint_track`). New
+  and changed songs are fingerprinted within minutes of the scan that finds them, a few at a time,
+  never while a scan runs; ~0.3 s a song on a NAS. A song under 10 seconds or one that does not
+  decode is recorded with the reason — a cut-off download is found that way. `FINGERPRINT__MODE`:
+  `import` (default), `unidentified` (only songs no identify has matched, for object storage), or
+  `off`. Nothing leaves the server; identify does not use them yet. On S3, ffmpeg reads only the
+  first two minutes, through a link signed for the store's internal address (`STORAGE__ENDPOINT`),
+  which the server can reach where a browser's address may not be.
+
 ## [1.0.0-beta.40] - 2026-10-23
 
 Contract revision 23.

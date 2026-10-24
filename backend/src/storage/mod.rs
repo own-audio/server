@@ -125,6 +125,13 @@ impl ObjectStore {
         }
     }
 
+    /// The file on this server's disk that holds `key` (a library-folder file
+    /// or any object in local storage), for a tool that reads files itself;
+    /// `None` when the object is in S3 (read it through `presigned_get`).
+    pub fn local_file(&self, key: &str) -> Option<anyhow::Result<PathBuf>> {
+        self.file_for(key)
+    }
+
     /// The file behind `key` in local storage. Keys are paths the server
     /// built itself, but they also arrive in media links and upload
     /// requests, so anything that could leave the root is refused.
@@ -419,6 +426,25 @@ impl ObjectStore {
             .await
             .context("presigning failed")?;
 
+        Ok(presigned.uri().to_string())
+    }
+
+    /// A link for the server's own tools (ffmpeg) to read an object in S3,
+    /// signed against the endpoint the server reaches the store at
+    /// (`STORAGE__ENDPOINT`), not the browsers' one: on a self-hosted store the
+    /// public address is often one the server's container cannot reach.
+    pub async fn internal_get_url(&self, key: &str, expires_in_secs: u64) -> anyhow::Result<String> {
+        use aws_sdk_s3::presigning::PresigningConfig;
+        let config = PresigningConfig::expires_in(Duration::from_secs(expires_in_secs))
+            .context("invalid presigning duration")?;
+        let presigned = self
+            .client
+            .get_object()
+            .bucket(&self.bucket)
+            .key(key)
+            .presigned(config)
+            .await
+            .context("presigning failed")?;
         Ok(presigned.uri().to_string())
     }
 

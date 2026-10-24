@@ -4,6 +4,7 @@ pub mod identify_runs;
 pub mod affinity;
 pub mod corrections;
 pub mod analysis;
+pub mod fingerprint;
 pub mod intent;
 pub mod rules;
 pub mod sequence;

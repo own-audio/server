@@ -144,6 +144,9 @@ services:
       # Identify asks musicbrainz.org, about one request a second (see INSTALL.md).
       MUSICBRAINZ__ENABLED: ${MUSICBRAINZ_ENABLED:-true}
       MUSICBRAINZ__CONTACT: ${MUSICBRAINZ_CONTACT:-}
+      # Acoustic fingerprints (ffmpeg, Chromaprint): `import` (every song),
+      # `unidentified` or `off` (INSTALL.md).
+      FINGERPRINT__MODE: ${FINGERPRINT_MODE:-import}
       MAIL__SMTP_HOST: ${SMTP_HOST:-}
       MAIL__SMTP_PORT: ${SMTP_PORT:-}
       MAIL__SMTP_SECURITY: ${SMTP_SECURITY:-}

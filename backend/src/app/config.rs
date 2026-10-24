@@ -46,6 +46,11 @@ pub struct AppConfig {
     #[serde(default)]
     pub musicbrainz: MusicBrainzConfig,
 
+    /// Acoustic fingerprints of songs (`FINGERPRINT__MODE`), made with ffmpeg;
+    /// see [`FingerprintConfig`].
+    #[serde(default)]
+    pub fingerprint: FingerprintConfig,
+
     /// Podcast search through Apple's iTunes Search API (`ITUNES__ENABLED`)
     /// when no metadata service is set. On by default; the term goes to Apple.
     #[serde(default)]
@@ -457,6 +462,28 @@ impl Default for ItunesConfig {
     fn default() -> Self {
         Self { enabled: true }
     }
+}
+
+/// Which songs get an acoustic fingerprint (Chromaprint, through ffmpeg), the
+/// evidence that identifies a recording whatever its tags say.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct FingerprintConfig {
+    pub mode: FingerprintMode,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FingerprintMode {
+    /// Every song, soon after it is added or changed: reading local files
+    /// costs nothing, and the fingerprints find duplicates too. The default.
+    #[default]
+    Import,
+    /// Only songs that no identify has matched: for object storage, where
+    /// every read is a request, and a paid AcoustID beyond its free lookups.
+    Unidentified,
+    /// None.
+    Off,
 }
 
 impl Default for MusicBrainzConfig {

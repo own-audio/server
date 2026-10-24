@@ -87,6 +87,10 @@ const ANALYSIS_SWEEP_BATCH_SIZE: i64 = 200;
 /// burst of work a single tick can create against a large pre-existing
 /// library; the next sweep picks up wherever this one left off.
 const CHECKSUM_SWEEP_BATCH_SIZE: i64 = 200;
+/// Songs a fingerprint sweep queues at once, and how often it looks: a new
+/// album's songs are fingerprinted within minutes of the scan that found them.
+const FINGERPRINT_SWEEP_BATCH_SIZE: i64 = 200;
+const FINGERPRINT_SWEEP_INTERVAL_SECS: u64 = 120;
 
 /// Launch the worker as a detached Tokio task.
 /// Call this once from `app::run()` after the pool is ready.
@@ -132,6 +136,8 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
     let mut analysis_backlog = false;
 
     let analysis_sweep_every_n_ticks = (ANALYSIS_SWEEP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
+    let fingerprint_sweep_every_n_ticks = (FINGERPRINT_SWEEP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
+    let mut ticks_since_fingerprint_sweep: u64 = fingerprint_sweep_every_n_ticks;
     let mut ticks_since_analysis_sweep: u64 = analysis_sweep_every_n_ticks;
     let duration_sweep_every_n_ticks =
         (BOOK_DURATION_SWEEP_INTERVAL_SECS / POLL_INTERVAL_SECS).max(1);
@@ -378,6 +384,36 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
             ticks_since_analysis_sweep += 1;
         }
 
+        // 1c'. Acoustic fingerprints (`FINGERPRINT__MODE`): every song, or only
+        // unidentified ones. Queued only while none are waiting, so a sweep never
+        // queues a song twice.
+        let fingerprint_mode = config.fingerprint.mode;
+        let handles_fingerprint = fingerprint_mode != crate::app::config::FingerprintMode::Off
+            && job_types
+                .as_ref()
+                .is_none_or(|types| types.iter().any(|t| t == crate::music::fingerprint::JOB_TYPE));
+        ticks_since_fingerprint_sweep += 1;
+        if handles_fingerprint
+            && ticks_since_fingerprint_sweep >= fingerprint_sweep_every_n_ticks
+            && db::jobs::pending_count(&pool, crate::music::fingerprint::JOB_TYPE).await.is_ok_and(|n| n == 0)
+        {
+            ticks_since_fingerprint_sweep = 0;
+            let only_unidentified = fingerprint_mode == crate::app::config::FingerprintMode::Unidentified;
+            match db::fingerprints::pending(&pool, only_unidentified, FINGERPRINT_SWEEP_BATCH_SIZE).await {
+                Ok(ids) if !ids.is_empty() => {
+                    for track_id in &ids {
+                        let payload = serde_json::json!({ "track_id": track_id.to_string() });
+                        if let Err(e) = db::jobs::enqueue(&pool, crate::music::fingerprint::JOB_TYPE, Some(&payload), None).await {
+                            warn!(%track_id, "failed to enqueue a fingerprint: {e}");
+                        }
+                    }
+                    info!(count = ids.len(), "fingerprint sweep enqueued songs");
+                }
+                Ok(_) => {}
+                Err(e) => warn!("fingerprint sweep failed: {e}"),
+            }
+        }
+
         // 1d. Audiobook files whose duration nobody recorded.
         //
         // Unguarded, unlike 1c: a book's length is not a measurement someone opts into, it is
@@ -431,7 +467,7 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
         // of every file the scan just looked at, on the same disks: on a busy NAS the scan
         // fell from ~100 to under 10 files a minute. The jobs wait and run once it is done.
         let held: Vec<String> = if crate::library_folders::scan_status().0 {
-            vec!["media_checksum".to_string()]
+            vec!["media_checksum".to_string(), crate::music::fingerprint::JOB_TYPE.to_string()]
         } else {
             Vec::new()
         };
@@ -501,6 +537,7 @@ async fn execute_job(
         "stats_rollup" => execute_stats_rollup(pool, job).await,
         "media_checksum" => execute_media_checksum(pool, storage, job).await,
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
+        crate::music::fingerprint::JOB_TYPE => crate::music::fingerprint::execute(pool, storage, job).await,
         "book_file_duration" => execute_book_file_duration(pool, storage, job).await,
         "music_release_backfill" => execute_music_release_backfill(pool, config, job).await,
         crate::music::identify_runs::JOB_TYPE => crate::music::identify_runs::execute(pool, config, hooks, job).await,
