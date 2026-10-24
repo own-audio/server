@@ -1,6 +1,6 @@
 [package]
 name = "audio2"
-version = "1.0.0-beta.41"
+version = "1.0.0-beta.42"
 edition = "2021"
 rust-version = "1.88"
 license = "AGPL-3.0-or-later"
@@ -55,7 +55,7 @@ reqwest = { version = "0.12", default-features = false, features = ["rustls-tls-
 # Default features minus the legacy `rustls` client (hyper 0.14 + rustls 0.21, both with
 # open advisories); the SDK's modern HTTPS client is what remains.
 aws-config = { version = "1", default-features = false, features = ["behavior-version-latest", "credentials-process", "default-https-client", "rt-tokio", "sso"] }
-aws-sdk-s3 = { version = "1", default-features = false, features = ["sigv4a", "http-1x", "default-https-client", "rt-tokio"] }
+aws-sdk-s3 = { version = "1", default-features = false, features = ["http-1x", "default-https-client", "rt-tokio"] }
 aws-credential-types = "1"
 
 # Tracing / observability

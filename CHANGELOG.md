@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.42] - 2026-10-24
+
+Contract revision 23.
+
+### Security
+
+- RUSTSEC-2026-0387 (crypto-bigint): the S3 client no longer builds SigV4a signing, which only AWS
+  Multi-Region Access Points need; R2, RustFS, Garage and single-region AWS sign with SigV4 as
+  before. beta.41's release stopped on this advisory and has no image; use beta.42.
+
 ## [1.0.0-beta.41] - 2026-10-24
 
 Contract revision 23.
