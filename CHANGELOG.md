@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.41] - 2026-10-24
+
+Contract revision 23.
+
 ### Added
 
 - Acoustic fingerprints: every song gets a Chromaprint fingerprint, made by the image's ffmpeg from
