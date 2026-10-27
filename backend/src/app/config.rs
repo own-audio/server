@@ -304,6 +304,21 @@ pub struct StorageConfig {
     #[serde(default)]
     pub proxy: bool,
 
+    /// `STORAGE__MEDIA_PROXY_URL`: with `s3`, a second way to the same
+    /// objects for the networks that block the store's host — a service on
+    /// your own domain that checks [`Self::media_proxy_secret`]'s signature
+    /// and reads the bucket (the hosted edition's media Worker). Only for a
+    /// client that asks (`route=proxy` on `GET /api/v2/stream`,
+    /// `fallback_url` beside a v1 stream link); everyone else still gets the
+    /// store's own presigned link. Unset ⇒ no second way.
+    #[serde(default, deserialize_with = "blank_as_none")]
+    pub media_proxy_url: Option<String>,
+
+    /// `STORAGE__MEDIA_PROXY_SECRET`: the key the media proxy checks links
+    /// with. Its own key, not the session secret: the proxy holds it.
+    #[serde(default, deserialize_with = "blank_as_none")]
+    pub media_proxy_secret: Option<String>,
+
     /// `STORAGE__FAMILY_QUOTA_BYTES`: the most one family may keep in
     /// storage (uploads and stored episodes; indexed library folders are not
     /// counted — nothing is copied). Unset ⇒ no limit. Over it, uploads and

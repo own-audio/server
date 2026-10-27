@@ -300,6 +300,12 @@ pub struct StreamQuery {
     k: String,
     /// Signature over all of the above.
     s: String,
+    /// `proxy`: the original through the media proxy (`STORAGE__MEDIA_PROXY_URL`)
+    /// instead of the store's own host, for a network that blocks it. Not
+    /// signed: it changes the way, not what may be fetched. Ignored without a
+    /// proxy, and for a transcode, which the server streams itself.
+    #[serde(default)]
+    route: Option<String>,
 }
 
 /// The audio behind a link from `POST /playback-info`. The signature is the
@@ -338,6 +344,11 @@ pub async fn stream(State(state): State<AppState>, Query(q): Query<StreamQuery>)
             }
         }
         // Every transcoder busy: the original, which the client was ready to fall back to.
+    }
+    if q.route.as_deref() == Some("proxy") {
+        if let Some(url) = state.storage().proxied_get(&key, 3600) {
+            return Ok(Redirect::temporary(&url).into_response());
+        }
     }
     let url = state.storage().presigned_get(&key, 3600).await?;
     Ok(Redirect::temporary(&url).into_response())

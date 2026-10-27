@@ -223,6 +223,10 @@ pub struct ChapterResponse {
 pub struct StreamResponse {
     pub url: String,
     pub expires_in_secs: u64,
+    /// The same audio through the media proxy (`STORAGE__MEDIA_PROXY_URL`), for a
+    /// network that blocks `url`'s host. Absent without a proxy.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback_url: Option<String>,
 }
 
 struct TempUpload {
@@ -992,6 +996,7 @@ async fn stream_file(
     Ok(Json(StreamResponse {
         url,
         expires_in_secs: STREAM_EXPIRY_SECS,
+        fallback_url: state.storage().proxied_get(&key, STREAM_EXPIRY_SECS),
     }))
 }
 

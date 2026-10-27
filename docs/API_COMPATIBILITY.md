@@ -262,6 +262,14 @@ fetches as given, within `expires_in_secs`. It may be a presigned S3 URL or a
 route on the server itself (`/api/v1/media/…`), depending on where the file
 lives. Clients never parse it, never persist it, and never assume its host.
 
+Since revision 24, a server with a media proxy (`STORAGE__MEDIA_PROXY_URL`)
+also sends `fallback_url`: the same audio by another host, for a network that
+blocks `url`'s (company firewalls that block cloud-storage domains). A client
+that cannot load `url` — the host does not resolve or connect, or answers
+`403` from a proxy in between — tries `fallback_url`, and may keep using the
+fallback on that network. The v2 stream link takes `route=proxy` for the same
+choice: the server then redirects to the proxy instead of to the store.
+
 ## 6b. Revalidation
 
 Since revision 23, `GET /api/v1/music/tracks` answers with a weak `ETag` and

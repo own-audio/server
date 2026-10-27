@@ -78,7 +78,7 @@ services:
   server:
     # `docker compose pull server` takes the published image (amd64 and arm64);
     # `docker compose build server` builds this checkout instead.
-    image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-beta.42}
+    image: ${SERVER_IMAGE:-ghcr.io/own-audio/server:1.0.0-beta.43}
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -105,6 +105,10 @@ services:
       # With s3: stream through the server instead of presigned links to the
       # store's host (for networks that block it).
       STORAGE__PROXY: ${S3_PROXY:-false}
+      # With s3: a media proxy on your own domain, offered only to clients that
+      # cannot reach the store (INSTALL.md). Both or neither.
+      STORAGE__MEDIA_PROXY_URL: ${S3_MEDIA_PROXY_URL:-}
+      STORAGE__MEDIA_PROXY_SECRET: ${S3_MEDIA_PROXY_SECRET:-}
       STORAGE__ENDPOINT: ${S3_ENDPOINT:-http://rustfs:9000}
       # What a browser can reach; presigned URLs are signed against it, so it
       # must be the address the store is really served at.

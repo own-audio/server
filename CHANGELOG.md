@@ -7,6 +7,19 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.43] - 2026-10-27
+
+Contract revision 24.
+
+### Added
+
+- A media proxy for networks that block the object store's host (company firewalls often block
+  `*.r2.cloudflarestorage.com`). With `STORAGE__MEDIA_PROXY_URL` and `STORAGE__MEDIA_PROXY_SECRET`
+  set, v1 stream answers carry a `fallback_url` and the v2 stream link takes `route=proxy`; both
+  lead to the proxy, which checks the server's signature (HMAC-SHA256 over `GET\n{key}\n{expires}`,
+  its own key) and reads the bucket. Everyone else still gets the store's presigned link, so the
+  proxy carries only the exceptions.
+
 ## [1.0.0-beta.42] - 2026-10-24
 
 Contract revision 23.

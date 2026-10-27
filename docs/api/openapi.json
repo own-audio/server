@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.23"
+    "version": "1.24"
   },
   "servers": [
     {
@@ -20469,6 +20469,13 @@
             "type": "integer",
             "format": "int64",
             "minimum": 0
+          },
+          "fallback_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The same audio through the media proxy (`STORAGE__MEDIA_PROXY_URL`), for a\nnetwork that blocks `url`'s host. Absent without a proxy."
           }
         }
       },

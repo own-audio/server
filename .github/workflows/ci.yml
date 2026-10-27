@@ -130,6 +130,9 @@ jobs:
           files="-f docker-compose.yml"
           if [ "${{ matrix.storage }}" = s3 ]; then
             printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env
+            # A media proxy the server only signs links for; the suite checks the links.
+            printf 'S3_MEDIA_PROXY_URL=https://media-proxy.invalid\nS3_MEDIA_PROXY_SECRET=ci-media-proxy-key\n' >> .env
+            printf 'STORAGE__MEDIA_PROXY_URL=https://media-proxy.invalid\nSTORAGE__MEDIA_PROXY_SECRET=ci-media-proxy-key\n' >> "$GITHUB_ENV"
           else
             # The local job also covers read-only library folders, on generated tones.
             command -v ffmpeg >/dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg)

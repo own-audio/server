@@ -15946,6 +15946,15 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "`proxy`: the original through the media proxy (`STORAGE__MEDIA_PROXY_URL`)\ninstead of the store's own host, for a network that blocks it. Not\nsigned: it changes the way, not what may be fetched. Ignored without a\nproxy, and for a transcode, which the server streams itself.",
+            "in": "query",
+            "name": "route",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {

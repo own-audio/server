@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 pub mod links;
+pub mod media_proxy;
 pub mod models;
 pub mod quota;
 
@@ -50,6 +51,8 @@ pub struct ObjectStore {
     /// Use `links` for every object (local storage, or S3 with
     /// `STORAGE__PROXY`), not only for library-folder files.
     serve_all: bool,
+    /// The second way to S3 objects, when configured (`media_proxy`).
+    media_proxy: Option<media_proxy::MediaProxy>,
     /// Read-only library folders by id: keys `folder/<id>/<relative path>`
     /// are files under them, whatever the storage kind (`crate::library`).
     folders: std::sync::Arc<std::sync::RwLock<std::collections::HashMap<uuid::Uuid, PathBuf>>>,
@@ -429,6 +432,16 @@ impl ObjectStore {
         Ok(presigned.uri().to_string())
     }
 
+    /// The same object through the media proxy, for a client whose network
+    /// blocks the store's host. `None` without a proxy, and for what the
+    /// server serves itself anyway (local storage, library folders).
+    pub fn proxied_get(&self, key: &str, expires_in_secs: u64) -> Option<String> {
+        if self.serve_all || is_folder_key(key) {
+            return None;
+        }
+        self.media_proxy.as_ref().map(|proxy| proxy.link(key, expires_in_secs))
+    }
+
     /// A link for the server's own tools (ffmpeg) to read an object in S3,
     /// signed against the endpoint the server reaches the store at
     /// (`STORAGE__ENDPOINT`), not the browsers' one: on a self-hosted store the
@@ -631,6 +644,7 @@ pub async fn connect(cfg: &StorageConfig, links: MediaLinks) -> anyhow::Result<O
         presign_client,
         bucket: cfg.bucket.clone(),
         serve_all: local.is_some() || cfg.proxy,
+        media_proxy: media_proxy::MediaProxy::new(cfg.media_proxy_url.as_deref(), cfg.media_proxy_secret.as_deref()),
         links,
         local,
         folders: Default::default(),

@@ -1,6 +1,6 @@
 # Installing the own.audio server
 
-> Pre-release (`1.0.0-beta.42`). The published image is
+> Pre-release (`1.0.0-beta.43`). The published image is
 > `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker
 > Hub), for amd64 and arm64.
 
@@ -104,7 +104,11 @@ fetch media straight from the store through presigned links, so
 `S3_PUBLIC_ENDPOINT` must be an address every device can reach. If some
 networks block the store's host (company firewalls often block cloud-storage
 domains), set `S3_PROXY=true` and the server streams the media itself, as
-with local storage.
+with local storage. Or, to keep the server out of it for everyone else, run a
+media proxy on your own domain that reads the bucket and checks the server's
+signature, and set `STORAGE__MEDIA_PROXY_URL` and
+`STORAGE__MEDIA_PROXY_SECRET`: clients that cannot reach the store then ask
+for the proxy instead (the message signed is in `backend/src/storage/media_proxy.rs`).
 
 Switching an existing install from one kind to the other does not move the
 files; start fresh or copy the objects across by their keys.

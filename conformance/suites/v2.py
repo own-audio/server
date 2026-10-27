@@ -630,6 +630,40 @@ def playback(ctx: Ctx, problem) -> None:
     ctx.check("the link redirects to storage, without any header", code in (302, 307), str(code))
     code, _ct, body = fetch(direct.get("url", ""))
     ctx.check("…and the bytes come", code in (200, 206) and len(body) > 0, str(code))
+
+    # The media proxy (STORAGE__MEDIA_PROXY_URL), for networks that block the store's host.
+    # The suite knows the server's proxy only when told (CI's S3 run sets both).
+    import base64
+    import hashlib
+    import hmac
+    import os
+    import urllib.parse
+    proxy = os.environ.get("STORAGE__MEDIA_PROXY_URL", "").strip().rstrip("/")
+    proxy_key = os.environ.get("STORAGE__MEDIA_PROXY_SECRET", "").strip()
+
+    def location(url: str) -> str:
+        opener = urllib.request.build_opener(NoRedirect())
+        try:
+            with opener.open(ctx.url(url) if not url.startswith("http") else url, timeout=ctx.timeout) as r:
+                return r.headers.get("Location", "")
+        except urllib.error.HTTPError as e:
+            return e.headers.get("Location", "")
+
+    routed = location(direct.get("url", "") + "&route=proxy")
+    v1 = ctx.call("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok)
+    if proxy and proxy_key:
+        parts = urllib.parse.urlsplit(routed)
+        key = urllib.parse.unquote(parts.path.lstrip("/"))
+        query = dict(urllib.parse.parse_qsl(parts.query))
+        mac = hmac.new(proxy_key.encode(), f"GET\n{key}\n{query.get('e', '')}".encode(), hashlib.sha256).digest()
+        ctx.check("route=proxy redirects to the media proxy, signed for that object",
+                  routed.startswith(proxy + "/") and query.get("s") == base64.urlsafe_b64encode(mac).rstrip(b"=").decode()
+                  and int(query.get("e", "0")) > 0, routed[:120])
+        ctx.check("a v1 stream answer carries the proxy as fallback_url",
+                  str(v1.get("fallback_url", "")).startswith(proxy + "/") and v1.get("url") != v1.get("fallback_url"), str(v1)[:160])
+    else:
+        ctx.check("without a media proxy, route=proxy changes nothing", bool(routed) and not routed.startswith("https://media"), routed[:120])
+        ctx.check("without a media proxy, no fallback_url", "fallback_url" not in v1, str(v1)[:160])
     url = direct.get("url", "")
     tampered = url.replace("&b=0&", "&b=320&")
     code, ctype, body = fetch(tampered, follow=False)
