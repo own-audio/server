@@ -251,7 +251,7 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
         reasons.push("over_bitrate_limit".to_string());
     }
     let target = caps.transcode.iter().map(|f| f.to_ascii_lowercase()).find(|f| f == "mp3" || f == "aac");
-    let base = state.config().server.base_url.as_deref().unwrap_or("").trim_end_matches('/').to_string();
+    let base = crate::http::origin::base_or(state.config().server.base_url.as_deref().unwrap_or(""));
     let secret = &state.config().auth.session_secret;
     let mut grant = Grant {
         item,

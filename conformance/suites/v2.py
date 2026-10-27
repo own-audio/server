@@ -631,6 +631,26 @@ def playback(ctx: Ctx, problem) -> None:
     code, _ct, body = fetch(direct.get("url", ""))
     ctx.check("…and the bytes come", code in (200, 206) and len(body) > 0, str(code))
 
+    # Links follow the address a request came in on, when it is one of the server's own
+    # (SERVER__ADDRESSES): the console at a home address uploads there, not to a tunnel's.
+    import os as _os
+    other = _os.environ.get("OTHER_URLS", "").split(",")[0].strip().rstrip("/")
+    if other:
+        host = other.split("://", 1)[1]
+        _st, _h, raw = ctx.request("POST", "/api/v2/playback-info", tok, {"kind": "track", "id": track["id"], "capabilities": {}}, headers={"Host": host})
+        via_other = json.loads(raw).get("url", "") if raw else ""
+        ctx.check("a request on another of the server's addresses gets links on that address",
+                  via_other.startswith(other + "/api/v2/stream?"), via_other[:80])
+        _st, _h, raw = ctx.request("POST", "/api/v2/playback-info", tok, {"kind": "track", "id": track["id"], "capabilities": {}}, headers={"Host": "evil.example"})
+        via_evil = json.loads(raw).get("url", "") if raw else ""
+        # The server's own media route (local storage): uploads and downloads use these links.
+        _st, _h, raw = ctx.request("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok, headers={"Host": host})
+        media = json.loads(raw).get("url", "") if raw else ""
+        if "/api/v1/media?" in media:
+            ctx.check("…and so does a link to the server's own media route", media.startswith(other + "/api/v1/media?"), media[:80])
+        ctx.check("a Host the server does not have leaves links on its own address",
+                  "evil.example" not in via_evil and "/api/v2/stream?" in via_evil, via_evil[:80])
+
     # The media proxy (STORAGE__MEDIA_PROXY_URL), for networks that block the store's host.
     # The suite knows the server's proxy only when told (CI's S3 run sets both).
     import base64

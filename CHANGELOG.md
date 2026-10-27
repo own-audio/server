@@ -7,6 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.45] - 2026-10-28
+
+Contract revision 24.
+
+### Fixed
+
+- Uploads from the console at a server's home address. Links the server hands out — uploads and
+  files on its own media route, covers, v2 stream links — were all built from `SERVER__BASE_URL`;
+  with that set to a public name (a tunnel), the console opened at `http://192.168.x.x` sent its
+  uploads to the public name, another origin, and the browser refused them ("The upload didn't
+  finish"); over a tunnel they would also have met its request-size limit. Links now follow the
+  address the request came in on when it is one of the server's own (`SERVER__BASE_URL` or
+  `SERVER__ADDRESSES`); any other `Host` leaves them on `SERVER__BASE_URL` as before.
+
 ## [1.0.0-beta.44] - 2026-10-27
 
 Contract revision 24.

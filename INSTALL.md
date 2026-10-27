@@ -1,6 +1,6 @@
 # Installing the own.audio server
 
-> Pre-release (`1.0.0-beta.44`). The published image is
+> Pre-release (`1.0.0-beta.45`). The published image is
 > `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker
 > Hub), for amd64 and arm64.
 
@@ -41,7 +41,7 @@ link or QR code — there is no open sign-up unless you turn it on
 | Variable | What it is | Default |
 |---|---|---|
 | `PUBLIC_URL` | The address people and apps reach the server at. Links in invites and e-mails are built from it. | `http://localhost:8080` |
-| `OTHER_URLS` | Every other address the server answers on, comma-separated: the home network (`http://192.168.1.20:8080`), a Tailscale or other VPN address, a second public name. Apps learn them all and switch to the best one on each network — the home address at home, the public one away. | unset |
+| `OTHER_URLS` | Every other address the server answers on, comma-separated: the home network (`http://192.168.1.20:8080`), a Tailscale or other VPN address, a second public name. Apps learn them all and switch to the best one on each network — the home address at home, the public one away. Links the server hands out (uploads, covers, audio) follow the address a request came in on, so the console opened at home uploads at home. | unset |
 | `SUBSONIC__MAX_TRANSCODES` | How many smaller streams (MP3/AAC made on the fly for mobile data) may be made at once; beyond that, players get the original file. | `4` |
 | `STORAGE_KIND` | `local`: media in the `media_data` volume, streamed by the server. `s3`: an S3-compatible store, see "Storage". | `local` |
 | `PUID`, `PGID` | The user and group the server runs as (not root). They need read access to your library folders; the server's own storage is handed to them at start. | `1000` |

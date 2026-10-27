@@ -50,7 +50,7 @@ fn signature(secret: &str, object: Uuid, expires: i64) -> String {
 pub fn link(state: &AppState, object: Uuid) -> String {
     let now = chrono::Utc::now().timestamp();
     let expires = (now / WEEK + 2) * WEEK;
-    let base = state.config().server.base_url.as_deref().unwrap_or("").trim_end_matches('/');
+    let base = crate::http::origin::base_or(state.config().server.base_url.as_deref().unwrap_or(""));
     format!("{base}/api/v2/images/{object}?e={expires}&s={}", signature(&state.config().auth.session_secret, object, expires))
 }
 

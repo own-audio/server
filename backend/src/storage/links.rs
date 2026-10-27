@@ -50,7 +50,7 @@ impl MediaLinks {
         let sig = self.signature(method, key, expires);
         format!(
             "{}{MEDIA_PATH}?k={}&e={expires}&s={sig}",
-            self.base,
+            crate::http::origin::base_or(&self.base),
             urlencoding::encode(key)
         )
     }

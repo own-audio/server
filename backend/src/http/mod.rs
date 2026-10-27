@@ -3,6 +3,7 @@ pub mod handlers;
 pub mod json_stream;
 pub mod multipart;
 pub mod openapi;
+pub mod origin;
 pub mod outbound;
 pub mod security_headers;
 pub mod router;

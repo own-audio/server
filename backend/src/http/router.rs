@@ -141,6 +141,11 @@ pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: 
         .fallback_service(
             ServeDir::new("ui/dist").fallback(ServeFile::new("ui/dist/index.html")),
         )
+        // Links for the address the request came in on, when it is one of ours.
+        .layer(axum::middleware::from_fn_with_state(
+            crate::http::origin::KnownAddresses::new(state.config().server.base_url.as_deref(), state.config().server.addresses.as_deref()),
+            crate::http::origin::middleware,
+        ))
         // Browser-facing headers on everything (security hardening plan §7.1).
         .layer(axum::middleware::from_fn_with_state(
             crate::http::security_headers::SecurityHeaders::from_config(state.config()),
