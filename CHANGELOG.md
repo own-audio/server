@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.44] - 2026-10-27
+
+Contract revision 24.
+
 ### Added
 
 - The web console takes the media proxy when the object store's host cannot be reached: a song,
