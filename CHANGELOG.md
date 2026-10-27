@@ -7,6 +7,24 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- The server image is a third of its size: 296 MB instead of 924 MB on disk (arm64), 71 MB to
+  download instead of 239 MB. FFmpeg 8.1.3 with Chromaprint 1.6.2, and aubio 0.4.9's beat tracker,
+  are built in `backend/Dockerfile` instead of installed from Debian, whose `ffmpeg` and
+  `aubio-tools` brought LLVM, mesa, a Python with NumPy and more. Every FFmpeg decoder, demuxer,
+  muxer and filter is still there (FFmpeg 8.1 instead of Debian's 5.1); gone are only formats that
+  came with extra Debian libraries and no server code uses: Codec2, game-music and tracker modules,
+  DASH. Fingerprints are the same as before, byte for byte. FFmpeg's security fixes now come with a
+  version bump in the Dockerfile; the image scan sees only Debian's packages.
+- Tempo (`bpm`): ffmpeg decodes the track to a WAV in the temp folder and aubio's `aubiotrack` finds
+  the beats, averaged as `aubio tempo` averaged them. The same files give the same BPM as before.
+
+### Fixed
+
+- The tempo of WMA files: aubio's own decoder read only half of a WMA's audio, so its BPM was off (a
+  test song measured 113 instead of 128). Songs measured before keep their stored value.
+
 ## [1.0.0-beta.45] - 2026-10-28
 
 Contract revision 24.

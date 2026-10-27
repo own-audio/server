@@ -9,5 +9,8 @@ and `license-checker` enforce the allow-list in `deny.toml` and
 |---|---|---|
 | PT Serif Regular and Bold (ParaType) | `backend/assets/fonts/PTSerif-*.ttf`, embedded by the cover watermark (`metadata/watermark.rs`) | SIL Open Font License 1.1 — `backend/assets/fonts/OFL.txt` |
 
-Programs the image installs from Debian and runs as separate processes
-(not linked): `ffmpeg` (LGPL/GPL), `yt-dlp` (Unlicense), `aubio` (GPL-3.0).
+Programs the image builds from their release sources (versions and checksums
+at the top of `backend/Dockerfile`) and runs as separate processes, not linked
+to the server: `ffmpeg` and `ffprobe` from FFmpeg (LGPL-2.1-or-later, built
+without its GPL parts) with Chromaprint (LGPL-2.1-or-later) and Debian's LAME
+library (LGPL-2.0-or-later); `aubiotrack` from aubio (GPL-3.0-or-later).

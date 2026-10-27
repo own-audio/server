@@ -70,7 +70,7 @@ the API contract is public either way.
 
 The server depends on crates under MIT, Apache-2.0, BSD and MPL-2.0 licences,
 all compatible with AGPL distribution. `cargo deny` (Phase 6) enforces an
-allow-list so a GPL-incompatible dependency cannot slip in. `yt-dlp` and
-`ffmpeg` are separate programs invoked at runtime (Unlicense and
-LGPL/GPL respectively), not linked, and are installed in the image from
-Debian packages.
+allow-list so a GPL-incompatible dependency cannot slip in. `ffmpeg` and
+aubio's `aubiotrack` are separate programs invoked at runtime (LGPL-2.1-or-later
+and GPL-3.0-or-later respectively), not linked, and are built in the image
+from their pinned release sources (`backend/Dockerfile`).

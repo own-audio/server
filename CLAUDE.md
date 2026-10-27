@@ -323,7 +323,15 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
   amd64 + arm64 on every tag and pushes to Docker Hub (GHCR as a mirror).
 - **No Dependabot.** Dependencies are updated by hand before each release
   and verified with the conformance suite; `cargo audit` runs in CI and
-  weekly. Questions go to GitHub Discussions, bugs to issues.
+  weekly.
+- **FFmpeg, Chromaprint and aubio are compiled in `backend/Dockerfile`**
+  (since 1.0.0-beta.46; Debian's packages were ~500 MB of the image). The
+  versions and SHA-256s are the `ARG`s at its top. Trivy only sees Debian's
+  packages, so nothing flags an FFmpeg CVE: before each release check
+  https://ffmpeg.org/security.html and the point releases of the pinned
+  branch, bump `FFMPEG_VERSION` + `FFMPEG_SHA256` (verify the tarball's
+  signature, key `FCF986EA15E6E293A5644F10B4322F04D67658D8`), and copy the
+  stage to `audio2`'s `hosted/Dockerfile`. Questions go to GitHub Discussions, bugs to issues.
 - Semver tags `vMAJOR.MINOR.PATCH`; the image is tagged the same plus
   `latest`. The contract revision is stated in every `CHANGELOG.md` entry.
 - **Every tag gets a GitHub Release** (a tag alone shows nothing on the

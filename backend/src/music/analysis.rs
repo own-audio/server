@@ -166,7 +166,7 @@ async fn loudness(path: &Path) -> anyhow::Result<Option<f32>> {
             &path.to_string_lossy(),
             "-af",
             // NOT `ebur128=framelog=quiet`. ffmpeg only learned that option in
-            // 6.x; on 5.1 (Debian bookworm, which is what the image ships) the
+            // 6.x; on 5.1 (Debian bookworm's, which the image shipped until it built its own) the
             // filter fails to initialise and the summary reports a flat
             // 0.0 LUFS. That is the worst kind of bug — it measures the whole
             // library successfully and every value is wrong.
@@ -202,34 +202,59 @@ fn parse_lufs(stderr: &str) -> Option<f32> {
         .filter(|v| *v < -1.0)
 }
 
-/// Tempo via `aubio`. `None` rather than an error when no beat is detectable —
-/// ambient and rubato classical genuinely have no BPM, and recording that fact
-/// is more useful than retrying forever.
+/// Tempo via aubio's beat tracker. `None` rather than an error when no beat is
+/// detectable — ambient and rubato classical genuinely have no BPM, and
+/// recording that fact is more useful than retrying forever.
+///
+/// The image's aubio reads only WAV (it is built without decoders of its own),
+/// so ffmpeg decodes the whole track to a mono 16-bit WAV first, in the temp
+/// directory, removed when this returns. The file's own sample rate is kept:
+/// the beat tracker's frames are counted in samples, and at the file's rate it
+/// finds the beats `aubio tempo` found before (resampled to 44.1 kHz, a 48 kHz
+/// track measured 128.12 instead of 128.24).
 async fn tempo(path: &Path) -> anyhow::Result<Option<f32>> {
-    let out = run("aubio", &["tempo", "-i", &path.to_string_lossy()]).await?;
-    if !out.status.success() {
+    let wav = tempfile::Builder::new()
+        .prefix("tempo-")
+        .suffix(".wav")
+        .tempfile()
+        .context("create a temp file for the beat tracker")?;
+    let wav_path = wav.path().to_string_lossy().into_owned();
+    let decoded = run(
+        "ffmpeg",
+        &[
+            "-v", "error", "-y",
+            "-i", &path.to_string_lossy(),
+            "-vn", "-ac", "1", "-c:a", "pcm_s16le", "-f", "wav",
+            &wav_path,
+        ],
+    )
+    .await?;
+    if !decoded.status.success() {
         return Ok(None);
     }
 
-    // `aubio tempo` prints beat timestamps, then the estimate as a bare number
-    // on its own line. Take the last parseable line and sanity-check it: an
-    // octave error puts a 140 BPM track at 70, and values outside this range
-    // are detector noise rather than music.
+    // The frame sizes `aubio tempo` used.
+    let out = run("aubiotrack", &["-i", &wav_path, "-B", "1024", "-H", "512"]).await?;
+    if !out.status.success() {
+        return Ok(None);
+    }
     Ok(parse_tempo(&String::from_utf8_lossy(&out.stdout)))
 }
 
-/// Pull the BPM estimate out of `aubio tempo` output.
-///
-/// The estimate is the last bare number; everything before it is beat
-/// timestamps. Values outside 20–250 are detector noise rather than music, and
-/// are dropped — an unmeasurable tempo is a fact about the track, and recording
-/// `None` beats recording a wrong number that then filters playlists.
+/// The BPM from `aubiotrack`'s beats, one time in seconds per line, worked out
+/// as `aubio tempo` did: the mean of the beat-to-beat tempi. Under ten beats is
+/// what aubio called "uncertain" and stays no tempo. Values outside 20–250 are
+/// detector noise rather than music, and are dropped — an unmeasurable tempo is
+/// a fact about the track, and recording `None` beats recording a wrong number
+/// that then filters playlists.
 fn parse_tempo(stdout: &str) -> Option<f32> {
-    stdout
-        .lines()
-        .rev()
-        .find_map(|l| l.trim().trim_end_matches("bpm").trim().parse::<f32>().ok())
-        .filter(|b| (20.0..=250.0).contains(b))
+    let beats: Vec<f64> = stdout.lines().filter_map(|l| l.trim().parse::<f64>().ok()).collect();
+    if beats.len() < 10 {
+        return None;
+    }
+    let tempi: Vec<f64> = beats.windows(2).map(|w| 60.0 / (w[1] - w[0])).collect();
+    let bpm = tempi.iter().sum::<f64>() / tempi.len() as f64;
+    Some(bpm as f32).filter(|b| (20.0..=250.0).contains(b))
 }
 
 /// Peak and RMS amplitude.
@@ -423,8 +448,8 @@ mod tests {
         assert_eq!(parse_lufs(""), None);
     }
 
-    /// Regression. `ebur128=framelog=quiet` is an ffmpeg 6+ option; on the 5.1
-    /// in the runtime image the filter fails to initialise and still prints a
+    /// Regression. `ebur128=framelog=quiet` is an ffmpeg 6+ option; on 5.1
+    /// (Debian bookworm's) the filter fails to initialise and still prints a
     /// summary — of 0.0 LUFS. The first run against a real track measured the
     /// whole library "successfully" with that constant. No real recording is
     /// 0.0 LUFS, so it is rejected rather than stored.
@@ -439,16 +464,58 @@ mod tests {
         assert_eq!(parse_lufs(broken), None);
     }
 
+    /// `count` beat times, `step` seconds apart, as aubiotrack prints them.
+    fn beats(count: usize, step: f64) -> String {
+        (0..count).map(|i| format!("{:.6}\n", 0.023 + i as f64 * step)).collect()
+    }
+
     #[test]
-    fn tempo_takes_the_last_number_and_rejects_nonsense() {
-        // What `aubio tempo` actually prints — a number with a unit, not a
-        // bare float. Parsed as bare, every track in the library got no BPM.
-        assert_eq!(parse_tempo("0.234\n1.021\n114.57 bpm\n"), Some(114.57));
-        assert_eq!(parse_tempo("0.234\n1.021\n1.808\n128.000000\n"), Some(128.0));
-        // Detector noise: a "tempo" of 4 BPM or 900 BPM is not music.
-        assert_eq!(parse_tempo("4.0 bpm\n"), None);
-        assert_eq!(parse_tempo("900.0 bpm\n"), None);
+    fn tempo_is_the_mean_of_the_beat_intervals() {
+        // 0.5 s apart is 120 BPM.
+        let bpm = parse_tempo(&beats(12, 0.5)).unwrap();
+        assert!((bpm - 120.0).abs() < 0.001, "{bpm}");
+        // Uneven beats average the way `aubio tempo` averaged them: the mean
+        // of the tempi (eight at 120, one at 105), not of the intervals.
+        let uneven = "0.0\n0.5\n1.0\n1.5\n2.0\n2.5\n3.0\n3.5\n4.0\n4.571429\n";
+        let bpm = parse_tempo(uneven).unwrap();
+        assert!((bpm - 118.33).abs() < 0.01, "{bpm}");
+    }
+
+    #[test]
+    fn tempo_rejects_too_few_beats_and_nonsense() {
+        // Nine beats: aubio's "uncertain".
+        assert_eq!(parse_tempo(&beats(9, 0.5)), None);
         assert_eq!(parse_tempo(""), None);
+        assert_eq!(parse_tempo("usage: aubiotrack\n"), None);
+        // Detector noise: a "tempo" of 4 BPM or 900 BPM is not music.
+        assert_eq!(parse_tempo(&beats(12, 15.0)), None);
+        assert_eq!(parse_tempo(&beats(12, 0.0667)), None);
+        // Two beats at one time: an infinite tempo is no tempo.
+        assert_eq!(parse_tempo("0\n0\n1\n2\n3\n4\n5\n6\n7\n8\n"), None);
+    }
+
+    /// A real click track through ffmpeg and aubiotrack. Skipped where they are
+    /// not installed (the image has both).
+    #[tokio::test]
+    async fn tempo_of_a_click_track() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("clicks.mp3");
+        let made = std::process::Command::new("ffmpeg")
+            .args([
+                "-v", "error", "-f", "lavfi", "-i",
+                "aevalsrc='if(lt(mod(t,0.46875),0.03),sin(2*PI*1000*t),0)+0.2*sin(2*PI*220*t)':s=44100:d=40",
+                "-c:a", "libmp3lame",
+            ])
+            .arg(&file)
+            .status();
+        let tracker = std::process::Command::new("aubiotrack").arg("-h").output();
+        if !made.is_ok_and(|s| s.success()) || tracker.is_err() {
+            eprintln!("ffmpeg with LAME or aubiotrack not available; skipped");
+            return;
+        }
+        let bpm = tempo(&file).await.unwrap().expect("a click track has a tempo");
+        // A click every 0.46875 s is 128 BPM.
+        assert!((bpm - 128.0).abs() < 1.0, "{bpm}");
     }
 
     #[test]
