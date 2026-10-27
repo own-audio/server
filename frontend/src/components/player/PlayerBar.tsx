@@ -31,6 +31,7 @@ import { getBookFileStreamUrl } from "../../api/audiobooks";
 import { getStreamUrl } from "../../api/podcasts";
 import { getTrackStreamUrl } from "../../api/music";
 import { offlineStreamUrl } from "../../lib/offline/downloads";
+import { nextStep, rememberFallback, routed, switchSource } from "../../lib/mediaRoute";
 import { Cover } from "../ui/Cover";
 import { toast } from "../../lib/toast";
 import { IconButton } from "../ui/Button";
@@ -156,6 +157,9 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
   const lastKeyRef = useRef<string | null>(null);
   const spanRef = useRef<OpenSpan | null>(null);
   const retriedRef = useRef(false);
+  /* The link loaded now, and whether this track already tried the other host. */
+  const srcRef = useRef<string | null>(null);
+  const fallbackTriedRef = useRef(false);
   const advancedEarlyRef = useRef(false);
   /* A pause we asked for, as opposed to one the system imposed — an ad or a
      video in another app, a call. The media element fires the same `pause`
@@ -310,9 +314,11 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
 
     lastKeyRef.current = key;
     retriedRef.current = false;
+    fallbackTriedRef.current = false;
     advancedEarlyRef.current = false;
     setStalled(null);
-    audio.src = track.streamUrl;
+    srcRef.current = routed(track.streamUrl);
+    audio.src = srcRef.current;
     audio.load();
     // Start now rather than at `canplay`: in the background every moment of
     // silence is one iOS may use to suspend the app (see handleTimeUpdate).
@@ -335,8 +341,10 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.kind, track?.streamUrl, track && trackKey(track)]);
 
-  // A stream URL that expired while the tab sat open fails at load; re-resolve
-  // once and retry before telling the listener anything is wrong.
+  // A network that blocks the store's host fails at load: take the server's
+  // other way to the same audio once. A stream URL that expired while the tab
+  // sat open fails the same way; re-resolve once and retry before telling the
+  // listener anything is wrong.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !track) return;
@@ -347,29 +355,28 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
         setStalled(reason);
         toast.error(translate("player.error.cantPlay"), reason);
       };
-      if (retriedRef.current || !track || !audio) {
-        const src = audio?.currentSrc || audio?.src;
-        if (audio?.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && src && !src.startsWith("blob:")) {
+      if (!track || !audio) return;
+      const step = nextStep(srcRef.current, fallbackTriedRef.current, retriedRef.current);
+      if (step.kind === "fallback") {
+        fallbackTriedRef.current = true;
+        srcRef.current = step.url;
+        switchSource(audio, step.url, rememberFallback);
+        return;
+      }
+      if (step.kind === "fail") {
+        const src = audio.currentSrc || audio.src;
+        if (audio.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && src && !src.startsWith("blob:")) {
           fail(await explainSourceError(src));
         } else {
-          fail(mediaErrorText(audio?.error));
+          fail(mediaErrorText(audio.error));
         }
         return;
       }
       retriedRef.current = true;
       try {
         const fresh = await resolveStreamUrl(track);
-        const at = audio.currentTime;
-        audio.src = fresh;
-        audio.load();
-        audio.addEventListener(
-          "canplay",
-          () => {
-            audio.currentTime = at;
-            void audio.play().catch(() => {});
-          },
-          { once: true }
-        );
+        srcRef.current = fresh;
+        switchSource(audio, fresh);
       } catch {
         fail(translate("player.error.noFreshLink"));
       }

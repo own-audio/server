@@ -6,8 +6,10 @@ import type {
   PodcastFeed,
   PodcastEpisode,
   PodcastSearchResult,
+  StreamResponse,
   Visibility,
 } from "./types";
+import { streamUrlFrom } from "../lib/mediaRoute";
 
 export async function listFeeds(): Promise<PodcastFeed[]> {
   const { data } = await api.get<PodcastFeed[]>("/podcasts");
@@ -144,8 +146,6 @@ export async function getStreamUrl(
   feedId: string,
   epId: string
 ): Promise<string> {
-  const { data } = await api.get<{ url: string; expires_in_secs: number }>(
-    `/podcasts/${feedId}/episodes/${epId}/stream`
-  );
-  return data.url;
+  const { data } = await api.get<StreamResponse>(`/podcasts/${feedId}/episodes/${epId}/stream`);
+  return streamUrlFrom(data.url, data.fallback_url);
 }

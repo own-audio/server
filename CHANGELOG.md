@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- The web console takes the media proxy when the object store's host cannot be reached: a song,
+  book file or episode that fails to load switches once to `fallback_url` (or the v2 link with
+  `route=proxy`) at the same position, and the rest of the browser session goes straight there.
+  Downloads for offline listening do the same.
+
 ## [1.0.0-beta.43] - 2026-10-27
 
 Contract revision 24.

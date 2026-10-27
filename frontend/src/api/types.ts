@@ -493,3 +493,12 @@ export interface EpisodeTranscript {
   cues: { start_ms: number; end_ms: number; text: string }[];
   text: string | null;
 }
+
+/** A v1 stream answer. `fallback_url` (contract revision 24) is the same audio
+ *  through the server's media proxy, for networks that block `url`'s host;
+ *  present only when the server has a proxy. */
+export interface StreamResponse {
+  url: string;
+  expires_in_secs: number;
+  fallback_url?: string;
+}

@@ -2,6 +2,7 @@
 import axios from "axios";
 import { create } from "zustand";
 import { getPlaylist, getTrackStreamUrl, listPlaylistTracks, listTracks } from "../../api/music";
+import { fetchWithFallback } from "../mediaRoute";
 import { mediaUrl } from "../../api/client";
 import type { MusicTrack } from "../../api/types";
 import { useAuthStore } from "../../store/authStore";
@@ -160,7 +161,7 @@ export async function saveCover(src: string | null, { refresh = false }: { refre
 
 async function downloadOne(item: QueuedDownload, signal: AbortSignal) {
   const url = await getTrackStreamUrl(item.id);
-  const res = await fetch(url, { signal });
+  const res = await fetchWithFallback(url, { signal });
   if (!res.ok) throw new HttpError(res.status);
 
   const total = Number(res.headers.get("content-length")) || item.track.size_bytes || null;

@@ -3,6 +3,7 @@ import api, { apiBaseUrl } from "./client";
 import { batchHeaders } from "./trash";
 import type { MusicTrack, MusicPlaylist, MusicPlaylistTrack, ArtistSummary, AlbumSummary, GenreSummary, Visibility } from "./types";
 import type { TrackChapter } from "../lib/chapters";
+import { streamUrlFrom } from "../lib/mediaRoute";
 
 /** The v2 API beside v1: same origin, same session. */
 const v2 = { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") };
@@ -102,7 +103,7 @@ export async function getTrackStreamUrl(trackId: string): Promise<string> {
     { kind: "track", id: trackId, capabilities: { direct: browserPlayable(), transcode: ["mp3"] } },
     { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") },
   );
-  return data.url;
+  return streamUrlFrom(data.url);
 }
 
 // ── Grouped browsing ───────────────────────────────────────────────────────

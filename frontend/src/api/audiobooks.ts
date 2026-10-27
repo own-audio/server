@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
 import { batchHeaders } from "./trash";
-import type { AudioBook, AudioBookFile, AudioBookChapter, Visibility } from "./types";
+import type { AudioBook, AudioBookFile, AudioBookChapter, StreamResponse, Visibility } from "./types";
+import { streamUrlFrom } from "../lib/mediaRoute";
 
 export async function listBooks(): Promise<AudioBook[]> {
   const { data } = await api.get<AudioBook[]>("/audiobooks");
@@ -221,8 +222,8 @@ export async function getBookFileStreamUrl(
   bookId: string,
   fileId: string
 ): Promise<string> {
-  const { data } = await api.get<{ url: string }>(`/audiobooks/${bookId}/files/${fileId}/stream`);
-  return data.url;
+  const { data } = await api.get<StreamResponse>(`/audiobooks/${bookId}/files/${fileId}/stream`);
+  return streamUrlFrom(data.url, data.fallback_url);
 }
 
 export async function reorderBookFiles(
