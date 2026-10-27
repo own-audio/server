@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.46] - 2026-10-28
+
+Contract revision 24.
+
 ### Changed
 
 - The server image is a third of its size: 296 MB instead of 924 MB on disk (arm64), 71 MB to
