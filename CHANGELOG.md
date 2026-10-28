@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- `GET /api/v1/stats/me` says whether the family admin may see the statistics
+  (`stats_visibility`: `private` or `family_admin`), so the apps can show the switch that
+  `PUT /stats/me/visibility` sets (contract revision 26).
+
 ### Changed
 
 - `POST /api/v1/auth/refresh` (and the `refresh_token` grant of `POST /api/v2/auth/token`) accepts one

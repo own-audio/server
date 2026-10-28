@@ -44,6 +44,10 @@ pub struct StatsResponse {
     pub streak_days: i64,
     /// Lifetime count of finished audiobooks, regardless of the requested range.
     pub completed_items: i64,
+    /// Whether the family admin may see these: `private` (the default) or `family_admin`.
+    /// Read here so an app can show the switch `PUT /stats/me/visibility` sets. Since
+    /// revision 26.
+    pub stats_visibility: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -155,9 +159,12 @@ async fn my_stats(
     let (range, since) = resolve_range(q.range.as_deref())?;
     let tz = normalize_tz(q.tz_offset_minutes)?;
 
-    Ok(Json(
-        build_stats(&state, family.user_id, &range, since, tz).await?,
-    ))
+    let mut stats = build_stats(&state, family.user_id, &range, since, tz).await?;
+    stats.stats_visibility = db::stats::stats_visibility(state.db(), family.family_id, family.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .unwrap_or_else(|| "private".into());
+    Ok(Json(stats))
 }
 
 /// GET /api/v1/stats/me/history — the raw session log, newest first.
@@ -379,6 +386,7 @@ async fn build_stats(
         top_items,
         streak_days: streak,
         completed_items,
+        stats_visibility: "private".into(),
     })
 }
 

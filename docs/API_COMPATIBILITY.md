@@ -123,6 +123,9 @@ Rules:
   `false` (the hosted edition): Google Books with the server's key, as before. Search
   candidates carry `source`; their `volume_id` is opaque (`ol:…`, `apple:…`, or Google's
   bare id) and goes back to `apply` unchanged, which asks the source the id came from.
+- `stats_visibility` in `GET /stats/me` (revision 26): `private` or `family_admin`,
+  what `PUT /stats/me/visibility` last set, so an app can show its switch. Older
+  servers leave it out; clients then hide the switch.
 - `one_family` (revision 4): the install has one family. Every new account
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each

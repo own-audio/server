@@ -159,8 +159,14 @@ def run(ctx):
              {"stats_visibility": "family_admin"}, expect=(403,))
         check("admin cannot expose an unrestricted adult", True)
 
-        # The adult may opt in themselves.
+        # The adult may opt in themselves, and reads back what they chose.
+        before = call("GET", "/api/v1/stats/me?range=7d", adult_tok)
+        if (ctx.server.get("api") or {}).get("revision", 0) >= 26:
+            check("stats say they are private by default", before.get("stats_visibility") == "private")
         call("PUT", "/api/v1/stats/me/visibility", adult_tok, {"stats_visibility": "family_admin"})
+        if (ctx.server.get("api") or {}).get("revision", 0) >= 26:
+            after = call("GET", "/api/v1/stats/me?range=7d", adult_tok)
+            check("stats say they are shared after opting in", after.get("stats_visibility") == "family_admin")
         fam = call("GET", "/api/v1/stats/family", parent_tok)
         check("adult becomes visible after opting in",
               not next(e for e in fam if e["user_id"] == adult_id)["hidden"])

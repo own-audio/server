@@ -20531,7 +20531,8 @@
           "by_day_kind",
           "top_items",
           "streak_days",
-          "completed_items"
+          "completed_items",
+          "stats_visibility"
         ],
         "properties": {
           "range": {
@@ -20575,6 +20576,10 @@
             "type": "integer",
             "format": "int64",
             "description": "Lifetime count of finished audiobooks, regardless of the requested range."
+          },
+          "stats_visibility": {
+            "type": "string",
+            "description": "Whether the family admin may see these: `private` (the default) or `family_admin`.\nRead here so an app can show the switch `PUT /stats/me/visibility` sets. Since\nrevision 26."
           }
         }
       },
