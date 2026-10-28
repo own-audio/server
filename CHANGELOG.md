@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.48] - 2026-10-28
+
+Contract revision 25.
+
 ### Added
 
 - Identify an audiobook from Open Library, Apple's audiobook catalogue or Google Books. A family
