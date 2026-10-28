@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.49] - 2026-10-28
+
+Contract revision 26.
+
 ### Added
 
 - `GET /api/v1/stats/me` says whether the family admin may see the statistics
