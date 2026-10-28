@@ -12,6 +12,8 @@ import { filesFromDrop } from "../../lib/dropFiles";
 import { Button, Dialog, DialogContent, Input, Textarea, toast } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
+import { useServerFeatures } from "../../lib/features";
+import { useMyPermissions } from "../../lib/permissions";
 
 const AUDIO_EXTENSIONS = new Set(["mp3", "m4a", "m4b", "aac", "flac", "ogg", "opus", "wav", "mp4"]);
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp"]);
@@ -41,6 +43,8 @@ function probeDuration(file: File): Promise<number | null> {
    relative_path, so workers finishing out of order is fine. */
 export default function UploadBookDialog() {
   const navigate = useNavigate();
+  const { features } = useServerFeatures();
+  const { canGenerate } = useMyPermissions();
   const qc = useQueryClient();
   const { t } = useT();
   const [files, setFiles] = useState<Pending[]>([]);
@@ -146,6 +150,15 @@ export default function UploadBookDialog() {
     await accept(Array.from(list).map((file) => ({ file, relativePath: (file as File & { webkitRelativePath?: string }).webkitRelativePath || file.name })));
   }
 
+  const narrateOptions = [
+    ...(features.narration && canGenerate
+      ? [{ to: "/generate", icon: <Sparkles className="h-5 w-5" />, title: t("audiobooks.upload.narrate.title"), body: t("audiobooks.upload.narrate.body") }]
+      : []),
+    ...(features.translation
+      ? [{ to: "/generate?translate=1", icon: <Languages className="h-5 w-5" />, title: t("audiobooks.upload.translate.title"), body: t("audiobooks.upload.translate.body") }]
+      : []),
+  ];
+
   return (
     <Dialog open onOpenChange={(v) => { if (!v) navigate("/audiobooks"); }}>
       <DialogContent
@@ -180,15 +193,13 @@ export default function UploadBookDialog() {
         </div>
 
         {/* Narration lives in its own wizard; offering it here is where someone with a book
-            but no recording goes looking. It reads text, so it needs an ebook, not audio. */}
-        {files.length === 0 && (
+            but no recording goes looking. It reads text, so it needs an ebook, not audio.
+            The open-source edition has neither, so the section is left out there. */}
+        {files.length === 0 && narrateOptions.length > 0 && (
           <div className="mt-5">
             <p className="text-sm font-medium">{t("audiobooks.upload.orNarrate")}</p>
             <div className="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {[
-                { to: "/generate", icon: <Sparkles className="h-5 w-5" />, title: t("audiobooks.upload.narrate.title"), body: t("audiobooks.upload.narrate.body") },
-                { to: "/generate?translate=1", icon: <Languages className="h-5 w-5" />, title: t("audiobooks.upload.translate.title"), body: t("audiobooks.upload.translate.body") },
-              ].map((o) => (
+              {narrateOptions.map((o) => (
                 <button
                   key={o.to}
                   type="button"

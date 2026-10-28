@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Console: "Add an audiobook" no longer offers to narrate or translate an ebook on a server without
+  them (`features.narration` / `features.translation`), the open-source edition among them.
+
 ## [1.0.0-beta.46] - 2026-10-28
 
 Contract revision 24.
