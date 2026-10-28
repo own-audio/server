@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.25"
+    "version": "1.26"
   },
   "servers": [
     {
@@ -4106,7 +4106,7 @@
           "auth"
         ],
         "summary": "Body: { \"refresh_token\": \"...\" } Rotates the refresh token and returns a fresh access JWT",
-        "description": "Body: { \"refresh_token\": \"...\" }\nRotates the refresh token and returns a fresh access JWT. Presenting an\nalready-rotated token is treated as theft: the whole chain is revoked.",
+        "description": "Body: { \"refresh_token\": \"...\" }\nRotates the refresh token and returns a fresh access JWT. Presenting an\nalready-rotated token is treated as theft: the whole chain is revoked —\nwith one exception, the retry of a refresh whose answer was lost (a phone\nthat dropped signal or was suspended mid-request still holds the old\ntoken). When the presented token's direct successor is still unused and\nwas not itself handed out this way, the server rotates that successor too\nand answers as for a normal refresh (RFC 9700 §4.14.2). Presenting the old\ntoken once more, or the successor the retry replaced, revokes the chain.",
         "operationId": "auth_refresh",
         "requestBody": {
           "content": {
@@ -4120,7 +4120,7 @@
         },
         "responses": {
           "200": {
-            "description": "A new access token and the next refresh token",
+            "description": "A new access token and the next refresh token. Also the answer to one retry with the token just rotated, while its successor is unused (since revision 26)",
             "content": {
               "application/json": {
                 "schema": {
@@ -4130,7 +4130,7 @@
             }
           },
           "401": {
-            "description": "Unknown, expired or already-used refresh token (reuse revokes the device's chain), or inactive account",
+            "description": "Unknown, expired or already-used refresh token (reuse revokes the device's chain, apart from the one retry above), or inactive account",
             "content": {
               "application/json": {
                 "schema": {

@@ -566,12 +566,18 @@ pub(crate) fn login_response(issued: IssuedTokens, user: User) -> LoginResponse 
 /// POST /api/v1/auth/refresh
 /// Body: { "refresh_token": "..." }
 /// Rotates the refresh token and returns a fresh access JWT. Presenting an
-/// already-rotated token is treated as theft: the whole chain is revoked.
+/// already-rotated token is treated as theft: the whole chain is revoked —
+/// with one exception, the retry of a refresh whose answer was lost (a phone
+/// that dropped signal or was suspended mid-request still holds the old
+/// token). When the presented token's direct successor is still unused and
+/// was not itself handed out this way, the server rotates that successor too
+/// and answers as for a normal refresh (RFC 9700 §4.14.2). Presenting the old
+/// token once more, or the successor the retry replaced, revokes the chain.
 #[utoipa::path(post, path = "/refresh", tag = "auth",
     request_body = RefreshRequest,
     responses(
-        (status = 200, description = "A new access token and the next refresh token", body = LoginResponse),
-        (status = 401, description = "Unknown, expired or already-used refresh token (reuse revokes the device's chain), or inactive account", body = crate::http::openapi::ErrorBody),
+        (status = 200, description = "A new access token and the next refresh token. Also the answer to one retry with the token just rotated, while its successor is unused (since revision 26)", body = LoginResponse),
+        (status = 401, description = "Unknown, expired or already-used refresh token (reuse revokes the device's chain, apart from the one retry above), or inactive account", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
 pub(crate) async fn refresh(
     State(state): State<AppState>,
@@ -585,9 +591,12 @@ pub(crate) async fn refresh(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::InvalidCredentials)?;
 
-    // Reuse of a rotated/revoked token ⇒ assume the token leaked; kill the
-    // whole device chain so neither party keeps access.
     if stored.revoked_at.is_some() || stored.replaced_by.is_some() {
+        if let Some(successor) = retry_grace_successor(pool, &stored).await? {
+            return reissue_after_lost_response(&state, &stored, &successor).await;
+        }
+        // Reuse of a rotated/revoked token ⇒ assume the token leaked; kill the
+        // whole device chain so neither party keeps access.
         db::refresh_tokens::revoke_chain(pool, stored.chain_id, stored.user_id)
             .await
             .map_err(AuthError::Internal)?;
@@ -628,6 +637,79 @@ pub(crate) async fn refresh(
         .await
         .map_err(AuthError::Internal)?;
 
+    if !rotated {
+        db::refresh_tokens::revoke_chain(pool, stored.chain_id, stored.user_id)
+            .await
+            .map_err(AuthError::Internal)?;
+        return Err(AuthError::InvalidCredentials);
+    }
+
+    Ok(Json(login_response(issued, user)))
+}
+
+/// The successor of a rotated token when presenting it again can only be the
+/// retry of a refresh whose answer was lost: the successor is unused, unexpired
+/// and not itself the product of such a retry. A signed-out chain never
+/// qualifies, since signing out sets `revoked_at` on every token in it.
+async fn retry_grace_successor(
+    pool: &sqlx::PgPool,
+    stored: &db::refresh_tokens::RefreshToken,
+) -> Result<Option<db::refresh_tokens::RefreshToken>, AuthError> {
+    let now = chrono::Utc::now();
+    let Some(successor_id) = stored.replaced_by else { return Ok(None) };
+    if stored.expires_at <= now {
+        return Ok(None);
+    }
+    let successor = db::refresh_tokens::find_by_id(pool, successor_id)
+        .await
+        .map_err(AuthError::Internal)?;
+    Ok(successor.filter(|s| {
+        s.chain_id == stored.chain_id
+            && s.user_id == stored.user_id
+            && s.revoked_at.is_none()
+            && s.replaced_by.is_none()
+            && s.expires_at > now
+            && !s.reissued
+    }))
+}
+
+/// Answer a retried refresh: a new token in the same chain replaces the
+/// unused successor, and is flagged so it gets no grace of its own.
+async fn reissue_after_lost_response(
+    state: &AppState,
+    stored: &db::refresh_tokens::RefreshToken,
+    successor: &db::refresh_tokens::RefreshToken,
+) -> Result<Json<LoginResponse>, AuthError> {
+    let pool = state.db();
+    let user = db::users::find_by_id(pool, stored.user_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::InvalidCredentials)?;
+    if !user.is_active {
+        return Err(AuthError::InvalidCredentials);
+    }
+
+    let issued = issue_tokens(
+        state,
+        &user,
+        successor.device_name.as_deref(),
+        Some(&successor.device_kind),
+        Some(successor.chain_id),
+    )
+    .await?;
+    let new_row = db::refresh_tokens::find_by_hash(pool, &db::refresh_tokens::hash_token(&issued.refresh_token))
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or_else(|| AuthError::Internal(anyhow::anyhow!("fresh refresh token vanished")))?;
+    // Flagged before it replaces the successor, so a failure in between can
+    // never leave an unflagged token that a second retry could build on.
+    db::refresh_tokens::mark_reissued(pool, new_row.id)
+        .await
+        .map_err(AuthError::Internal)?;
+
+    let rotated = db::refresh_tokens::mark_rotated(pool, successor.id, new_row.id)
+        .await
+        .map_err(AuthError::Internal)?;
     if !rotated {
         db::refresh_tokens::revoke_chain(pool, stored.chain_id, stored.user_id)
             .await

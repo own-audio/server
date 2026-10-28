@@ -291,6 +291,18 @@ that sends no `If-None-Match` gets the full answer as before.
 - Access and refresh tokens are opaque to clients. Their format, lifetime and
   claims may change at any release without a revision bump.
 - The refresh flow (`POST /auth/refresh`) and its error codes are contract.
+- **A lost refresh answer can be retried once** (revision 26). Presenting a
+  refresh token that was already rotated used to revoke the device's chain
+  every time, which signed phones out when a refresh reached the server but
+  its answer never came back. Now, while the token that rotation produced is
+  still unused, presenting the old token again answers `200` with a new pair
+  in the same chain, and the unused one is retired. Only once: the token
+  issued this way gets no such grace, presenting the old token a third time
+  revokes the chain, and so does presenting the retired one. A signed-out
+  chain is never revived. `POST /auth/fork` stays strict: a rotated token
+  is refused there and ends its chain. Clients change nothing; the ones
+  that store the new token only after the answer arrives are the ones it
+  helps.
 - A server that cannot verify a token answers `401`; clients then refresh once
   and, on a second `401`, sign out. This is already how every client behaves
   and it must stay so.

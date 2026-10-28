@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- `POST /api/v1/auth/refresh` (and the `refresh_token` grant of `POST /api/v2/auth/token`) accepts one
+  retry of a refresh whose answer was lost: presenting the token just rotated, while the token that
+  rotation produced is still unused, answers with a new pair instead of signing the device out. A
+  second retry, or the replaced token, still revokes the chain; a signed-out device stays signed
+  out. Phones that lost signal or were suspended mid-refresh were being signed out (migration 0121,
+  contract revision 26).
+
 ## [1.0.0-beta.48] - 2026-10-28
 
 Contract revision 25.

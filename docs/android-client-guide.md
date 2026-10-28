@@ -132,7 +132,11 @@ missing item as a bug or cache it as "deleted".
 Short-lived **access JWT** + long-lived **rotating refresh token**. Refresh
 tokens rotate on every use: each refresh returns a *new* one and invalidates
 the old. Presenting an already-used refresh token is treated as theft and the
-server kills that whole device chain.
+server kills that whole device chain — with one exception (revision 26): if
+a refresh reached the server but its answer was lost, sending the same old
+token again once gets a normal answer, as long as the token that refresh
+produced has not been used. A second retry, or using the token it replaced,
+still kills the chain.
 
 **This means storage must be transactional.** If you overwrite the stored
 refresh token before you know the response was persisted, a crash between the

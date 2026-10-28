@@ -360,10 +360,40 @@ def run(ctx: Ctx) -> None:
         second_refresh_token = refreshed["refresh_token"]
         need(second_refresh_token != first_refresh_token, "refresh token must rotate")
 
-        # Reusing the rotated (old) token must fail and revoke the chain…
+        # The answer to the first refresh may never have reached the device:
+        # presenting the old token once more, while its successor is unused,
+        # is that retry and gets a new pair (revision 26)…
+        retried = ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": first_refresh_token})
+        third_refresh_token = retried["refresh_token"]
+        need(bool(retried["token"]), "a retried refresh must return an access token")
+        need(third_refresh_token not in (first_refresh_token, second_refresh_token), "a retried refresh must hand out a new token")
+        # …but only once: a third use is theft and revokes the chain…
         ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": first_refresh_token}, expect=(401,))
-        # …which also kills the newest token of that chain.
+        # …which kills every token of that chain.
         ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": second_refresh_token}, expect=(401,))
+        ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": third_refresh_token}, expect=(401,))
+
+        # Once the successor has been used, the old token gets no grace at all.
+        used_login = ctx.call(
+            "POST", "/api/v1/auth/login",
+            body={"email": test_email, "password": new_password, "device_name": "smoke-device-3", "device_kind": "other"},
+        )
+        t1 = used_login["refresh_token"]
+        t2 = ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": t1})["refresh_token"]
+        t3 = ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": t2})["refresh_token"]
+        ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": t1}, expect=(401,))
+        ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": t3}, expect=(401,))
+
+        # Nor does a retry revive a signed-out device.
+        out_login = ctx.call(
+            "POST", "/api/v1/auth/login",
+            body={"email": test_email, "password": new_password, "device_name": "smoke-device-4", "device_kind": "other"},
+        )
+        o1 = out_login["refresh_token"]
+        o2 = ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": o1})
+        out_target = next(s for s in ctx.call("GET", "/api/v1/auth/sessions", o2["token"]) if s.get("device_name") == "smoke-device-4")
+        ctx.call("DELETE", f"/api/v1/auth/sessions/{out_target['chain_id']}", user_token, expect=(200, 204))
+        ctx.call("POST", "/api/v1/auth/refresh", body={"refresh_token": o1}, expect=(401,))
 
         sessions = ctx.call("GET", "/api/v1/auth/sessions", user_token)
         need(isinstance(sessions, list), "sessions must be a list")

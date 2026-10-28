@@ -74,7 +74,7 @@ boundary moves.
 |---|---|---|
 | Password guessing | argon2id; 12-character minimum; per-email lock after five failures (30 s doubling to 16 min, for unknown emails too); per-address limit on sign-in routes; the owner is mailed at the first lock | `auth::password`, `db::login_failures`, `http::rate_limit` |
 | Stolen access token | one-hour lifetime; `403` never triggers a refresh; sessions revocable | `AuthConfig::access_ttl`, `db::sessions` |
-| Stolen refresh token | stored as a hash; rotation; reuse of a rotated token revokes the whole chain; 90-day life | `db::refresh_tokens` |
+| Stolen refresh token | stored as a hash; rotation; reuse of a rotated token revokes the whole chain, apart from one retry while its successor is unused (a lost answer, RFC 9700 §4.14.2); 90-day life | `db::refresh_tokens` |
 | Stolen device, shared computer | sessions page with "sign out everywhere"; password change signs other devices out; mail on a sign-in from an unfamiliar device; optional two-factor sign-in | `/auth/sessions`, `auth::totp`, `mail::new_device` |
 | Account takeover through "forgot password" | single-use, 30-minute link stored as a hash; a reset signs every session out; the answer never says whether the email exists | `auth::forgot_password`, `db::password_resets` |
 | Account takeover through a sign-in provider | identities link only on a verified email; an unverified provider email never links to an existing account | `auth::sso_sign_in` |

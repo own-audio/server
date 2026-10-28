@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 /// Refresh-token persistence. A chain = one signed-in device; tokens rotate
-/// on every refresh but keep their chain_id. See migration 0017.
+/// on every refresh but keep their chain_id. See migrations 0017 and 0121.
 use anyhow::Context;
 use chrono::{DateTime, Utc};
 use sha2::{Digest, Sha256};
@@ -19,7 +19,13 @@ pub struct RefreshToken {
     pub expires_at: DateTime<Utc>,
     pub revoked_at: Option<DateTime<Utc>>,
     pub replaced_by: Option<Uuid>,
+    /// Issued for a retried refresh whose first answer was lost; such a
+    /// token gets no second grace.
+    pub reissued: bool,
 }
+
+const COLS: &str = "id, user_id, chain_id, device_name, device_kind,
+                    created_at, last_used_at, expires_at, revoked_at, replaced_by, reissued";
 
 /// One row per signed-in device (the newest active token of each chain).
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -46,13 +52,12 @@ pub async fn create(
     device_kind: &str,
     expires_at: DateTime<Utc>,
 ) -> anyhow::Result<RefreshToken> {
-    sqlx::query_as::<_, RefreshToken>(
+    sqlx::query_as::<_, RefreshToken>(&format!(
         "INSERT INTO refresh_tokens
              (user_id, chain_id, token_hash, device_name, device_kind, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6)
-         RETURNING id, user_id, chain_id, device_name, device_kind,
-                   created_at, last_used_at, expires_at, revoked_at, replaced_by",
-    )
+         RETURNING {COLS}"
+    ))
     .bind(user_id)
     .bind(chain_id)
     .bind(token_hash)
@@ -65,15 +70,29 @@ pub async fn create(
 }
 
 pub async fn find_by_hash(pool: &PgPool, token_hash: &str) -> anyhow::Result<Option<RefreshToken>> {
-    sqlx::query_as::<_, RefreshToken>(
-        "SELECT id, user_id, chain_id, device_name, device_kind,
-                created_at, last_used_at, expires_at, revoked_at, replaced_by
-         FROM refresh_tokens WHERE token_hash = $1",
-    )
-    .bind(token_hash)
-    .fetch_optional(pool)
-    .await
-    .context("db: find refresh token")
+    sqlx::query_as::<_, RefreshToken>(&format!("SELECT {COLS} FROM refresh_tokens WHERE token_hash = $1"))
+        .bind(token_hash)
+        .fetch_optional(pool)
+        .await
+        .context("db: find refresh token")
+}
+
+pub async fn find_by_id(pool: &PgPool, id: Uuid) -> anyhow::Result<Option<RefreshToken>> {
+    sqlx::query_as::<_, RefreshToken>(&format!("SELECT {COLS} FROM refresh_tokens WHERE id = $1"))
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find refresh token by id")
+}
+
+/// Flag a token as handed out by the retry grace (`auth::refresh`).
+pub async fn mark_reissued(pool: &PgPool, id: Uuid) -> anyhow::Result<()> {
+    sqlx::query("UPDATE refresh_tokens SET reissued = true WHERE id = $1")
+        .bind(id)
+        .execute(pool)
+        .await
+        .context("db: mark refresh token reissued")?;
+    Ok(())
 }
 
 /// Atomically retire `old_id` in favour of `new_id`. Returns `false` when the

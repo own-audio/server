@@ -147,10 +147,14 @@ def signin(ctx: Ctx, problem) -> None:
     rotated = json.loads(body) if st == 200 else {}
     ctx.check("refresh grant rotates the refresh token",
               st == 200 and rotated.get("refresh_token") not in (None, issued["refresh_token"]))
-    ctx.check("a used refresh token: invalid_grant",
+    st, _h, body = token({"grant_type": "refresh_token", "refresh_token": issued["refresh_token"]})
+    retried = json.loads(body) if st == 200 else {}
+    ctx.check("one retry of a lost refresh answer gets a new pair",
+              st == 200 and retried.get("refresh_token") not in (None, issued["refresh_token"], rotated.get("refresh_token")))
+    ctx.check("a used refresh token a second time: invalid_grant",
               oauth_error(token({"grant_type": "refresh_token", "refresh_token": issued["refresh_token"]}), 400, "invalid_grant"))
     ctx.check("…and its reuse signed the device out",
-              oauth_error(token({"grant_type": "refresh_token", "refresh_token": rotated.get("refresh_token", "")}), 400, "invalid_grant"))
+              oauth_error(token({"grant_type": "refresh_token", "refresh_token": retried.get("refresh_token", "")}), 400, "invalid_grant"))
 
     _st, _h, body = token({"grant_type": "password", "username": email, "password": PW, "device_name": "Revoked"})
     revokable = json.loads(body)
