@@ -342,3 +342,32 @@ export async function setAudioAnalysis(enabled: boolean): Promise<AudioAnalysisS
   });
   return data;
 }
+
+// ── Where audiobook identify looks (`features.book_source_choice`) ─────────
+
+export type BookSource = "openlibrary" | "apple" | "google";
+
+export interface BookSourceStatus {
+  /** False on a server that does not offer the choice: Google with its own key. */
+  configurable: boolean;
+  source: BookSource;
+  /** The family has its own Google Books key. The key itself never comes back. */
+  google_key_set: boolean;
+  /** The server has a key of its own, used when the family has none. */
+  server_google_key: boolean;
+}
+
+export async function getBookSource(): Promise<BookSourceStatus> {
+  const { data } = await api.get<BookSourceStatus>("/family/settings/book-source");
+  return data;
+}
+
+/** Family admins only. `google_books_api_key`: a new key, `null` removes the
+ *  family's key, left out keeps it. */
+export async function setBookSource(req: {
+  source: BookSource;
+  google_books_api_key?: string | null;
+}): Promise<BookSourceStatus> {
+  const { data } = await api.put<BookSourceStatus>("/family/settings/book-source", req);
+  return data;
+}

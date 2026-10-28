@@ -63,7 +63,9 @@ and [docs/RAM_USAGE.md](docs/RAM_USAGE.md).
   Wikimedia Commons for an artist's photo the first time it is shown.
 
 Optional, off until you configure them: sign-in with Google, Apple or
-Microsoft; book identification through Google Books; invite mail over SMTP.
+Microsoft; invite mail over SMTP. Book identification asks Open Library by
+default; a family admin can switch to Apple's audiobook catalogue, or to
+Google Books with their own key.
 Podcast search goes to Apple's public directory; categories and similar
 shows need a catalogue this edition does not have yet.
 

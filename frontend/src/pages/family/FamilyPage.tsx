@@ -25,6 +25,7 @@ import { Page } from "../../components/shell/SplitView";
 import { Button, Dialog, DialogContent, EmptyState, IconButton, Input, Pill, Select, Skeleton, toast } from "../../components/ui";
 import QrCode from "../../components/QrCode";
 import AudioAnalysisCard from "./AudioAnalysisCard";
+import BookSourceCard from "./BookSourceCard";
 import AuthImage from "../../components/AuthImage";
 import { apiErrorMessage } from "../../lib/apiError";
 import { cn } from "../../lib/cn";
@@ -526,6 +527,8 @@ export default function FamilyPage() {
       </section>
 
       <AudioAnalysisCard isAdmin={!!isAdmin} />
+
+      <BookSourceCard isAdmin={!!isAdmin} />
 
       {isAdmin && (
         <section className="mt-8">

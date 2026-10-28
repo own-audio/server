@@ -17,8 +17,9 @@
 //! **It describes the print book, not the audiobook.** There is no narrator, no
 //! runtime, no chapter list and no series position in this data, which is why
 //! `narrator` is the one field an apply never touches. Audible/Audnexus is the
-//! source that would carry those; this module is deliberately shaped so a
-//! second provider can sit beside it rather than being folded into it.
+//! source that would carry those. Open Library (`super::open_library`) and
+//! Apple's audiobook catalogue (`super::apple_books`) sit beside it, chosen
+//! per family in the open-source edition (`super::books`).
 
 use anyhow::Context;
 use serde::{Deserialize, Serialize};
@@ -50,6 +51,12 @@ const MAX_QUERY_LEN: usize = 200;
 #[error("google books turned the request away: no API key is set, and the shared keyless quota for this server's IP address is used up")]
 pub struct QuotaExhausted;
 
+/// Google answered a request that carried a key with `400` or `403`: the key is not valid, or
+/// the Books API is not enabled for its project. Someone typed that key, so they are told.
+#[derive(Debug, thiserror::Error)]
+#[error("google books refused the API key: it is not valid, or the Books API is not enabled for its project")]
+pub struct KeyRejected;
+
 /// Google caps `maxResults` at 40 and gets noticeably worse past the first
 /// page, so there is nothing to gain by asking for more.
 const MAX_RESULTS: u8 = 40;
@@ -57,7 +64,11 @@ const MAX_RESULTS: u8 = 40;
 /// One search hit, already flattened out of Google's `volumeInfo` nesting.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, utoipa::ToSchema)]
 pub struct BookCandidate {
+    /// Opaque to clients: send it back to `apply` as it came. Google's own id
+    /// as Google gives it; `ol:` and `apple:` prefix the other sources' ids.
     pub volume_id: String,
+    /// Where this candidate came from (revision 25).
+    pub source: super::books::BookSource,
     pub title: String,
     /// Google keeps this out of `title`; audio2 has no subtitle column, so it
     /// is shown to help tell two editions apart and then dropped.
@@ -201,7 +212,7 @@ pub async fn volume(volume_id: &str, api_key: Option<&str>) -> anyhow::Result<Bo
     }
 
     let client = client()?;
-    let response = send_with_retry(|| {
+    let response = send_with_retry(key_param(api_key).is_empty(), || {
         client
             .get(format!("{SEARCH_URL}/{volume_id}"))
             .query(&key_param(api_key))
@@ -290,7 +301,7 @@ async fn fetch(query: &str, limit: u8, api_key: Option<&str>) -> anyhow::Result<
 
     let client = client()?;
     let limit = limit.to_string();
-    let response = send_with_retry(|| {
+    let response = send_with_retry(key_param(api_key).is_empty(), || {
         client
             .get(SEARCH_URL)
             .query(&[
@@ -318,7 +329,7 @@ async fn fetch(query: &str, limit: u8, api_key: Option<&str>) -> anyhow::Result<
 /// API answers identically however many times it is asked, so those return immediately —
 /// [`QuotaExhausted`] separately from the rest, because one is fixable in the Cloud console and
 /// the other is not.
-async fn send_with_retry<F>(build: F) -> anyhow::Result<reqwest::Response>
+async fn send_with_retry<F>(keyless: bool, build: F) -> anyhow::Result<reqwest::Response>
 where
     F: Fn() -> reqwest::RequestBuilder,
 {
@@ -328,6 +339,11 @@ where
             Ok(response) => {
                 if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
                     return Err(QuotaExhausted.into());
+                }
+                if !keyless
+                    && matches!(response.status(), reqwest::StatusCode::BAD_REQUEST | reqwest::StatusCode::FORBIDDEN)
+                {
+                    return Err(KeyRejected.into());
                 }
                 if !response.status().is_server_error() {
                     return Ok(response.error_for_status()?);
@@ -367,6 +383,7 @@ fn clean_result(item: Volume, query_title: Option<&str>, query_author: Option<&s
 
     Some(BookCandidate {
         volume_id: item.id,
+        source: super::books::BookSource::Google,
         subtitle: info.subtitle,
         author,
         publisher: info.publisher,
@@ -390,7 +407,7 @@ fn clean_result(item: Volume, query_title: Option<&str>, query_author: Option<&s
 /// Every client would otherwise clean it separately — and four cleanups is four sets of bugs —
 /// so it is done here, once, for the picker and for the text `apply` writes onto the book.
 /// Nothing is truncated: how much of it to show is the caller's decision, not this module's.
-fn clean_description(raw: &str) -> Option<String> {
+pub(crate) fn clean_description(raw: &str) -> Option<String> {
     let chars: Vec<char> = raw.chars().collect();
     let mut text = String::with_capacity(raw.len());
     let mut i = 0;
@@ -502,7 +519,7 @@ fn extract_isbn(identifiers: &[IndustryIdentifier]) -> Option<String> {
         .map(|i| i.identifier.clone())
 }
 
-fn published_year(published_date: &str) -> Option<i32> {
+pub(crate) fn published_year(published_date: &str) -> Option<i32> {
     published_date.split('-').next()?.trim().parse().ok()
 }
 
@@ -559,7 +576,7 @@ fn upgrade_cover_url(url: &str) -> Option<String> {
 
 // ── Scoring ──────────────────────────────────────────────────────────────
 
-fn truncate(value: Option<&str>) -> Option<String> {
+pub(crate) fn truncate(value: Option<&str>) -> Option<String> {
     let value = value?.trim();
     if value.is_empty() {
         return None;
@@ -574,7 +591,7 @@ fn truncate(value: Option<&str>) -> Option<String> {
 /// candidate back against what was actually searched for is what pushes those
 /// down. A search with no author scores on title alone rather than penalising
 /// every result equally, which would just reproduce Google's order.
-fn score(title: &str, author: Option<&str>, query_title: Option<&str>, query_author: Option<&str>) -> u8 {
+pub(crate) fn score(title: &str, author: Option<&str>, query_title: Option<&str>, query_author: Option<&str>) -> u8 {
     let title_score = query_title.map(|q| similarity(&normalize(title), &normalize(q)));
     let author_score = match (query_author, author) {
         (Some(q), Some(a)) => Some(similarity(&normalize(a), &normalize(q))),

@@ -7,12 +7,15 @@
 //! from-scratch rebuild scoped to what the Music Implementation Plan needs
 //! (search + apply for a single track), not a restore of the old surface
 //! (artist/release browsing was dropped as unused).
+pub mod apple_books;
+pub mod books;
 pub mod cover_art;
 pub mod google_books;
 pub mod itunes;
 pub mod wikimedia;
 pub mod mirror;
 pub mod musicbrainz;
+pub mod open_library;
 pub mod public;
 pub mod watermark;
 

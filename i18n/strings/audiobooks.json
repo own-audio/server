@@ -319,6 +319,14 @@
     "en": "Searches Google Books for the printed edition and fills in what it finds.",
     "cs": "Vyhledá tištěné vydání v Google Books a doplní, co najde."
   },
+  "audiobooks.identify.searchDescriptionOpenLibrary": {
+    "en": "Searches Open Library for the book and fills in what it finds.",
+    "cs": "Vyhledá knihu v Open Library a doplní, co najde."
+  },
+  "audiobooks.identify.searchDescriptionApple": {
+    "en": "Searches Apple's audiobook catalogue and fills in what it finds.",
+    "cs": "Vyhledá audioknihu v katalogu Apple a doplní, co najde."
+  },
   "audiobooks.identify.confirmDescription": {
     "en": "Only the ticked fields are written. Everything else keeps what it has.",
     "cs": "Zapíší se jen zaškrtnutá pole. Vše ostatní zůstane, jak je."
@@ -344,8 +352,8 @@
     "cs": "Současná obálka"
   },
   "audiobooks.identify.nothingHere": {
-    "en": "Google Books has nothing here",
-    "cs": "Google Books zde nic nemá"
+    "en": "Not in this match",
+    "cs": "V této shodě chybí"
   },
   "audiobooks.identify.now": {
     "en": "Now: {value}",
@@ -353,8 +361,8 @@
     "note": "The field's current value, beside the proposed one."
   },
   "audiobooks.identify.narratorNote": {
-    "en": "Narrator and file titles are left alone — Google Books describes the printed book and has no narration to match against.",
-    "cs": "Google Books popisuje tištěné vydání, takže vypravěč ani názvy souborů se nikdy nemění."
+    "en": "Narrator and file titles are left alone — none of the sources has the narration to match against.",
+    "cs": "Vypravěč ani názvy souborů se nikdy nemění — žádný zdroj o nahrávce nic neví."
   },
   "audiobooks.identify.noResults": {
     "en": "Nothing matched. Try just the title, or drop a subtitle and any series number.",

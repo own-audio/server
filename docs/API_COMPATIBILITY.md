@@ -116,6 +116,13 @@ Rules:
   `GET /api/v2/albums?kind=live` or `GET /api/v1/music/albums?kind=live`
   (`release_kind` on each), set it with `release_kind` on `POST /api/v2/tracks`
   or `PATCH /api/v2/release-groups/{id}`.
+- `book_source_choice` (revision 25): a family admin chooses where "identify this
+  audiobook" looks — `openlibrary` (the default), `apple` or `google` — with
+  `PUT /family/settings/book-source`, and may give the family's own Google Books key there
+  (stored encrypted, never sent back). `GET` tells any member which source is in use.
+  `false` (the hosted edition): Google Books with the server's key, as before. Search
+  candidates carry `source`; their `volume_id` is opaque (`ol:…`, `apple:…`, or Google's
+  bare id) and goes back to `apply` unchanged, which asks the source the id came from.
 - `one_family` (revision 4): the install has one family. Every new account
   joins it, and removing a member or leaving answers `409`; clients hide
   "leave family" and offer block or delete instead. `false` (or missing): each

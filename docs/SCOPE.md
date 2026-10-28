@@ -29,7 +29,8 @@ private hosted repository and never in this one.
 - Upload (multipart for small files, presigned direct-to-storage for large),
   files, authors, series, collections, favourites, per-file names and
   durations, cover art.
-- Identify a book against Google Books (optional: needs a key).
+- Identify a book against Open Library (default), Apple's audiobook catalogue,
+  or Google Books with a key — a family admin chooses.
 
 ### Podcasts
 - Feeds, episodes, hourly refresh, server-side episode download, transcripts
@@ -83,7 +84,7 @@ private hosted repository and never in this one.
 | Sign in with Google / Apple / Microsoft | the provider's client ids | `features.auth.<provider>` |
 | Music identify | the public MusicBrainz API (`musicbrainz.org`, 1 request/s, keyless) in this edition; the hosted edition uses its private mirror service behind the same provider interface | `features.music_identify` |
 | Podcast discovery (search, similar, categories) | the public iTunes Search API (keyless) and, with a free key, the Podcast Index API; the hosted edition uses its private catalogue service | `features.podcast_discovery` |
-| Book identify | Google Books key | part of audiobooks; degrades to "unavailable" |
+| Book identify | none for Open Library (the default) or Apple's catalogue; a Google Books key, the family's or `GOOGLE_CLOUD__BOOKS_API_KEY`, for Google; the hosted edition uses Google with its own key | `features.book_source_choice` |
 | Mail notifications (family invite, inbox events) | an SMTP server, plain authenticated SMTP only (done 2026-10-07; the JMAP sender is gone) | `features.mail` |
 | Artist images | none (Wikidata/Commons, keyless) | always on |
 

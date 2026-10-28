@@ -1174,10 +1174,11 @@ async fn upload_cover(
     Ok(StatusCode::CREATED)
 }
 
-// ── Identify (Google Books) ───────────────────────────────────────────────
+// ── Identify (Open Library, Apple, Google Books) ───────────────────────────────────────────────
 
-/// POST /api/v1/audiobooks/:id/metadata/search — Google Books candidates for
-/// this book.
+/// POST /api/v1/audiobooks/:id/metadata/search — candidates for this book
+/// from the family's source (`families::book_source`): Google Books, or where
+/// the edition lets a family admin choose, Open Library or Apple.
 ///
 /// The id scopes visibility, nothing more: the search runs on the title and
 /// author in the body, which the client seeds from the book but lets the user
@@ -1187,7 +1188,7 @@ async fn upload_cover(
     request_body = IdentifySearchRequest,
     responses(
         (status = 200, body = Vec<crate::metadata::google_books::BookCandidate>),
-        (status = 400, description = "Neither title nor author, or the Google Books quota is used up", body = crate::http::openapi::ErrorBody),
+        (status = 400, description = "Neither title nor author, or Google Books turned the server away", body = crate::http::openapi::ErrorBody),
         (status = 404, description = "No such book, or not visible to the caller", body = crate::http::openapi::ErrorBody)))]
 async fn search_book_metadata(
     family: FamilyContext,
@@ -1208,14 +1209,16 @@ async fn search_book_metadata(
         ));
     }
 
-    let candidates = crate::metadata::google_books::search(
+    let (source, google_key) = crate::families::book_source::for_identify(&state, &family).await?;
+    let candidates = crate::metadata::books::search(
+        source,
         title,
         author,
         body.limit.unwrap_or(10),
-        books_api_key(&state),
+        google_key.as_deref(),
     )
     .await
-    .map_err(identify_error)?;
+    .map_err(|e| identify_error(&state, e))?;
 
     Ok(Json(candidates))
 }
@@ -1232,7 +1235,7 @@ async fn search_book_metadata(
     request_body = ApplyIdentifyRequest,
     responses(
         (status = 200, body = BookResponse),
-        (status = 400, description = "The Google Books quota is used up", body = crate::http::openapi::ErrorBody),
+        (status = 400, description = "Google Books turned the server away", body = crate::http::openapi::ErrorBody),
         (status = 403, description = "`fields.cover` without upload rights", body = crate::http::openapi::ErrorBody),
         (status = 404, description = "No such book the caller may manage", body = crate::http::openapi::ErrorBody)))]
 async fn apply_book_metadata(
@@ -1261,9 +1264,12 @@ async fn apply_book_metadata(
         family.require_can_upload()?;
     }
 
-    let volume = crate::metadata::google_books::volume(&body.volume_id, books_api_key(&state))
+    // The source the id came from, whatever the family uses now; the key is
+    // the family's (or the server's) either way.
+    let (_, google_key) = crate::families::book_source::for_identify(&state, &family).await?;
+    let volume = crate::metadata::books::fetch(&body.volume_id, google_key.as_deref())
         .await
-        .map_err(identify_error)?;
+        .map_err(|e| identify_error(&state, e))?;
 
     let fields = &body.fields;
     db::audiobooks::apply_google_books_metadata(
@@ -1285,7 +1291,7 @@ async fn apply_book_metadata(
 
     if fields.cover {
         if let Some(cover_url) = volume.cover_url.as_deref() {
-            apply_book_cover(&state, &family, id, cover_url).await;
+            apply_book_cover(&state, &family, id, volume.source, cover_url).await;
         }
     }
 
@@ -1297,34 +1303,41 @@ async fn apply_book_metadata(
     Ok(Json(book_to_response(fresh, family.user_id)))
 }
 
-/// A spent Google quota is the one failure a deployment without an API key hits constantly, and
-/// it is fixable — by whoever runs the server, in the Cloud console. Surfacing it as a plain 500
-/// hides that behind "something went wrong", so it gets its own message and a `400` the clients
-/// already know how to display. Everything else stays an opaque internal error.
-fn identify_error(error: anyhow::Error) -> AuthError {
+/// A spent Google quota is the one failure a server without its own Google key hits constantly,
+/// and it is fixable — by a family admin choosing another source or entering a key where the
+/// edition offers that, else by whoever runs the server. Surfacing it as a plain 500 hides that
+/// behind "something went wrong", so it gets its own message and a `400` the clients already
+/// know how to display. Everything else stays an opaque internal error.
+fn identify_error(state: &AppState, error: anyhow::Error) -> AuthError {
     if error.is::<crate::metadata::google_books::QuotaExhausted>()
         || error
             .source()
             .is_some_and(|source| source.is::<crate::metadata::google_books::QuotaExhausted>())
     {
-        return AuthError::BadRequest(
+        return AuthError::BadRequest(if state.hooks().book_source_choice() {
+            "Google Books turned this server away — its shared keyless quota is used up. \
+             A family admin can enter a Google Books API key, or choose Open Library or Apple, \
+             under Family → Audiobook details."
+        } else {
             "Google Books turned this server away — its shared keyless quota is used up. \
              Set GOOGLE_CLOUD__BOOKS_API_KEY on the server to fix it."
-                .to_string(),
-        );
+        }
+        .to_string());
+    }
+    if let Some(not_an_id) = error.downcast_ref::<crate::metadata::books::NotAnId>() {
+        return AuthError::BadRequest(not_an_id.to_string());
+    }
+    if error.chain().any(|e| e.is::<crate::metadata::google_books::KeyRejected>()) {
+        return AuthError::BadRequest(if state.hooks().book_source_choice() {
+            "Google Books refused the API key: it is not valid, or the Books API is not enabled \
+             for its project. A family admin can change it under Family → Audiobook details."
+        } else {
+            "Google Books refused the server's API key (GOOGLE_CLOUD__BOOKS_API_KEY): it is not \
+             valid, or the Books API is not enabled for its project."
+        }
+        .to_string());
     }
     AuthError::Internal(error)
-}
-
-/// Optional: without it Google bills the request to a per-IP anonymous quota
-/// shared with every other keyless caller (see `metadata::google_books`).
-fn books_api_key(state: &AppState) -> Option<&str> {
-    state
-        .config()
-        .google_cloud
-        .as_ref()
-        .and_then(|g| g.books_api_key.as_deref())
-        .filter(|key| !key.trim().is_empty())
 }
 
 /// Best-effort, exactly like the music side's `apply_cover_art`: every failure
@@ -1334,10 +1347,11 @@ async fn apply_book_cover(
     state: &AppState,
     family: &FamilyContext,
     book_id: Uuid,
+    source: crate::metadata::books::BookSource,
     cover_url: &str,
 ) {
-    let Some((bytes, format)) = crate::metadata::google_books::fetch_cover(cover_url).await else {
-        tracing::debug!(book_id = %book_id, "google books cover was unusable; leaving the book's cover alone");
+    let Some((bytes, format)) = crate::metadata::books::fetch_cover(source, cover_url).await else {
+        tracing::debug!(book_id = %book_id, "the match's cover was unusable; leaving the book's cover alone");
         return;
     };
 

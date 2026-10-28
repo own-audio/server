@@ -134,10 +134,13 @@ export async function updateBook(
   return data;
 }
 
-// ── Identify (Google Books) ───────────────────────────────────────────────
+// ── Identify (Open Library, Apple, Google Books) ───────────────────────────────────────────────
 
 export interface BookCandidate {
+  /** Opaque: sent back to apply as it came (`ol:…`, `apple:…` or Google's id). */
   volume_id: string;
+  /** Revision 25; absent from an older server, which only ever used Google. */
+  source?: "openlibrary" | "apple" | "google";
   title: string;
   subtitle: string | null;
   author: string | null;
@@ -147,10 +150,10 @@ export interface BookCandidate {
   isbn: string | null;
   page_count: number | null;
   categories: string[];
-  /** Google's own image, already upgraded past the 128px thumbnail server-side.
-   *  Can still 404 — a broken image here is normal, not an error. */
+  /** The source's own image, as large as it offers. Can still 404 — a broken
+   *  image here is normal, not an error. */
   cover_url: string | null;
-  /** 0–100, computed by our backend. Google returns relevance order but no score. */
+  /** 0–100, computed by our backend; the sources return an order but no score. */
   score: number;
 }
 

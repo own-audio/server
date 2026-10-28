@@ -141,7 +141,7 @@ backend/src/
   users/ families/ setup/ dashboard.rs            jobs/       worker loop + handler registry
   library/    search, delta sync, private         storage/    S3 presigning, family keys
   audiobooks/ podcasts/ music/ youtube/           playback/   progress, queue, bookmarks
-  metadata/   music-metadata client, Google Books, cover-art cascade, Wikimedia
+  metadata/   music-metadata client, book sources (Open Library, Apple, Google Books), cover-art cascade, Wikimedia
   subsonic/   OpenSubsonic at /rest               filesync/   the own.audio folder protocol
   library/scan/  (Phase 4) read-only library folders   media/  (Phase 4) server-served streams
   trash/ uploads/ stats/ devices/ mail/           hooks.rs    the Hooks trait + NoopHooks

@@ -23,7 +23,7 @@ pub const API_VERSION: u32 = 1;
 /// 5: `features.podcast_search`.
 /// 6: `id` and `addresses` in this endpoint's response; `maxBitRate`,
 ///    `format` and `timeOffset` on Subsonic `stream`.
-pub const API_REVISION: u32 = 24;
+pub const API_REVISION: u32 = 25;
 
 /// What this server is and offers: edition, version, contract revision and
 /// `features`. Clients read it once after `GET /setup/status`; a 404 means a
@@ -114,6 +114,9 @@ pub fn features(state: &AppState) -> Map<String, Value> {
     features.insert("track_chapters".into(), json!(true));
     let mail = cfg.mail.as_ref().is_some_and(|m| m.smtp_host().is_some());
     features.insert("mail".into(), json!(mail));
+    // Revision 25: a family admin picks where audiobook identify looks
+    // (`/family/settings/book-source`).
+    features.insert("book_source_choice".into(), json!(state.hooks().book_source_choice()));
     // Revision 4: every account joins the one family; clients hide "leave".
     features.insert("one_family".into(), json!(state.hooks().one_family()));
     // The edition's own keys; absent in the open-source edition, so set the

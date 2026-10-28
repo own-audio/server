@@ -116,6 +116,39 @@ def run(ctx: Ctx) -> None:
          {"media_kind": "audiobook", "policy": "allow_all"}, expect=(401, 403))
     check("kid cannot lift their own restriction", True)
 
+    ctx.log("\n[audiobook identify source]")
+    src = call("GET", "/api/v1/family/settings/book-source", adult_tok)
+    check("any member reads where identify looks",
+          src.get("source") in ("openlibrary", "apple", "google") and "google_books_api_key" not in src, src)
+    if ctx.feature("book_source_choice") and src["google_key_set"]:
+        # On a one-family server this is the install's family; its own key is not ours to remove.
+        check("the family has its own Google key; changing the source is left untested", True)
+    elif ctx.feature("book_source_choice"):
+        call("PUT", "/api/v1/family/settings/book-source", adult_tok, {"source": "apple"}, expect=(403,))
+        check("a member who is not a family admin cannot change it", True)
+        changed = call("PUT", "/api/v1/family/settings/book-source", owner_tok, {"source": "apple"})
+        check("a family admin switches to Apple", changed["source"] == "apple", changed)
+        if not src["server_google_key"]:
+            call("PUT", "/api/v1/family/settings/book-source", owner_tok, {"source": "google"}, expect=(400,))
+            check("Google without any key is refused", True)
+        call("PUT", "/api/v1/family/settings/book-source", owner_tok,
+             {"source": "google", "google_books_api_key": "not a key/"}, expect=(400,))
+        check("something that cannot be a key is refused", True)
+        keyed = call("PUT", "/api/v1/family/settings/book-source", owner_tok,
+                     {"source": "google", "google_books_api_key": f"AIzaConformance{sfx}"})
+        check("Google with the family's own key", keyed["source"] == "google" and keyed["google_key_set"] is True, keyed)
+        check("the key is never sent back", f"AIzaConformance{sfx}" not in str(keyed)
+              and f"AIzaConformance{sfx}" not in str(call("GET", "/api/v1/family/settings/book-source", owner_tok)))
+        # Back to what the family had, without the test's key.
+        reset = call("PUT", "/api/v1/family/settings/book-source", owner_tok,
+                     {"source": src["source"], "google_books_api_key": None})
+        check("the key is removed and the family's source is back",
+              reset["source"] == src["source"] and reset["google_key_set"] is False, reset)
+    else:
+        check("without the choice it is Google", src["source"] == "google" and src["configurable"] is False, src)
+        call("PUT", "/api/v1/family/settings/book-source", owner_tok, {"source": "apple"}, expect=(403,))
+        check("and nobody can change it", True)
+
     ctx.log("\n[search + private folder]")
     hits = call("GET", f"/api/v1/library/search?q=Private%20Book%20{sfx}", adult_tok)
     check("adult finds the shared book in search", _has(hits, "id", bid))

@@ -480,11 +480,19 @@ Base path `/audiobooks`.
 | POST | `/{id}/upload-file` | Add/replace one file at a given `position` (multipart). |
 | GET | `/{id}/files/{file_id}/stream` | `{url, expires_in_secs}` presigned S3 URL. |
 | PUT | `/{id}/files/reorder` | `{file_ids: [...]}` — reorder multi-file books. |
-| POST | `/{id}/metadata/search` | Google Books candidates for this book — see §6b. |
+| POST | `/{id}/metadata/search` | Candidates for this book from the family's source — see §6b. |
 | POST | `/{id}/metadata/apply` | Write a chosen match onto the book — see §6b. |
 | GET | `/{id}/chapters` | List chapters (**read-only** — no chapter creation/editing endpoint, and chapters are not auto-extracted from embedded M4B/ID3 metadata; they must be populated some other way, currently unclear from the router which write path exists). |
 
-## 6b. Identify a book — Google Books
+## 6b. Identify a book — Open Library, Apple or Google Books
+
+Where the search looks is the family's choice where `features.book_source_choice`
+(the open-source edition: Open Library by default, Apple's audiobook catalogue, or
+Google Books with a key, `GET`/`PUT /family/settings/book-source`), else Google Books.
+Every candidate carries `source`; `volume_id` is opaque (`ol:OL4288871W`,
+`apple:1646194052`, or Google's own id) and goes back to apply as it came. Open
+Library leaves `publisher` and `isbn` empty (its hits are works, across editions);
+Apple has no ISBN or page count.
 
 `POST /audiobooks/{id}/metadata/search` — body `{title?, author?, limit?}`, at
 least one of title/author or the server answers 400. The book id scopes
@@ -496,7 +504,7 @@ Returns candidates ordered by our own 0–100 `score` (Google returns relevance
 order but no score):
 
 ```json
-[{"volume_id":"zyTCAlFPjgYC","title":"Dune","subtitle":null,"author":"Frank Herbert",
+[{"volume_id":"zyTCAlFPjgYC","source":"google","title":"Dune","subtitle":null,"author":"Frank Herbert",
   "publisher":"Ace","published_year":1965,"description":"…","isbn":"9780441013593",
   "page_count":896,"categories":["Fiction"],"cover_url":"https://…","score":100}]
 ```
@@ -520,8 +528,8 @@ updated book.
 `published_year`; `google_books_volume_id` non-null is what "already identified"
 means.
 
-**`narrator` is never written by an apply.** Google Books describes the print
-edition: no narrator, no runtime, no chapters, no series position.
+**`narrator` is never written by an apply.** No source has it: Open Library and
+Google Books describe the print edition, and Apple's catalogue leaves it out.
 
 ## 6a. Direct-to-storage uploads — `/uploads`
 

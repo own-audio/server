@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Search } from "lucide-react";
 import {
   applyBookMetadata,
@@ -8,14 +8,16 @@ import {
   type BookCandidate,
   type IdentifyFields,
 } from "../../api/audiobooks";
+import { getBookSource, type BookSource } from "../../api/family";
 import { apiErrorMessage } from "../../lib/apiError";
+import { useServerFeatures } from "../../lib/features";
 import { Button, Dialog, DialogContent, Input, Pill, Skeleton, toast } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import type { AudioBook } from "../../api/types";
 import { useT, type PlainKey } from "../../i18n";
 
-/* "Identify" on a book — Google Books search, then a per-field choice of what
-   to actually write.
+/* "Identify" on a book — a search of the family's source (Open Library, Apple
+   or Google Books), then a per-field choice of what to actually write.
 
    The two steps are deliberate. Audiobookshelf's quick match applies the top
    result whole, which is how a book ends up with a study guide's description
@@ -24,8 +26,15 @@ import { useT, type PlainKey } from "../../i18n";
    than fixed to it, because the books worth identifying are the ones whose
    stored title and author are wrong. */
 
-/** Google Books describes the print edition — there is no narrator in this
-    data, so the book's own narrator is never part of the choice. */
+/** No source has the narrator — Open Library and Google describe the printed
+    book, Apple's catalogue leaves it out — so the book's own narrator is never
+    part of the choice. */
+const SEARCH_DESCRIPTION: Record<BookSource, PlainKey> = {
+  openlibrary: "audiobooks.identify.searchDescriptionOpenLibrary",
+  apple: "audiobooks.identify.searchDescriptionApple",
+  google: "audiobooks.identify.searchDescription",
+};
+
 const FIELD_LABELS: { key: keyof IdentifyFields; label: PlainKey }[] = [
   { key: "title", label: "audiobooks.field.title" },
   { key: "author", label: "audiobooks.field.author" },
@@ -158,6 +167,14 @@ export default function IdentifyBookSheet({ book, onClose }: { book: AudioBook; 
     cover: true,
   });
   const [error, setError] = useState<string | null>(null);
+  const { features } = useServerFeatures();
+  // Without the choice the server always asks Google, as before revision 25.
+  const { data: sourceStatus } = useQuery({
+    queryKey: ["book-source"],
+    queryFn: getBookSource,
+    enabled: features.book_source_choice,
+  });
+  const source: BookSource = features.book_source_choice ? (sourceStatus?.source ?? "openlibrary") : "google";
 
   const canSearch = title.trim().length > 0 || author.trim().length > 0;
 
@@ -193,7 +210,7 @@ export default function IdentifyBookSheet({ book, onClose }: { book: AudioBook; 
         description={
           picked
             ? t("audiobooks.identify.confirmDescription")
-            : t("audiobooks.identify.searchDescription")
+            : t(SEARCH_DESCRIPTION[source])
         }
         className="sm:max-w-2xl"
         footer={

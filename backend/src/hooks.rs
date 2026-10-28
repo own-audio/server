@@ -68,6 +68,15 @@ pub trait Hooks: Send + Sync + 'static {
         false
     }
 
+    /// Whether a family admin chooses where "identify this audiobook" looks
+    /// (Open Library, Apple, or Google with the family's own key). Without the
+    /// choice, Google Books with `GOOGLE_CLOUD__BOOKS_API_KEY` — what an edition
+    /// that runs with its own key wants. The open-source binary answers `true`:
+    /// keyless Google is turned away nearly everywhere.
+    fn book_source_choice(&self) -> bool {
+        false
+    }
+
     /// A user exists for the first time and has just received their personal
     /// family (register, SSO sign-in, admin-create, first-admin setup). The
     /// hosted edition grants the once-ever welcome credit here.
@@ -188,6 +197,10 @@ pub struct NoopHooks;
 #[async_trait]
 impl Hooks for NoopHooks {
     fn one_family(&self) -> bool {
+        true
+    }
+
+    fn book_source_choice(&self) -> bool {
         true
     }
 }

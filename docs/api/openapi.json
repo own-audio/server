@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.24"
+    "version": "1.25"
   },
   "servers": [
     {
@@ -2696,7 +2696,7 @@
             }
           },
           "400": {
-            "description": "The Google Books quota is used up",
+            "description": "Google Books turned the server away",
             "content": {
               "application/json": {
                 "schema": {
@@ -2738,8 +2738,8 @@
         "tags": [
           "audiobooks"
         ],
-        "summary": "Google Books candidates for this book",
-        "description": "Google Books candidates for\nthis book.\n\nThe id scopes visibility, nothing more: the search runs on the title and\nauthor in the body, which the client seeds from the book but lets the user\nedit first. Anyone who can see the book can search — it writes nothing.",
+        "summary": "Candidates for this book from the family's source (`families::book_source`): Google Books, or where the edition lets a family admin choose, Open Library or Apple",
+        "description": "candidates for this book\nfrom the family's source (`families::book_source`): Google Books, or where\nthe edition lets a family admin choose, Open Library or Apple.\n\nThe id scopes visibility, nothing more: the search runs on the title and\nauthor in the body, which the client seeds from the book but lets the user\nedit first. Anyone who can see the book can search — it writes nothing.",
         "operationId": "audiobooks_search_book_metadata",
         "parameters": [
           {
@@ -2778,7 +2778,7 @@
             }
           },
           "400": {
-            "description": "Neither title nor author, or the Google Books quota is used up",
+            "description": "Neither title nor author, or Google Books turned the server away",
             "content": {
               "application/json": {
                 "schema": {
@@ -6430,6 +6430,107 @@
           },
           "403": {
             "description": "Not a family admin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/family/settings/book-source": {
+      "get": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Where identifying an audiobook looks",
+        "description": "where identifying an audiobook\nlooks. Any member may read it; the key is never part of the answer.",
+        "operationId": "family_get_book_source",
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookSourceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "family"
+        ],
+        "summary": "Choose the source, and set or remove the family's Google Books key (family_admin only, and only where `features.book_source_choice`)",
+        "operationId": "family_set_book_source",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetBookSourceRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookSourceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Google without a key, or a key that cannot be one",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Not signed in",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a family admin, or this server does not offer the choice",
             "content": {
               "application/json": {
                 "schema": {
@@ -15468,13 +15569,19 @@
         "description": "One search hit, already flattened out of Google's `volumeInfo` nesting.",
         "required": [
           "volume_id",
+          "source",
           "title",
           "categories",
           "score"
         ],
         "properties": {
           "volume_id": {
-            "type": "string"
+            "type": "string",
+            "description": "Opaque to clients: send it back to `apply` as it came. Google's own id\nas Google gives it; `ol:` and `apple:` prefix the other sources' ids."
+          },
+          "source": {
+            "$ref": "#/components/schemas/BookSource",
+            "description": "Where this candidate came from (revision 25)."
           },
           "title": {
             "type": "string"
@@ -15690,6 +15797,40 @@
           },
           "read_only": {
             "type": "boolean"
+          }
+        }
+      },
+      "BookSource": {
+        "type": "string",
+        "enum": [
+          "openlibrary",
+          "apple",
+          "google"
+        ]
+      },
+      "BookSourceResponse": {
+        "type": "object",
+        "required": [
+          "configurable",
+          "source",
+          "google_key_set",
+          "server_google_key"
+        ],
+        "properties": {
+          "configurable": {
+            "type": "boolean",
+            "description": "Whether a family admin may change this (`features.book_source_choice`)."
+          },
+          "source": {
+            "$ref": "#/components/schemas/BookSource"
+          },
+          "google_key_set": {
+            "type": "boolean",
+            "description": "The family has its own Google Books key. The key itself is never sent."
+          },
+          "server_google_key": {
+            "type": "boolean",
+            "description": "The server has a key of its own (`GOOGLE_CLOUD__BOOKS_API_KEY`), used\nwhen the family has none."
           }
         }
       },
@@ -19991,6 +20132,24 @@
         "properties": {
           "enabled": {
             "type": "boolean"
+          }
+        }
+      },
+      "SetBookSourceRequest": {
+        "type": "object",
+        "required": [
+          "source"
+        ],
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/BookSource"
+          },
+          "google_books_api_key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A new key; `null` removes the family's key; absent keeps it."
           }
         }
       },

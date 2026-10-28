@@ -5,6 +5,7 @@
 /// memory. Family admins manage membership and (from Phase 2) per-member
 /// access to individual media items.
 pub mod admin;
+pub mod book_source;
 pub mod context;
 
 pub use context::{FamilyAdmin, FamilyContext};
@@ -256,6 +257,7 @@ pub fn router() -> OpenApiRouter<AppState> {
         }))
         .routes(routes!(delete_family_avatar, get_family_avatar))
         .routes(routes!(get_audio_analysis, set_audio_analysis))
+        .routes(routes!(book_source::get_book_source, book_source::set_book_source))
         .routes(routes!(list_members))
         .routes(routes!(provision_member))
         .routes(routes!(update_member, remove_member))

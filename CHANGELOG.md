@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Identify an audiobook from Open Library, Apple's audiobook catalogue or Google Books. A family
+  admin chooses under Family → Audiobook details, and may enter the family's own Google Books key
+  there (stored encrypted, never shown again). New installs and existing families start on Open
+  Library: keyless Google Books turns most servers away. `features.book_source_choice`,
+  `GET`/`PUT /api/v1/family/settings/book-source`, `source` on every candidate (migration 0120,
+  contract revision 25). The hosted edition keeps Google Books with its own key.
+
 ## [1.0.0-beta.47] - 2026-10-28
 
 Contract revision 24.

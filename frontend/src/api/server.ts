@@ -42,6 +42,8 @@ export interface ServerFeatures {
   summaries: boolean;
   /** Revision 22: concerts — chapter marks on music tracks, albums of release kind `live`. */
   track_chapters: boolean;
+  /** Revision 25: a family admin picks where audiobook identify looks (`/family/settings/book-source`). */
+  book_source_choice: boolean;
 }
 
 export interface ServerInfo {
@@ -75,6 +77,7 @@ export const NO_FEATURES: ServerFeatures = {
   translation: false,
   summaries: false,
   track_chapters: false,
+  book_source_choice: false,
 };
 
 /* A server older than `GET /server` answers 404. The hosted console is

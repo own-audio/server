@@ -686,3 +686,40 @@ pub async fn mark_invite_accepted(
 
     Ok(result.rows_affected() == 1)
 }
+
+/// Where the family's audiobook identify looks, and its Google Books key
+/// still sealed (`auth::at_rest`), if it set one.
+pub async fn book_source(pool: &PgPool, family_id: Uuid) -> anyhow::Result<(String, Option<String>)> {
+    let row: Option<(String, Option<String>)> =
+        sqlx::query_as("SELECT book_source, google_books_api_key FROM families WHERE id = $1")
+            .bind(family_id)
+            .fetch_optional(pool)
+            .await
+            .context("db: read book source")?;
+    Ok(row.unwrap_or_else(|| ("openlibrary".to_string(), None)))
+}
+
+/// Sets the source, and the sealed key when `key` is `Some` (`Some(None)`
+/// removes it; `None` keeps what is there).
+pub async fn set_book_source(
+    pool: &PgPool,
+    family_id: Uuid,
+    source: &str,
+    key: Option<Option<&str>>,
+) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE families
+            SET book_source          = $2,
+                google_books_api_key = CASE WHEN $3 THEN $4 ELSE google_books_api_key END,
+                updated_at           = now()
+          WHERE id = $1",
+    )
+    .bind(family_id)
+    .bind(source)
+    .bind(key.is_some())
+    .bind(key.flatten())
+    .execute(pool)
+    .await
+    .context("db: set book source")?;
+    Ok(())
+}
