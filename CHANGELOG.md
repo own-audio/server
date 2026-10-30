@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- The albums column on an artist's page in the web console can be dragged wider or narrower, like
+  the list beside it; the width is remembered. Double-click the edge for the default.
+
 ## [1.0.0-beta.50] - 2026-10-30
 
 Contract revision 26.

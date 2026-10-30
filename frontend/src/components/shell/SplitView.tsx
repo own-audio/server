@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useCallback, useLayoutEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { IconButton } from "../ui/Button";
-import { usePersistedState } from "../../lib/persistedState";
+import { useColumnWidth } from "../../lib/columnWidth";
+import ResizeGrip from "./ResizeGrip";
 import { useT } from "../../i18n";
 
 /* The product's navigation shape: a content column (collections) and a detail
@@ -17,11 +18,6 @@ export type ColumnWidth = keyof typeof DEFAULT_WIDTH;
 
 const MIN_WIDTH = 260;
 const MAX_WIDTH = 720;
-/** Arrow-key nudge, and the step the grip reports to assistive tech. */
-const KEY_STEP = 16;
-
-const clamp = (n: number) => Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, Math.round(n)));
-
 export function SplitView({
   content,
   detail,
@@ -40,37 +36,9 @@ export function SplitView({
   widthKey?: string;
   className?: string;
 }) {
-  const [width, setWidth] = usePersistedState<number>(
-    `own-audio-col-${widthKey ?? contentWidth}`,
-    DEFAULT_WIDTH[contentWidth]
-  );
-  const [dragging, setDragging] = useState(false);
+  const column = useColumnWidth(`own-audio-col-${widthKey ?? contentWidth}`, DEFAULT_WIDTH[contentWidth], MIN_WIDTH, MAX_WIDTH);
   const { t } = useT();
   const columnRef = useRef<HTMLElement>(null);
-
-  const onPointerDown = useCallback(
-    (e: PointerEvent<HTMLDivElement>) => {
-      e.preventDefault();
-      const grip = e.currentTarget;
-      grip.setPointerCapture(e.pointerId);
-      setDragging(true);
-
-      const left = columnRef.current?.getBoundingClientRect().left ?? 0;
-      // Track the pointer rather than accumulating deltas: a drag that runs
-      // past the clamp and comes back stays under the cursor either way.
-      const move = (ev: globalThis.PointerEvent) => setWidth(clamp(ev.clientX - left));
-      const up = () => {
-        setDragging(false);
-        grip.removeEventListener("pointermove", move);
-        grip.removeEventListener("pointerup", up);
-        grip.removeEventListener("pointercancel", up);
-      };
-      grip.addEventListener("pointermove", move);
-      grip.addEventListener("pointerup", up);
-      grip.addEventListener("pointercancel", up);
-    },
-    [setWidth]
-  );
 
   return (
     <div className={cn("flex h-full min-h-0", className)}>
@@ -78,7 +46,7 @@ export function SplitView({
         ref={columnRef}
         // The width is a CSS variable, not a generated class: Tailwind scans
         // source text, so `lg:w-[...]` built at runtime produces no CSS.
-        style={{ "--content-w": `${width}px` } as CSSProperties}
+        style={{ "--content-w": `${column.width}px` } as CSSProperties}
         className={cn(
           "scroll-subtle min-h-0 shrink-0 overflow-y-auto border-r border-border",
           "w-full lg:w-[var(--content-w)]",
@@ -88,34 +56,8 @@ export function SplitView({
         {content}
       </section>
 
-      {/* Drag, or focus and use the arrow keys. Double-click restores the
-          section's default. Hidden below `lg`, where there is only one column. */}
-      <div
-        role="separator"
-        aria-orientation="vertical"
-        aria-label={t("shell.split.resize")}
-        aria-valuenow={width}
-        aria-valuemin={MIN_WIDTH}
-        aria-valuemax={MAX_WIDTH}
-        tabIndex={0}
-        onPointerDown={onPointerDown}
-        onDoubleClick={() => setWidth(DEFAULT_WIDTH[contentWidth])}
-        onKeyDown={(e) => {
-          if (e.key === "ArrowLeft") setWidth(clamp(width - KEY_STEP));
-          else if (e.key === "ArrowRight") setWidth(clamp(width + KEY_STEP));
-          else if (e.key === "Home") setWidth(MIN_WIDTH);
-          else if (e.key === "End") setWidth(MAX_WIDTH);
-          else return;
-          e.preventDefault();
-        }}
-        className={cn(
-          "relative -ml-px hidden w-1 shrink-0 cursor-col-resize touch-none lg:block",
-          "after:absolute after:inset-y-0 after:-left-1 after:-right-1 after:content-['']",
-          "hover:bg-accent/50 focus-visible:bg-accent focus-visible:outline-none",
-          dragging && "bg-accent",
-          hasDetail ? "" : "lg:hidden"
-        )}
-      />
+      {/* Hidden below `lg`, where there is only one column. */}
+      <ResizeGrip column={column} columnRef={columnRef} className={cn("-ml-px hidden", hasDetail && "lg:block")} />
 
       <section className={cn("scroll-subtle relative min-h-0 min-w-0 flex-1 overflow-y-auto", !hasDetail && "hidden lg:block")}>
         {hasDetail && onBack && (

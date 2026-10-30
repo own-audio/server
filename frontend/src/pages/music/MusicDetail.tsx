@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check, CheckSquare, ListMusic, Pencil, Play, ScanSearch, Share2, Shuffle, Sparkles, Ticket, Users, UserX, Disc3, Combine } from "lucide-react";
 import { useServerFeatures } from "../../lib/features";
@@ -31,7 +31,8 @@ import { canDelete, moveToTrash } from "../../lib/trash";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { removeDownload } from "../../lib/offline/downloads";
 import { runWithLimit } from "../../lib/uploadQueue";
-import { useState } from "react";
+import ResizeGrip from "../../components/shell/ResizeGrip";
+import { useColumnWidth } from "../../lib/columnWidth";
 import { useT } from "../../i18n";
 
 export type MusicSelection =
@@ -52,6 +53,9 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   const [editingPlaylist, setEditingPlaylist] = useState(false);
   const [batchIdentify, setBatchIdentify] = useState<MusicTrack[] | null>(null);
   const [editingAlbum, setEditingAlbum] = useState<MusicTrack[] | null>(null);
+  /* The artist page's albums column, as wide as the user dragged it. */
+  const albumsColumn = useColumnWidth("own-audio-col-artist-albums", 272, 180, 480);
+  const albumsColumnRef = useRef<HTMLDivElement>(null);
   const [merging, setMerging] = useState<AlbumSummary[] | null>(null);
   const trackActions = useTrackActions();
   const [sharing, setSharing] = useState(false);
@@ -321,9 +325,20 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
         </div>
       </div>
 
-      <div className={cn("px-3", splitByAlbum && "lg:grid lg:grid-cols-[minmax(13rem,17rem)_minmax(0,1fr)] lg:gap-3")}>
-        {splitByAlbum && <ArtistAlbums albums={artistAlbums} total={selectedTracks.length} picked={pickedAlbum} onPick={pickAlbum} />}
-        <div className="min-w-0">
+      <div className={cn("px-3", splitByAlbum && "lg:flex lg:gap-2")}>
+        {splitByAlbum && (
+          <>
+            <div
+              ref={albumsColumnRef}
+              style={{ "--albums-w": `${albumsColumn.width}px` } as CSSProperties}
+              className="lg:w-[var(--albums-w)] lg:shrink-0"
+            >
+              <ArtistAlbums albums={artistAlbums} total={selectedTracks.length} picked={pickedAlbum} onPick={pickAlbum} />
+            </div>
+            <ResizeGrip column={albumsColumn} columnRef={albumsColumnRef} className="hidden rounded-full lg:block" />
+          </>
+        )}
+        <div className="min-w-0 lg:flex-1">
         {tracks.length === 0 ? (
           <EmptyState title={t("music.detail.noSongs")} description={t(isPlaylist ? "music.detail.noSongsPlaylist" : "music.detail.noSongsSelection")} />
         ) : (
