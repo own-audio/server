@@ -76,7 +76,8 @@ export async function playBook(book: AudioBook, startFileId?: string, startAt?: 
   store.playQueue(queue, start);
 }
 
-export async function toPlayerTrack(t: MusicTrack): Promise<MusicPlayerTrack> {
+/** `streamUrl` empty means "not asked yet": the player asks when the song comes up. */
+function musicPlayerTrack(t: MusicTrack, streamUrl: string): MusicPlayerTrack {
   return {
     kind: "music",
     trackId: t.id,
@@ -85,13 +86,26 @@ export async function toPlayerTrack(t: MusicTrack): Promise<MusicPlayerTrack> {
     album: t.album,
     albumArtist: t.album_artist ?? t.artist,
     imageUrl: t.cover_url,
-    // A downloaded song never asks the server for a link, which is what lets
-    // a queue start with no connection at all.
-    streamUrl: (await offlineStreamUrl(t.id)) ?? (await getTrackStreamUrl(t.id)),
+    streamUrl,
     durationSecs: t.duration_secs,
     resumePosition: 0,
     isOwner: t.is_owner,
   };
+}
+
+export async function toPlayerTrack(t: MusicTrack): Promise<MusicPlayerTrack> {
+  // A downloaded song never asks the server for a link, which is what lets
+  // a queue start with no connection at all.
+  return musicPlayerTrack(t, (await offlineStreamUrl(t.id)) ?? (await getTrackStreamUrl(t.id)));
+}
+
+/** A list as a queue, with a link only for the song that starts it. Asking for
+ *  every link up front was one request per song: a click in the library's
+ *  10,000-song list sent 10,000 and played nothing until they were done. */
+async function toQueue(tracks: MusicTrack[], index: number): Promise<MusicPlayerTrack[]> {
+  const queue = tracks.map((t) => musicPlayerTrack(t, ""));
+  queue[index] = await toPlayerTrack(tracks[index]);
+  return queue;
 }
 
 export function isCurrentTrack(trackId: string) {
@@ -106,7 +120,7 @@ export async function playTracks(tracks: MusicTrack[], index = 0, source: QueueS
     store.setPlaying(!store.playing);
     return;
   }
-  const queue = await Promise.all(tracks.map(toPlayerTrack));
+  const queue = await toQueue(tracks, index);
   store.setChapters([]);
   store.playQueue(queue, index, source);
 }
@@ -127,7 +141,7 @@ export async function playOne(trackId: string) {
 /** Start a list at a given song and position — picking up where it was left. */
 export async function resumeTracks(tracks: MusicTrack[], index: number, position: number) {
   if (!tracks[index]) return;
-  const queue = await Promise.all(tracks.map(toPlayerTrack));
+  const queue = await toQueue(tracks, index);
   queue[index] = { ...queue[index], resumePosition: Math.max(0, position) };
   const store = usePlayerStore.getState();
   store.setChapters([]);
@@ -140,7 +154,8 @@ export async function shuffleTracks(tracks: MusicTrack[], source: QueueSource | 
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  const queue = await Promise.all(shuffled.map(toPlayerTrack));
+  if (shuffled.length === 0) return;
+  const queue = await toQueue(shuffled, 0);
   usePlayerStore.getState().setChapters([]);
   usePlayerStore.getState().playQueue(queue, 0, source);
 }

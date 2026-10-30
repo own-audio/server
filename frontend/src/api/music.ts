@@ -96,11 +96,16 @@ function browserPlayable(): string[] {
 /**
  * A link to the track's audio, the original when this browser plays it and an
  * MP3 the server makes otherwise (WMA in every browser, FLAC in old Safari).
+ *
+ * `transcode` asks for the MP3 whatever the type says: an MP2 file stored as
+ * `audio/mpeg` passes the check above and then fails in Safari. A list of
+ * direct types that matches nothing is how the API is told so.
  */
-export async function getTrackStreamUrl(trackId: string): Promise<string> {
+export async function getTrackStreamUrl(trackId: string, { transcode = false } = {}): Promise<string> {
+  const direct = transcode ? ["none"] : browserPlayable();
   const { data } = await api.post<{ url: string }>(
     "/playback-info",
-    { kind: "track", id: trackId, capabilities: { direct: browserPlayable(), transcode: ["mp3"] } },
+    { kind: "track", id: trackId, capabilities: { direct, transcode: ["mp3"] } },
     { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") },
   );
   return streamUrlFrom(data.url);

@@ -805,6 +805,7 @@ export interface MessageParams {
   "music.album.markConcert": undefined;
   "music.album.unmarkConcert": undefined;
   "music.artist.albums": undefined;
+  "music.artist.appearsOn": undefined;
   "music.browse.concertsHint": undefined;
   "music.browse.emptyHint": undefined;
   "music.browse.everything": undefined;

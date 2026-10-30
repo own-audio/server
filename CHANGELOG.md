@@ -7,6 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- An artist's page in the web console lists their own albums under "Albums" and compilations they
+  are on under "Appears on", as the client guide asks. Mixed together, an artist the list called
+  "1 album" showed five.
+- A click on a song in the web console's Songs list plays it straight away. Playing queued the whole
+  list and asked the server for a link to every song first: in a 10,000-song library, 10,000
+  requests before anything played. Now only the song that starts gets a link; the next one is
+  fetched while it plays.
+- The web console plays a song Safari can't decode as an MP3 the server makes, instead of
+  stopping with "this browser can't play the file's format". The case found was an MPEG Layer II
+  file named `.mp3`: stored as `audio/mpeg`, so it went out as the original. A song that still
+  can't be played now leaves the player paused, not showing Pause over audio that never comes.
+
 ## [1.0.0-beta.49] - 2026-10-28
 
 Contract revision 26.

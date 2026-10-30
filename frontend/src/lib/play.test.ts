@@ -1,6 +1,12 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { describe, expect, it } from "vitest";
-import { fileResumePosition } from "./play";
+import { describe, expect, it, vi } from "vitest";
+import { fileResumePosition, playTracks } from "./play";
+import { usePlayerStore } from "../store/playerStore";
+import type { MusicTrack } from "../api/types";
+
+const getTrackStreamUrl = vi.fn(async (id: string) => `https://media/${id}`);
+vi.mock("../api/music", () => ({ getTrack: vi.fn(), getTrackStreamUrl: (id: string) => getTrackStreamUrl(id) }));
+vi.mock("./offline/downloads", () => ({ offlineStreamUrl: async () => null }));
 
 describe("fileResumePosition", () => {
   it("uses a position inside the file as it is", () => {
@@ -22,5 +28,17 @@ describe("fileResumePosition", () => {
 
   it("never goes negative", () => {
     expect(fileResumePosition(-5, 0, 100)).toBe(0);
+  });
+});
+
+describe("playTracks", () => {
+  it("asks for one link however long the list, the one for the song that starts", async () => {
+    const tracks = Array.from({ length: 10_000 }, (_, i) => ({ id: `t${i}`, title: `Song ${i}` }) as MusicTrack);
+    await playTracks(tracks, 42);
+    expect(getTrackStreamUrl).toHaveBeenCalledTimes(1);
+    const { track, queue } = usePlayerStore.getState();
+    expect(track).toMatchObject({ trackId: "t42", streamUrl: "https://media/t42" });
+    expect(queue).toHaveLength(10_000);
+    expect(queue[43].streamUrl).toBe("");
   });
 });

@@ -799,6 +799,7 @@
   "music.album.markConcert": "Je to koncert",
   "music.album.unmarkConcert": "Není to koncert",
   "music.artist.albums": "Alba",
+  "music.artist.appearsOn": "Účinkuje na",
   "music.browse.concertsHint": "Tady se objeví celý koncert v jednom souboru, s kapitolou na začátku každé skladby.",
   "music.browse.emptyHint": "Nahrajte skladby a tato sekce se zaplní.",
   "music.browse.everything": "Vše",

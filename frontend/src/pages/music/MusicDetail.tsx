@@ -108,9 +108,10 @@ export default function MusicDetail({ selection }: { selection: MusicSelection }
   /* Artist → albums → songs: an artist's songs split by album in a column of
      their own; the album picked is in the address, so a link keeps it. */
   const [searchParams, setSearchParams] = useSearchParams();
+  const artistName = selection.kind === "artist" ? selection.artist : null;
   const artistAlbums = useMemo(
-    () => (selection.kind === "artist" ? albumsOf(selectedTracks, "Unknown Album") : []),
-    [selection.kind, selectedTracks],
+    () => (artistName != null ? albumsOf(selectedTracks, "Unknown Album", artistName) : []),
+    [artistName, selectedTracks],
   );
   const splitByAlbum = artistAlbums.length > 1;
   const pickedAlbum = splitByAlbum ? searchParams.get("album") : null;

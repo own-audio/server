@@ -799,6 +799,7 @@
   "music.album.markConcert": "This is a concert",
   "music.album.unmarkConcert": "Not a concert",
   "music.artist.albums": "Albums",
+  "music.artist.appearsOn": "Appears on",
   "music.browse.concertsHint": "A whole concert in one file, with a chapter where each song starts, shows up here.",
   "music.browse.emptyHint": "Upload tracks to fill this section.",
   "music.browse.everything": "Everything",

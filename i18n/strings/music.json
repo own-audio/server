@@ -2008,6 +2008,10 @@
     "en": "Albums",
     "cs": "Alba"
   },
+  "music.artist.appearsOn": {
+    "en": "Appears on",
+    "cs": "Účinkuje na"
+  },
   "music.action.mergeAlbums": {
     "en": "Merge {count} albums",
     "cs": "Sloučit {count, plural, one {# album} few {# alba} other {# alb}}"

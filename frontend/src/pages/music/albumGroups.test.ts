@@ -18,8 +18,8 @@ describe("albumsOf", () => {
       "Unknown Album",
     );
     expect(albums).toEqual([
-      { key: "a19", title: "Nineteen", count: 1, cover: "/c19" },
-      { key: "a21", title: "Twenty-One", count: 3, cover: "/c21" },
+      { key: "a19", title: "Nineteen", count: 1, cover: "/c19", own: true },
+      { key: "a21", title: "Twenty-One", count: 3, cover: "/c21", own: true },
     ]);
   });
 
@@ -32,5 +32,24 @@ describe("albumsOf", () => {
       ["name:", "Unknown Album", 1],
     ]);
     expect(artistAlbumKey(track("5", "Demo", null))).toBe("name:Demo");
+  });
+
+  it("puts the artist's own albums first and the compilations they appear on after", () => {
+    const song = (id: string, album: string, album_artist: string) =>
+      ({ id, title: id, album, album_id: album, artist: "Aerosmith", album_artist, cover_url: null }) as unknown as MusicTrack;
+    const albums = albumsOf(
+      [
+        song("1", "70s Rock Essentials", "Various Artists"),
+        song("2", "Rock for the Rising Sun", "Aerosmith"),
+        song("3", "Joint Venture", "Run-DMC; aerosmith"),
+      ],
+      "Unknown Album",
+      "Aerosmith",
+    );
+    expect(albums.map((a) => [a.title, a.own])).toEqual([
+      ["Joint Venture", true],
+      ["Rock for the Rising Sun", true],
+      ["70s Rock Essentials", false],
+    ]);
   });
 });

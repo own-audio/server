@@ -97,14 +97,14 @@ function isCompleted(pos: number, dur: number) {
  *  cannot play (Safari and Ogg Vorbis). Asking for the first bytes tells them
  *  apart. A link on another host may refuse the check (CORS); then we cannot
  *  know and keep the general message. */
-async function explainSourceError(url: string): Promise<string> {
+async function linkServesFile(url: string): Promise<boolean> {
   try {
     const res = await fetch(url, { headers: { Range: "bytes=0-1" } });
-    if (res.ok) return translate("player.error.format");
+    return res.ok;
   } catch {
     /* unreachable or cross-origin: no better answer */
+    return false;
   }
-  return translate("player.error.source");
 }
 
 /** Re-resolve a stream URL. They expire in ~4 h, so a tab left open overnight
@@ -113,6 +113,20 @@ async function resolveStreamUrl(t: PlayerTrack): Promise<string> {
   if (t.kind === "audiobook") return getBookFileStreamUrl(t.bookId, t.fileId);
   if (t.kind === "podcast") return getStreamUrl(t.feedId, t.epId);
   return (await offlineStreamUrl(t.trackId)) ?? getTrackStreamUrl(t.trackId);
+}
+
+/** Asks for the next song's link while this one plays, so the change of song
+ *  doesn't wait on the network — in the background that wait is silence iOS
+ *  can suspend the app in. */
+async function prefetchNextLink() {
+  const { queue, queueIndex } = usePlayerStore.getState();
+  const next = queue[queueIndex + 1];
+  if (!next || next.streamUrl) return;
+  const url = await resolveStreamUrl(next).catch(() => null);
+  if (!url) return;
+  usePlayerStore.setState((s) => ({
+    queue: s.queue.map((item) => (item === next ? { ...next, streamUrl: url } : item)),
+  }));
 }
 
 /** `canStop` is off where there is nothing to go back to — a playlist's own
@@ -160,6 +174,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
   /* The link loaded now, and whether this track already tried the other host. */
   const srcRef = useRef<string | null>(null);
   const fallbackTriedRef = useRef(false);
+  const transcodeTriedRef = useRef(false);
   const advancedEarlyRef = useRef(false);
   /* A pause we asked for, as opposed to one the system imposed — an ad or a
      video in another app, a call. The media element fires the same `pause`
@@ -315,18 +330,10 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     lastKeyRef.current = key;
     retriedRef.current = false;
     fallbackTriedRef.current = false;
+    transcodeTriedRef.current = false;
     advancedEarlyRef.current = false;
     setStalled(null);
-    srcRef.current = routed(track.streamUrl);
-    audio.src = srcRef.current;
-    audio.load();
-    // Start now rather than at `canplay`: in the background every moment of
-    // silence is one iOS may use to suspend the app (see handleTimeUpdate).
-    if (track.resumePosition <= 0) {
-      applyVolume(audio, volume, muted);
-      audio.playbackRate = speed;
-      void audio.play().catch(() => {});
-    }
+    let gone = false;
 
     const onCanPlay = () => {
       if (track.resumePosition > 0) audio.currentTime = track.resumePosition;
@@ -335,9 +342,39 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       void audio.play().catch(() => {});
       beginSpan(audio.currentTime);
     };
-    audio.addEventListener("canplay", onCanPlay, { once: true });
+
+    const start = (url: string) => {
+      if (gone) return;
+      srcRef.current = routed(url);
+      audio.src = srcRef.current;
+      audio.load();
+      // Start now rather than at `canplay`: in the background every moment of
+      // silence is one iOS may use to suspend the app (see handleTimeUpdate).
+      if (track.resumePosition <= 0) {
+        applyVolume(audio, volume, muted);
+        audio.playbackRate = speed;
+        void audio.play().catch(() => {});
+      }
+      audio.addEventListener("canplay", onCanPlay, { once: true });
+    };
+
+    // A queue made from a long list carries links only for the song it started
+    // with (lib/play `toQueue`); the others are asked for when they come up.
+    if (track.streamUrl) start(track.streamUrl);
+    else {
+      resolveStreamUrl(track).then(start, () => {
+        if (gone) return;
+        setStalled(translate("player.error.noFreshLink"));
+        toast.error(translate("player.error.cantPlay"), translate("player.error.noFreshLink"));
+        setPlaying(false);
+      });
+    }
+    void prefetchNextLink();
     void setMediaSessionMetadata(track);
-    return () => audio.removeEventListener("canplay", onCanPlay);
+    return () => {
+      gone = true;
+      audio.removeEventListener("canplay", onCanPlay);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track?.kind, track?.streamUrl, track && trackKey(track)]);
 
@@ -354,8 +391,35 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       const fail = (reason: string) => {
         setStalled(reason);
         toast.error(translate("player.error.cantPlay"), reason);
+        // Left "playing", the bar showed Pause over an element that would never
+        // play again, and Play did nothing.
+        setPlaying(false);
       };
       if (!track || !audio) return;
+      // The file is there but this browser can't decode it: have the server
+      // make an MP3. Another host or a fresh link would only fail the same way.
+      const transcode = async () => {
+        if (track.kind !== "music") return false;
+        transcodeTriedRef.current = true;
+        // A failing transcode must not "refresh" back to the original.
+        fallbackTriedRef.current = true;
+        retriedRef.current = true;
+        try {
+          const url = await getTrackStreamUrl(track.trackId, { transcode: true });
+          // From the start: the stream can't seek, and the position the browser
+          // reached in a file it misread is not to be trusted.
+          srcRef.current = url;
+          audio.src = url;
+          audio.load();
+          setCurrentTime(0);
+          void audio.play().catch(() => {});
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      const code = audio.error?.code;
+      if (code === MediaError.MEDIA_ERR_DECODE && !transcodeTriedRef.current && (await transcode())) return;
       const step = nextStep(srcRef.current, fallbackTriedRef.current, retriedRef.current);
       if (step.kind === "fallback") {
         fallbackTriedRef.current = true;
@@ -365,8 +429,9 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       }
       if (step.kind === "fail") {
         const src = audio.currentSrc || audio.src;
-        if (audio.error?.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && src && !src.startsWith("blob:")) {
-          fail(await explainSourceError(src));
+        if (code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED && src && !src.startsWith("blob:")) {
+          if (!(await linkServesFile(src))) fail(translate("player.error.source"));
+          else if (transcodeTriedRef.current || !(await transcode())) fail(translate("player.error.format"));
         } else {
           fail(mediaErrorText(audio.error));
         }
@@ -383,7 +448,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     }
     audio.addEventListener("error", onError);
     return () => audio.removeEventListener("error", onError);
-  }, [track]);
+  }, [track, setPlaying]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -491,7 +556,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track?.kind, track?.streamUrl]);
+  }, [track?.kind, track?.streamUrl, track && trackKey(track)]);
 
   useEffect(() => {
     function onHide() {
