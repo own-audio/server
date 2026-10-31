@@ -630,6 +630,10 @@ def playback(ctx: Ctx, problem) -> None:
     ctx.check("a client that plays anything gets the original, signed",
               st == 200 and direct.get("decision") == "direct" and "/api/v2/stream?" in direct.get("url", "")
               and "token" not in direct.get("url", "").lower() and bool(direct.get("expires_at")), str(direct)[:200])
+    source = direct.get("source") or {}
+    ctx.check("the answer says what the original is, read from the file",
+              source.get("codec") == "wav" and source.get("sample_rate_hz") == rate and source.get("bit_depth") == 16
+              and source.get("channels") == 1 and bool(source.get("content_type")), str(source)[:200])
     code, _ct, _b = fetch(direct.get("url", ""), follow=False)
     ctx.check("the link redirects to storage, without any header", code in (302, 307), str(code))
     code, _ct, body = fetch(direct.get("url", ""))

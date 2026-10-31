@@ -105,7 +105,7 @@ impl Grant {
 /// Where the audio of an item is.
 enum Source {
     /// In the server's storage: the object's key, size, type, and the length.
-    Stored { key: String, size: i64, content_type: String, duration_secs: Option<i32> },
+    Stored { object: Uuid, key: String, size: i64, content_type: String, duration_secs: Option<i32> },
     /// A podcast episode the server does not keep: the publisher's file.
     Remote(String),
 }
@@ -165,7 +165,7 @@ async fn source(state: &AppState, viewer: Viewer, item: &str) -> Result<Option<S
         Some(size) if size > 0 => size,
         _ => state.storage().head_object(&key).await?.map_or(0, |(size, _)| size),
     };
-    Ok(Some(Source::Stored { key, size, content_type, duration_secs }))
+    Ok(Some(Source::Stored { object, key, size, content_type, duration_secs }))
 }
 
 #[derive(Deserialize, ToSchema, Default)]
@@ -192,6 +192,27 @@ pub struct PlaybackInfoRequest {
     pub start_ms: Option<i64>,
 }
 
+/// The original file's audio. Read from the file's headers when it was stored; a file stored by an
+/// older server has only `content_type` and an average `bitrate_kbps` until its folder is scanned
+/// again (an upload is not read again).
+#[derive(Serialize, ToSchema)]
+pub struct SourceAudio {
+    pub content_type: String,
+    /// Lowercase: `mp3`, `mp2`, `aac`, `alac`, `flac`, `opus`, `vorbis`, `wav`, `aiff`, `wma`…
+    /// Unknown values may appear.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub codec: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sample_rate_hz: Option<i32>,
+    /// Bits per sample, for lossless and PCM files.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bit_depth: Option<i16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub channels: Option<i16>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bitrate_kbps: Option<i32>,
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct PlaybackInfo {
     /// `direct` (the original) or `transcode`.
@@ -206,6 +227,10 @@ pub struct PlaybackInfo {
     /// Why: `client_plays_original`, `over_bitrate_limit`, `format_not_playable`,
     /// `no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`.
     pub reasons: Vec<String>,
+    /// The original file, whatever is sent: what it is and how good it is, for a player to show.
+    /// Absent for a publisher's file the server does not keep.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source: Option<SourceAudio>,
 }
 
 /// How to play an item: the original or a stream the server makes, and a link
@@ -222,7 +247,7 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
     let src = source(&state, family.viewer(), &item).await?.ok_or_else(Problem::not_found)?;
     let expires = Utc::now().timestamp() + LINK_TTL_SECS;
     let expires_at = DateTime::from_timestamp(expires, 0).unwrap_or_else(Utc::now);
-    let (size, content_type, duration) = match src {
+    let (object, size, content_type, duration) = match src {
         Source::Remote(url) => {
             return Ok(Json(PlaybackInfo {
                 decision: "direct".into(),
@@ -231,12 +256,22 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
                 content_type: None,
                 bitrate_kbps: None,
                 reasons: vec!["publisher_file".into()],
+                source: None,
             }));
         }
-        Source::Stored { size, content_type, duration_secs, .. } => (size, content_type, duration_secs),
+        Source::Stored { object, size, content_type, duration_secs, .. } => (object, size, content_type, duration_secs),
     };
     let caps = &body.capabilities;
     let source_kbps = duration.filter(|d| *d > 0).map(|d| (size.max(0) as u64 * 8 / d as u64 / 1000) as u32);
+    let props = db::media::audio_props(state.db(), object).await?.unwrap_or_default();
+    let source_audio = SourceAudio {
+        content_type: content_type.clone(),
+        codec: props.codec,
+        sample_rate_hz: props.sample_rate_hz,
+        bit_depth: props.bit_depth,
+        channels: props.channels,
+        bitrate_kbps: props.bitrate_kbps.or(source_kbps.map(|k| k as i32)),
+    };
     let mut reasons = Vec::new();
     let playable = caps.direct.is_empty() || caps.direct.iter().any(|c| c.eq_ignore_ascii_case(&content_type));
     let over = match (caps.max_bitrate_kbps, source_kbps) {
@@ -263,11 +298,11 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
     };
     if playable && !over {
         reasons.push("client_plays_original".into());
-        return Ok(Json(PlaybackInfo { decision: "direct".into(), url: grant.url(&base, secret), expires_at, content_type: Some(content_type), bitrate_kbps: None, reasons }));
+        return Ok(Json(PlaybackInfo { decision: "direct".into(), url: grant.url(&base, secret), expires_at, content_type: Some(content_type), bitrate_kbps: None, reasons, source: Some(source_audio) }));
     }
     let Some(format) = target else {
         reasons.push("no_transcode_target".into());
-        return Ok(Json(PlaybackInfo { decision: "direct".into(), url: grant.url(&base, secret), expires_at, content_type: Some(content_type), bitrate_kbps: None, reasons }));
+        return Ok(Json(PlaybackInfo { decision: "direct".into(), url: grant.url(&base, secret), expires_at, content_type: Some(content_type), bitrate_kbps: None, reasons, source: Some(source_audio) }));
     };
     let plan = transcode::plan(caps.max_bitrate_kbps, Some(&format), None, if playable { source_kbps } else { None })
         .ok_or_else(|| Problem::internal(anyhow::anyhow!("no plan for {format}")))?;
@@ -281,6 +316,7 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
         content_type: Some(if format == "aac" { "audio/aac" } else { "audio/mpeg" }.into()),
         bitrate_kbps: Some(plan.kbps),
         reasons,
+        source: Some(source_audio),
     }))
 }
 

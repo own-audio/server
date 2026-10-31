@@ -296,5 +296,21 @@
   "player.bookmarks.delete": {
     "en": "Delete bookmark",
     "cs": "Smazat záložku"
+  },
+  "player.quality.mono": {
+    "en": "mono",
+    "cs": "mono"
+  },
+  "player.quality.channels": {
+    "en": "{n, plural, one {# channel} other {# channels}}",
+    "cs": "{n, plural, one {# kanál} few {# kanály} other {# kanálů}}"
+  },
+  "player.quality.converted": {
+    "en": "playing as {format}, converted by the server",
+    "cs": "hraje jako {format}, převedeno serverem"
+  },
+  "player.quality.label": {
+    "en": "Audio quality",
+    "cs": "Kvalita zvuku"
   }
 }

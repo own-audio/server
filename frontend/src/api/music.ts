@@ -4,6 +4,7 @@ import { batchHeaders } from "./trash";
 import type { MusicTrack, MusicPlaylist, MusicPlaylistTrack, ArtistSummary, AlbumSummary, GenreSummary, Visibility } from "./types";
 import type { TrackChapter } from "../lib/chapters";
 import { streamUrlFrom } from "../lib/mediaRoute";
+import { rememberPlaybackInfo, type PlaybackInfo } from "../lib/audioQuality";
 
 /** The v2 API beside v1: same origin, same session. */
 const v2 = { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") };
@@ -103,12 +104,15 @@ function browserPlayable(): string[] {
  */
 export async function getTrackStreamUrl(trackId: string, { transcode = false } = {}): Promise<string> {
   const direct = transcode ? ["none"] : browserPlayable();
-  const { data } = await api.post<{ url: string }>(
+  const { data } = await api.post<PlaybackInfo>(
     "/playback-info",
     { kind: "track", id: trackId, capabilities: { direct, transcode: ["mp3"] } },
     { baseURL: apiBaseUrl.replace(/\/api\/v1\/?$/, "/api/v2") },
   );
-  return streamUrlFrom(data.url);
+  const url = streamUrlFrom(data.url);
+  // Kept for the player, which shows what it plays (lib/audioQuality).
+  rememberPlaybackInfo({ ...data, url });
+  return url;
 }
 
 // ── Grouped browsing ───────────────────────────────────────────────────────

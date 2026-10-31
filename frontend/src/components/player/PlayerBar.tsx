@@ -56,6 +56,7 @@ import SeekBar from "./SeekBar";
 import { cn } from "../../lib/cn";
 import { applyVolume } from "../../lib/volume";
 import { t as translate, useT } from "../../i18n";
+import { describeDelivery, describeSource, playbackInfoFor, type PlaybackInfo } from "../../lib/audioQuality";
 
 /** Saves are frequent enough to survive a crash, rare enough not to be chatty. */
 const PROGRESS_SAVE_MS = 20_000;
@@ -168,6 +169,8 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
   const source = usePlayerStore((s) => s.source);
   const navigate = useNavigate();
   const [stalled, setStalled] = useState<string | null>(null);
+  /* What is playing now, as the server described it: set on every new source. */
+  const [playingInfo, setPlayingInfo] = useState<PlaybackInfo | undefined>(undefined);
   const lastKeyRef = useRef<string | null>(null);
   const spanRef = useRef<OpenSpan | null>(null);
   const retriedRef = useRef(false);
@@ -749,6 +752,11 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
     }
   }
 
+  function handleLoadedMetadata() {
+    setPlayingInfo(playbackInfoFor(audioRef.current?.currentSrc));
+    handleTimeUpdate();
+  }
+
   function handleEnded() {
     if (!track) return;
     const audio = audioRef.current;
@@ -800,6 +808,8 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
           : track.bookTitle;
 
   const isMusic = track.kind === "music";
+  // A song only: books and podcasts are not described by the server yet.
+  const quality = isMusic ? [describeSource(playingInfo?.source), describeDelivery(playingInfo)].filter(Boolean).join(" → ") || null : null;
 
   const transport = (size: "md" | "lg") => (
     <div className={cn("flex items-center", size === "lg" ? "gap-3" : "gap-1")}>
@@ -948,6 +958,11 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
           ) : (
             subtitle && <p className="mt-1 truncate text-base text-muted">{subtitle}</p>
           )}
+          {quality && (
+            <p className="mt-1.5 truncate text-xs tabular-nums text-muted" aria-label={t("player.quality.label")} title={quality}>
+              {quality}
+            </p>
+          )}
           {stalled && <p className="mt-2 text-sm text-error">{stalled}</p>}
         </div>
 
@@ -1038,7 +1053,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
       <audio
         ref={audioRef}
         onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
         onPlay={handlePlayEvent}
         onPause={handlePauseEvent}
         onEnded={handleEnded}

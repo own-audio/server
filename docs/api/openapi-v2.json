@@ -4796,6 +4796,17 @@
             },
             "type": "array"
           },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/SourceAudio",
+                "description": "The original file, whatever is sent: what it is and how good it is, for a player to show.\nAbsent for a publisher's file the server does not keep."
+              }
+            ]
+          },
           "url": {
             "description": "What to play: signed, no header needed, good until `expires_at`.",
             "type": "string"
@@ -6291,6 +6302,54 @@
           "owner_id",
           "created_at",
           "updated_at"
+        ],
+        "type": "object"
+      },
+      "SourceAudio": {
+        "description": "The original file's audio. Read from the file's headers when it was stored; a file stored by an\nolder server has only `content_type` and an average `bitrate_kbps` until its folder is scanned\nagain (an upload is not read again).",
+        "properties": {
+          "bit_depth": {
+            "description": "Bits per sample, for lossless and PCM files.",
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "bitrate_kbps": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "channels": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "codec": {
+            "description": "Lowercase: `mp3`, `mp2`, `aac`, `alac`, `flac`, `opus`, `vorbis`, `wav`, `aiff`, `wma`…\nUnknown values may appear.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "sample_rate_hz": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "content_type"
         ],
         "type": "object"
       },

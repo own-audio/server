@@ -251,6 +251,42 @@ pub async fn any_media_object(pool: &PgPool) -> anyhow::Result<bool> {
         .context("db: any media object")
 }
 
+/// Stores what a file's audio is (`crate::audio_props`), and that it was read.
+pub async fn set_audio_props<'e, E>(executor: E, object_id: Uuid, p: &crate::audio_props::AudioProps) -> anyhow::Result<()>
+where
+    E: PgExecutor<'e>,
+{
+    sqlx::query(
+        "UPDATE media_objects
+            SET audio_codec = $2, audio_sample_rate_hz = $3, audio_bit_depth = $4,
+                audio_channels = $5, audio_bitrate_kbps = $6, audio_probed_at = now()
+          WHERE id = $1",
+    )
+    .bind(object_id)
+    .bind(p.codec.as_deref())
+    .bind(p.sample_rate_hz)
+    .bind(p.bit_depth)
+    .bind(p.channels)
+    .bind(p.bitrate_kbps)
+    .execute(executor)
+    .await
+    .context("db: set audio properties")?;
+    Ok(())
+}
+
+/// What a file's audio is, as stored; `None` until it has been read.
+pub async fn audio_props(pool: &PgPool, object_id: Uuid) -> anyhow::Result<Option<crate::audio_props::AudioProps>> {
+    sqlx::query_as(
+        "SELECT audio_codec AS codec, audio_sample_rate_hz AS sample_rate_hz, audio_bit_depth AS bit_depth,
+                audio_channels AS channels, audio_bitrate_kbps AS bitrate_kbps
+           FROM media_objects WHERE id = $1 AND audio_probed_at IS NOT NULL",
+    )
+    .bind(object_id)
+    .fetch_optional(pool)
+    .await
+    .context("db: audio properties")
+}
+
 #[cfg(test)]
 mod sweep_tests {
     /// The guard that matters: an empty referrer list must refuse, not sweep.

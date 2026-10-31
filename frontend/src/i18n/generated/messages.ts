@@ -1370,6 +1370,10 @@ export interface MessageParams {
   "player.nowPlaying": undefined;
   "player.partTitle": { "n": string | number };
   "player.parts": undefined;
+  "player.quality.channels": { "n": number };
+  "player.quality.converted": { "format": string | number };
+  "player.quality.label": undefined;
+  "player.quality.mono": undefined;
   "player.queue.close": undefined;
   "player.queue.empty": undefined;
   "player.queue.remove": { "title": string | number };

@@ -565,6 +565,7 @@ pub async fn scan_folder(state: &AppState, folder: &FolderRow) -> anyhow::Result
     if folder.kind == "music" {
         read_pending_track_chapters(pool, folder, &root).await?;
     }
+    read_pending_audio_props(pool, folder, &root).await?;
 
     let missing: i64 = sqlx::query_scalar(
         "WITH m AS (
@@ -726,6 +727,41 @@ async fn read_pending_track_chapters(pool: &PgPool, folder: &FolderRow, root: &P
             Err(e) => tracing::warn!(%track, error = %format!("{e:#}"), "library scan: track chapters not read"),
         }
     }
+    Ok(())
+}
+
+/// Reads what each file's audio is (`crate::audio_props`) for the files that
+/// have not been read yet: those scanned before migration 0122, once, and none
+/// after that. Only headers are read, so a large library takes a minute or two.
+async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path) -> anyhow::Result<()> {
+    let files: Vec<(Uuid, String)> = sqlx::query_as(
+        "SELECT mo.id, lf.rel_path
+         FROM library_files lf
+         JOIN music_tracks_all t ON lf.item_kind = 'track' AND t.id = lf.item_id
+         JOIN media_objects mo ON mo.id = t.audio_object_id
+         WHERE lf.folder_id = $1 AND NOT lf.missing AND mo.audio_probed_at IS NULL
+         UNION ALL
+         SELECT mo.id, lf.rel_path
+         FROM library_files lf
+         JOIN audiobook_files f ON lf.item_kind = 'book_file' AND f.id = lf.item_id
+         JOIN media_objects mo ON mo.id = f.audio_object_id
+         WHERE lf.folder_id = $1 AND NOT lf.missing AND mo.audio_probed_at IS NULL",
+    )
+    .bind(folder.id)
+    .fetch_all(pool)
+    .await?;
+    if files.is_empty() {
+        return Ok(());
+    }
+    let total = files.len();
+    for (object, rel) in files {
+        let path = root.join(&rel);
+        let props = tokio::task::spawn_blocking(move || crate::audio_props::read(&path)).await.unwrap_or_default();
+        if let Err(e) = crate::db::media::set_audio_props(pool, object, &props).await {
+            tracing::warn!(%object, error = %format!("{e:#}"), "library scan: audio properties not saved");
+        }
+    }
+    tracing::info!(folder = %folder.path, files = total, "library scan: audio properties read");
     Ok(())
 }
 

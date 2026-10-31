@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- What a song's file is and how good: the server reads its codec, sample rate, bit depth,
+  channels and bitrate when the file arrives (migration 0122) and `POST /api/v2/playback-info`
+  returns them as `source`, also when it sends a conversion. Files already in a library folder are
+  read on the next scan; earlier uploads have only their type and an average bitrate. The web
+  console's Now Playing screen shows it: "FLAC · 24-bit / 96 kHz", "MP2 · 128 kbps · 44.1 kHz →
+  playing as MP3 · 192 kbps, converted by the server".
+
 ### Changed
 
 - The albums column on an artist's page in the web console can be dragged wider or narrower, like

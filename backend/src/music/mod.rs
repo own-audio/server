@@ -1184,12 +1184,13 @@ async fn create_track(
         .unwrap_or_else(|| infer_title(file_name));
     // A whole concert in one file carries a mark where each song starts. The length is
     // measured too when the client did not say it: v2 uploads never do.
-    let (chapters, measured) = {
+    let (chapters, measured, audio_props) = {
         let path = local_audio.to_path_buf();
         let measure = duration_secs.is_none();
         tokio::task::spawn_blocking(move || {
             let chapters = crate::chapters::for_track(crate::chapters::embedded(&path));
-            (chapters, if measure { crate::library_folders::duration_secs(&path) } else { None })
+            let measured = if measure { crate::library_folders::duration_secs(&path) } else { None };
+            (chapters, measured, crate::audio_props::read(&path))
         })
         .await
         .unwrap_or_default()
@@ -1205,6 +1206,9 @@ async fn create_track(
                 .map_err(AuthError::Internal)?
         }
     };
+    db::media::set_audio_props(&mut *tx, audio_media_id, &audio_props)
+        .await
+        .map_err(AuthError::Internal)?;
 
     let track = db::music::insert_track(
         &mut *tx,
@@ -1370,6 +1374,10 @@ pub(crate) async fn refresh_folder_track(
         .bind(size_bytes)
         .execute(state.db())
         .await?;
+    // A file replaced on disk may be another encoding of the song.
+    let path = file.to_path_buf();
+    let props = tokio::task::spawn_blocking(move || crate::audio_props::read(&path)).await?;
+    db::media::set_audio_props(state.db(), track.audio_object_id, &props).await?;
     if let Some(d) = duration_secs {
         sqlx::query("UPDATE music_tracks_all SET duration_secs = $2 WHERE id = $1")
             .bind(track_id)

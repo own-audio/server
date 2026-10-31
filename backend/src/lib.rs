@@ -15,6 +15,7 @@
 
 pub mod app;
 pub mod auth;
+pub mod audio_props;
 pub mod audiobooks;
 pub mod chapters;
 pub mod dashboard;
