@@ -42,6 +42,10 @@ pub enum SubsonicErrorCode {
     ClientMustUpgrade = 20,
     ServerMustUpgrade = 30,
     WrongCredentials = 40,
+    /// OpenSubsonic apiKeyAuthentication: `apiKey` sent together with `u`, `p`, `t` or `s`.
+    ConflictingAuth = 43,
+    /// OpenSubsonic apiKeyAuthentication: no such key.
+    InvalidApiKey = 44,
     NotAuthorized = 50,
     NotFound = 70,
 }
@@ -54,6 +58,8 @@ impl SubsonicErrorCode {
             SubsonicErrorCode::ClientMustUpgrade => "Incompatible client version",
             SubsonicErrorCode::ServerMustUpgrade => "Incompatible server version",
             SubsonicErrorCode::WrongCredentials => "Wrong username or password",
+            SubsonicErrorCode::ConflictingAuth => "Multiple conflicting authentication mechanisms provided",
+            SubsonicErrorCode::InvalidApiKey => "Invalid API key",
             SubsonicErrorCode::NotAuthorized => "User is not authorized for the given operation",
             SubsonicErrorCode::NotFound => "The requested data was not found",
         }

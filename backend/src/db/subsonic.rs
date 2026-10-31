@@ -11,6 +11,7 @@ use anyhow::Context;
 use chrono::{DateTime, Utc};
 use rand::Rng;
 use rand::distr::Alphanumeric;
+use sha2::{Digest, Sha256};
 use sqlx::PgPool;
 use crate::auth::at_rest::Cipher;
 use uuid::Uuid;
@@ -25,7 +26,7 @@ pub async fn get_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) -> anyhow::R
     };
     let (key, sealed) = cipher.open(&stored)?;
     if !sealed {
-        store_key(pool, user_id, &cipher.seal(&key), false).await?;
+        store_key(pool, user_id, &cipher.seal(&key), &key_hash(&key), false).await?;
     }
     Ok(Some(key))
 }
@@ -35,7 +36,8 @@ pub async fn get_or_create_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) ->
     if let Some(key) = get_key(pool, cipher, user_id).await? {
         return Ok(key);
     }
-    store_key(pool, user_id, &cipher.seal(&generate_key()), false).await?;
+    let key = generate_key();
+    store_key(pool, user_id, &cipher.seal(&key), &key_hash(&key), false).await?;
     // Another request may have raced us to creation; re-fetch to be sure.
     get_key(pool, cipher, user_id)
         .await?
@@ -45,7 +47,7 @@ pub async fn get_or_create_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) ->
 /// Replace the user's Subsonic API key with a freshly generated one.
 pub async fn regenerate_key(pool: &PgPool, cipher: &Cipher, user_id: Uuid) -> anyhow::Result<String> {
     let key = generate_key();
-    store_key(pool, user_id, &cipher.seal(&key), true).await?;
+    store_key(pool, user_id, &cipher.seal(&key), &key_hash(&key), true).await?;
     Ok(key)
 }
 
@@ -58,22 +60,57 @@ pub async fn encrypt_legacy_keys(pool: &PgPool, cipher: &Cipher) -> anyhow::Resu
         .await
         .context("db: list plaintext subsonic api keys")?;
     for (user_id, key) in &rows {
-        store_key(pool, *user_id, &cipher.seal(key), false).await?;
+        store_key(pool, *user_id, &cipher.seal(key), &key_hash(key), false).await?;
     }
     Ok(rows.len())
 }
 
-async fn store_key(pool: &PgPool, user_id: Uuid, stored: &str, replace: bool) -> anyhow::Result<()> {
+/// Gives every key stored before `key_hash` existed its hash; returns how
+/// many. Run once at start-up, after `encrypt_legacy_keys`.
+pub async fn backfill_key_hashes(pool: &PgPool, cipher: &Cipher) -> anyhow::Result<usize> {
+    let rows: Vec<(Uuid, String)> = sqlx::query_as("SELECT user_id, api_key FROM subsonic_api_keys WHERE key_hash IS NULL")
+        .fetch_all(pool)
+        .await
+        .context("db: list subsonic api keys without a hash")?;
+    for (user_id, stored) in &rows {
+        let (key, _) = cipher.open(stored)?;
+        sqlx::query("UPDATE subsonic_api_keys SET key_hash = $2 WHERE user_id = $1")
+            .bind(user_id)
+            .bind(key_hash(&key))
+            .execute(pool)
+            .await
+            .context("db: store subsonic api key hash")?;
+    }
+    Ok(rows.len())
+}
+
+/// The person a Subsonic API key belongs to (OpenSubsonic apiKeyAuthentication).
+pub async fn find_user_by_key(pool: &PgPool, key: &str) -> anyhow::Result<Option<Uuid>> {
+    sqlx::query_scalar::<_, Uuid>("SELECT user_id FROM subsonic_api_keys WHERE key_hash = $1")
+        .bind(key_hash(key.trim()))
+        .fetch_optional(pool)
+        .await
+        .context("db: find subsonic api key by hash")
+}
+
+/// What is stored to find a key: a plain SHA-256 is enough, because the keys
+/// are 32 random alphanumerics, not passwords a person chose.
+pub fn key_hash(key: &str) -> String {
+    Sha256::digest(key.as_bytes()).iter().map(|b| format!("{b:02x}")).collect()
+}
+
+async fn store_key(pool: &PgPool, user_id: Uuid, stored: &str, hash: &str, replace: bool) -> anyhow::Result<()> {
     let sql = if replace {
-        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key, created_at = now()"
+        "INSERT INTO subsonic_api_keys (user_id, api_key, key_hash) VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key, key_hash = EXCLUDED.key_hash, created_at = now()"
     } else {
-        "INSERT INTO subsonic_api_keys (user_id, api_key) VALUES ($1, $2)
-         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key"
+        "INSERT INTO subsonic_api_keys (user_id, api_key, key_hash) VALUES ($1, $2, $3)
+         ON CONFLICT (user_id) DO UPDATE SET api_key = EXCLUDED.api_key, key_hash = EXCLUDED.key_hash"
     };
     sqlx::query(sql)
         .bind(user_id)
         .bind(stored)
+        .bind(hash)
         .execute(pool)
         .await
         .context("db: store subsonic api key")?;

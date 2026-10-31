@@ -78,6 +78,11 @@ pub async fn bootstrap(hooks: HooksFactory) -> anyhow::Result<(AppState, AppConf
         Ok(n) => tracing::info!(count = n, "Subsonic API keys encrypted at rest"),
         Err(e) => tracing::warn!(error = %e, "could not encrypt Subsonic API keys at rest"),
     }
+    match db::subsonic::backfill_key_hashes(state.db(), state.at_rest()).await {
+        Ok(0) => {}
+        Ok(n) => tracing::info!(count = n, "Subsonic API keys made findable for apiKey sign-in"),
+        Err(e) => tracing::warn!(error = %e, "could not hash Subsonic API keys"),
+    }
     // Seed a dev admin if no users exist yet — opt-in only. On a reachable
     // instance this would publish a documented admin@audio2.local / admin
     // login, and it also pre-empts the /setup/complete first-admin flow.

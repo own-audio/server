@@ -9,12 +9,29 @@ semver. Each release states the **API contract revision** it serves
 
 ### Added
 
+- OpenSubsonic API keys: a Subsonic app can sign in with the key alone (`apiKey`), as the
+  OpenSubsonic `apiKeyAuthentication` extension describes, instead of an email plus the key as a
+  password; `getOpenSubsonicExtensions` lists it. A key sent together with `u`, `p`, `t` or `s`
+  answers error 43, an unknown one 44. Keys get a SHA-256 for the lookup (migration 0123), filled
+  in for existing keys when the server starts; the key itself stays encrypted.
+- Podcast episodes are Subsonic bookmarks: `createBookmark` on an episode saves its listening
+  position, `getBookmarks` lists the episodes in progress, and `deleteBookmark` forgets an
+  unfinished place. They are the same positions the own.audio apps resume from, so a Subsonic
+  client that resumes podcasts through bookmarks (Music Assistant does) agrees with them. Until
+  now an episode's bookmark was refused as "not found".
+
 - What a song's file is and how good: the server reads its codec, sample rate, bit depth,
   channels and bitrate when the file arrives (migration 0122) and `POST /api/v2/playback-info`
   returns them as `source`, also when it sends a conversion. Files already in a library folder are
   read on the next scan; earlier uploads have only their type and an average bitrate. The web
   console's Now Playing screen shows it: "FLAC · 24-bit / 96 kHz", "MP2 · 128 kbps · 44.1 kHz →
   playing as MP3 · 192 kbps, converted by the server".
+
+### Fixed
+
+- `getAlbumInfo2` answered under `albumInfo2`; the protocol (and Navidrome) name it `albumInfo`,
+  as for `getAlbumInfo`. Music Assistant stopped on the missing key: its OpenSubsonic library
+  synced no songs and no song would play.
 
 ### Changed
 

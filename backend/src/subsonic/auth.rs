@@ -51,6 +51,7 @@ struct RawParams {
     p: Option<String>,
     t: Option<String>,
     s: Option<String>,
+    api_key: Option<String>,
     f: Option<String>,
     callback: Option<String>,
 }
@@ -77,6 +78,7 @@ impl RawParams {
                 "p" => &mut params.p,
                 "t" => &mut params.t,
                 "s" => &mut params.s,
+                "apiKey" => &mut params.api_key,
                 "f" => &mut params.f,
                 "callback" => &mut params.callback,
                 _ => continue,
@@ -99,6 +101,25 @@ impl FromRequestParts<AppState> for SubsonicAuthUser {
         let reject = |code: SubsonicErrorCode| {
             SubsonicRejection(envelope::error(format, callback.as_deref(), code, None))
         };
+
+        // OpenSubsonic apiKeyAuthentication: the key alone names the person.
+        if let Some(key) = params.api_key.as_deref().filter(|k| !k.trim().is_empty()) {
+            if params.u.is_some() || params.p.is_some() || params.t.is_some() || params.s.is_some() {
+                return Err(reject(SubsonicErrorCode::ConflictingAuth));
+            }
+            let user_id = db::subsonic::find_user_by_key(state.db(), key)
+                .await
+                .map_err(|_| reject(SubsonicErrorCode::Generic))?
+                .ok_or_else(|| reject(SubsonicErrorCode::InvalidApiKey))?;
+            let user = db::users::find_by_id(state.db(), user_id)
+                .await
+                .map_err(|_| reject(SubsonicErrorCode::Generic))?
+                .ok_or_else(|| reject(SubsonicErrorCode::InvalidApiKey))?;
+            if !user.is_active {
+                return Err(reject(SubsonicErrorCode::NotAuthorized));
+            }
+            return finish(parts, state, user, format, callback.clone()).await.map_err(reject);
+        }
 
         let Some(username) = params.u.as_deref().filter(|s| !s.is_empty()) else {
             return Err(reject(SubsonicErrorCode::MissingParam));
@@ -144,23 +165,34 @@ impl FromRequestParts<AppState> for SubsonicAuthUser {
             return Err(reject(SubsonicErrorCode::WrongCredentials));
         }
 
-        if crate::demo::is_read_only_account(state, &user.email) && crate::demo::subsonic_refuses(parts.uri.path()) {
-            return Err(reject(SubsonicErrorCode::NotAuthorized));
-        }
-
-        let membership = db::families::ensure_membership(state.db(), user.id, state.hooks().one_family())
-            .await
-            .map_err(|_| reject(SubsonicErrorCode::Generic))?;
-
-        Ok(SubsonicAuthUser {
-            user_id: user.id,
-            family_id: membership.family_id,
-            is_family_admin: membership.role == "family_admin" || user.role == "admin",
-            username: user.email,
-            format,
-            jsonp_callback: callback,
-        })
+        finish(parts, state, user, format, callback.clone()).await.map_err(reject)
     }
+}
+
+/// What happens after the person is known, by whichever sign-in.
+async fn finish(
+    parts: &Parts,
+    state: &AppState,
+    user: crate::users::models::User,
+    format: ResponseFormat,
+    callback: Option<String>,
+) -> Result<SubsonicAuthUser, SubsonicErrorCode> {
+    if crate::demo::is_read_only_account(state, &user.email) && crate::demo::subsonic_refuses(parts.uri.path()) {
+        return Err(SubsonicErrorCode::NotAuthorized);
+    }
+
+    let membership = db::families::ensure_membership(state.db(), user.id, state.hooks().one_family())
+        .await
+        .map_err(|_| SubsonicErrorCode::Generic)?;
+
+    Ok(SubsonicAuthUser {
+        user_id: user.id,
+        family_id: membership.family_id,
+        is_family_admin: membership.role == "family_admin" || user.role == "admin",
+        username: user.email,
+        format,
+        jsonp_callback: callback,
+    })
 }
 
 fn decode_password(raw: &str) -> Option<String> {

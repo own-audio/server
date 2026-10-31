@@ -66,6 +66,40 @@ pub async fn episode_feed_id(pool: &PgPool, episode_id: Uuid) -> anyhow::Result<
         .context("db: episode feed id")
 }
 
+/// Episodes this listener is part-way through: what the Subsonic protocol
+/// calls bookmarks. Most recent first.
+pub async fn list_unfinished_podcast_progress(
+    pool: &PgPool,
+    user_id: Uuid,
+) -> anyhow::Result<Vec<PodcastProgress>> {
+    sqlx::query_as::<_, PodcastProgress>(
+        "SELECT user_id, episode_id, position_secs, completed, updated_at
+         FROM podcast_progress
+         WHERE user_id = $1 AND NOT completed AND position_secs > 0
+         ORDER BY updated_at DESC",
+    )
+    .bind(user_id)
+    .fetch_all(pool)
+    .await
+    .context("db: list unfinished podcast progress")
+}
+
+/// Forgets where this listener stopped in an episode, unless they finished it:
+/// a finished episode stays finished when a client clears its resume point.
+pub async fn clear_unfinished_podcast_progress(
+    pool: &PgPool,
+    user_id: Uuid,
+    episode_id: Uuid,
+) -> anyhow::Result<()> {
+    sqlx::query("DELETE FROM podcast_progress WHERE user_id = $1 AND episode_id = $2 AND NOT completed")
+        .bind(user_id)
+        .bind(episode_id)
+        .execute(pool)
+        .await
+        .context("db: clear podcast progress")?;
+    Ok(())
+}
+
 pub async fn upsert_podcast_progress(
     pool: &PgPool,
     user_id: Uuid,

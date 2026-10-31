@@ -242,7 +242,7 @@ pub struct EpisodeIdParams {
 
 /// Resolves an episode id and confirms the viewer may see the feed it belongs
 /// to. Episodes carry no owner of their own, so the feed is the access check.
-async fn visible_episode(
+pub(crate) async fn visible_episode(
     auth: &SubsonicAuthUser,
     state: &AppState,
     id: &str,

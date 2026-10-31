@@ -71,8 +71,25 @@ def run(ctx: Ctx) -> None:
             raise AssertionError(f"{endpoint}: {root.get('error')}")
         return root
 
+    # OpenSubsonic apiKeyAuthentication: the key alone, no user name.
+    def raw(query: dict) -> dict:
+        return ctx.call("GET", "/rest/ping.view?" + urllib.parse.urlencode(query))["subsonic-response"]
+    base = {"v": "1.16.1", "c": "entities", "f": "json"}
+    ext = [e.get("name") for e in rest("getOpenSubsonicExtensions").get("openSubsonicExtensions", [])]
+    ctx.check("the server lists the apiKeyAuthentication extension", "apiKeyAuthentication" in ext, str(ext))
+    by_key = raw({**base, "apiKey": key["api_key"]})
+    ctx.check("Subsonic signs in with apiKey alone", by_key.get("status") == "ok", str(by_key)[:160])
+    both = raw({**base, "apiKey": key["api_key"], "u": key["username"]})
+    ctx.check("apiKey together with u is error 43", (both.get("error") or {}).get("code") == 43, str(both)[:160])
+    wrong = raw({**base, "apiKey": "not-a-key-" + uuid.uuid4().hex})
+    ctx.check("an unknown apiKey is error 44", (wrong.get("error") or {}).get("code") == 44, str(wrong)[:160])
+
     album_id = duo["album_id"]
     album = rest("getAlbum", id=album_id)["album"]
+    for endpoint in ("getAlbumInfo", "getAlbumInfo2"):
+        info = rest(endpoint, id=album_id)
+        ctx.check(f"Subsonic {endpoint} answers with an albumInfo object",
+                  isinstance(info.get("albumInfo"), dict), str(sorted(k for k in info if k not in ("status", "version", "type", "serverVersion", "openSubsonic"))))
     ctx.check("Subsonic getAlbum takes the album's entity id", album.get("id") == album_id
               and [x.get("id") for x in album.get("song", [])] == [duo["id"]], str(album)[:120])
     ctx.check("a Subsonic song carries the entity ids", album["song"][0].get("albumId") == album_id

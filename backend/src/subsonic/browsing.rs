@@ -51,6 +51,7 @@ pub async fn get_open_subsonic_extensions(auth: SubsonicAuthUser) -> Response {
             "openSubsonicExtensions": [
                 // `getLyricsBySongId`, timed lines included.
                 { "name": "songLyrics", "versions": [1] },
+                { "name": "apiKeyAuthentication", "versions": [1] },
                 // Every route is registered for POST as well as GET, and
                 // `form::merge_post_form` folds a form body into the query —
                 // so a client can send a long play queue in a body instead of
@@ -923,7 +924,11 @@ pub async fn get_album_info2(
     SubsonicQuery(params): SubsonicQuery<IdParam>,
 ) -> Response {
     match album_info_payload(&auth, &state, &params.id).await {
-        Some(info) => ok(&auth, json!({ "albumInfo2": info })),
+        // Unlike `getArtistInfo2` → `artistInfo2`, the protocol names this one
+        // `albumInfo` for both versions; Navidrome does the same. Clients read
+        // that key (Music Assistant's song sync stopped on a missing
+        // 'albumInfo').
+        Some(info) => ok(&auth, json!({ "albumInfo": info })),
         None => err(&auth, SubsonicErrorCode::NotFound),
     }
 }

@@ -337,7 +337,35 @@ def run(ctx: Ctx) -> None:
 
     media_step(ctx, "audiobook stream", "audiobook file", choose_streamable_audiobook(ctx, admin_token))
     media_step(ctx, "music stream", "music track", choose_streamable_track(ctx, admin_token))
-    media_step(ctx, "podcast stream", "podcast episode", choose_streamable_episode(ctx, admin_token))
+    episode = choose_streamable_episode(ctx, admin_token)
+    media_step(ctx, "podcast stream", "podcast episode", episode)
+    if episode:
+        with step(ctx, "Subsonic bookmarks are episode positions"):
+            _, episode_id, _ = episode
+            progress_path = f"/api/v1/playback/episodes/{episode_id}/progress"
+            before = ctx.call("GET", progress_path, admin_token, expect=(200, 404))
+            key = ctx.call("GET", "/api/v1/users/me/subsonic-key", admin_token)
+            salt = uuid.uuid4().hex[:8]
+            sub = urllib.parse.urlencode({"u": key["username"], "t": hashlib.md5((key["api_key"] + salt).encode()).hexdigest(),
+                                          "s": salt, "v": "1.16.1", "c": "smoke", "f": "json"})
+            def rest(endpoint: str, **params: Any) -> dict:
+                root = ctx.call("GET", f"/rest/{endpoint}.view?{sub}&{urllib.parse.urlencode(params)}")["subsonic-response"]
+                need(root.get("status") == "ok", f"{endpoint}: {root.get('error')}")
+                return root
+            try:
+                rest("createBookmark", id=episode_id, position=42000)
+                marks = rest("getBookmarks").get("bookmarks", {}).get("bookmark", [])
+                mine = [m for m in marks if (m.get("entry") or {}).get("id") == episode_id]
+                need(len(mine) == 1 and mine[0].get("position") == 42000, f"getBookmarks: {str(mine)[:160]}")
+                shared = ctx.call("GET", progress_path, admin_token)
+                need(abs(shared["position_secs"] - 42) < 0.01, f"own.audio progress after createBookmark: {shared}")
+                rest("deleteBookmark", id=episode_id)
+                gone = ctx.call("GET", progress_path, admin_token, expect=(200, 404))
+                need(not gone or gone.get("position_secs", 0) == 0, f"progress after deleteBookmark: {gone}")
+            finally:
+                if before:
+                    ctx.call("PUT", progress_path, admin_token, {"position_secs": before["position_secs"],
+                                                                 "completed": before["completed"]}, expect=(200, 204))
 
     with step(ctx, "password change"):
         ctx.call(

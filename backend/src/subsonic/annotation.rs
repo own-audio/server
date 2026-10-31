@@ -198,7 +198,7 @@ pub async fn get_bookmarks(auth: SubsonicAuthUser, State(state): State<AppState>
     let only_tracks: Vec<_> = tracks.iter().map(|(_, t)| t.clone()).collect();
     let ctx = crate::subsonic::browsing::SongContext::load(state.db(), auth.user_id, &only_tracks).await;
 
-    let entries: Vec<Value> = tracks
+    let mut entries: Vec<Value> = tracks
         .iter()
         .map(|(mark, track)| {
             json!({
@@ -211,6 +211,32 @@ pub async fn get_bookmarks(auth: SubsonicAuthUser, State(state): State<AppState>
             })
         })
         .collect();
+
+    // Podcast episodes part-way through are bookmarks too. They are the same
+    // positions the own.audio apps resume from, so a client that resumes
+    // episodes through bookmarks (Music Assistant does) stays in step with
+    // them instead of keeping a separate place.
+    if let Ok(progress) = db::playback::list_unfinished_podcast_progress(state.db(), auth.user_id).await {
+        let mut episodes = Vec::with_capacity(progress.len());
+        for mark in &progress {
+            if let Ok(Some((_, episode))) =
+                crate::subsonic::podcasts::visible_episode(&auth, &state, &mark.episode_id.to_string()).await
+            {
+                episodes.push((mark, episode));
+            }
+        }
+        let only: Vec<_> = episodes.iter().map(|(_, e)| e.clone()).collect();
+        let media = crate::subsonic::podcasts::media_for(state.db(), &only).await;
+        entries.extend(episodes.iter().map(|(mark, episode)| {
+            json!({
+                "position": (mark.position_secs * 1000.0) as i64,
+                "username": auth.username,
+                "created": mark.updated_at.to_rfc3339(),
+                "changed": mark.updated_at.to_rfc3339(),
+                "entry": crate::subsonic::podcasts::episode_json(episode, media.get(&episode.id)),
+            })
+        }));
+    }
 
     ok(&auth, json!({ "bookmarks": { "bookmark": entries } }))
 }
@@ -234,7 +260,21 @@ pub async fn create_bookmark(
 
     match db::music::find_track(state.db(), track_id, auth.viewer()).await {
         Ok(Some(_)) => {}
-        Ok(None) => return err(&auth, SubsonicErrorCode::NotFound),
+        Ok(None) => {
+            // Not a song: a podcast episode's bookmark is its listening
+            // position, shared with every own.audio app.
+            return match crate::subsonic::podcasts::visible_episode(&auth, &state, &params.id).await {
+                Ok(Some((_, episode))) => {
+                    let position = params.position.max(0) as f64 / 1000.0;
+                    match db::playback::upsert_podcast_progress(state.db(), auth.user_id, episode.id, position, false).await {
+                        Ok(_) => ok(&auth, json!({})),
+                        Err(_) => err(&auth, SubsonicErrorCode::Generic),
+                    }
+                }
+                Ok(None) => err(&auth, SubsonicErrorCode::NotFound),
+                Err(()) => err(&auth, SubsonicErrorCode::Generic),
+            };
+        }
         Err(_) => return err(&auth, SubsonicErrorCode::Generic),
     }
 
@@ -267,6 +307,14 @@ pub async fn delete_bookmark(
         return err(&auth, SubsonicErrorCode::NotFound);
     };
     if db::music::delete_music_bookmark(state.db(), auth.user_id, track_id)
+        .await
+        .is_err()
+    {
+        return err(&auth, SubsonicErrorCode::Generic);
+    }
+    // An episode's bookmark is its position (see `create_bookmark`). Only the
+    // viewer's own row is touched, so no access check is needed to clear it.
+    if db::playback::clear_unfinished_podcast_progress(state.db(), auth.user_id, track_id)
         .await
         .is_err()
     {
