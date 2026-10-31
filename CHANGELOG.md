@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.51] - 2026-10-31
+
+Contract revision 26.
+
 ### Added
 
 - OpenSubsonic API keys: a Subsonic app can sign in with the key alone (`apiKey`), as the
