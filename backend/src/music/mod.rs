@@ -1209,6 +1209,16 @@ async fn create_track(
     db::media::set_audio_props(&mut *tx, audio_media_id, &audio_props)
         .await
         .map_err(AuthError::Internal)?;
+    // The headers over the name the client gave the file.
+    let recorded: Option<String> = sqlx::query_scalar("SELECT content_type FROM media_objects WHERE id = $1")
+        .bind(audio_media_id)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(|e| AuthError::Internal(e.into()))?;
+    if let Some(real) = recorded.as_deref().and_then(|r| audio_props.corrected_content_type(r)) {
+        tracing::info!(object = %audio_media_id, named = ?recorded, is = %real, "upload: the file is not what its name says; recorded as what it is");
+        db::media::set_content_type(&mut *tx, audio_media_id, real).await.map_err(AuthError::Internal)?;
+    }
 
     let track = db::music::insert_track(
         &mut *tx,

@@ -252,6 +252,20 @@ pub async fn any_media_object(pool: &PgPool) -> anyhow::Result<bool> {
 }
 
 /// Stores what a file's audio is (`crate::audio_props`), and that it was read.
+/// The content type a file's headers call for, when its name said otherwise.
+pub async fn set_content_type<'e, E>(executor: E, object_id: Uuid, content_type: &str) -> anyhow::Result<()>
+where
+    E: PgExecutor<'e>,
+{
+    sqlx::query("UPDATE media_objects SET content_type = $2 WHERE id = $1")
+        .bind(object_id)
+        .bind(content_type)
+        .execute(executor)
+        .await
+        .context("db: set content type")?;
+    Ok(())
+}
+
 pub async fn set_audio_props<'e, E>(executor: E, object_id: Uuid, p: &crate::audio_props::AudioProps) -> anyhow::Result<()>
 where
     E: PgExecutor<'e>,

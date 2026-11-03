@@ -168,6 +168,27 @@ async fn source(state: &AppState, viewer: Viewer, item: &str) -> Result<Option<S
     Ok(Some(Source::Stored { object, key, size, content_type, duration_secs }))
 }
 
+/// Whether the codec read from a file's headers is one its content type (from
+/// its name) can hold. Old rips lie: a `.mp3` that is really a WMA, or an
+/// `.m4a` of something else. A client that plays `audio/mpeg` would get bytes
+/// it cannot decode and report the song as unplayable; the server knows better
+/// and transcodes instead. An unknown codec, or a content type outside the
+/// families below, is taken at its word.
+fn codec_fits(content_type: &str, codec: Option<&str>) -> bool {
+    let Some(codec) = codec else { return true };
+    let family: &[&str] = match content_type.to_ascii_lowercase().as_str() {
+        "audio/mpeg" | "audio/mp3" => &["mp1", "mp2", "mp3"],
+        "audio/mp4" | "audio/x-m4a" | "audio/m4a" | "audio/m4b" | "audio/x-m4b" => &["aac", "alac", "mp3", "flac"],
+        "audio/aac" | "audio/aacp" => &["aac"],
+        "audio/flac" | "audio/x-flac" => &["flac"],
+        "audio/wav" | "audio/x-wav" | "audio/wave" => &["wav"],
+        "audio/aiff" | "audio/x-aiff" => &["aiff"],
+        "audio/ogg" | "audio/opus" | "audio/vorbis" => &["opus", "vorbis", "flac", "speex"],
+        _ => return true,
+    };
+    family.contains(&codec.to_ascii_lowercase().as_str())
+}
+
 #[derive(Deserialize, ToSchema, Default)]
 pub struct Capabilities {
     /// Content types played as they are (`audio/flac`, `audio/mpeg`, `audio/mp4`…).
@@ -262,18 +283,25 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
         Source::Stored { object, size, content_type, duration_secs, .. } => (object, size, content_type, duration_secs),
     };
     let caps = &body.capabilities;
-    let source_kbps = duration.filter(|d| *d > 0).map(|d| (size.max(0) as u64 * 8 / d as u64 / 1000) as u32);
     let props = db::media::audio_props(state.db(), object).await?.unwrap_or_default();
+    // The file's own bitrate where its headers were read; else from size and
+    // length, which counts tags and covers too.
+    let source_kbps = props
+        .bitrate_kbps
+        .filter(|k| *k > 0)
+        .map(|k| k as u32)
+        .or_else(|| duration.filter(|d| *d > 0).map(|d| (size.max(0) as u64 * 8 / d as u64 / 1000) as u32));
     let source_audio = SourceAudio {
         content_type: content_type.clone(),
-        codec: props.codec,
+        codec: props.codec.clone(),
         sample_rate_hz: props.sample_rate_hz,
         bit_depth: props.bit_depth,
         channels: props.channels,
         bitrate_kbps: props.bitrate_kbps.or(source_kbps.map(|k| k as i32)),
     };
     let mut reasons = Vec::new();
-    let playable = caps.direct.is_empty() || caps.direct.iter().any(|c| c.eq_ignore_ascii_case(&content_type));
+    let playable = caps.direct.is_empty()
+        || (caps.direct.iter().any(|c| c.eq_ignore_ascii_case(&content_type)) && codec_fits(&content_type, props.codec.as_deref()));
     let over = match (caps.max_bitrate_kbps, source_kbps) {
         (Some(limit), Some(kbps)) => kbps > limit,
         (Some(_), None) => false,
@@ -374,12 +402,16 @@ pub async fn stream(State(state): State<AppState>, Query(q): Query<StreamQuery>)
             kbps: grant.kbps.clamp(32, 320),
             offset_secs: grant.offset_secs,
         };
-        if let Some(opened) = state.storage().open(&key, None).await? {
-            if let Some(response) = transcode::start(opened.body, plan) {
-                return Ok(response);
+        match transcode::input(state.storage(), &key).await {
+            Ok(input) => {
+                if let Some(response) = transcode::start(input, plan).await {
+                    return Ok(response);
+                }
             }
+            Err(err) => tracing::warn!(error = %err, "no input for a transcode; the original is sent"),
         }
-        // Every transcoder busy: the original, which the client was ready to fall back to.
+        // Every transcoder busy, or nothing came out of it: the original,
+        // which the client was ready to fall back to.
     }
     if q.route.as_deref() == Some("proxy") {
         if let Some(url) = state.storage().proxied_get(&key, 3600) {
@@ -393,6 +425,18 @@ pub async fn stream(State(state): State<AppState>, Query(q): Query<StreamQuery>)
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_file_that_is_not_what_its_name_says_is_not_playable_as_it() {
+        assert!(codec_fits("audio/mpeg", Some("mp3")));
+        assert!(codec_fits("audio/mpeg", Some("mp2")), "old rips are Layer II, which players decode");
+        assert!(!codec_fits("audio/mpeg", Some("wma pro")), "an ASF file named .mp3");
+        assert!(!codec_fits("audio/x-m4a", Some("wma")));
+        assert!(codec_fits("audio/x-m4a", Some("alac")));
+        assert!(!codec_fits("audio/wav", Some("mp3")), "a WAV holding MPEG audio is not the PCM a player expects");
+        assert!(codec_fits("audio/flac", None), "unread headers: the name is all there is");
+        assert!(codec_fits("audio/x-ms-wma", Some("mp3")), "a family the table doesn't know is taken at its word");
+    }
 
     fn grant() -> Grant {
         Grant { item: format!("track:{}", Uuid::nil()), format: "mp3".into(), kbps: 128, offset_secs: 0, user: Uuid::nil(), expires: Utc::now().timestamp() + 60 }

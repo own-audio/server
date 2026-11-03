@@ -119,8 +119,8 @@ async fn transcoded(auth: &SubsonicAuthUser, state: &AppState, id: Uuid, key: &s
         .filter(|&d| d > 0);
     let source_kbps = duration.map(|d| (size.max(0) as u64 * 8 / d as u64 / 1000) as u32);
     let plan = super::transcode::plan(params.max_bit_rate, params.format.as_deref(), params.time_offset, source_kbps)?;
-    let opened = state.storage().open(key, None).await.ok()??;
-    super::transcode::start(opened.body, plan)
+    let input = super::transcode::input(state.storage(), key).await.ok()?;
+    super::transcode::start(input, plan).await
 }
 
 /// Where a playable item's audio actually lives.

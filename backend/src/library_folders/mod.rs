@@ -267,12 +267,16 @@ fn image_content_type(name: &str) -> &'static str {
     if extension(name) == "png" { "image/png" } else { "image/jpeg" }
 }
 
-/// Length in whole seconds and the title tag, from one read of the headers.
+/// Length in whole seconds and the title tag, from one read of the headers — and, for an
+/// MP3 or WAV whose headers may be lying (`checked_duration`), from the audio itself.
 fn probe(path: &Path) -> (Option<i32>, Option<String>) {
-    use lofty::file::{AudioFile, TaggedFileExt};
+    use lofty::file::{AudioFile, FileType, TaggedFileExt};
     use lofty::tag::Accessor;
     let Ok(file) = lofty::read_from_path(path) else { return ffprobe_probe(path) };
-    let secs = file.properties().duration().as_secs();
+    let mut secs = file.properties().duration().as_secs();
+    if matches!(file.file_type(), FileType::Mpeg | FileType::Wav) {
+        secs = checked_duration(path, secs);
+    }
     let title = file
         .primary_tag()
         .or_else(|| file.first_tag())
@@ -302,6 +306,46 @@ fn ffprobe_probe(path: &Path) -> (Option<i32>, Option<String>) {
 
 pub(crate) fn duration_secs(path: &Path) -> Option<i32> {
     probe(path).0
+}
+
+/// The length of an MP3 or WAV, checked. From the headers it is an estimate for some files: an
+/// MP3 whose bitrate varies and that has no Xing header is taken at its first frame's rate for
+/// the whole file (a 1990s rip ran a fifth short that way), and a WAV holding MP3 is its data
+/// size over a nominal rate. Where ffprobe's own estimate disagrees by more than a tenth, or the
+/// WAV is not PCM, the file is decoded and its audio counted: the one answer that is right, at
+/// a second or two for the few files it concerns. Everything else keeps the headers' number.
+fn checked_duration(path: &Path, from_headers: u64) -> u64 {
+    let second_opinion = crate::music::ffprobe_format(path)
+        .and_then(|f| f.get("duration")?.as_str()?.parse::<f64>().ok())
+        .filter(|d| d.is_finite() && *d > 0.0);
+    let disagree = second_opinion.is_some_and(|d| (d - from_headers as f64).abs() > (from_headers as f64 * 0.1).max(2.0));
+    let compressed_wav = {
+        let p = crate::audio_props::read(path);
+        p.container.as_deref() == Some("wav") && p.codec.as_deref().is_some_and(|c| c != "wav")
+    };
+    if !disagree && !compressed_wav {
+        return from_headers;
+    }
+    duration_by_decoding(path).unwrap_or(from_headers)
+}
+
+/// The length ffmpeg finds decoding the whole file: its last progress line's `time=`.
+fn duration_by_decoding(path: &Path) -> Option<u64> {
+    let out = std::process::Command::new("ffmpeg")
+        .args(["-v", "info", "-nostdin", "-i"])
+        .arg(path)
+        .args(["-map", "0:a:0", "-vn", "-f", "null", "-"])
+        .stdin(std::process::Stdio::null())
+        .output()
+        .ok()?;
+    let text = String::from_utf8_lossy(&out.stderr);
+    let stamp = text.rmatch_indices("time=").map(|(i, _)| &text[i + 5..]).find_map(|rest| rest.split_whitespace().next())?;
+    let mut parts = stamp.split(':').rev();
+    let secs: f64 = parts.next()?.parse().ok()?;
+    let mins: f64 = parts.next().and_then(|m| m.parse().ok()).unwrap_or(0.0);
+    let hours: f64 = parts.next().and_then(|h| h.parse().ok()).unwrap_or(0.0);
+    let total = hours * 3600.0 + mins * 60.0 + secs;
+    (total.is_finite() && total > 0.0).then_some(total.round() as u64)
 }
 
 /// Title for an audiobook file from its name: `03_The_Ride.mp3` → `03 The Ride`.
@@ -733,15 +777,21 @@ async fn read_pending_track_chapters(pool: &PgPool, folder: &FolderRow, root: &P
 /// Reads what each file's audio is (`crate::audio_props`) for the files that
 /// have not been read yet: those scanned before migration 0122, once, and none
 /// after that. Only headers are read, so a large library takes a minute or two.
+///
+/// This is also where a file's name is checked against its contents. Old rips
+/// hold surprises — a WMA named `.mp3`, an MP3 named `.wav` — and a player told
+/// the name's type gets bytes it cannot decode. The content type is corrected
+/// to what the headers say, and each such file is logged; so is every file no
+/// reader can open at all (a stub, a damaged download), which stays as it is.
 async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path) -> anyhow::Result<()> {
-    let files: Vec<(Uuid, String)> = sqlx::query_as(
-        "SELECT mo.id, lf.rel_path
+    let files: Vec<(Uuid, String, String)> = sqlx::query_as(
+        "SELECT mo.id, lf.rel_path, mo.content_type
          FROM library_files lf
          JOIN music_tracks_all t ON lf.item_kind = 'track' AND t.id = lf.item_id
          JOIN media_objects mo ON mo.id = t.audio_object_id
          WHERE lf.folder_id = $1 AND NOT lf.missing AND mo.audio_probed_at IS NULL
          UNION ALL
-         SELECT mo.id, lf.rel_path
+         SELECT mo.id, lf.rel_path, mo.content_type
          FROM library_files lf
          JOIN audiobook_files f ON lf.item_kind = 'book_file' AND f.id = lf.item_id
          JOIN media_objects mo ON mo.id = f.audio_object_id
@@ -754,14 +804,27 @@ async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path
         return Ok(());
     }
     let total = files.len();
-    for (object, rel) in files {
+    let (mut unreadable, mut corrected) = (0usize, 0usize);
+    for (object, rel, recorded) in files {
         let path = root.join(&rel);
         let props = tokio::task::spawn_blocking(move || crate::audio_props::read(&path)).await.unwrap_or_default();
         if let Err(e) = crate::db::media::set_audio_props(pool, object, &props).await {
             tracing::warn!(%object, error = %format!("{e:#}"), "library scan: audio properties not saved");
         }
+        if props.is_empty() {
+            unreadable += 1;
+            tracing::warn!(folder = %folder.path, file = %rel, "library scan: no reader can open this file; players will not either");
+        } else if let Some(real) = props.corrected_content_type(&recorded) {
+            match crate::db::media::set_content_type(pool, object, real).await {
+                Ok(()) => {
+                    corrected += 1;
+                    tracing::warn!(folder = %folder.path, file = %rel, named = %recorded, is = %real, "library scan: the file is not what its name says; recorded as what it is");
+                }
+                Err(e) => tracing::warn!(%object, error = %format!("{e:#}"), "library scan: content type not corrected"),
+            }
+        }
     }
-    tracing::info!(folder = %folder.path, files = total, "library scan: audio properties read");
+    tracing::info!(folder = %folder.path, files = total, unreadable, corrected, "library scan: audio properties read");
     Ok(())
 }
 
@@ -930,6 +993,39 @@ async fn scan_book_dir(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn ffmpeg_available() -> bool {
+        std::process::Command::new("ffmpeg").arg("-version").stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null()).status().is_ok_and(|s| s.success())
+    }
+
+    /// A 30 s tone as an MP3 with a varying bitrate and no Xing header: its first frame says
+    /// nothing about its length.
+    fn vbr_mp3_without_xing() -> PathBuf {
+        let path = std::env::temp_dir().join(format!("own-audio-probe-{}.mp3", uuid::Uuid::new_v4()));
+        let status = std::process::Command::new("ffmpeg")
+            .args(["-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:duration=30", "-af", "volume=enable='lt(t,12)':volume=0", "-c:a", "libmp3lame", "-q:a", "9", "-write_xing", "0"])
+            .arg(&path)
+            .status()
+            .expect("ffmpeg runs");
+        assert!(status.success());
+        path
+    }
+
+    #[test]
+    fn a_doubtful_length_is_measured_from_the_audio() {
+        if !ffmpeg_available() {
+            eprintln!("skipped: no ffmpeg");
+            return;
+        }
+        let path = vbr_mp3_without_xing();
+        assert_eq!(duration_by_decoding(&path), Some(30));
+        // Headers a third out are checked and replaced; ones within a tenth are kept as they are.
+        assert_eq!(checked_duration(&path, 20), 30);
+        assert_eq!(checked_duration(&path, 29), 29);
+        let probed = probe(&path).0.unwrap();
+        assert!((29..=30).contains(&probed), "probe said {probed}");
+        let _ = std::fs::remove_file(path);
+    }
 
     #[test]
     fn nas_system_folders_are_skipped() {

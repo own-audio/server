@@ -9,6 +9,39 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- Transcodes (a smaller stream on mobile data, or MP3/AAC of a format a player can't decode) read
+  the original where it is — the file on this server's disk, or S3 by a link — instead of through
+  a pipe. An M4A whose index (`moov`) follows its audio could not be read through the pipe, so its
+  transcode was an empty answer the player reported as "could not play"; and a start part-way in
+  (`start_ms`, Subsonic `timeOffset`) decoded everything before it first, which an hour into an
+  audiobook took longer than a player waits for the first byte. Both are seeks now. A transcode
+  that produces nothing (a damaged file) falls back to the original, with ffmpeg's reason in the
+  log, instead of an empty 200.
+- **A library scan checks each file's name against its contents.** The headers say what a file
+  is (`mp3`, `mp4`, `adts`, `flac`, `ogg`, `wav`, `aiff`, ASF for WMA…); where that contradicts
+  the name — a WMA named `.mp3`, an MP3 named `.wav`, from an old rip — the content type is
+  corrected to what the file is, and the file is logged, as is every file no reader can open at
+  all (a stub, a damaged download). The same check runs on an upload. Files scanned before
+  1.0.0-beta.51 are read once on the next scan. Test: "a file that is not what its name says gets
+  the content type of what it is".
+- **The length of an MP3 or WAV is measured where its headers are doubtful.** An MP3 whose
+  bitrate varies and that has no Xing header was taken at its first frame's rate for the whole
+  file (two 1990s rips in a test library ran a fifth short, the progress bar reaching its end
+  with a minute of song left); a WAV holding MP3 was its data size over a nominal rate. Where
+  ffprobe's own estimate disagrees with the headers by more than a tenth, or the WAV is not PCM,
+  the scan decodes the file and counts the audio. A WAV's codec is read from its format tag, so a
+  WAV holding MPEG audio (or one named `.mp3`) is transcoded rather than sent to a player as PCM.
+  Tests: "a doubtful length is measured from the audio", "a WAV holding mp3 says so".
+- `POST /playback-info` sends a transcode for a file whose headers say it is not what its name
+  says — a WMA named `.mp3`, from an old rip — instead of the original with a content type the
+  player trusts and then cannot decode. Transcodes are at most 48 kHz and stereo: a 24-bit/96 kHz
+  rip or a 5.1 mix gains nothing from more in a stream made to be small, and not every player's
+  AAC decoder takes 96 kHz. (Files a scan read before 1.0.0-beta.51 have no codec on record
+  until their folder is scanned again.)
+- `POST /playback-info` judges "over the bitrate limit" by the file's own bitrate where its
+  headers were read, and only otherwise by size over length, which counts covers and tags too: a
+  320 kbps MP3 with a large cover no longer gets a 320 kbps transcode of itself.
+
 - Deleting a podcast episode's Subsonic bookmark within its last minute (or past 90 %) marks the
   episode played instead of sending it back to the start. That is how Music Assistant reports a
   finished episode — it deletes the bookmark and says nothing else — so episodes it played to the
