@@ -7,9 +7,11 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 /// Songs without a fingerprint of their current file, oldest first: never
-/// fingerprinted, or the file was replaced or changed since. With
-/// `only_unidentified`, only songs no identify has matched (hosted: a read of
-/// object storage is a request, and AcoustID is paid beyond its free lookups).
+/// fingerprinted, or the file was replaced or changed since, or fingerprinted
+/// by a server older than the health checks (`examined_at`, migration 0125).
+/// With `only_unidentified`, only songs no identify has matched (hosted: a
+/// read of object storage is a request, and AcoustID is paid beyond its free
+/// lookups).
 pub async fn pending(pool: &PgPool, only_unidentified: bool, limit: i64) -> anyhow::Result<Vec<Uuid>> {
     sqlx::query_scalar(
         "SELECT t.id
@@ -19,7 +21,8 @@ pub async fn pending(pool: &PgPool, only_unidentified: bool, limit: i64) -> anyh
           WHERE t.trashed_at IS NULL AND t.missing_at IS NULL
             AND (f.track_id IS NULL
                  OR f.audio_object_id <> t.audio_object_id
-                 OR f.size_bytes IS DISTINCT FROM mo.size_bytes)
+                 OR f.size_bytes IS DISTINCT FROM mo.size_bytes
+                 OR f.examined_at IS NULL)
             AND (NOT $1 OR NOT EXISTS (SELECT 1 FROM music_track_identity i WHERE i.track_id = t.id))
           ORDER BY t.created_at
           LIMIT $2",
@@ -62,11 +65,11 @@ pub async fn save(
     error: Option<&str>,
 ) -> anyhow::Result<()> {
     sqlx::query(
-        "INSERT INTO track_fingerprints (track_id, audio_object_id, size_bytes, fingerprint, duration_secs, error)
-         VALUES ($1, $2, $3, $4, $5, $6)
+        "INSERT INTO track_fingerprints (track_id, audio_object_id, size_bytes, fingerprint, duration_secs, error, examined_at)
+         VALUES ($1, $2, $3, $4, $5, $6, now())
          ON CONFLICT (track_id) DO UPDATE
             SET audio_object_id = EXCLUDED.audio_object_id, size_bytes = EXCLUDED.size_bytes,
-                fingerprint = EXCLUDED.fingerprint, duration_secs = EXCLUDED.duration_secs,
+                fingerprint = EXCLUDED.fingerprint, duration_secs = EXCLUDED.duration_secs, examined_at = now(),
                 error = EXCLUDED.error, computed_at = now()",
     )
     .bind(track_id)

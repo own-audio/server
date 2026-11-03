@@ -9,6 +9,10 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- The quarantine's decode, stub, cut-off and silence checks reach a library fingerprinted by an
+  older server: the fingerprint job now records when it examined a file (migration 0125), and the
+  sweep takes every file examined before beta.53 again, 200 every two minutes in the background.
+  Without this, only files no reader could open were ever quarantined on an existing library.
 - Web console: `follow-redirects` advisory GHSA-mrwp-f3q8-3g9p (a Node-only dependency of axios, never run in the browser), which had failed CI's `npm audit` since beta.51.
 
 ## [1.0.0-beta.53] - 2026-11-03
