@@ -10,7 +10,8 @@ semver. Each release states the **API contract revision** it serves
 ### Added
 
 - **Quarantine for broken files** (migration 0124). A file no reader can open, one that does not
-  decode, a stub of a second or two, or one silent for its first two minutes (a DRM-protected rip
+  decode, a stub of a second or two, a download cut off early (the headers promise a song, the
+  decode gives a fraction of it), or one silent for its first two minutes (a DRM-protected rip
   decodes to exact zeros) is set aside by the library scan or the fingerprint job: out of every
   list and player, as a missing file is, but kept with the reason. A family admin lists them at
   `GET /api/v2/library/quarantine` and lets one back with `DELETE /api/v2/library/quarantine/{track_id}`;

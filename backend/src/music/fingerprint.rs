@@ -61,6 +61,32 @@ fn ffmpeg_args(input: &str) -> Vec<String> {
     .to_vec()
 }
 
+/// How much audio ffmpeg decoded: its last progress line's `time=`. A download
+/// that stopped after its first frames still carries the whole song's headers
+/// (a Xing frame says 30 s of a file holding 0.2 s), so the length on record
+/// cannot tell; the decode can.
+fn decoded_seconds(stderr: &[u8]) -> Option<f64> {
+    let text = String::from_utf8_lossy(stderr);
+    let stamp = text.rmatch_indices("time=").map(|(i, _)| &text[i + 5..]).find_map(|rest| rest.split_whitespace().next())?;
+    let mut parts = stamp.split(':').rev();
+    let secs: f64 = parts.next()?.parse().ok()?;
+    let mins: f64 = parts.next().and_then(|m| m.parse().ok()).unwrap_or(0.0);
+    let hours: f64 = parts.next().and_then(|h| h.parse().ok()).unwrap_or(0.0);
+    Some(hours * 3600.0 + mins * 60.0 + secs).filter(|t| t.is_finite())
+}
+
+/// Why a song whose headers promise `recorded` seconds but that decodes to
+/// `decoded` is set aside, if it is: a stub, or a download cut off early. The
+/// fingerprint decodes the first two minutes at most, so a longer song is
+/// judged on those.
+fn cut_off(recorded: Option<i32>, decoded: f64) -> Option<String> {
+    if decoded < STUB_SECS as f64 {
+        return Some(format!("only {decoded:.1} s of audio decodes: a stub, not a song"));
+    }
+    let expected = recorded.filter(|r| *r >= MIN_SECS)? .min(SECONDS.parse::<i32>().unwrap_or(120)) as f64;
+    (decoded < expected * 0.5).then(|| format!("only {decoded:.0} s of {expected:.0} s decode: a download cut off early"))
+}
+
 /// The loudest sample of the decoded audio, from `volumedetect`'s report.
 fn max_volume_db(stderr: &[u8]) -> Option<f64> {
     let text = String::from_utf8_lossy(stderr);
@@ -127,7 +153,9 @@ pub async fn execute(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::mo
 
     let fingerprint = String::from_utf8_lossy(&out.stdout).trim().to_string();
     if out.status.success() && !fingerprint.is_empty() {
-        if let Some(db) = max_volume_db(&out.stderr).filter(|db| *db <= SILENCE_DB) {
+        if let Some(why) = decoded_seconds(&out.stderr).and_then(|d| cut_off(source.duration_secs, d)) {
+            set_aside(pool, track_id, &why).await;
+        } else if let Some(db) = max_volume_db(&out.stderr).filter(|db| *db <= SILENCE_DB) {
             set_aside(pool, track_id, &format!("silent: nothing above {db} dB in its first two minutes (a DRM-protected file?)")).await;
         }
         db::fingerprints::save(pool, track_id, &source, Some(&fingerprint), None).await
@@ -166,6 +194,18 @@ mod tests {
         let failing = b"Input #0, mp3, from 'x.mp3':\n[mp3 @ 0x1] Failed to read frame size: Could not seek to 1151.\nx.mp3: Invalid data found when processing input\n";
         assert_eq!(reason(failing), "[mp3 @ 0x1] Failed to read frame size: Could not seek to 1151.");
         assert_eq!(max_volume_db(failing), None);
+    }
+
+    #[test]
+    fn a_file_that_decodes_far_shorter_than_its_headers_say_is_cut_off() {
+        let progress = b"Input #0\nsize=N/A time=00:00:00.18 bitrate=N/A speed=10x\n[Parsed_volumedetect_0 @ 0x1] max_volume: -3.0 dB\n";
+        assert_eq!(decoded_seconds(progress), Some(0.18));
+        assert!(cut_off(Some(30), 0.18).unwrap().contains("a stub"), "4 KB of a 30 s song with the song's own Xing header");
+        assert!(cut_off(Some(200), 40.0).unwrap().contains("cut off"), "40 s of 120 s decoded");
+        assert_eq!(cut_off(Some(200), 119.5), None, "the two minutes the fingerprint reads, in full");
+        assert_eq!(cut_off(Some(30), 29.0), None);
+        assert_eq!(cut_off(None, 25.0), None, "no length on record: nothing to compare");
+        assert_eq!(decoded_seconds(b"time=01:02:03.50 "), Some(3723.5));
     }
 
     #[test]
