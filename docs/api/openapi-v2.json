@@ -5484,6 +5484,70 @@
         ],
         "type": "object"
       },
+      "QuarantineList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/QuarantinedTrack"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "QuarantinedTrack": {
+        "properties": {
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file": {
+            "description": "The file as the server knows it: `folder/<folder id>/<path in the folder>` or an upload's key.",
+            "type": "string"
+          },
+          "reason": {
+            "description": "Why, in words: what the scan or the fingerprint job found.",
+            "type": "string"
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "track_id": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "track_id",
+          "title",
+          "file",
+          "reason",
+          "since"
+        ],
+        "type": "object"
+      },
       "Quote": {
         "properties": {
           "charge_micro": {
@@ -11493,6 +11557,117 @@
           "media"
         ],
         "x-permission": "public"
+      }
+    },
+    "/api/v2/library/quarantine": {
+      "get": {
+        "operationId": "library_list_quarantine",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuarantineList"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The household's quarantined tracks and why each is there",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "family_admin",
+        "x-scope": "family:admin"
+      }
+    },
+    "/api/v2/library/quarantine/{track_id}": {
+      "delete": {
+        "description": "Lets a track back into the library. The file is not read again: it comes\nback as it is, until it changes on disk and the scan reads it anew.",
+        "operationId": "library_release_quarantine",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Back in the library"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the household's, or not in quarantine"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lets a track back into the library",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "family_admin",
+        "x-scope": "family:admin"
       }
     },
     "/api/v2/me": {

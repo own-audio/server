@@ -25,6 +25,13 @@ const LINK_SECS: u64 = 600;
 /// songs this short were cut-off downloads (0.3 s and 6 s of a 3-minute song).
 const MIN_SECS: i32 = 10;
 
+/// A song this short is not a song: a download that stopped after its first
+/// frames, a placeholder. It is quarantined, not only left unfingerprinted.
+const STUB_SECS: i32 = 2;
+/// Nothing above this in the first two minutes is silence: a DRM-protected WMA
+/// decodes to exact zeros, and a player would play two minutes of nothing.
+const SILENCE_DB: f64 = -80.0;
+
 /// Why a song of `duration` seconds is not worth fingerprinting, if it is not.
 fn too_short(duration: Option<i32>) -> Option<String> {
     duration
@@ -32,25 +39,47 @@ fn too_short(duration: Option<i32>) -> Option<String> {
         .map(|d| format!("only {d} s of audio: too short to fingerprint (a damaged or cut-off file?)"))
 }
 
+/// Why a song of `duration` seconds is quarantined, if it is: a stub.
+fn stub(duration: Option<i32>) -> Option<String> {
+    duration.filter(|d| *d < STUB_SECS).map(|d| format!("only {d} s of audio: a stub, not a song"))
+}
+
 /// The ffmpeg arguments for one fingerprint of `input` (a path or a link):
 /// mono, the first two minutes, Chromaprint compressed and base64 to stdout.
+/// The loudness of the same two minutes goes to stderr (`volumedetect`, at
+/// info level), so a silent file is known at the same cost.
 fn ffmpeg_args(input: &str) -> Vec<String> {
     [
-        "-hide_banner", "-nostdin", "-loglevel", "error",
+        "-hide_banner", "-nostdin", "-loglevel", "info",
         "-i", input,
         "-t", SECONDS,
         "-ac", "1",
+        "-af", "volumedetect",
         "-f", "chromaprint", "-fp_format", "base64", "-",
     ]
     .map(String::from)
     .to_vec()
 }
 
+/// The loudest sample of the decoded audio, from `volumedetect`'s report.
+fn max_volume_db(stderr: &[u8]) -> Option<f64> {
+    let text = String::from_utf8_lossy(stderr);
+    text.lines().find_map(|l| l.split("max_volume:").nth(1)?.split_whitespace().next()?.parse::<f64>().ok())
+}
+
 /// ffmpeg's error, short, without the query string of a link it was given
-/// (the signature is what makes it a credential).
+/// (the signature is what makes it a credential). At info level stderr also
+/// carries the input's description and progress; the error is the line that
+/// says so, else the last line.
 fn reason(stderr: &[u8]) -> String {
     let text = String::from_utf8_lossy(stderr);
-    let line = text.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("ffmpeg failed");
+    let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty() && !l.starts_with("[Parsed_volumedetect")).collect();
+    let line = lines
+        .iter()
+        .copied()
+        .find(|l| ["rror", "Invalid", "Failed", "failed", "Could not", "could not", "not found"].iter().any(|w| l.contains(w)))
+        .or_else(|| lines.last().copied())
+        .unwrap_or("ffmpeg failed");
     let redacted: Vec<String> = line
         .split_whitespace()
         .map(|w| match w.split_once('?') {
@@ -77,6 +106,9 @@ pub async fn execute(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::mo
     };
 
     if let Some(why) = too_short(source.duration_secs) {
+        if let Some(stub) = stub(source.duration_secs) {
+            set_aside(pool, track_id, &stub).await;
+        }
         return db::fingerprints::save(pool, track_id, &source, None, Some(&why)).await;
     }
 
@@ -95,11 +127,24 @@ pub async fn execute(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::mo
 
     let fingerprint = String::from_utf8_lossy(&out.stdout).trim().to_string();
     if out.status.success() && !fingerprint.is_empty() {
+        if let Some(db) = max_volume_db(&out.stderr).filter(|db| *db <= SILENCE_DB) {
+            set_aside(pool, track_id, &format!("silent: nothing above {db} dB in its first two minutes (a DRM-protected file?)")).await;
+        }
         db::fingerprints::save(pool, track_id, &source, Some(&fingerprint), None).await
     } else {
         let why = if out.status.success() { "no audio to fingerprint".to_string() } else { reason(&out.stderr) };
         tracing::info!(%track_id, reason = %why, "no fingerprint: the file does not decode");
+        set_aside(pool, track_id, &format!("does not decode: {why}")).await;
         db::fingerprints::save(pool, track_id, &source, None, Some(&why)).await
+    }
+}
+
+/// Into quarantine (migration 0124), with why; a failure to record it is logged, not fatal.
+async fn set_aside(pool: &PgPool, track_id: Uuid, why: &str) {
+    match db::quarantine::quarantine(pool, track_id, why).await {
+        Ok(true) => tracing::warn!(%track_id, reason = %why, "quarantined: the file is broken"),
+        Ok(false) => {}
+        Err(e) => tracing::warn!(%track_id, error = %format!("{e:#}"), "not quarantined"),
     }
 }
 
@@ -111,7 +156,24 @@ mod tests {
     fn fingerprints_the_first_two_minutes_in_mono_for_acoustid() {
         let args = ffmpeg_args("/music/a.flac");
         let joined = args.join(" ");
-        assert!(joined.contains("-i /music/a.flac -t 120 -ac 1 -f chromaprint -fp_format base64 -"), "{joined}");
+        assert!(joined.contains("-i /music/a.flac -t 120 -ac 1 -af volumedetect -f chromaprint -fp_format base64 -"), "{joined}");
+    }
+
+    #[test]
+    fn the_loudness_report_and_the_error_are_read_from_a_chatty_stderr() {
+        let stderr = b"Input #0, mp3, from 'x.mp3':\n  Duration: 00:03:41.09\n[Parsed_volumedetect_0 @ 0x1] n_samples: 1000\n[Parsed_volumedetect_0 @ 0x1] mean_volume: -91.0 dB\n[Parsed_volumedetect_0 @ 0x1] max_volume: -91.0 dB\nsize=N/A time=00:02:00.00\n";
+        assert_eq!(max_volume_db(stderr), Some(-91.0));
+        let failing = b"Input #0, mp3, from 'x.mp3':\n[mp3 @ 0x1] Failed to read frame size: Could not seek to 1151.\nx.mp3: Invalid data found when processing input\n";
+        assert_eq!(reason(failing), "[mp3 @ 0x1] Failed to read frame size: Could not seek to 1151.");
+        assert_eq!(max_volume_db(failing), None);
+    }
+
+    #[test]
+    fn a_stub_is_a_second_or_two_a_short_song_is_not() {
+        assert!(stub(Some(0)).is_some());
+        assert!(stub(Some(1)).is_some());
+        assert!(stub(Some(4)).is_none(), "a 4 s jingle is a song");
+        assert!(stub(None).is_none());
     }
 
     #[test]

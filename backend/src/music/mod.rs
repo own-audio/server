@@ -1388,6 +1388,10 @@ pub(crate) async fn refresh_folder_track(
     let path = file.to_path_buf();
     let props = tokio::task::spawn_blocking(move || crate::audio_props::read(&path)).await?;
     db::media::set_audio_props(state.db(), track.audio_object_id, &props).await?;
+    // Replaced by a file that reads: out of quarantine (the fingerprint job looks again).
+    if !props.is_empty() && db::quarantine::release(state.db(), track_id).await? {
+        tracing::info!(%track_id, "a quarantined file changed and reads again; released");
+    }
     if let Some(d) = duration_secs {
         sqlx::query("UPDATE music_tracks_all SET duration_secs = $2 WHERE id = $1")
             .bind(track_id)

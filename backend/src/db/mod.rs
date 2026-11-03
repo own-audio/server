@@ -29,6 +29,7 @@ pub mod media;
 pub mod music;
 pub mod subsonic;
 pub mod trash;
+pub mod quarantine;
 pub mod uploads;
 pub mod login_failures;
 pub mod password_resets;

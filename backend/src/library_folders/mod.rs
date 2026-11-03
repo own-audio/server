@@ -781,17 +781,17 @@ async fn read_pending_track_chapters(pool: &PgPool, folder: &FolderRow, root: &P
 /// This is also where a file's name is checked against its contents. Old rips
 /// hold surprises — a WMA named `.mp3`, an MP3 named `.wav` — and a player told
 /// the name's type gets bytes it cannot decode. The content type is corrected
-/// to what the headers say, and each such file is logged; so is every file no
-/// reader can open at all (a stub, a damaged download), which stays as it is.
+/// to what the headers say, and each such file is logged. A file no reader can
+/// open at all (a stub, a damaged download) goes to quarantine (migration 0124).
 async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path) -> anyhow::Result<()> {
-    let files: Vec<(Uuid, String, String)> = sqlx::query_as(
-        "SELECT mo.id, lf.rel_path, mo.content_type
+    let files: Vec<(Uuid, String, String, Option<Uuid>)> = sqlx::query_as(
+        "SELECT mo.id, lf.rel_path, mo.content_type, t.id
          FROM library_files lf
          JOIN music_tracks_all t ON lf.item_kind = 'track' AND t.id = lf.item_id
          JOIN media_objects mo ON mo.id = t.audio_object_id
          WHERE lf.folder_id = $1 AND NOT lf.missing AND mo.audio_probed_at IS NULL
          UNION ALL
-         SELECT mo.id, lf.rel_path, mo.content_type
+         SELECT mo.id, lf.rel_path, mo.content_type, NULL::uuid
          FROM library_files lf
          JOIN audiobook_files f ON lf.item_kind = 'book_file' AND f.id = lf.item_id
          JOIN media_objects mo ON mo.id = f.audio_object_id
@@ -805,7 +805,7 @@ async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path
     }
     let total = files.len();
     let (mut unreadable, mut corrected) = (0usize, 0usize);
-    for (object, rel, recorded) in files {
+    for (object, rel, recorded, track) in files {
         let path = root.join(&rel);
         let props = tokio::task::spawn_blocking(move || crate::audio_props::read(&path)).await.unwrap_or_default();
         if let Err(e) = crate::db::media::set_audio_props(pool, object, &props).await {
@@ -813,7 +813,12 @@ async fn read_pending_audio_props(pool: &PgPool, folder: &FolderRow, root: &Path
         }
         if props.is_empty() {
             unreadable += 1;
-            tracing::warn!(folder = %folder.path, file = %rel, "library scan: no reader can open this file; players will not either");
+            tracing::warn!(folder = %folder.path, file = %rel, "library scan: no reader can open this file; quarantined");
+            if let Some(track) = track {
+                if let Err(e) = crate::db::quarantine::quarantine(pool, track, "no reader can open this file: not audio, or damaged").await {
+                    tracing::warn!(%track, error = %format!("{e:#}"), "library scan: not quarantined");
+                }
+            }
         } else if let Some(real) = props.corrected_content_type(&recorded) {
             match crate::db::media::set_content_type(pool, object, real).await {
                 Ok(()) => {

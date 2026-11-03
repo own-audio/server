@@ -7,6 +7,16 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- **Quarantine for broken files** (migration 0124). A file no reader can open, one that does not
+  decode, a stub of a second or two, or one silent for its first two minutes (a DRM-protected rip
+  decodes to exact zeros) is set aside by the library scan or the fingerprint job: out of every
+  list and player, as a missing file is, but kept with the reason. A family admin lists them at
+  `GET /api/v2/library/quarantine` and lets one back with `DELETE /api/v2/library/quarantine/{track_id}`;
+  a file that changes on disk and reads again comes back by itself. The fingerprint job measures
+  loudness in the same decode (`volumedetect`), at no extra cost.
+
 ## [1.0.0-beta.52] - 2026-11-03
 
 Contract revision 26.

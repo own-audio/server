@@ -15,6 +15,7 @@ pub mod events;
 pub mod household;
 pub mod idempotency;
 pub mod images;
+pub mod library;
 pub mod me;
 pub mod organize;
 pub mod media;
@@ -150,6 +151,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(identify::reject))
         .routes(routes!(identify::get_group))
         .routes(routes!(identify::choose_edition))
+        .routes(routes!(library::list_quarantine))
+        .routes(routes!(library::release_quarantine))
         .routes(map(routes!(identify::search_group), |m| limits.outbound.apply(m)))
 }
 
