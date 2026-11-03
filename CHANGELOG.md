@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.53] - 2026-11-03
+
+Contract revision 26.
+
 ### Added
 
 - **Quarantine for broken files** (migration 0124). A file no reader can open, one that does not
