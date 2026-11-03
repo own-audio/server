@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Deleting a podcast episode's Subsonic bookmark within its last minute (or past 90 %) marks the
+  episode played instead of sending it back to the start. That is how Music Assistant reports a
+  finished episode — it deletes the bookmark and says nothing else — so episodes it played to the
+  end showed as unplayed in the own.audio apps.
+
 ## [1.0.0-beta.51] - 2026-10-31
 
 Contract revision 26.

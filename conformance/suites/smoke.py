@@ -362,6 +362,14 @@ def run(ctx: Ctx) -> None:
                 rest("deleteBookmark", id=episode_id)
                 gone = ctx.call("GET", progress_path, admin_token, expect=(200, 404))
                 need(not gone or gone.get("position_secs", 0) == 0, f"progress after deleteBookmark: {gone}")
+                # Deleting a bookmark in the last minute is how a client says "finished".
+                duration = next((e.get("duration_secs") for e in ctx.call("GET", f"/api/v1/podcasts/{episode[0]}/episodes?limit=200", admin_token)
+                                 if e["id"] == episode_id), None)
+                if duration and duration > 120:
+                    rest("createBookmark", id=episode_id, position=(duration - 20) * 1000)
+                    rest("deleteBookmark", id=episode_id)
+                    done = ctx.call("GET", progress_path, admin_token)
+                    need(done.get("completed") is True, f"deleting a bookmark near the end marks the episode played: {done}")
             finally:
                 if before:
                     ctx.call("PUT", progress_path, admin_token, {"position_secs": before["position_secs"],

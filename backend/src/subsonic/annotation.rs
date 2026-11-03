@@ -312,12 +312,34 @@ pub async fn delete_bookmark(
     {
         return err(&auth, SubsonicErrorCode::Generic);
     }
-    // An episode's bookmark is its position (see `create_bookmark`). Only the
-    // viewer's own row is touched, so no access check is needed to clear it.
-    if db::playback::clear_unfinished_podcast_progress(state.db(), auth.user_id, track_id)
-        .await
-        .is_err()
-    {
+    // An episode's bookmark is its position (see `create_bookmark`). Clients
+    // delete it both to forget a place and when an episode ends — Music
+    // Assistant does the second and says nothing else. A place in the last
+    // minute (or past 90 %) therefore means "finished": the episode is marked
+    // played, as the own.audio apps would, rather than starting over.
+    let saved = db::playback::get_podcast_progress(state.db(), auth.user_id, track_id).await;
+    let duration = match &saved {
+        Ok(Some(p)) if !p.completed => db::podcasts::find_episode(state.db(), track_id)
+            .await
+            .ok()
+            .flatten()
+            .and_then(|e| e.duration_secs)
+            .map(|d| d as f64),
+        _ => None,
+    };
+    let finished = match (&saved, duration) {
+        (Ok(Some(p)), Some(d)) if d > 0.0 => p.position_secs >= d - 60.0 || p.position_secs >= d * 0.9,
+        _ => false,
+    };
+    let result = if finished {
+        db::playback::upsert_podcast_progress(state.db(), auth.user_id, track_id, duration.unwrap_or(0.0), true)
+            .await
+            .map(|_| ())
+    } else {
+        // Only the viewer's own row is touched, so no access check is needed.
+        db::playback::clear_unfinished_podcast_progress(state.db(), auth.user_id, track_id).await
+    };
+    if result.is_err() {
         return err(&auth, SubsonicErrorCode::Generic);
     }
     ok(&auth, json!({}))
