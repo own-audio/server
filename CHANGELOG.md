@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Web console: `follow-redirects` advisory GHSA-mrwp-f3q8-3g9p (a Node-only dependency of axios, never run in the browser), which had failed CI's `npm audit` since beta.51.
+
 ## [1.0.0-beta.53] - 2026-11-03
 
 Contract revision 26.
