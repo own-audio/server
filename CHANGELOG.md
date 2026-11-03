@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.54] - 2026-11-03
+
+Contract revision 26.
+
 ### Fixed
 
 - The quarantine's decode, stub, cut-off and silence checks reach a library fingerprinted by an
