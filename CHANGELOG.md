@@ -7,6 +7,10 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0-beta.52] - 2026-11-03
+
+Contract revision 26.
+
 ### Fixed
 
 - Transcodes (a smaller stream on mobile data, or MP3/AAC of a format a player can't decode) read
