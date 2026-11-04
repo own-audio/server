@@ -99,6 +99,14 @@ It resets every night, so change whatever you like.
 ## Running it
 
 ```bash
+curl -fsSL https://raw.githubusercontent.com/own-audio/server/main/install.sh | bash
+```
+
+A few questions (folder, port, your music and audiobook folders, the address),
+then PostgreSQL 16 and the server run from one folder; the same command
+upgrades later. Or by hand:
+
+```bash
 git clone https://github.com/own-audio/server.git && cd server
 cp .env.example .env            # set POSTGRES_PASSWORD and SESSION_SECRET
 docker compose pull             # the published image, amd64 or arm64

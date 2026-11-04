@@ -2,35 +2,42 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Check, CircleAlert, Database, HardDrive, Loader2 } from "lucide-react";
-import { getSetupStatus, completeSetup } from "../../api/setup";
+import { BookOpen, Check, CircleAlert, Database, FolderOpen, HardDrive, Loader2, Music } from "lucide-react";
+import { getSetupStatus, completeSetup, getLibraryFolders, type SetupFolder } from "../../api/setup";
+import { getServerInfo } from "../../api/server";
 import { useAuthStore } from "../../store/authStore";
 import AuthLayout, { AuthHeading, FormError } from "../../components/auth/AuthLayout";
+import QrCode from "../../components/QrCode";
 import { apiErrorMessage } from "../../lib/apiError";
 import { Button, Input, PasswordInput } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import type { UserInfo } from "../../api/types";
 import { useT, type PlainKey } from "../../i18n";
 
-type Step = "checks" | "admin" | "done";
+type Step = "checks" | "admin" | "library" | "apps";
 const STEPS: { key: Step; label: PlainKey }[] = [
   { key: "checks", label: "setup.step.server" },
   { key: "admin", label: "setup.step.firstAccount" },
-  { key: "done", label: "setup.step.ready" },
+  { key: "library", label: "setup.step.library" },
+  { key: "apps", label: "setup.step.apps" },
 ];
 
 /* First-run setup for a fresh instance. Only reachable while no user exists;
    the old "welcome" step was a second landing page and is folded into the
-   checks step. */
+   checks step. After the first account the wizard goes on, signed in, with
+   what the installer connected and how to reach the server from a phone. */
 export default function SetupWizard() {
   const { t } = useT();
   const [step, setStep] = useState<Step>("checks");
+  // Set once the account was made here: a visitor who was already signed in
+  // has nothing to do on this page.
+  const [madeHere, setMadeHere] = useState(false);
   const navigate = useNavigate();
   const { setAuth, token } = useAuthStore();
 
   useEffect(() => {
-    if (token && step !== "done") navigate("/", { replace: true });
-  }, [token, step, navigate]);
+    if (token && !madeHere) navigate("/", { replace: true });
+  }, [token, madeHere, navigate]);
 
   return (
     <AuthLayout aside={<p className="mt-6 text-sm text-muted">{t("setup.aside")}</p>}>
@@ -40,12 +47,14 @@ export default function SetupWizard() {
         <AdminStep
           onBack={() => setStep("checks")}
           onComplete={(t, u, r) => {
+            setMadeHere(true);
             setAuth(t, u, r);
-            setStep("done");
+            setStep("library");
           }}
         />
       )}
-      {step === "done" && <DoneStep />}
+      {step === "library" && <LibraryStep onNext={() => setStep("apps")} />}
+      {step === "apps" && <AppsStep />}
     </AuthLayout>
   );
 }
@@ -73,15 +82,21 @@ function StepIndicator({ current }: { current: Step }) {
   );
 }
 
-function CheckRow({ icon, label, detail, ok }: { icon: React.ReactNode; label: string; detail: string; ok: boolean }) {
+function CheckRow({ icon, label, detail, ok }: { icon: React.ReactNode; label: string; detail: string; ok: boolean | null }) {
   return (
     <div className="flex items-center gap-3 rounded-card border border-border bg-card px-4 py-3">
       <span className="text-muted [&>svg]:h-5 [&>svg]:w-5">{icon}</span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">{label}</p>
+        <p className="truncate text-sm font-medium">{label}</p>
         <p className="text-xs text-muted">{detail}</p>
       </div>
-      {ok ? <Check className="h-5 w-5 text-success" /> : <CircleAlert className="h-5 w-5 text-error" />}
+      {ok === null ? (
+        <Loader2 className="h-5 w-5 animate-spin text-muted" />
+      ) : ok ? (
+        <Check className="h-5 w-5 text-success" />
+      ) : (
+        <CircleAlert className="h-5 w-5 text-error" />
+      )}
     </div>
   );
 }
@@ -185,17 +200,98 @@ function AdminStep({ onBack, onComplete }: { onBack: () => void; onComplete: (to
   );
 }
 
-function DoneStep() {
+/* The folders the installer (or the compose override) connected, with their
+   first scan as it runs. The scan starts once the admin exists, so this is
+   where it is first seen. */
+function LibraryStep({ onNext }: { onNext: () => void }) {
   const { t } = useT();
-  const navigate = useNavigate();
+  const { data, isLoading } = useQuery({
+    queryKey: ["setup-folders"],
+    queryFn: getLibraryFolders,
+    refetchInterval: (query) => {
+      const folders = query.state.data?.folders ?? [];
+      return folders.some((f) => !f.scan_finished_at && !f.scan_error) ? 2000 : false;
+    },
+  });
+  const folders = data?.folders ?? [];
+
+  function detail(f: SetupFolder): { text: string; ok: boolean | null } {
+    if (f.scan_error) return { text: t("setup.library.error", { error: f.scan_error }), ok: false };
+    if (f.scan_finished_at) return { text: t("setup.library.done", { seen: f.files_seen, added: f.files_added }), ok: true };
+    if (f.scan_started_at) return { text: t("setup.library.scanning", { count: f.files_seen }), ok: null };
+    return { text: t("setup.library.waiting"), ok: null };
+  }
+
   return (
     <div>
-      <AuthHeading title={t("setup.done.title")} subtitle={t("setup.done.subtitle")} />
-      <ul className="space-y-2 text-sm text-muted">
-        <li>{t("setup.done.tipAudiobook")}</li>
-        <li>{t("setup.done.tipPodcast")}</li>
-        <li>{t("setup.done.tipMusic")}</li>
-      </ul>
+      <AuthHeading title={t("setup.library.title")} subtitle={t("setup.library.subtitle")} />
+      {isLoading && (
+        <p className="flex items-center gap-2 py-6 text-sm text-muted"><Loader2 className="h-4 w-4 animate-spin" /></p>
+      )}
+      {data && folders.length === 0 && (
+        <div className="flex items-start gap-3 rounded-card border border-border bg-card px-4 py-3 text-sm text-muted">
+          <FolderOpen className="mt-0.5 h-5 w-5 shrink-0" />
+          <p>{t("setup.library.none")}</p>
+        </div>
+      )}
+      {folders.length > 0 && (
+        <div className="space-y-2">
+          {folders.map((f) => {
+            const d = detail(f);
+            return (
+              <CheckRow
+                key={f.id}
+                icon={f.kind === "audiobooks" ? <BookOpen /> : <Music />}
+                label={`${t(f.kind === "audiobooks" ? "setup.library.kind.audiobooks" : "setup.library.kind.music")} · ${f.path}`}
+                detail={d.text}
+                ok={d.ok}
+              />
+            );
+          })}
+          {folders.some((f) => !f.scan_finished_at && !f.scan_error) && (
+            <p className="pt-2 text-sm text-muted">{t("setup.library.hint")}</p>
+          )}
+        </div>
+      )}
+      <div className="mt-8 flex">
+        <Button className="ml-auto" onClick={onNext}>{t("setup.continue")}</Button>
+      </div>
+    </div>
+  );
+}
+
+/* The server's address for the phone apps, as a QR code; the other addresses
+   it answers on below it. */
+function AppsStep() {
+  const { t } = useT();
+  const navigate = useNavigate();
+  const { data } = useQuery({ queryKey: ["server-info"], queryFn: getServerInfo });
+  const addresses = data?.addresses ?? [];
+  const main = addresses.find((a) => a.scope === "public")?.url ?? window.location.origin;
+  const others = addresses.map((a) => a.url).filter((u) => u !== main);
+
+  return (
+    <div>
+      <AuthHeading title={t("setup.apps.title")} subtitle={t("setup.apps.subtitle")} />
+      <div className="flex flex-col items-center gap-4 rounded-card border border-border bg-card px-4 py-6 sm:flex-row sm:items-start">
+        <QrCode value={main} size={152} className="shrink-0" />
+        <div className="min-w-0 flex-1 text-center sm:text-left">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted">{t("setup.apps.address")}</p>
+          <p className="mt-1 break-all font-mono text-base font-semibold">{main}</p>
+          {others.length > 0 && (
+            <>
+              <p className="mt-4 text-xs font-medium uppercase tracking-wide text-muted">{t("setup.apps.alsoAt")}</p>
+              <ul className="mt-1 space-y-0.5 break-all font-mono text-sm text-muted">
+                {others.map((u) => <li key={u}>{u}</li>)}
+              </ul>
+            </>
+          )}
+          <a href="https://www.own.audio/#apps" target="_blank" rel="noreferrer" className="mt-4 inline-block text-sm text-accent hover:underline">
+            {t("setup.apps.where")}
+          </a>
+        </div>
+      </div>
+      <p className="mt-4 text-sm text-muted">{t("setup.apps.invite")}</p>
       <Button size="lg" className="mt-8 w-full" onClick={() => navigate("/", { replace: true })}>{t("setup.done.open")}</Button>
     </div>
   );

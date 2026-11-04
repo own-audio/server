@@ -33,6 +33,17 @@ Mount the disk, e.g. at `/mnt/media`, with your collections on it:
 
 ## The stack
 
+The installer asks for the folders and writes everything below for you:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/own-audio/server/main/install.sh | bash
+```
+
+Give it `/mnt/media/music` and `/mnt/media/audiobooks` when asked. To keep
+the database and the server's own storage on the disk too, add the
+`postgres` volume and the `/data/media` mount from the override below. Or by
+hand:
+
 ```bash
 git clone https://github.com/own-audio/server.git && cd server
 cp .env.example .env    # set POSTGRES_PASSWORD and SESSION_SECRET

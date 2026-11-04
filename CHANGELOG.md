@@ -16,6 +16,22 @@ API contract only grows (see `docs/API_COMPATIBILITY.md`), migrations stay forwa
 the image is also tagged `1.0` and `latest`. Clients built against revision 26 — own.audio Music
 1.0.0 among them — run against this server.
 
+### Added
+
+- **`install.sh`**: one guided setup from the command line —
+  `curl -fsSL https://raw.githubusercontent.com/own-audio/server/main/install.sh | bash`.
+  Checks Docker, asks for the folder, port, music and audiobook folders and the address, makes
+  the secrets, writes `.env` and a `docker-compose.override.yml` with the folders mounted
+  read-only, pulls the newest release, starts it, waits for `/health` and prints what to open.
+  Run again to upgrade. Answers can be given as `OWN_AUDIO_*` variables with `--yes`.
+- The web console's first-run setup goes on after the first account with **Your library** (the
+  connected folders and how far their first scan is) and **Apps** (the server's address as a QR
+  code, for the phone apps), instead of three tips.
+
+### Fixed
+
+- `docker compose` no longer warns about `S3_SECRET_KEY` being unset on a local-storage install.
+
 ## [1.0.0-beta.54] - 2026-11-03
 
 Contract revision 26.

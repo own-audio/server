@@ -53,6 +53,8 @@ export interface ServerInfo {
   api: { version: number; revision: number };
   features: ServerFeatures;
   deprecations: unknown[];
+  /** Where the server is reached: `public` (the base URL) and the other addresses it answers on. */
+  addresses?: { scope: string; url: string }[];
   /** Only on a public demo: the shared account visitors sign in with. */
   demo?: { email: string; password: string };
 }

@@ -22,6 +22,23 @@
 
 ## Quick start
 
+One command asks where the server should live, which port, where your music
+and audiobooks already are, and the address people will use; it writes the
+configuration, starts the server and prints what to open. Run it again later
+to upgrade.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/own-audio/server/main/install.sh | bash
+```
+
+It needs Docker with Compose v2 and nothing else; everything lands in one
+folder (`~/own-audio` unless you say otherwise), nothing needs root. The
+answers can be given up front for a script or a second machine:
+`OWN_AUDIO_DIR`, `OWN_AUDIO_PORT`, `OWN_AUDIO_MUSIC`, `OWN_AUDIO_AUDIOBOOKS`,
+`OWN_AUDIO_URL`, then `install.sh --yes`.
+
+By hand, the same thing:
+
 ```bash
 git clone https://github.com/own-audio/server.git
 cd server

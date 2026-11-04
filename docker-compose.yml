@@ -116,7 +116,7 @@ services:
       STORAGE__REGION: "us-east-1"
       STORAGE__BUCKET: ${S3_BUCKET:-own-audio}
       STORAGE__ACCESS_KEY: ${S3_ACCESS_KEY:-ownaudio}
-      STORAGE__SECRET_KEY: ${S3_SECRET_KEY}
+      STORAGE__SECRET_KEY: ${S3_SECRET_KEY:-}
       STORAGE__PATH_STYLE: "true"
       AUTH__SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET in .env (openssl rand -hex 32)}
       AUTH__LOCAL_ENABLED: "true"

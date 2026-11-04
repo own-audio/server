@@ -28,3 +28,20 @@ export async function completeSetup(
   });
   return data;
 }
+
+export interface SetupFolder {
+  id: string;
+  path: string;
+  kind: string;
+  scan_started_at: string | null;
+  scan_finished_at: string | null;
+  scan_error: string | null;
+  files_seen: number;
+  files_added: number;
+}
+
+/** The connected library folders and how far their scan is (admin). */
+export async function getLibraryFolders(): Promise<{ scanning: boolean; folders: SetupFolder[] }> {
+  const { data } = await api.get<{ scanning: boolean; folders?: SetupFolder[] }>("/library/folders");
+  return { scanning: data.scanning, folders: data.folders ?? [] };
+}
