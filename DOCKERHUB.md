@@ -4,10 +4,9 @@ A self-hosted server for a family's **audiobooks, podcasts and music**: one
 library, one server, a web console, and an OpenSubsonic API for music apps.
 Rust and PostgreSQL, free software under the AGPL-3.0-or-later.
 
-**Pre-release.** The 1.0.0 alpha builds work and are tested, but the install
-story is still settling. Read the
-[implementation plan](https://github.com/own-audio/server/blob/main/docs/IMPLEMENTATION_PLAN.md)
-before you rely on it.
+**1.0.0 is released.** The API contract only grows from here, and upgrades
+are `docker compose pull && docker compose up -d` — see
+[UPGRADING.md](https://github.com/own-audio/server/blob/main/UPGRADING.md).
 
 **Try it without installing:** https://demo.own.audio, sign in as
 `guest@demo.own.audio` with the password `own-audio-demo`. It resets every
@@ -46,8 +45,9 @@ covers the settings, backups and upgrades.
 
 | Tag | What it is |
 |---|---|
-| `1.0.0-alpha.N` | A pre-release. Pin one of these. |
-| `1.0`, `latest` | Will follow stable releases, from 1.0.0 on. |
+| `1.0.0` | A release. Pin one of these. |
+| `1.0`, `latest` | The newest release. |
+| `1.0.0-beta.N` | The pre-releases before 1.0.0. |
 
 Images are built for `linux/amd64` and `linux/arm64` by the repository's
 release workflow. The same images are on `ghcr.io/own-audio/server`.

@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-04
+
+Contract revision 26.
+
+The first release. The code is 1.0.0-beta.54's; what changes is the promise: from here on the
+API contract only grows (see `docs/API_COMPATIBILITY.md`), migrations stay forward-only, and
+the image is also tagged `1.0` and `latest`. Clients built against revision 26 — own.audio Music
+1.0.0 among them — run against this server.
+
 ## [1.0.0-beta.54] - 2026-11-03
 
 Contract revision 26.

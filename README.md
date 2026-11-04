@@ -13,11 +13,11 @@ Free software under the GNU Affero General Public License, version 3 or later.
 [![Docker Hub](https://img.shields.io/docker/v/kornelko2/own-audio-server?label=docker%20hub&sort=semver)](https://hub.docker.com/r/kornelko2/own-audio-server)
 [![Licence](https://img.shields.io/badge/licence-AGPL--3.0--or--later-blue)](LICENSE)
 
-> **Status: pre-release.** This is the codebase behind the hosted service at
+> **Status: released.** This is the codebase behind the hosted service at
 > [own.audio](https://www.own.audio), with the hosted-only parts left out.
-> Alpha releases are tagged and published as images for amd64 and arm64
-> (see [CHANGELOG.md](CHANGELOG.md)); some features below are still being
-> built and are marked as such. The plan, the scope and the API policy are
+> Releases are tagged and published as images for amd64 and arm64
+> (see [CHANGELOG.md](CHANGELOG.md)); the API contract only grows from
+> 1.0.0 on. The plan, the scope and the API policy are
 > the place to start:
 >
 > - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) — what happens, in what order
@@ -101,7 +101,7 @@ It resets every night, so change whatever you like.
 ```bash
 git clone https://github.com/own-audio/server.git && cd server
 cp .env.example .env            # set POSTGRES_PASSWORD and SESSION_SECRET
-docker compose pull             # the published pre-release image, amd64 or arm64
+docker compose pull             # the published image, amd64 or arm64
 docker compose up -d            # PostgreSQL 16 and the server; media on a local volume
 ```
 
