@@ -7,6 +7,17 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-11-08
+
+Contract revision 26.
+
+1.0.1's code; its image did not build, so 1.0.1 has no image — use this one.
+
+### Fixed
+
+- The image build gets Chromaprint from GitHub's tag archive and retries every source download:
+  GitHub's release downloads answered 504 for hours on 2026-11-08 and failed the 1.0.1 build.
+
 ## [1.0.1] - 2026-11-08
 
 Contract revision 26.

@@ -9,7 +9,8 @@
 ARG FFMPEG_VERSION=8.1.3
 ARG FFMPEG_SHA256=7138d28c96d9d3e3af4ee3d8cad72741f8ffb40da90c1112235dea3ecd3178a3
 ARG CHROMAPRINT_VERSION=1.6.2
-ARG CHROMAPRINT_SHA256=d54ada62c16b2db396d3251ec54fc7a58909c163131a1cfcf7fa6407dbc14360
+# The tag archive, not the release asset: GitHub release downloads went 504 for hours (2026-11-08).
+ARG CHROMAPRINT_SHA256=7f92ea1141429b43f695a1ba56d5058132f89fae5f137ce705afc57734f6b5fa
 ARG AUBIO_VERSION=0.4.9
 ARG AUBIO_SHA256=d48282ae4dab83b3dc94c16cf011bcb63835c1c02b515490e1883049c3d1f3da
 
@@ -27,11 +28,11 @@ RUN if find /tmp/audio2-extra-certs -type f \( -name '*.crt' -o -name '*.pem' \)
       update-ca-certificates; \
     fi
 WORKDIR /src
-RUN curl -fsSL -o ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
+RUN curl -fsSL --retry 8 --retry-all-errors --retry-delay 15 -o ffmpeg.tar.xz "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
  && echo "${FFMPEG_SHA256}  ffmpeg.tar.xz" | sha256sum -c - \
- && curl -fsSL -o chromaprint.tar.gz "https://github.com/acoustid/chromaprint/releases/download/v${CHROMAPRINT_VERSION}/chromaprint-${CHROMAPRINT_VERSION}.tar.gz" \
+ && curl -fsSL --retry 8 --retry-all-errors --retry-delay 15 -o chromaprint.tar.gz "https://codeload.github.com/acoustid/chromaprint/tar.gz/refs/tags/v${CHROMAPRINT_VERSION}" \
  && echo "${CHROMAPRINT_SHA256}  chromaprint.tar.gz" | sha256sum -c - \
- && curl -fsSL -o aubio.tar.bz2 "https://aubio.org/pub/aubio-${AUBIO_VERSION}.tar.bz2" \
+ && curl -fsSL --retry 8 --retry-all-errors --retry-delay 15 -o aubio.tar.bz2 "https://aubio.org/pub/aubio-${AUBIO_VERSION}.tar.bz2" \
  && echo "${AUBIO_SHA256}  aubio.tar.bz2" | sha256sum -c - \
  && mkdir ffmpeg chromaprint aubio \
  && tar -xJf ffmpeg.tar.xz --strip-components=1 -C ffmpeg \
