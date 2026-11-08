@@ -3,6 +3,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
 import { useAuthStore } from "../store/authStore";
 import { loginPathFor } from "../lib/returnTo";
 import { singleFlight } from "../lib/singleFlight";
+import { intlLocale } from "../i18n";
 
 // Same-origin by default: the console is served by the backend itself from
 // /app/ui/dist. Cloudflare Pages builds set VITE_API_BASE_URL to the absolute
@@ -36,6 +37,8 @@ export function mediaUrl(url: string | null | undefined): string | undefined {
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().token;
   if (token) config.headers.Authorization = `Bearer ${token}`;
+  // The language chosen in Settings, so mails the server sends match the console.
+  config.headers["Accept-Language"] = intlLocale();
   return config;
 });
 

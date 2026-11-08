@@ -2099,22 +2099,24 @@ async fn send_invite_mail_best_effort(
         return;
     };
 
+    let lang = crate::mail::Lang::current();
     let inviter_name = db::users::find_by_id(state.db(), family.user_id)
         .await
         .ok()
         .flatten()
         .map(|u| u.display_name)
-        .unwrap_or_else(|| "A family admin".to_string());
+        .unwrap_or_else(|| lang.pick("A family admin", "Správce rodiny").to_string());
 
     let family_name = db::families::find(state.db(), family.family_id)
         .await
         .ok()
         .flatten()
         .map(|f| f.name)
-        .unwrap_or_else(|| "your family".to_string());
+        .unwrap_or_else(|| lang.pick("your family", "bez názvu").to_string());
 
     crate::mail::invite::send_invite_email(
         state.config().mail.as_ref(),
+        lang,
         to,
         crate::mail::invite::InviteEmail {
             family_name: &family_name,

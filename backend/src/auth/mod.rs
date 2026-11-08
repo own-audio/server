@@ -300,8 +300,9 @@ pub(crate) async fn login(
                 // Told once, at the first lock, and only if there is someone to tell.
                 if let Ok(Some(owner)) = db::users::find_by_email(pool, &email_lc).await {
                     let mail = state.config().mail.clone();
+                    let lang = crate::mail::Lang::current();
                     tokio::spawn(async move {
-                        crate::mail::lockout::send_lockout_notice(mail.as_ref(), &owner.email, failures).await;
+                        crate::mail::lockout::send_lockout_notice(mail.as_ref(), lang, &owner.email, failures).await;
                     });
                 }
             }
@@ -382,8 +383,9 @@ async fn forgot_password(
     let url = format!("{}/reset-password?token={token}", web_base.trim_end_matches('/'));
     let mail = cfg.mail.clone();
     let to = user.email.clone();
+    let lang = crate::mail::Lang::current();
     tokio::spawn(async move {
-        crate::mail::password_reset::send_password_reset(mail.as_ref(), &to, &url, PASSWORD_RESET_MINUTES).await;
+        crate::mail::password_reset::send_password_reset(mail.as_ref(), lang, &to, &url, PASSWORD_RESET_MINUTES).await;
     });
     Ok(Json(serde_json::json!({})))
 }
@@ -520,8 +522,9 @@ pub(crate) async fn issue_tokens(
         let to = user.email.clone();
         let device = format!("{} ({device_kind})", device_name.filter(|n| !n.trim().is_empty()).unwrap_or("Unknown device"));
         let when = chrono::Utc::now().format("%Y-%m-%d %H:%M UTC").to_string();
+        let lang = crate::mail::Lang::current();
         tokio::spawn(async move {
-            crate::mail::new_device::send_new_device_notice(mail.as_ref(), &to, &device, &when).await;
+            crate::mail::new_device::send_new_device_notice(mail.as_ref(), lang, &to, &device, &when).await;
         });
     }
 

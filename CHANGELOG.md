@@ -7,6 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+Contract revision 26 (unchanged).
+
+### Changed
+
+- **Mails in the reader's language, with the logo.** Password reset, email confirmation, family
+  invites, new-sign-in and locked-sign-in notices are written in English or Czech, picked from
+  the `Accept-Language` of the request that caused them; anything else gets English. The web
+  console now sends the language chosen in its settings; the iPhone apps already send the phone's. Every mail
+  uses one layout with the own.audio logo, carried inside the message (no image to load, so it
+  shows on a server without a public address too).
+
+### Fixed
+
+- The family invite mail still said "audio2"; it says own.audio.
+
 ## [1.0.0] - 2026-11-04
 
 Contract revision 26.

@@ -71,8 +71,9 @@ async fn send_link(state: &AppState, user: &User) {
     let url = format!("{}/verify-email?token={token}", web_base.trim_end_matches('/'));
     let mail = cfg.mail.clone();
     let to = user.email.clone();
+    let lang = crate::mail::Lang::current();
     tokio::spawn(async move {
-        crate::mail::verify_email::send_verification(mail.as_ref(), &to, &url, LINK_HOURS).await;
+        crate::mail::verify_email::send_verification(mail.as_ref(), lang, &to, &url, LINK_HOURS).await;
     });
 }
 

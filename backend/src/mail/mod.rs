@@ -9,14 +9,19 @@
 use crate::app::config::MailConfig;
 
 pub mod invite;
+pub mod lang;
+pub mod layout;
 pub mod lockout;
 pub mod password_reset;
 pub mod verify_email;
 pub mod new_device;
 mod smtp;
 
+pub use lang::Lang;
+
 /// Send a plain-text + HTML email. `config: None`, or one without an SMTP
-/// host, is a logged no-op.
+/// host, is a logged no-op. An HTML body drawn with [`layout::page`] gets
+/// the logo attached inline.
 pub async fn send_mail(
     config: Option<&MailConfig>,
     to: &str,

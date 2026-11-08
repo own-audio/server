@@ -4,7 +4,8 @@
 
 use crate::app::config::MailConfig;
 use anyhow::{Context, bail};
-use lettre::message::{Mailbox, MultiPart};
+use lettre::message::header::ContentType;
+use lettre::message::{Attachment, Mailbox, MultiPart, SinglePart};
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{AsyncSmtpTransport, AsyncTransport, Message, Tokio1Executor};
 use std::time::Duration;
@@ -66,8 +67,22 @@ fn message(cfg: &MailConfig, to: &str, subject: &str, text: &str, html: &str) ->
         .from(from)
         .to(to)
         .subject(subject)
-        .multipart(MultiPart::alternative_plain_html(text.to_string(), html.to_string()))
+        .multipart(body(text, html)?)
         .context("smtp: building the message")
+}
+
+/// Text and HTML as alternatives; the logo rides along with the HTML when
+/// the page refers to it.
+fn body(text: &str, html: &str) -> anyhow::Result<MultiPart> {
+    let cid = super::layout::LOGO_CID;
+    if !html.contains(&format!("cid:{cid}")) {
+        return Ok(MultiPart::alternative_plain_html(text.to_string(), html.to_string()));
+    }
+    let logo = Attachment::new_inline(cid.to_string())
+        .body(super::layout::LOGO_PNG.to_vec(), ContentType::parse("image/png").context("smtp: image/png")?);
+    Ok(MultiPart::alternative()
+        .singlepart(SinglePart::plain(text.to_string()))
+        .multipart(MultiPart::related().singlepart(SinglePart::html(html.to_string())).singlepart(logo)))
 }
 
 pub(super) async fn send(cfg: &MailConfig, to: &str, subject: &str, text: &str, html: &str) -> anyhow::Result<()> {
@@ -149,5 +164,16 @@ mod tests {
         let raw = String::from_utf8(m.formatted()).unwrap();
         assert!(raw.contains("multipart/alternative"));
         assert!(raw.contains("From: own.audio <hello@example.com>"));
+    }
+
+    #[test]
+    fn a_page_carries_its_logo_inline() {
+        let html = crate::mail::layout::page(crate::mail::Lang::En, "Hi", "<p>x</p>");
+        let m = message(&cfg(None, None), "a@example.com", "s", "text", &html).unwrap();
+        let raw = String::from_utf8(m.formatted()).unwrap();
+        assert!(raw.contains("multipart/alternative"));
+        assert!(raw.contains("multipart/related"));
+        assert!(raw.contains("Content-ID: <own-audio-logo>"));
+        assert!(raw.contains("Content-Disposition: inline"));
     }
 }

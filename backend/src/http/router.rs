@@ -146,6 +146,8 @@ pub fn finalize_with(api: Router<AppState>, edition_v2: Router<AppState>, root: 
             crate::http::origin::KnownAddresses::new(state.config().server.base_url.as_deref(), state.config().server.addresses.as_deref()),
             crate::http::origin::middleware,
         ))
+        // The language mails are written in, from the request's Accept-Language.
+        .layer(axum::middleware::from_fn(crate::mail::lang::middleware))
         // Browser-facing headers on everything (security hardening plan §7.1).
         .layer(axum::middleware::from_fn_with_state(
             crate::http::security_headers::SecurityHeaders::from_config(state.config()),
@@ -169,6 +171,7 @@ fn api_cors(origins: &[String]) -> CorsLayer {
             header::AUTHORIZATION,
             header::CONTENT_TYPE,
             header::ACCEPT,
+            header::ACCEPT_LANGUAGE,
             header::IF_MATCH,
             header::IF_NONE_MATCH,
             HeaderName::from_static("idempotency-key"),
