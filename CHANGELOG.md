@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-11-08
+
+Contract revision 26.
+
+### Fixed
+
+- Mails show the own.audio logo as the website does (the full mark with its arcs and family),
+  not the old simplified one.
+
 ## [1.0.2] - 2026-11-08
 
 Contract revision 26.

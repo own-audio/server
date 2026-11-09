@@ -67,7 +67,7 @@ pub fn page(lang: Lang, heading: &str, body: &str) -> String {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; background:#ffffff; border-radius:16px; border:1px solid #e5e5e7;">
             <tr>
               <td style="padding:32px 40px 0;">
-                <img src="cid:{cid}" width="160" height="40" alt="own.audio" style="display:block; border:0; outline:none; width:160px; height:40px;" />
+                <img src="cid:{cid}" width="155" height="44" alt="own.audio" style="display:block; border:0; outline:none; width:155px; height:44px;" />
               </td>
             </tr>
             <tr>

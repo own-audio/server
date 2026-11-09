@@ -25,7 +25,8 @@ the tuned family set, never raw RGB primaries.
 | `own-audio-mark-on-light.svg` | the mark with dark-grey arcs, for light backgrounds where CSS colour is not available |
 | `own-audio-mark-on-dark.svg` | the mark with light-grey arcs, for dark backgrounds |
 | `own-audio-tile-180.png` | app-icon form: white mark on the violet tile (solid, as touch icons require) |
-| `own-audio-lockup-640x160.png` | horizontal lockup, mark + "own.audio" wordmark, for headers and e-mail; `backend/assets/mail/logo.png` is a copy, built into the server for its mails |
+| `own-audio-lockup-640x160.png` | horizontal lockup, mark + "own.audio" wordmark, for headers and e-mail |
+| `backend/assets/mail/logo.png` | the light nav lockup (`markDetailed` + wordmark, as on own.audio), built into the server for its mails |
 | `github-avatar-512.png` | the tile form at 512 px, the GitHub organisation's avatar |
 | `github-social-preview.png` | 1280 × 640 card shown when the repository link is shared |
 
