@@ -43,5 +43,12 @@
   "billing.entries.storage": { "en": "Storage", "cs": "Úložiště" },
 
   "billing.readOnly": { "en": "Read only", "cs": "Jen pro čtení" },
-  "billing.readOnlyNote": { "en": "Only a family admin can add credit or change alerts.", "cs": "Kredit a upozornění může měnit jen správce rodiny." }
+  "billing.readOnlyNote": { "en": "Only a family admin can add credit or change alerts.", "cs": "Kredit a upozornění může měnit jen správce rodiny." },
+
+  "billing.thanks.title": {"en": "Thank you for your purchase", "cs": "Děkujeme za nákup"},
+  "billing.thanks.added": {"en": "Your credit went up by {amount}. It's now {balance}.", "cs": "Kredit se navýšil o {amount}. Teď máte {balance}."},
+  "billing.thanks.until": {"en": "At your library's current size, it lasts until {date}.", "cs": "Při současné velikosti knihovny vám vystačí do {date}."},
+  "billing.thanks.pending": {"en": "The payment went through. The credit appears here in a moment.", "cs": "Platba proběhla. Kredit se tu objeví za okamžik."},
+  "billing.thanks.ok": {"en": "OK", "cs": "OK"},
+  "billing.topup.cancelled": {"en": "Payment cancelled — nothing was charged.", "cs": "Platba zrušena — nic se nestrhlo."}
 }

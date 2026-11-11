@@ -291,6 +291,12 @@ export interface MessageParams {
   "billing.readOnly": undefined;
   "billing.readOnlyNote": undefined;
   "billing.runsOut": { "date": string | number };
+  "billing.thanks.added": { "amount": string | number; "balance": string | number };
+  "billing.thanks.ok": undefined;
+  "billing.thanks.pending": undefined;
+  "billing.thanks.title": undefined;
+  "billing.thanks.until": { "date": string | number };
+  "billing.topup.cancelled": undefined;
   "billing.topup.custom": undefined;
   "billing.topup.error": undefined;
   "billing.topup.errorDetail": undefined;
@@ -1758,6 +1764,9 @@ export interface MessageParams {
   "shell.nav.stats": undefined;
   "shell.nav.translate": undefined;
   "shell.nav.trash": undefined;
+  "shell.notifications.creditTopup.body": { "amount": string | number; "balance": string | number };
+  "shell.notifications.creditTopup.title": undefined;
+  "shell.notifications.creditTopup.until": { "amount": string | number; "balance": string | number; "date": string | number };
   "shell.notifications.empty": undefined;
   "shell.notifications.grant": undefined;
   "shell.notifications.grantFailed": undefined;

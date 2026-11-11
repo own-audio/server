@@ -9,6 +9,7 @@ import { grantContentAccess, type MediaKind } from "../../api/family";
 import { restoreTrashItem, type TrashKind } from "../../api/trash";
 import type { Notification } from "../../api/types";
 import { toast } from "../ui";
+import { formatMicro } from "../../api/billing";
 import { timeAgo } from "../../lib/format";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/cn";
@@ -29,6 +30,19 @@ import { useT } from "../../i18n";
 const POLL_MS = 120_000;
 
 /** The three fields `request_content_access` puts in `data`, loosely typed coming off the wire. */
+/** A confirmed credit top-up (hosted servers): said in the user's language from `data`. */
+function creditTopupText(n: Notification, t: ReturnType<typeof useT>["t"], locale: string): { title: string; body: string } | null {
+  if (n.kind !== "credit_topup" || !n.data) return null;
+  const { amount_micro, balance_micro, until } = n.data as Record<string, unknown>;
+  if (typeof amount_micro !== "number" || typeof balance_micro !== "number") return null;
+  const amount = formatMicro(amount_micro, "USD");
+  const balance = formatMicro(balance_micro, "USD");
+  const body = typeof until === "string"
+    ? t("shell.notifications.creditTopup.until", { amount, balance, date: new Date(until).toLocaleDateString(locale, { dateStyle: "long" }) })
+    : t("shell.notifications.creditTopup.body", { amount, balance });
+  return { title: t("shell.notifications.creditTopup.title"), body };
+}
+
 function accessRequestPayload(n: Notification): { kind: MediaKind; itemId: string; requesterId: string } | null {
   if (n.kind !== "access_request" || !n.data) return null;
   const { media_kind, item_id, requester_id } = n.data as Record<string, unknown>;
@@ -57,7 +71,7 @@ function playlistSharedPayload(n: Notification): { playlistId: string; from: str
 export default function NotificationsPanel({ collapsed = false }: { collapsed?: boolean }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
-  const { t } = useT();
+  const { t, locale } = useT();
   const navigate = useNavigate();
 
   const { data: notifications = [] } = useQuery({
@@ -162,6 +176,7 @@ export default function NotificationsPanel({ collapsed = false }: { collapsed?: 
             const request = accessRequestPayload(n);
             const trashed = trashedPayload(n);
             const shared = playlistSharedPayload(n);
+            const topup = creditTopupText(n, t, locale);
             const granting = grant.isPending && grant.variables?.notificationId === n.id;
             return (
               <div key={n.id} className="group rounded-lg px-2 py-2 hover:bg-bg-alt">
@@ -169,9 +184,9 @@ export default function NotificationsPanel({ collapsed = false }: { collapsed?: 
                   <span className="min-w-0 flex-1">
                     {/* The server writes titles in English for every client; this one the web can say in the user's language. */}
                     <span className="block text-sm font-medium">
-                      {shared ? t(shared.mode === "copy" ? "shell.notifications.playlistShared.copy" : "shell.notifications.playlistShared.live", { from: shared.from }) : n.title}
+                      {shared ? t(shared.mode === "copy" ? "shell.notifications.playlistShared.copy" : "shell.notifications.playlistShared.live", { from: shared.from }) : topup?.title ?? n.title}
                     </span>
-                    {n.body && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{n.body}</span>}
+                    {(topup?.body ?? n.body) && <span className="mt-0.5 block text-xs leading-relaxed text-muted">{topup?.body ?? n.body}</span>}
                     <span className="mt-1 block text-[11px] text-muted">{timeAgo(n.created_at)}</span>
                   </span>
                   {!request && !trashed && (

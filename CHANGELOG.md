@@ -7,6 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
+  amount added, the new balance and, at the library's current size, the date the credit lasts
+  until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
+  webhook can lag the redirect. `?topup=cancelled` says nothing was charged.
+- Console: `credit_topup` notifications (hosted servers) in the user's language, from their
+  `data`.
+
 ## [1.0.3] - 2026-11-08
 
 Contract revision 26.

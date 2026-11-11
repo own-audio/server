@@ -1,16 +1,17 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Package, Wallet } from "lucide-react";
 import { BookIcon, MusicIcon, PodcastIcon } from "../../components/ui/CloudIcon";
-import { createTopup, formatBytes, formatMicro, getBilling, setBillingAlerts } from "../../api/billing";
+import { createTopup, formatBytes, formatMicro, getBilling, setBillingAlerts, type Billing } from "../../api/billing";
 import { getFamily, isFamilyAdmin } from "../../api/family";
 import { listTrash } from "../../api/trash";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Page } from "../../components/shell/SplitView";
-import { Button, Input, Pill, Skeleton, toast } from "../../components/ui";
+import { Button, Dialog, DialogContent, Input, Pill, Skeleton, toast } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/apiError";
 import { cn } from "../../lib/cn";
+import { recentTopup } from "../../lib/topup";
 import { useT, type PlainKey } from "../../i18n";
 
 const KINDS: { key: "audiobooks_bytes" | "podcasts_bytes" | "music_bytes" | "other_bytes"; label: PlainKey; bar: string; icon: React.ReactNode }[] = [
@@ -119,10 +120,70 @@ function AlertSettings({
   );
 }
 
+/** Stripe's webhook usually lands before the browser is back; this long it may lag. */
+const THANKS_WAIT_MS = 20 * 1000;
+
+/**
+ * Back from Stripe Checkout (`?topup=success`): thank the payer, say what the credit is now and
+ * how long it lasts. The credit comes from the webhook, not from this redirect, so the page
+ * refetches until the new top-up is in the ledger, and says so honestly if it is not yet.
+ */
+function TopUpReturn({ data, refetch }: { data: Billing; refetch: () => unknown }) {
+  const { t, locale } = useT();
+  const [params, setParams] = useSearchParams();
+  const result = params.get("topup");
+  const [startedAt] = useState(() => Date.now());
+  const [waited, setWaited] = useState(false);
+
+  const topup = recentTopup(data.entries, startedAt);
+
+  useEffect(() => {
+    if (result === "cancelled") {
+      toast.show(t("billing.topup.cancelled"));
+      params.delete("topup");
+      setParams(params, { replace: true });
+    }
+  }, [result, params, setParams, t]);
+
+  useEffect(() => {
+    if (result !== "success" || topup) return;
+    const poll = setInterval(refetch, 2000);
+    const stop = setTimeout(() => setWaited(true), THANKS_WAIT_MS);
+    return () => { clearInterval(poll); clearTimeout(stop); };
+  }, [result, topup, refetch]);
+
+  if (result !== "success" || (!topup && !waited)) return null;
+
+  const close = () => {
+    params.delete("topup");
+    setParams(params, { replace: true });
+  };
+  const currency = data.pricing.currency;
+  return (
+    <Dialog open onOpenChange={(open) => !open && close()}>
+      <DialogContent
+        title={t("billing.thanks.title")}
+        footer={<Button onClick={close}>{t("billing.thanks.ok")}</Button>}
+      >
+        {topup ? (
+          <div className="space-y-2 text-sm">
+            <p>{t("billing.thanks.added", { amount: formatMicro(topup.amount_micro, currency), balance: formatMicro(data.balance_micro, currency) })}</p>
+            {data.runs_out_on && (
+              <p>{t("billing.thanks.until", { date: new Date(data.runs_out_on).toLocaleDateString(locale, { dateStyle: "long" }) })}</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-sm">{t("billing.thanks.pending")}</p>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export default function BillingPage() {
   const { t, rich, locale } = useT();
   const { data: family } = useQuery({ queryKey: ["family"], queryFn: getFamily, retry: false });
-  const { data, isLoading } = useQuery({ queryKey: ["billing"], queryFn: getBilling });
+  const { data, isLoading, refetch } = useQuery({ queryKey: ["billing"], queryFn: getBilling });
   const isAdmin = isFamilyAdmin(family?.my_role);
   const trashScope = isAdmin ? "family" : "mine";
   const { data: trash = [] } = useQuery({ queryKey: ["trash", trashScope], queryFn: () => listTrash(trashScope), retry: false });
@@ -142,6 +203,7 @@ export default function BillingPage() {
 
   return (
     <Page title={t("billing.page.title")} width="max-w-3xl">
+      <TopUpReturn data={data} refetch={refetch} />
       {data.depleted && (
         <div className="mb-4 flex items-start gap-3 rounded-card border border-error/40 bg-error/10 px-4 py-3">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-error" />

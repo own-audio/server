@@ -387,5 +387,9 @@
   "shell.uploads.dismissItem": {
     "en": "Dismiss {name}",
     "cs": "Odebrat ze seznamu: {name}"
-  }
+  },
+
+  "shell.notifications.creditTopup.title": {"en": "Credit topped up", "cs": "Kredit navýšen"},
+  "shell.notifications.creditTopup.body": {"en": "{amount} added, credit is {balance}.", "cs": "Přidáno {amount}, kredit je {balance}."},
+  "shell.notifications.creditTopup.until": {"en": "{amount} added, credit is {balance} — enough until {date}.", "cs": "Přidáno {amount}, kredit je {balance} — vystačí do {date}."}
 }
