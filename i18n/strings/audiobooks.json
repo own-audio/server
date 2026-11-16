@@ -260,7 +260,7 @@
   },
   "audiobooks.file.confirmDelete.body": {
     "en": "This removes just this file from the book. This cannot be undone.",
-    "cs": "Z knihy se odstraní jen tento soubor. Tuto akci nelze vrátit."
+    "cs": "Z knihy se smaže jen tento soubor. Tuto akci nelze vrátit."
   },
   "audiobooks.detail.narratedBy": {
     "en": "Narrated by {name}",
@@ -324,7 +324,7 @@
     "cs": "Vyhledá knihu v Open Library a doplní, co najde."
   },
   "audiobooks.identify.searchDescriptionApple": {
-    "en": "Searches Apple's audiobook catalogue and fills in what it finds.",
+    "en": "Searches Apple's audiobook catalog and fills in what it finds.",
     "cs": "Vyhledá audioknihu v katalogu Apple a doplní, co najde."
   },
   "audiobooks.identify.confirmDescription": {

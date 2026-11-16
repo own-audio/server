@@ -153,7 +153,7 @@
   "family.bookSource.openlibrary.name": { "en": "Open Library", "cs": "Open Library" },
   "family.bookSource.openlibrary.body": { "en": "Open data from the Internet Archive. No key needed. Describes the printed book.", "cs": "Otevřená data od Internet Archive. Bez klíče. Popisuje tištěnou knihu." },
   "family.bookSource.apple.name": { "en": "Apple", "cs": "Apple" },
-  "family.bookSource.apple.body": { "en": "Apple’s audiobook catalogue. No key needed. The audiobook’s own square cover.", "cs": "Katalog audioknih Apple. Bez klíče. Čtvercová obálka samotné audioknihy." },
+  "family.bookSource.apple.body": { "en": "Apple’s audiobook catalog. No key needed. The audiobook’s own square cover.", "cs": "Katalog audioknih Apple. Bez klíče. Čtvercová obálka samotné audioknihy." },
   "family.bookSource.google.name": { "en": "Google Books", "cs": "Google Books" },
   "family.bookSource.google.body": { "en": "Needs your own API key — without one Google turns most servers away.", "cs": "Potřebuje vlastní klíč API — bez něj Google většinu serverů odmítne." },
   "family.bookSource.key": { "en": "Google Books API key", "cs": "Klíč API pro Google Books" },

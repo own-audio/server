@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- Console wording follows `i18n/GLOSSARY.md` and matches the apps: American English throughout
+  (catalog, favorites, canceled, recognize); Czech "obálka" for a cover, never "obal"; the
+  permanent-delete dialogs say "Smazat" in their text as in their titles. The glossary records
+  the 2026-11-16 decisions: Follow / Unfollow for podcasts, "Just me", "Storage & credit",
+  "Muted music".
+
 ### Added
 
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the

@@ -1008,7 +1008,7 @@
     "cs": "Server žádné nevrátil."
   },
   "music.smart.preset.forgottenFavourites.name": {
-    "en": "Forgotten favourites",
+    "en": "Forgotten favorites",
     "cs": "Zapomenuté oblíbené"
   },
   "music.smart.preset.forgottenFavourites.body": {
@@ -1280,7 +1280,7 @@
     "cs": "Selhalo"
   },
   "music.identifyRuns.status.cancelled": {
-    "en": "Cancelled",
+    "en": "Canceled",
     "cs": "Zrušeno"
   },
   "music.identifyRuns.waiting": {
@@ -1614,7 +1614,7 @@
   },
   "music.organize.filter.noCover": {
     "en": "No cover",
-    "cs": "Bez obalu"
+    "cs": "Bez obálky"
   },
   "music.organize.filter.noYear": {
     "en": "No year",
@@ -1686,7 +1686,7 @@
   },
   "music.organize.state.noCover": {
     "en": "No cover",
-    "cs": "Bez obalu"
+    "cs": "Bez obálky"
   },
   "music.organize.bulkTitle": {
     "en": "{count, plural, one {Edit # song} other {Edit # songs}}",
@@ -1794,7 +1794,7 @@
   },
   "music.organize.mb.fetchCover": {
     "en": "Fetch the cover",
-    "cs": "Stáhnout obal"
+    "cs": "Stáhnout obálku"
   },
   "music.organize.mb.useGenre": {
     "en": "Take MusicBrainz's genre",
@@ -1866,7 +1866,7 @@
   },
   "music.organize.field.coverObjectId": {
     "en": "Cover",
-    "cs": "Obal"
+    "cs": "Obálka"
   },
   "music.organize.field.releaseDate": {
     "en": "Year",
@@ -1906,11 +1906,11 @@
   },
   "music.organize.setCover": {
     "en": "Set cover…",
-    "cs": "Nastavit obal…"
+    "cs": "Nastavit obálku…"
   },
   "music.organize.coverSet": {
     "en": "{count, plural, one {Cover set on # song} other {Cover set on # songs}}",
-    "cs": "{count, plural, one {Obal nastaven # skladbě} few {Obal nastaven # skladbám} other {Obal nastaven # skladbám}}"
+    "cs": "{count, plural, one {Obálka nastavena # skladbě} few {Obálka nastavena # skladbám} other {Obálka nastavena # skladbám}}"
   },
   "music.organize.artist.notFound": {
     "en": "This artist is only a name on the songs; correct it on the songs.",

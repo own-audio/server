@@ -53,7 +53,7 @@
     "cs": "Váš rok v kostce"
   },
   "stats.wrappedCard.description": {
-    "en": "The last 12 months as a story: favourites, records, your rhythm and your family.",
+    "en": "The last 12 months as a story: favorites, records, your rhythm and your family.",
     "cs": "Posledních 12 měsíců jako příběh: oblíbené, rekordy, váš rytmus a vaše rodina."
   },
   "stats.empty.title": {
@@ -176,7 +176,7 @@
     "cs": "Aplikace Subsonic"
   },
   "stats.device.other": {
-    "en": "unrecognised apps",
+    "en": "unrecognized apps",
     "cs": "Nerozpoznané aplikace"
   },
   "stats.chart.unavailable": {
@@ -279,7 +279,7 @@
     "cs": "{time} · {share, number, percent}"
   },
   "stats.wrapped.favourites.eyebrow": {
-    "en": "Your favourites",
+    "en": "Your favorites",
     "cs": "Vaše oblíbené"
   },
   "stats.wrapped.favourites.book": {

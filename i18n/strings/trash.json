@@ -156,7 +156,7 @@
   },
   "trash.purgeDialog.description": {
     "en": "It's removed now instead of in 30 days. This can't be undone.",
-    "cs": "Odstraní se hned, ne až za 30 dní. Nelze to vrátit."
+    "cs": "Smaže se hned, ne až za 30 dní. Nelze to vrátit."
   },
   "trash.emptyDialog.title": {
     "en": "Empty the trash?",

@@ -9,11 +9,11 @@
     "note": "Button and sheet title in the player: the episode's description from the feed."
   },
   "player.favorite.add": {
-    "en": "Add to favourites",
+    "en": "Add to favorites",
     "cs": "Přidat do oblíbených"
   },
   "player.favorite.remove": {
-    "en": "Remove from favourites",
+    "en": "Remove from favorites",
     "cs": "Odebrat z oblíbených"
   },
   "player.lyrics": {

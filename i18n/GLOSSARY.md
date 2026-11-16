@@ -5,6 +5,10 @@ client and the catalog in `strings/`. When two apps disagree, a wrong
 translation loses; otherwise the more common word wins, and this page is updated.
 Czech always uses formal address (vykání).
 
+English is **American English in every app** (decided 2026-11-16): Favorite,
+Color, Catalog, Canceled, recognize. The English column is the word the UI
+shows.
+
 | English | Czech | Notes |
 |---|---|---|
 | audiobook | audiokniha | |
@@ -13,15 +17,14 @@ Czech always uses formal address (vykání).
 | show (podcast) | pořad | |
 | episode | epizoda | not "díl" |
 | feed | kanál | tab "Feeds" = Kanály |
-| follow / subscribe (podcasts) | odebírat | one concept, one word |
-| unsubscribe | Zrušit odběr | not "Odhlásit" |
+| Follow / Unfollow (podcasts) | odebírat / Zrušit odběr | decided 2026-11-16: never "Subscribe" in English; not "sledovat" or "Odhlásit" in Czech |
 | track / song | skladba | |
 | album | album | plural alba |
 | artist | interpret | |
 | playlist | playlist | |
 | collection | sbírka | |
 | library | knihovna | |
-| cover | obálka | not "obal" |
+| cover | obálka | not "obal": Bez obálky, Stáhnout obálku, Nastavit obálku… |
 | metadata | metadata | not "údaje" |
 | identify / re-identify | Identifikovat / Znovu identifikovat | never "Určit" |
 | Up Next | Na řadě | |
@@ -29,6 +32,7 @@ Czech always uses formal address (vykání).
 | downloads | Stažené | |
 | Skip back / forward | Přeskočit zpět / vpřed | plain "Back/Forward N seconds" = Zpět/Vpřed o N sekund |
 | Lyrics | Text | |
+| Muted music | Ztlumená hudba | decided 2026-11-16 |
 | Visualizer | Vizualizace | |
 | No limit | Bez omezení | |
 | Home (tab) | Domů | "on Home" = na kartě Domů |
@@ -37,6 +41,7 @@ Czech always uses formal address (vykání).
 | Stats | Statistiky | |
 | storage | úložiště | |
 | credit | kredit | |
+| Storage & credit (the credit page) | Úložiště a kredit | decided 2026-11-16: never "Billing" / "Fakturace" |
 | family | rodina | |
 | trash | koš | |
 | settings | Nastavení | |
@@ -47,12 +52,12 @@ Czech always uses formal address (vykání).
 | Cancel / Done | Zrušit / Hotovo | |
 | Light / Dark / System (theme) | Světlý / Tmavý / Podle systému | |
 | duration | `1 h 20 min` | same form in both languages |
-| Just me (not shared) | Jen já | never "soukromé" for the section; nothing is locked |
-| Make private / Share with the family | Nastavit jako soukromé / Sdílet s rodinou | |
+| Just me (not shared) | Jen já | decided 2026-11-16 for every app; never "Private" / "soukromé" for the section; nothing is locked |
+| Make private / Share with the family | Nastavit jako soukromé / Sdílet s rodinou | "Make private" is allowed for the action only |
 | Who can see / hear this | Kdo to uvidí / Kdo to uslyší | |
-| Add / follow a podcast (action) | Přidat podcast | the ongoing state is odebírat |
+| Follow a podcast (action) | Přidat podcast | the ongoing state is odebírat |
 | mark played / unplayed | Označit jako přehrané / nepřehrané | |
-| directory (podcast catalogue) | katalog | |
+| catalog (podcast directory) | katalog | |
 | tags (on a book, the user's) | štítky | file metadata tags are značky |
 | credits (people on a book) | tvůrci | narrator = vypravěč |
 | narrate (text-to-speech a book) | namluvit / namlouvání | never "načíst", which reads as "load". The Apple apps may still say načíst; move them when their catalogs are next edited |

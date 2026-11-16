@@ -154,7 +154,7 @@
     "cs": "Vyberte kategorii, nebo hledejte podle pořadu, moderátora či tématu."
   },
   "podcasts.add.catalogueDown": {
-    "en": "The catalogue didn't answer. Paste the feed URL below instead.",
+    "en": "The catalog didn't answer. Paste the feed URL below instead.",
     "cs": "Katalog neodpověděl. Vložte místo toho adresu kanálu níže."
   },
   "podcasts.add.nothingFound": {
@@ -194,11 +194,11 @@
     "cs": "Stejné kategorie jako „{title}“. Podle toho kanálu, ne podle toho, co posloucháte."
   },
   "podcasts.similar.catalogueDown": {
-    "en": "The catalogue didn't answer. Try again in a moment.",
+    "en": "The catalog didn't answer. Try again in a moment.",
     "cs": "Katalog neodpověděl. Zkuste to za chvíli znovu."
   },
   "podcasts.similar.empty": {
-    "en": "Nothing to suggest for this show. The catalogue may not know it yet, or you already follow everything like it.",
+    "en": "Nothing to suggest for this show. The catalog may not know it yet, or you already follow everything like it.",
     "cs": "K tomuto pořadu nemáme co nabídnout. Katalog ho ještě nemusí znát, nebo už odebíráte všechno podobné."
   },
   "podcasts.similar.shareHint": {

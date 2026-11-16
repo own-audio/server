@@ -41,7 +41,7 @@
   "settings.totp.recoverySaved": { "en": "I've saved them", "cs": "Mám je uložené" },
   "settings.section.activity": { "en": "Recent activity", "cs": "Nedávná aktivita" },
   "settings.section.activityDescription": {
-    "en": "Sign-ins, password and two-factor changes, devices signed out, and what an admin did to your account. A sign-in you don't recognise is the reason to change your password.",
+    "en": "Sign-ins, password and two-factor changes, devices signed out, and what an admin did to your account. A sign-in you don't recognize is the reason to change your password.",
     "cs": "Přihlášení, změny hesla a dvoufázového přihlášení, odhlášená zařízení a co s účtem udělal správce. Přihlášení, které nepoznáváte, je důvod změnit heslo."
   },
   "settings.activity.empty": { "en": "Nothing yet.", "cs": "Zatím nic." },
@@ -108,7 +108,7 @@
     "cs": "Navrhovat obsah podle toho, co poslouchám"
   },
   "settings.recommendations.description": {
-    "en": "Off unless you switch it on. When it's on, the matching happens in this browser: your listening history is compared against a catalogue of podcasts we host, and is never sent anywhere to produce a suggestion. Nothing is stored when you turn it on, so there's nothing to delete when you turn it off.",
+    "en": "Off unless you switch it on. When it's on, the matching happens in this browser: your listening history is compared against a catalog of podcasts we host, and is never sent anywhere to produce a suggestion. Nothing is stored when you turn it on, so there's nothing to delete when you turn it off.",
     "cs": "Vypnuto, dokud to nezapnete. Když je to zapnuté, porovnávání probíhá v tomto prohlížeči: vaše historie poslechu se porovná s katalogem podcastů, který provozujeme, a kvůli návrhům se nikam neodesílá. Zapnutím se nic neukládá, takže po vypnutí není co mazat."
   },
   "settings.profile.name": {
