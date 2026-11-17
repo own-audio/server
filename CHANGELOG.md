@@ -7,6 +7,22 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.4-beta.2] - 2026-11-17
+
+Contract revision 27. API v2 revision 16, **stable**. A beta, like beta.1: test it before you
+rely on it.
+
+### Added
+
+- A `beta` image tag: each beta moves it (`latest` and `1.0` stay on the last stable), and the
+  *retag image* workflow moves it by hand.
+
+### Changed
+
+- The console's Tailwind packages are build-time dependencies, out of the production audit
+  (picomatch GHSA-fc5q-39xc-vjpf has no fixed version); chrono's unmaintained notice
+  (RUSTSEC-2026-0543) is ignored with its reason, as no vulnerability is known.
+
 ### Security
 
 - The image's FFmpeg carries only audio components: no video or image decoder is built, so a
