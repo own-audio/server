@@ -56,6 +56,25 @@ async fn mark_verified(state: &AppState, user_id: Uuid, family_id: Uuid) -> Resu
     Ok(())
 }
 
+/// [`mark_verified`] for the mailed link, passing the page's human check on to the edition.
+async fn mark_verified_by_link(
+    state: &AppState,
+    user_id: Uuid,
+    family_id: Uuid,
+    human_check: Option<&str>,
+    ip: Option<&str>,
+) -> Result<(), AuthError> {
+    let changed = db::users::mark_email_verified(state.db(), user_id).await.map_err(AuthError::Internal)?;
+    if changed {
+        state
+            .hooks()
+            .email_verified_by_link(state.db(), family_id, user_id, human_check, ip)
+            .await
+            .map_err(AuthError::Internal)?;
+    }
+    Ok(())
+}
+
 /// Mails a fresh link; only its hash is stored, like a refresh token.
 async fn send_link(state: &AppState, user: &User) {
     let cfg = state.config();
@@ -81,6 +100,10 @@ async fn send_link(state: &AppState, user: &User) {
 pub struct VerifyEmailRequest {
     /// The secret from the mailed link.
     pub token: String,
+    /// A token from the page's human check (Cloudflare Turnstile), when it showed one. Optional:
+    /// the address is confirmed without it; an edition may grant less (`Hooks::email_verified_by_link`).
+    #[serde(default)]
+    pub human_check: Option<String>,
 }
 
 /// POST /api/v1/auth/email/verify — the mailed link's landing call. Public:
@@ -110,7 +133,8 @@ pub async fn verify_email(
     let Some(membership) = db::families::find_membership(state.db(), user_id).await.map_err(AuthError::Internal)? else {
         return Err(invalid());
     };
-    mark_verified(&state, user_id, membership.family_id).await?;
+    let human_check = body.human_check.as_deref().map(str::trim).filter(|t| !t.is_empty() && t.len() <= 4096);
+    mark_verified_by_link(&state, user_id, membership.family_id, human_check, meta.ip.as_deref()).await?;
     crate::auth::audit::record(&state, &meta, Some(user_id), None, "email.verified", serde_json::json!({})).await;
     Ok(Json(serde_json::json!({})))
 }

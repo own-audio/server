@@ -266,6 +266,7 @@ export interface MessageParams {
   "auth.reset.title": undefined;
   "auth.signIn.title": undefined;
   "auth.tagline": undefined;
+  "auth.verify.check": undefined;
   "auth.verify.done": undefined;
   "auth.verify.invalid": undefined;
   "auth.verify.open": undefined;

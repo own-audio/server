@@ -209,6 +209,10 @@ fn wrong_password(field: &str) -> Problem {
 pub struct EmailVerification {
     /// The secret from the mailed link.
     pub token: String,
+    /// A token from the page's human check (Cloudflare Turnstile), when it showed one. Optional:
+    /// the address is confirmed without it; an edition may grant less for it.
+    #[serde(default)]
+    pub human_check: Option<String>,
 }
 
 /// The mailed confirmation link's landing call; works without signing in.
@@ -219,7 +223,7 @@ pub struct EmailVerification {
         (status = 204, description = "The address is confirmed"),
         (status = 400, description = "`invalid_token`: the link is unknown, used or expired", body = crate::v2::problem::ProblemBody)))]
 pub async fn verify_email(State(state): State<AppState>, meta: RequestMeta, Json(body): Json<EmailVerification>) -> Result<StatusCode, Problem> {
-    let _ = verification::verify_email(State(state), meta, Json(verification::VerifyEmailRequest { token: body.token }))
+    let _ = verification::verify_email(State(state), meta, Json(verification::VerifyEmailRequest { token: body.token, human_check: body.human_check }))
         .await
         .map_err(|e| match e {
             AuthError::BadRequest(_) => invalid_token("this confirmation link is not valid any more; ask for a new one"),

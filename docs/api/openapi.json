@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.27"
+    "version": "1.28"
   },
   "servers": [
     {
@@ -21937,6 +21937,13 @@
           "token": {
             "type": "string",
             "description": "The secret from the mailed link."
+          },
+          "human_check": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A token from the page's human check (Cloudflare Turnstile), when it showed one. Optional:\nthe address is confirmed without it; an edition may grant less (`Hooks::email_verified_by_link`)."
           }
         }
       },

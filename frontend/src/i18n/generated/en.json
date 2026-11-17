@@ -260,6 +260,7 @@
   "auth.reset.title": "Choose a new password",
   "auth.signIn.title": "Sign in",
   "auth.tagline": "Listen to your own audio.",
+  "auth.verify.check": "One quick check that you're a person, then your address is confirmed.",
   "auth.verify.done": "Your email address is confirmed.",
   "auth.verify.invalid": "This link isn't valid any more. Ask for a new one from the banner in the app.",
   "auth.verify.open": "Open own.audio",

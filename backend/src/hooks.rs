@@ -196,6 +196,22 @@ pub trait Hooks: Send + Sync + 'static {
         Ok(())
     }
 
+    /// [`email_verified`](Self::email_verified) when the proof is the mailed link, with what the
+    /// confirmation page sent besides the link's secret: `human_check`, a token from a
+    /// challenge such as Cloudflare Turnstile (the web console sends one when it is built with
+    /// `VITE_TURNSTILE_SITEKEY`), and the caller's address. An edition may grant less to a
+    /// confirmation without one; the address is confirmed either way. Once per user.
+    async fn email_verified_by_link(
+        &self,
+        db: &PgPool,
+        family_id: Uuid,
+        user_id: Uuid,
+        _human_check: Option<&str>,
+        _ip: Option<&str>,
+    ) -> anyhow::Result<()> {
+        self.email_verified(db, family_id, user_id).await
+    }
+
     /// What restoring `size_bytes` after `days` whole days in the trash would
     /// charge the family, in micro-currency; shown to the user before they
     /// confirm. Nothing is charged in the open-source edition.

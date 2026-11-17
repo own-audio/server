@@ -2669,6 +2669,13 @@
       },
       "EmailVerification": {
         "properties": {
+          "human_check": {
+            "description": "A token from the page's human check (Cloudflare Turnstile), when it showed one. Optional:\nthe address is confirmed without it; an edition may grant less for it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "token": {
             "description": "The secret from the mailed link.",
             "type": "string"
@@ -12732,7 +12739,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.16"
+    "version": "2.17"
   },
   "openapi": "3.1.0",
   "paths": {

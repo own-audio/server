@@ -260,6 +260,7 @@
   "auth.reset.title": "Nastavte nové heslo",
   "auth.signIn.title": "Přihlášení",
   "auth.tagline": "Poslouchejte své vlastní audio.",
+  "auth.verify.check": "Ještě krátké ověření, že nejste robot, a adresu potvrdíme.",
   "auth.verify.done": "Vaše e-mailová adresa je potvrzená.",
   "auth.verify.invalid": "Tento odkaz už neplatí. Požádejte o nový z lišty v aplikaci.",
   "auth.verify.open": "Otevřít own.audio",

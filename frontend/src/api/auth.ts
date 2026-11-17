@@ -110,8 +110,8 @@ export async function resetPassword(token: string, password: string): Promise<vo
   await api.post("/auth/password/reset", { token, password });
 }
 
-export async function verifyEmail(token: string): Promise<void> {
-  await api.post("/auth/email/verify", { token });
+export async function verifyEmail(token: string, humanCheck?: string): Promise<void> {
+  await api.post("/auth/email/verify", humanCheck ? { token, human_check: humanCheck } : { token });
 }
 
 export async function resendVerification(): Promise<{ sent: boolean; verified: boolean }> {

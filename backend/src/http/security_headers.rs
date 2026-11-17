@@ -60,8 +60,9 @@ pub async fn middleware(
     headers.apply(req, next).await
 }
 
-/// The console's policy. Scripts: its own files and the providers' sign-in
-/// scripts, nothing inline. Styles allow inline attributes (React sets
+/// The console's policy. Scripts: its own files, the providers' sign-in
+/// scripts and Cloudflare Turnstile (the email confirmation page's human check,
+/// when the console is built with a site key), nothing inline. Styles allow inline attributes (React sets
 /// them). Images and media may come from anywhere: covers and podcast audio
 /// are served from a store or a publisher this server does not control, and
 /// a home install may be plain http. Fetches (`connect-src`) are limited to
@@ -79,13 +80,13 @@ pub fn content_security_policy(cfg: &AppConfig) -> String {
     connect.push("https://appleid.apple.com".into());
     [
         "default-src 'self'".to_string(),
-        "script-src 'self' https://accounts.google.com https://appleid.cdn-apple.com".into(),
+        "script-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://challenges.cloudflare.com".into(),
         "style-src 'self' 'unsafe-inline' https://accounts.google.com".into(),
         "img-src * data: blob:".into(),
         "media-src * data: blob:".into(),
         "font-src 'self' data:".into(),
         format!("connect-src {}", connect.join(" ")),
-        "frame-src https://accounts.google.com https://appleid.apple.com".into(),
+        "frame-src https://accounts.google.com https://appleid.apple.com https://challenges.cloudflare.com".into(),
         "worker-src 'self'".into(),
         "manifest-src 'self'".into(),
         "object-src 'none'".into(),
