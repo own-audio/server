@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- The console fetches the music library again when it opens a copy saved on the device less
+  than 30 seconds earlier; a reload right after a visit showed the old list (songs another
+  family member had just shared were missing).
+
 ## [1.0.4] - 2026-11-17
 
 Contract revision 26. API v2 revision 15, **stable**.

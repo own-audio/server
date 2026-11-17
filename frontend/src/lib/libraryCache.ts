@@ -32,8 +32,10 @@ export function initLibraryCache(queryClient: QueryClient) {
         .then((snap) => {
           // Fresh data that arrived first wins; so does another account's absence.
           if (!snap || snap.userId !== userId || queryClient.getQueryData(key) !== undefined) return;
-          // Dated when it was saved, so it counts as stale and is fetched again.
           queryClient.setQueryData(key, snap.data, { updatedAt: snap.savedAt });
+          // Stale whatever its age: a copy saved within staleTime (a reload soon after the
+          // last visit) would otherwise count as fresh and never be fetched again.
+          void queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: "none" });
         })
         .catch(() => {});
     }
