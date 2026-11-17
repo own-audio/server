@@ -960,7 +960,8 @@ Every stream/download endpoint (`music/tracks/{id}/stream`,
 returns `{ "url": "<opaque URL>", "expires_in_secs": 14400 }`. The URL is
 either a presigned link to the S3 store, or (local storage, read-only library
 folders, or S3 with `STORAGE__PROXY`) a link to the server's own
-`GET /api/v1/media?k=…&e=…&s=…`, signed by the server. Clients must treat it
+`GET /api/v2/media?k=…&e=…&s=…` (`/api/v1/media` before 2026-11-17, still
+accepted), signed by the server. Clients must treat it
 as opaque: follow it, never build or parse it. Implications for a mobile
 client:
 

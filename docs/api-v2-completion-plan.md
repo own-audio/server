@@ -90,7 +90,10 @@ Each phase is one to five commits on `main`, each commit complete on its own:
    Proposal: reword rule 4 to say exactly that. Question 3.
 2. **Rule 11, "a handler test".** The repo has no database-backed Rust tests: `cargo test` runs
    in CI without PostgreSQL, and behaviour is proved by the conformance suite. §4.1 defines what a
-   handler test is here and asks whether to add `#[sqlx::test]`. Question 4.
+   handler test is here. Kornel (2026-11-17): handler tests may use a real PostgreSQL
+   (`#[sqlx::test]`), with PostgreSQL added to the CI test job by the first phase that writes
+   one. Phase 0 needed none (its logic is tested without a database, its behaviour by the
+   conformance suite).
 3. **Rule 6, credentials only in headers and bodies.** `GET /auth/device/{user_code}` already has
    the user code in the path (RFC 8628's own pattern; approving needs a signed-in user). Kept.
    New routes put invite and claim codes in the body (phase 7).
@@ -102,14 +105,11 @@ Each phase is one to five commits on `main`, each commit complete on its own:
    `/api/v2/narration`, `/summaries` and `/family/billing` with today's v1-shaped bodies, so those
    bodies cannot simply be replaced. Phase 13 fixes them additively where it can and lists the
    rest as known deviations. Question 5.
-7. **The uncommitted "v2 is stable" change.** The working tree marks v2 `stable`, revision 1
-   (`v2/discovery.rs`, `v2/mod.rs`, `openapi-v2.json` `2.1`, CHANGELOG, CLAUDE.md,
-   API_COMPATIBILITY.md, api-v2-plan.md, api-v2-first.md, the ticked line in the gaps plan).
-   Kornel's decision now puts the stable flag at the end. The plan assumes: the revision counter
-   and the additive check (`check-api-contract.py` for v2) go in now, because shipped apps use
-   v2 and must not break; `V2_STATUS` stays `draft` until phase 14, and the wording that says
-   "stable since 2026-11-17" waits for it too. Those uncommitted edits are left for Kornel to
-   adjust or hold back. Question 6.
+7. **The "v2 is stable" change.** Decided (Kornel, 2026-11-17) and committed with phase 0: the
+   revision counter (`V2_REVISION`, in discovery and as `2.<revision>-draft` in
+   `openapi-v2.json`) and the additive check (`check-api-contract.py` compares v2 too) are in,
+   because shipped apps use v2 and must not break; `V2_STATUS` stays `draft` until phase 14, and
+   every document says v2 "becomes stable at the release that completes this plan".
 
 ---
 
@@ -163,7 +163,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 
 | # | Phase | v1 ops | Size | Unblocks |
 |---|---|---|---|---|
-| 0 | Groundwork: v2 media path, people's pictures, image links, test tools | 2 | M | everything; v1 removal |
+| 0 | Groundwork: v2 media path, people's pictures, image links, test tools — **done** | 2 | M | everything; v1 removal |
 | 1 | Account and sign-in | 23 | L | W Ab Am Ap M |
 | 2 | Podcast feeds and directory | 16 | L | M T W Ap |
 | 3 | Sync essentials and continue listening | 3 | M | S (so M W), A, T |
@@ -182,7 +182,36 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 Permissions below use the `x-permission` words; "self" means the caller's own record, checked in
 the handler.
 
-### Phase 0 — groundwork (M)
+### Phase 0 — groundwork (M) — done 2026-11-17
+
+Done, v2 revision 2: `GET`, `HEAD`, `PUT /api/v2/media`, every signed media link pointing there
+(v1's route takes the same links); `/stream` sending what the server keeps itself; permanent
+links for catalog art, weekly ones for people's pictures, `Family.image` and `Member.image`
+among them; a new storage object per uploaded picture, so an image never changes under its
+link; `scripts/check-v2-coverage.py` (report mode, in CI); the conformance suite `v2_walk`
+(permission matrix, someone else's ids, problem shapes, paging) and the operation coverage
+report (`run.py`, `--v2-coverage-strict` to fail on it); the auth error shapes in
+`api-v2-first.md`. What the plan said, with these differences:
+
+- The operation coverage check reports, it does not fail a run yet: a full run on the compose
+  stack leaves 20 of 139 operations without a 2xx — parts of identify (listing runs,
+  proposals and groups: their results come from MusicBrainz, which the stack cannot reach), the
+  quarantine, album merge and release group, renaming the household, removing a member,
+  `family/join`, `DELETE /me/sessions`, the visibility and credits of a book or podcast, and
+  reads of an episode, podcast or recording by id.
+  `--v2-coverage-strict` turns it into a failure; each phase adds the checks for what it
+  touches, and CI switches to strict when the list is empty, by phase 14 at the latest.
+- The "other family" walk runs on servers with several households (the hosted edition); on a
+  one-household install (the compose stack, CI) the same walk runs with another member of the
+  household against the owner's private items, plus every `owner` operation on what the owner
+  shares.
+
+Tables a client caches that do not write to the change log yet (each phase below adds its
+triggers): `music_playlists` and `music_playlist_tracks`, `music_smart_playlists` (phase 6);
+`audiobook_series`, `audiobook_series_books`, `audiobook_collections`,
+`audiobook_collection_books`, `audiobook_tags`, `audiobook_book_tags` (phase 5); `sync_paths`,
+`content_grants`, `family_members` (phase 3); `companion_files_all`, `sync_shortcuts`
+(phase 11); `play_queues`, `pending_notifications`, `device_push_tokens` (phase 8).
 
 v1 ops: `GET /media`, `PUT /media` (partly).
 
@@ -612,12 +641,11 @@ a line in `CAPACITY.md`.
    playlist with chosen members part of the per-member model (stays on v1) or does it move?
 3. Rule 4: keep bounded household lists (members, invites, sessions, tokens) as arrays, and
    reword the rule to "everything that grows with the catalog, history or time"?
-4. Handler tests: add `#[sqlx::test]` and a PostgreSQL service to the CI `cargo test` job (more
-   Actions minutes), or define a handler test as the logic-only test of §4.1 with conformance
-   for the database half?
+4. ~~Handler tests~~ — answered: `#[sqlx::test]` may be used; PostgreSQL joins the CI test job
+   with the first phase that needs it (§1.4 item 2).
 5. Hosted bodies: the shipped apps read today's bodies under `/api/v2`. Additive fixes only, with
    known deviations documented, or new v2-shaped paths with the old ones kept as aliases?
-6. The uncommitted "v2 stable, revision 1" edits: hold `V2_STATUS = "draft"` until phase 14 but
-   commit the revision counter and the v2 contract check now, as this plan assumes?
-7. Permanent links for catalog art (no expiry), weekly expiry kept for people's pictures — fine?
+6. ~~The "v2 stable" edits~~ — answered: `draft` until phase 14, revision counter and contract
+   check now (§1.4 item 7).
+7. ~~Permanent links for catalog art~~ — answered: yes, people's pictures keep a short expiry.
 8. At the release, start v1's deprecation (six months minimum), or only when the apps have moved?

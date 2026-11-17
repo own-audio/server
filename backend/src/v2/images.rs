@@ -1,9 +1,14 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 //! Artwork (DESIGN §6; docs/api-v2-plan.md, V6).
 //!
-//! A record's `image` is a link to `GET /images/{id}`, signed for that image
-//! and an expiry rounded to the week, not for a user: artwork is of low
-//! sensitivity, and links bound to a user would make every list uncacheable.
+//! A record's `image` is a link to `GET /images/{id}`, signed for that image,
+//! not for a user: artwork is of low sensitivity, and links bound to a user
+//! would make every list uncacheable. Catalog art (covers, artist and author
+//! pictures, a podcast's art) is signed for good: a link kept by a cache, a
+//! widget or a car keeps working, and the change feed need not resend a
+//! record to refresh it. People's pictures (the household, its members) are
+//! signed until an expiry rounded to the week, so a link passed on stops
+//! working; their records are read again anyway.
 //! The client adds `w` (64, 128, 256, 512 or 1024) for the size it draws; the
 //! answer is `Cache-Control: immutable`. An image is addressed by the stored
 //! object, which is written once and never changes — a new cover is a new
@@ -39,19 +44,39 @@ fn key(secret: &str) -> Vec<u8> {
     h.finalize().to_vec()
 }
 
-fn signature(secret: &str, object: Uuid, expires: i64) -> String {
+/// What is signed: the image and its expiry, or the word `permanent` for a
+/// link without one. An expiry is a number, so neither can pass for the other.
+fn message(object: Uuid, expires: Option<i64>) -> String {
+    match expires {
+        Some(e) => format!("{object}\n{e}"),
+        None => format!("{object}\npermanent"),
+    }
+}
+
+fn signature(secret: &str, object: Uuid, expires: Option<i64>) -> String {
     let mut mac = HmacSha256::new_from_slice(&key(secret)).expect("HMAC takes any key length");
-    mac.update(format!("{object}\n{expires}").as_bytes());
+    mac.update(message(object, expires).as_bytes());
     URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
 }
 
-/// The link to an image object, good for one to two weeks; the same link all
-/// week, so caches keep it.
+/// Whether a link's signature is genuine and, when it has an expiry, unexpired at `now`.
+fn verify(secret: &str, object: Uuid, expires: Option<i64>, sig: &str, now: i64) -> bool {
+    if expires.is_some_and(|e| e < now) {
+        return false;
+    }
+    let Ok(given) = URL_SAFE_NO_PAD.decode(sig) else { return false };
+    let mut mac = HmacSha256::new_from_slice(&key(secret)).expect("HMAC takes any key length");
+    mac.update(message(object, expires).as_bytes());
+    mac.verify_slice(&given).is_ok()
+}
+
+fn base(state: &AppState) -> String {
+    crate::http::origin::base_or(state.config().server.base_url.as_deref().unwrap_or(""))
+}
+
+/// The link to a piece of catalog art: it never expires, so caches keep it for good.
 pub fn link(state: &AppState, object: Uuid) -> String {
-    let now = chrono::Utc::now().timestamp();
-    let expires = (now / WEEK + 2) * WEEK;
-    let base = crate::http::origin::base_or(state.config().server.base_url.as_deref().unwrap_or(""));
-    format!("{base}/api/v2/images/{object}?e={expires}&s={}", signature(&state.config().auth.session_secret, object, expires))
+    format!("{}/api/v2/images/{object}?s={}", base(state), signature(&state.config().auth.session_secret, object, None))
 }
 
 /// `link` for an image the record may have.
@@ -59,11 +84,24 @@ pub fn maybe(state: &AppState, object: Option<Uuid>) -> Option<String> {
     object.map(|o| link(state, o))
 }
 
+/// The link to a person's or the household's picture, good for one to two
+/// weeks; the same link all week, so caches keep it.
+pub fn expiring_link(state: &AppState, object: Uuid) -> String {
+    let now = chrono::Utc::now().timestamp();
+    let expires = (now / WEEK + 2) * WEEK;
+    format!("{}/api/v2/images/{object}?e={expires}&s={}", base(state), signature(&state.config().auth.session_secret, object, Some(expires)))
+}
+
+/// `expiring_link` for a picture the record may have.
+pub fn maybe_expiring(state: &AppState, object: Option<Uuid>) -> Option<String> {
+    object.map(|o| expiring_link(state, o))
+}
+
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct ImageQuery {
-    /// Expiry, Unix seconds.
-    e: i64,
+    /// Expiry, Unix seconds; absent from a link to catalog art, which does not expire.
+    e: Option<i64>,
     /// Signature.
     s: String,
     /// The longest edge wanted: 64, 128, 256, 512 or 1024; the original when absent.
@@ -80,13 +118,7 @@ pub struct ImageQuery {
         (status = 403, description = "`invalid_link`: a bad or expired signature", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "No such image", body = crate::v2::problem::ProblemBody)))]
 pub async fn image(State(state): State<AppState>, Path(id): Path<Uuid>, Query(q): Query<ImageQuery>) -> Result<Response, Problem> {
-    let secret = &state.config().auth.session_secret;
-    let genuine = URL_SAFE_NO_PAD.decode(&q.s).ok().is_some_and(|given| {
-        let mut mac = HmacSha256::new_from_slice(&key(secret)).expect("HMAC takes any key length");
-        mac.update(format!("{id}\n{}", q.e).as_bytes());
-        mac.verify_slice(&given).is_ok()
-    });
-    if !genuine || q.e < chrono::Utc::now().timestamp() {
+    if !verify(&state.config().auth.session_secret, id, q.e, &q.s, chrono::Utc::now().timestamp()) {
         return Err(Problem::new(StatusCode::FORBIDDEN, "invalid_link").detail("the link is not genuine or has expired: read the record again"));
     }
     if let Some(w) = q.w {
@@ -219,10 +251,28 @@ mod tests {
     #[test]
     fn a_signature_names_its_image_and_expiry() {
         let id = Uuid::nil();
-        let s = signature("secret", id, 100);
-        assert_eq!(s, signature("secret", id, 100));
-        assert_ne!(s, signature("secret", Uuid::max(), 100));
-        assert_ne!(s, signature("secret", id, 101));
-        assert_ne!(s, signature("other", id, 100));
+        let s = signature("secret", id, Some(100));
+        assert_eq!(s, signature("secret", id, Some(100)));
+        assert_ne!(s, signature("secret", Uuid::max(), Some(100)));
+        assert_ne!(s, signature("secret", id, Some(101)));
+        assert_ne!(s, signature("other", id, Some(100)));
+        assert_ne!(s, signature("secret", id, None), "an expiring link is not a permanent one");
+    }
+
+    #[test]
+    fn a_permanent_link_outlives_the_weeks_an_expiring_one_has() {
+        let id = Uuid::from_u128(7);
+        let issued = 1_800_000_000;
+        let expires = (issued / WEEK + 2) * WEEK;
+        let weekly = signature("secret", id, Some(expires));
+        let permanent = signature("secret", id, None);
+        assert!(verify("secret", id, Some(expires), &weekly, issued));
+        assert!(!verify("secret", id, Some(expires), &weekly, expires + 1), "past its weeks");
+        let years_later = issued + 10 * 365 * 86_400;
+        assert!(verify("secret", id, None, &permanent, years_later));
+        assert!(!verify("secret", id, None, &weekly, issued), "dropping e does not make a weekly link permanent");
+        assert!(!verify("secret", id, Some(expires), &permanent, issued), "nor adding e a permanent one expiring");
+        assert!(!verify("secret", Uuid::from_u128(8), None, &permanent, issued), "another image");
+        assert!(!verify("other", id, None, &permanent, issued), "another server");
     }
 }

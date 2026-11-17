@@ -67,6 +67,9 @@ pub struct FamilyResponse {
     /// `/api/v1/family/avatar` when the family has set a photo, else `null`.
     /// family_admin-managed, like the name — see `families::upload_avatar`.
     pub avatar_url: Option<String>,
+    /// The photo's object, for v2's signed image link; not part of v1's answer.
+    #[serde(skip)]
+    pub avatar_object_id: Option<Uuid>,
     pub members: Vec<MemberResponse>,
     pub created_at: String,
 }
@@ -86,6 +89,9 @@ pub struct MemberResponse {
     /// `null`. A relative path, same convention as every other cover URL in
     /// this API (e.g. `audiobooks::book_to_response`'s `cover_url`).
     pub avatar_url: Option<String>,
+    /// The picture's object, for v2's signed image link; not part of v1's answer.
+    #[serde(skip)]
+    pub avatar_object_id: Option<Uuid>,
     pub joined_at: String,
     /// `adult` | `teen` | `child`. Admin-set; see docs/family-permissions-plan.md.
     pub age_bracket: String,
@@ -317,6 +323,7 @@ pub(crate) async fn get_family(
         my_can_upload: family.effective_can_upload(),
         my_can_generate: family.effective_can_generate(),
         avatar_url: record.avatar_object_id.map(|_| "/api/v1/family/avatar".to_string()),
+        avatar_object_id: record.avatar_object_id,
         members: members.into_iter().map(member_to_response).collect(),
         created_at: record.created_at.to_rfc3339(),
     }))
@@ -399,7 +406,8 @@ async fn upload_family_avatar(
     // being family-owned content: every object under that prefix must also be registered in
     // `db::storage_usage`'s per-kind `*_REFS` lists or it reads as orphaned/unsized — not worth wiring
     // a small profile photo into that actively-changing accounting for.
-    let object_key = format!("fam/{}/avatar.{ext}", family.family_id);
+    // A new object per photo, as for a user's own picture (`users::upload_avatar`).
+    let object_key = format!("fam/{}/avatar-{}.{ext}", family.family_id, Uuid::new_v4());
     let size_bytes = bytes.len() as i64;
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
@@ -1014,7 +1022,7 @@ async fn upload_member_avatar(
     let ext = family_avatar_extension(&file_name).unwrap_or("jpg");
     // Same `u/{user_id}/…` personal-namespace key `crate::users::upload_avatar` uses — it's
     // still the member's own photo, just set on their behalf.
-    let object_key = format!("u/{user_id}/avatar.{ext}");
+    let object_key = format!("u/{user_id}/avatar-{}.{ext}", Uuid::new_v4());
     let size_bytes = bytes.len() as i64;
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
@@ -1370,6 +1378,7 @@ pub(crate) async fn accept_invite(
         my_can_upload,
         my_can_generate,
         avatar_url: record.avatar_object_id.map(|_| "/api/v1/family/avatar".to_string()),
+        avatar_object_id: record.avatar_object_id,
         members: members.into_iter().map(member_to_response).collect(),
         created_at: record.created_at.to_rfc3339(),
     }))
@@ -2049,6 +2058,7 @@ fn member_to_response(m: db::families::FamilyMember) -> MemberResponse {
         is_active: m.is_active,
         pending: m.pending,
         avatar_url: m.avatar_object_id.map(|_| format!("/api/v1/users/{}/avatar", m.user_id)),
+        avatar_object_id: m.avatar_object_id,
         joined_at: m.joined_at.to_rfc3339(),
         age_bracket: m.age_bracket,
         can_upload: m.can_upload,

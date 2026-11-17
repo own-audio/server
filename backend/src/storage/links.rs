@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Links to the server's own media route, `/api/v1/media`, signed like a
+//! Links to the server's own media route, `/api/v2/media`, signed like a
 //! presigned S3 URL: the key, the method and an expiry, under an HMAC only
 //! this server can make. They stand in for presigned URLs wherever the store
 //! cannot hand out links of its own (local storage) or should not (a network
@@ -13,8 +13,10 @@ use sha2::{Digest, Sha256};
 
 type HmacSha256 = Hmac<Sha256>;
 
-/// The route the links point at, under the API prefix.
-pub const MEDIA_PATH: &str = "/api/v1/media";
+/// The route the links point at. v1's `/api/v1/media` takes the same links: the
+/// signature covers method, key and expiry, not the path, so links handed out
+/// before v2 had its own route keep working there.
+pub const MEDIA_PATH: &str = "/api/v2/media";
 
 #[derive(Clone)]
 pub struct MediaLinks {
@@ -100,7 +102,7 @@ mod tests {
     fn a_link_verifies_for_its_method_and_key() {
         let links = MediaLinks::new("secret", Some("https://demo.own.audio/"));
         let link = links.link("GET", "f/1/music/a b.mp3", 60);
-        assert!(link.starts_with("https://demo.own.audio/api/v1/media?k=f%2F1%2Fmusic%2Fa%20b.mp3&e="));
+        assert!(link.starts_with("https://demo.own.audio/api/v2/media?k=f%2F1%2Fmusic%2Fa%20b.mp3&e="));
         let (k, e, s) = parts(&link);
         assert!(links.verify("GET", &k, e, &s));
         assert!(links.verify("HEAD", &k, e, &s));
@@ -122,6 +124,6 @@ mod tests {
     #[test]
     fn without_a_base_url_the_link_is_relative() {
         let link = MediaLinks::new("s", None).link("GET", "x", 60);
-        assert!(link.starts_with("/api/v1/media?k=x&e="));
+        assert!(link.starts_with("/api/v2/media?k=x&e="));
     }
 }

@@ -40,6 +40,7 @@ fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Optio
 pub struct Family {
     pub id: String,
     pub name: String,
+    /// The household's photo: a signed link to `GET /images/{id}`, good for one to two weeks.
     pub image: Option<String>,
     pub created_at: String,
     /// The caller in it.
@@ -55,11 +56,11 @@ pub struct Membership {
     pub can_generate: bool,
 }
 
-fn family(f: families::FamilyResponse) -> Family {
+fn family(state: &AppState, f: families::FamilyResponse) -> Family {
     Family {
         id: f.id,
         name: f.name,
-        image: f.avatar_url,
+        image: crate::v2::images::maybe_expiring(state, f.avatar_object_id),
         created_at: f.created_at,
         me: Membership { user_id: f.my_user_id, role: v2_role(&f.my_role), can_upload: f.my_can_upload, can_generate: f.my_can_generate },
     }
@@ -70,8 +71,8 @@ fn family(f: families::FamilyResponse) -> Family {
     extensions(("x-permission" = json!("member"))),
     responses((status = 200, body = Family)))]
 pub async fn get_family(family_ctx: FamilyContext, State(state): State<AppState>) -> Result<Json<Family>, Problem> {
-    let Json(f) = families::get_family(family_ctx, State(state)).await?;
-    Ok(Json(family(f)))
+    let Json(f) = families::get_family(family_ctx, State(state.clone())).await?;
+    Ok(Json(family(&state, f)))
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -86,8 +87,8 @@ pub struct FamilyPatch {
     responses((status = 200, body = Family)))]
 pub async fn patch_family(FamilyAdmin(family_ctx): FamilyAdmin, State(state): State<AppState>, Json(body): Json<FamilyPatch>) -> Result<Json<Family>, Problem> {
     families::update_family(family_ctx.clone(), State(state.clone()), Json(families::UpdateFamilyRequest { name: body.name })).await?;
-    let Json(f) = families::get_family(family_ctx, State(state)).await?;
-    Ok(Json(family(f)))
+    let Json(f) = families::get_family(family_ctx, State(state.clone())).await?;
+    Ok(Json(family(&state, f)))
 }
 
 #[derive(Serialize, ToSchema)]
@@ -106,6 +107,7 @@ pub struct Member {
     pub age_bracket: String,
     pub can_upload: bool,
     pub can_generate: bool,
+    /// Their picture: a signed link to `GET /images/{id}`, good for one to two weeks.
     pub image: Option<String>,
     pub joined_at: String,
 }
@@ -115,7 +117,7 @@ pub struct Member {
     extensions(("x-permission" = json!("member"))),
     responses((status = 200, body = Vec<Member>)))]
 pub async fn list_members(family_ctx: FamilyContext, State(state): State<AppState>) -> Result<Json<Vec<Member>>, Problem> {
-    let Json(members) = families::list_members(family_ctx, State(state)).await?;
+    let Json(members) = families::list_members(family_ctx, State(state.clone())).await?;
     Ok(Json(
         members
             .into_iter()
@@ -130,7 +132,7 @@ pub async fn list_members(family_ctx: FamilyContext, State(state): State<AppStat
                 age_bracket: m.age_bracket,
                 can_upload: m.can_upload,
                 can_generate: m.can_generate,
-                image: m.avatar_url,
+                image: crate::v2::images::maybe_expiring(&state, m.avatar_object_id),
                 joined_at: m.joined_at,
             })
             .collect(),
@@ -280,8 +282,8 @@ pub struct JoinRequest {
     request_body = JoinRequest,
     responses((status = 200, description = "The household joined", body = Family), (status = 400, body = crate::v2::problem::ProblemBody)))]
 pub async fn join(auth: AuthUser, State(state): State<AppState>, Json(body): Json<JoinRequest>) -> Result<Json<Family>, Problem> {
-    let Json(f) = families::accept_invite(auth, State(state), Json(families::AcceptInviteRequest { code: body.code })).await?;
-    Ok(Json(family(f)))
+    let Json(f) = families::accept_invite(auth, State(state.clone()), Json(families::AcceptInviteRequest { code: body.code })).await?;
+    Ok(Json(family(&state, f)))
 }
 
 /// What the household keeps, in bytes.

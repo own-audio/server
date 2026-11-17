@@ -13,8 +13,8 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 141 |
-| partly covered | 19 |
+| covered | 143 |
+| partly covered | 17 |
 | missing | 149 |
 | not carried over | 7 |
 | **total** | **316** |
@@ -23,6 +23,10 @@ prefixes.
 grants stay on v1) or a route no client calls (the Stripe webhook). The hosted routes count as
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
+
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 0, v2
+revision 2). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+lists what is still open.
 
 
 ## Auth and account
@@ -79,7 +83,7 @@ What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.m
 | `PATCH /users/{id}` | — | missing | Instance admin. |
 | `DELETE /users/{id}` | — | missing | Instance admin. |
 | `POST /users/{id}/revoke-sessions` | — | missing | Instance admin. |
-| `GET /users/{id}/avatar` | `Member.image` → `GET /images/{id}` | covered | For people in your household. |
+| `GET /users/{id}/avatar` | `Member.image` → `GET /images/{id}` | covered | For people in your household. A signed link since phase 0; until then `Member.image` was this v1 route, which wants the access token. |
 | `GET /admin/families` | — | missing |  |
 | `GET /admin/families/trash` | — | missing |  |
 | `GET /admin/families/{id}` | — | missing |  |
@@ -94,7 +98,7 @@ What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.m
 |---|---|---|---|
 | `GET /family` | `GET /family`, `GET /family/members` | covered |  |
 | `PUT /family` | `PATCH /family` | covered |  |
-| `GET /family/avatar` | `Family.image` → `GET /images/{id}` | covered |  |
+| `GET /family/avatar` | `Family.image` → `GET /images/{id}` | covered | A signed link since phase 0; until then `Family.image` was this v1 route. |
 | `POST /family/avatar` | — | missing |  |
 | `DELETE /family/avatar` | — | missing |  |
 | `GET /family/content-reports` | — | missing |  |
@@ -315,8 +319,8 @@ What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.m
 | `PUT /stats/me/visibility` | — | missing |  |
 | `GET /stats/family` | — | missing |  |
 | `PUT /stats/family/members/{user_id}/visibility` | — | missing |  |
-| `GET /media` | (used by v2) | partly | v2's playback and upload links for local storage are `/api/v1/media` links; it needs a v2 path before v1 goes. |
-| `PUT /media` | (used by v2) | partly | Same: the upload target for local storage. |
+| `GET /media` | `GET /media` | covered | Phase 0: the server's signed links point at `/api/v2/media`; v1's route takes the same links. `/stream` sends a file the server keeps itself without redirecting there. |
+| `PUT /media` | `PUT /media` | covered | Phase 0: the upload target for local storage. |
 
 ## Sync and library
 

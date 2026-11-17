@@ -98,6 +98,13 @@ impl ObjectStore {
         Some(&self.links)
     }
 
+    /// Whether links to `key` lead back to this server's media route (local
+    /// storage, a library folder, or S3 behind `STORAGE__PROXY`): then the
+    /// server may as well send the bytes itself rather than redirect.
+    pub fn serves_itself(&self, key: &str) -> bool {
+        self.serve_all || is_folder_key(key)
+    }
+
     /// Make a library folder's files readable under its keys.
     pub fn register_folder(&self, id: uuid::Uuid, root: PathBuf) {
         self.folders.write().expect("folders lock").insert(id, root);

@@ -103,7 +103,7 @@ domain, so they stay off with these.
 
 **Local (default).** Every upload is a file under `/data/media` in the server
 container, kept in the `media_data` volume. Players get links to the server's
-own `/api/v1/media` route, signed by the server and valid for 4 hours, with
+own `/api/v2/media` route, signed by the server and valid for 4 hours, with
 seeking supported. Mount a host folder there instead of the volume if you
 want the files on a particular disk:
 

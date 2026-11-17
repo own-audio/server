@@ -113,6 +113,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(sync::snapshot))
         .routes(routes!(media::playback_info))
         .routes(routes!(media::stream))
+        // The signature is the authorisation; uploads stream, so no body limit (as on v1).
+        .routes(map(routes!(media::media), |m| m.layer(axum::extract::DefaultBodyLimit::disable())))
         .routes(routes!(images::image))
         .routes(routes!(household::get_family, household::patch_family))
         .routes(routes!(household::list_members))

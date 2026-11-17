@@ -49,6 +49,10 @@ jobs:
         working-directory: backend
       - name: API contract against the last release (additive only, revision bumped)
         run: python3 scripts/check-api-contract.py
+      # The v1 → v2 table against both documents; what is still open is listed, not failed
+      # (--strict from the release that makes v2 stable, docs/api-v2-completion-plan.md).
+      - name: v1 → v2 coverage table
+        run: python3 scripts/check-v2-coverage.py
       # Native install rather than the Docker action: the action's container
       # does not carry the toolchain rust-toolchain.toml pins.
       - uses: taiki-e/install-action@cargo-deny

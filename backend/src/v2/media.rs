@@ -9,11 +9,16 @@
 //! follow any URL, and the access token never appears in one. Each use checks
 //! again that the user may still play the item.
 //!
-//! The link is the authorisation, not the delivery: the original is answered
-//! with a redirect to the store's own short-lived URL (or the server's signed
-//! `/api/v1/media` link for local storage), so the file goes straight from
-//! storage to the player. A transcode streams from the server through the
-//! Subsonic layer's planner and ffmpeg pool (`subsonic::transcode`).
+//! The link is the authorisation. An original in object storage is answered
+//! with a redirect to the store's own short-lived URL, so the file goes
+//! straight from storage to the player; one the server keeps itself (local
+//! storage, a library folder, S3 behind `STORAGE__PROXY`) is sent from here,
+//! ranges and all, saving the player a second round trip. A transcode streams
+//! from the server through the Subsonic layer's planner and ffmpeg pool
+//! (`subsonic::transcode`).
+//!
+//! `/media` is v2's home of the server's signed media route (`http::media`):
+//! the upload targets and the links to objects the server serves itself.
 
 use crate::app::AppState;
 use crate::db;
@@ -22,8 +27,9 @@ use crate::families::FamilyContext;
 use crate::subsonic::transcode;
 use crate::v2::problem::Problem;
 use axum::Json;
+use axum::body::Body;
 use axum::extract::{Query, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, Method, StatusCode};
 use axum::response::{IntoResponse, Redirect, Response};
 use base64::Engine;
 use base64::engine::general_purpose::URL_SAFE_NO_PAD;
@@ -378,11 +384,12 @@ pub struct StreamQuery {
     extensions(("x-permission" = json!("public"))),
     params(StreamQuery),
     responses(
-        (status = 200, description = "A transcode, streamed", content_type = "audio/mpeg"),
-        (status = 302, description = "The original, from storage (ranges work there)"),
+        (status = 200, description = "A transcode, streamed; or the original, when the server keeps it itself", content_type = "audio/mpeg"),
+        (status = 206, description = "A byte range of the original the server keeps itself (`Range` request header)"),
+        (status = 302, description = "The original, from object storage (ranges work there)"),
         (status = 403, description = "`invalid_link`: a bad or expired signature", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "The item is gone or no longer the user's to play", body = crate::v2::problem::ProblemBody)))]
-pub async fn stream(State(state): State<AppState>, Query(q): Query<StreamQuery>) -> Result<Response, Problem> {
+pub async fn stream(State(state): State<AppState>, method: Method, headers: HeaderMap, Query(q): Query<StreamQuery>) -> Result<Response, Problem> {
     let grant = Grant { item: q.i, format: q.f, kbps: q.b, offset_secs: q.o, user: q.u, expires: q.e };
     if !grant.verify(&state.config().auth.session_secret, &q.k, &q.s) {
         return Err(Problem::new(StatusCode::FORBIDDEN, "invalid_link").detail("the link is not genuine or has expired: ask for playback info again"));
@@ -418,8 +425,28 @@ pub async fn stream(State(state): State<AppState>, Query(q): Query<StreamQuery>)
             return Ok(Redirect::temporary(&url).into_response());
         }
     }
+    if state.storage().serves_itself(&key) {
+        return Ok(crate::http::media::serve(&state, &key, &headers, method == Method::HEAD).await);
+    }
     let url = state.storage().presigned_get(&key, 3600).await?;
     Ok(Redirect::temporary(&url).into_response())
+}
+
+/// A file behind a link the server signed itself: an upload target from
+/// `POST /uploads` on a server without object storage, or a file the server
+/// serves. The signature (method, key, expiry) is the authorisation; links
+/// to `/api/v1/media` verify here too, and the reverse.
+#[utoipa::path(method(get, head, put), path = "/media", tag = "playback",
+    extensions(("x-permission" = json!("public"))),
+    params(crate::http::media::MediaQuery),
+    responses(
+        (status = 200, description = "The file; or, for `PUT`, stored", content_type = "application/octet-stream"),
+        (status = 206, description = "A byte range (`Range` request header)"),
+        (status = 403, description = "A bad or expired signature", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "No such file", body = crate::v2::problem::ProblemBody),
+        (status = 416, description = "The range is outside the file", body = crate::v2::problem::ProblemBody)))]
+pub async fn media(state: State<AppState>, method: Method, query: Query<crate::http::media::MediaQuery>, headers: HeaderMap, body: Body) -> Response {
+    crate::http::media::media(state, method, query, headers, body).await
 }
 
 #[cfg(test)]

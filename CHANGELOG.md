@@ -14,6 +14,22 @@ semver. Each release states the **API contract revision** it serves
   release that completes `docs/api-v2-completion-plan.md`, when it becomes stable; the apps
   already ship on it, so v2 changes are additive only and `scripts/check-api-contract.py`
   checks v2 as well as v1.
+- `/api/v2/media` — the server's signed media route for v2; v2 links no longer point at
+  `/api/v1`. Every link the server signs itself (local storage, library folders, S3 behind
+  `STORAGE__PROXY`: v2 upload targets, v1 stream answers) now points at `/api/v2/media`; links
+  handed out before keep working on `/api/v1/media`, which takes the same signature. v2
+  revision 2.
+- `GET /api/v2/stream` sends an original the server keeps itself (`200`, or `206` for a
+  `Range`) instead of redirecting to the media route: one round trip less before the first
+  byte. Object storage keeps the redirect. v2 revision 2.
+- `image` links to catalog art (covers, artist and author pictures, podcast art) no longer
+  expire: `GET /api/v2/images/{id}?s=…`, without `e`. Links with an expiry keep working until
+  it passes. v2 revision 2.
+- `Family.image` and `Member.image` are signed image links (`/api/v2/images/{id}`, good for one
+  to two weeks) instead of `/api/v1` routes that want the access token. v2 revision 2.
+- A new profile or household picture is a new stored object rather than an overwrite of the
+  old one, so an image link always shows the picture it was made for; the replaced one is
+  removed by the storage sweep.
 
 - Console wording follows `i18n/GLOSSARY.md` and matches the apps: American English throughout
   (catalog, favorites, canceled, recognize); Czech "obálka" for a cover, never "obal"; the
@@ -23,6 +39,13 @@ semver. Each release states the **API contract revision** it serves
 
 ### Added
 
+- `scripts/check-v2-coverage.py` — checks `docs/api-v1-v2-coverage.md` against both OpenAPI
+  documents (every v1 operation has a row, every v2 operation and field a row names exists,
+  the counts add up) and lists what is still missing; run in CI. `--strict` fails on open rows.
+- Conformance: the `v2_walk` suite walks `openapi-v2.json` — the permission matrix, another
+  member's (or household's) ids on every operation, problem details on every refusal, and
+  every cursor-paged list in each of its orders, two at a time against one page. After a run,
+  `run.py` lists the v2 operations that never answered 2xx (`--v2-coverage-strict` to fail).
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

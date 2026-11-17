@@ -280,7 +280,8 @@ A route that does not exist at all answers `404 { "error": "not_found" }`.
 
 `StreamResponse.url` (and every cover or download URL) is a string the client
 fetches as given, within `expires_in_secs`. It may be a presigned S3 URL or a
-route on the server itself (`/api/v1/media/…`), depending on where the file
+route on the server itself (`/api/v2/media?…`; `/api/v1/media?…` before v2
+revision 2, and still accepted), depending on where the file
 lives. Clients never parse it, never persist it, and never assume its host.
 
 Since revision 24, a server with a media proxy (`STORAGE__MEDIA_PROXY_URL`)

@@ -83,9 +83,19 @@ class Ctx:
     discovery: bool = False
     providers: dict[str, Any] = field(default_factory=dict)
     sfx: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
+    # Every /api/v2 answer of the run as (method, path without the query, status), for the
+    # operation coverage report (run.py).
+    v2_calls: list[tuple[str, str, int]] = field(default_factory=list)
     _cleanups: list[tuple[str, Callable[[], None]]] = field(default_factory=list)
 
     # ── wire ───────────────────────────────────────────────────────────────
+    def note(self, method: str, url: str, status: int) -> None:
+        """Record an answer for the v2 operation coverage; the wire methods call it, and a suite
+        that fetches a link with its own opener (no redirects, say) calls it too."""
+        path = urllib.parse.urlsplit(self.url(url)).path
+        if path.startswith("/api/v2/") or path == "/.well-known/own-audio":
+            self.v2_calls.append((method.upper(), path, status))
+
     def url(self, path: str) -> str:
         if path.startswith(("http://", "https://")):
             return path
@@ -106,7 +116,8 @@ class Ctx:
     ) -> Any:
         """One HTTP call. Returns parsed JSON (None for empty/204), or bytes with raw=True.
 
-        `multipart` is {field: str | (filename, bytes)}; file parts are sent as audio/mpeg.
+        `multipart` is {field: str | (filename, bytes) | (filename, bytes, content type)};
+        file parts are sent as audio/mpeg unless they name their type.
         A status outside `expect` raises ApiError (an AssertionError, so a suite's
         try/finally cleanup still runs and the runner records a FAIL).
         """
@@ -122,10 +133,10 @@ class Ctx:
             for name, value in multipart.items():
                 parts.append(f"--{boundary}\r\n".encode())
                 if isinstance(value, tuple):
-                    fname, content = value
+                    fname, content, *ctype = value
                     parts.append(
                         f'Content-Disposition: form-data; name="{name}"; filename="{fname}"\r\n'
-                        f"Content-Type: audio/mpeg\r\n\r\n".encode()
+                        f"Content-Type: {ctype[0] if ctype else 'audio/mpeg'}\r\n\r\n".encode()
                     )
                     parts.append(content)
                 else:
@@ -144,6 +155,7 @@ class Ctx:
                 status, out = r.status, r.read()
         except urllib.error.HTTPError as e:
             status, out = e.code, e.read()
+        self.note(method, path, status)
         if status not in tuple(expect):
             raise ApiError(method, path, status, out, expect)
         if raw:
@@ -172,8 +184,10 @@ class Ctx:
         req = urllib.request.Request(self.url(path), data=data, headers=hdrs, method=method.upper())
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as r:
+                self.note(method, path, r.status)
                 return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
         except urllib.error.HTTPError as e:
+            self.note(method, path, e.code)
             return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
 
     def status_of(self, method: str, path: str, token: str | None = None, body: Any = None) -> int:
@@ -195,6 +209,7 @@ class Ctx:
                 status = r.status
         except urllib.error.HTTPError as e:
             status = e.code
+        self.note("GET", url_or_path, status)
         if status not in tuple(expect):
             raise ApiError("GET", url_or_path, status, b"", expect)
         return status
@@ -209,6 +224,7 @@ class Ctx:
                 status = r.status
         except urllib.error.HTTPError as e:
             status = e.code
+        self.note("PUT", url, status)
         if status not in tuple(expect):
             raise ApiError("PUT", url, status, b"", expect)
         return status

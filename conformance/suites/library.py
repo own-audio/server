@@ -105,7 +105,7 @@ def run(ctx):
     if tracks:
         stream = ctx.call("GET", f"/api/v1/music/tracks/{tracks[0]['id']}/stream", ctx.admin_token)
         url = stream["url"]
-        ctx.check("a folder song streams through the server's media route", "/api/v1/media?" in url, url[:60])
+        ctx.check("a folder song streams through the server's media route", "/api/v2/media?" in url, url[:60])
         req = urllib.request.Request(url, headers={"Range": "bytes=0-9"})
         with urllib.request.urlopen(req, timeout=30) as r:
             ctx.check("the media route answers a range", r.status == 206 and r.headers.get("Content-Range", "").startswith("bytes 0-9/"),

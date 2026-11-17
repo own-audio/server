@@ -27,10 +27,6 @@ def _ops(doc: dict) -> list[tuple[str, str, dict]]:
             if m in ("get", "post", "put", "patch", "delete")]
 
 
-def _fill(path: str) -> str:
-    return "/".join(str(uuid.uuid4()) if s.startswith("{") else s for s in path.split("/"))
-
-
 def run(ctx: Ctx) -> None:
     def problem(answer: tuple[int, dict, bytes], status: int, code: str | None = None) -> bool:
         got, headers, body = answer
@@ -74,19 +70,8 @@ def run(ctx: Ctx) -> None:
     doc = json.loads(OPENAPI.read_text())
     undeclared = [f"{m} {p}" for m, p, o in _ops(doc) if o.get("x-permission") not in PERMISSIONS]
     ctx.check("every v2 operation declares its permission", not undeclared, ", ".join(undeclared))
-    _mid, _memail, member = ctx.make_user("v2member", PW)
-    wrong = []
-    for method, path, op in _ops(doc):
-        perm = op.get("x-permission")
-        if perm == "public":
-            continue
-        if not problem(ctx.request(method, _fill(path)), 401):
-            wrong.append(f"anonymous {method} {path}")
-        if perm in ("family_admin", "instance_admin"):
-            got = ctx.request(method, _fill(path), member)
-            if not (problem(got, 403) or problem(got, 404)):
-                wrong.append(f"member {method} {path}: {got[0]}")
-    ctx.check("anonymous callers get 401 and members no admin operation, as declared", not wrong, "; ".join(wrong[:8]))
+    # Who may call what, someone else's ids and paging are walked over the whole document in
+    # the suite v2_walk.
 
     signin(ctx, problem)
     catalogue(ctx, problem)
@@ -96,6 +81,8 @@ def run(ctx: Ctx) -> None:
     sync(ctx, problem)
     playback(ctx, problem)
     images(ctx, problem)
+    pictures(ctx, problem)
+    media(ctx, problem)
     household(ctx, problem)
     live(ctx, problem)
     library(ctx, problem)
@@ -622,8 +609,10 @@ def playback(ctx: Ctx, problem) -> None:
         opener = urllib.request.build_opener() if follow else urllib.request.build_opener(NoRedirect())
         try:
             with opener.open(urllib.request.Request(url, headers={"Range": "bytes=0-4095"}), timeout=ctx.timeout) as r:
+                ctx.note("GET", url, r.status)
                 return r.status, r.headers.get("Content-Type", ""), r.read(4096)
         except urllib.error.HTTPError as e:
+            ctx.note("GET", url, e.code)
             return e.code, e.headers.get("Content-Type", ""), e.read()
 
     st, direct = info({})
@@ -634,8 +623,16 @@ def playback(ctx: Ctx, problem) -> None:
     ctx.check("the answer says what the original is, read from the file",
               source.get("codec") == "wav" and source.get("sample_rate_hz") == rate and source.get("bit_depth") == 16
               and source.get("channels") == 1 and bool(source.get("content_type")), str(source)[:200])
+    # Where the server keeps the file itself (local storage, S3 behind STORAGE__PROXY), its own
+    # links point at its media route: v1's stream answer tells which kind of server this is.
+    v1 = ctx.call("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok)
+    serves_itself = "/media?k=" in v1.get("url", "")
     code, _ct, _b = fetch(direct.get("url", ""), follow=False)
-    ctx.check("the link redirects to storage, without any header", code in (302, 307), str(code))
+    if serves_itself:
+        ctx.check("a server that keeps the file sends it from the link, without a redirect", code == 206, str(code))
+        ctx.check("v1's stream links point at v2's media route", "/api/v2/media?k=" in v1.get("url", ""), v1.get("url", "")[:80])
+    else:
+        ctx.check("the link redirects to storage, without any header", code in (302, 307), str(code))
     code, _ct, body = fetch(direct.get("url", ""))
     ctx.check("…and the bytes come", code in (200, 206) and len(body) > 0, str(code))
 
@@ -654,8 +651,8 @@ def playback(ctx: Ctx, problem) -> None:
         # The server's own media route (local storage): uploads and downloads use these links.
         _st, _h, raw = ctx.request("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok, headers={"Host": host})
         media = json.loads(raw).get("url", "") if raw else ""
-        if "/api/v1/media?" in media:
-            ctx.check("…and so does a link to the server's own media route", media.startswith(other + "/api/v1/media?"), media[:80])
+        if "/api/v2/media?" in media:
+            ctx.check("…and so does a link to the server's own media route", media.startswith(other + "/api/v2/media?"), media[:80])
         ctx.check("a Host the server does not have leaves links on its own address",
                   "evil.example" not in via_evil and "/api/v2/stream?" in via_evil, via_evil[:80])
 
@@ -673,12 +670,13 @@ def playback(ctx: Ctx, problem) -> None:
         opener = urllib.request.build_opener(NoRedirect())
         try:
             with opener.open(ctx.url(url) if not url.startswith("http") else url, timeout=ctx.timeout) as r:
+                ctx.note("GET", url, r.status)
                 return r.headers.get("Location", "")
         except urllib.error.HTTPError as e:
+            ctx.note("GET", url, e.code)
             return e.headers.get("Location", "")
 
     routed = location(direct.get("url", "") + "&route=proxy")
-    v1 = ctx.call("GET", f"/api/v1/music/tracks/{track['id']}/stream", tok)
     if proxy and proxy_key:
         parts = urllib.parse.urlsplit(routed)
         key = urllib.parse.unquote(parts.path.lstrip("/"))
@@ -689,6 +687,9 @@ def playback(ctx: Ctx, problem) -> None:
                   and int(query.get("e", "0")) > 0, routed[:120])
         ctx.check("a v1 stream answer carries the proxy as fallback_url",
                   str(v1.get("fallback_url", "")).startswith(proxy + "/") and v1.get("url") != v1.get("fallback_url"), str(v1)[:160])
+    elif serves_itself:
+        code, _ct, body = fetch(direct.get("url", "") + "&route=proxy", follow=False)
+        ctx.check("without a media proxy, route=proxy changes nothing", code == 206 and len(body) > 0 and not routed, f"{code} {routed[:80]}")
     else:
         ctx.check("without a media proxy, route=proxy changes nothing", bool(routed) and not routed.startswith("https://media"), routed[:120])
         ctx.check("without a media proxy, no fallback_url", "fallback_url" not in v1, str(v1)[:160])
@@ -716,8 +717,6 @@ def playback(ctx: Ctx, problem) -> None:
 def images(ctx: Ctx, problem) -> None:
     """V6: artwork by signed, cacheable link; the client picks the size."""
     import struct
-    import urllib.error
-    import urllib.request
     import zlib
     sfx = ctx.sfx
     _uid, _email, tok = ctx.make_family_admin("v2img", PW)
@@ -733,17 +732,12 @@ def images(ctx: Ctx, problem) -> None:
     st, _h, body = ctx.request("GET", f"/api/v2/tracks/{track['id']}", tok)
     image = json.loads(body).get("image") if st == 200 else None
     ctx.check("a track with a cover carries an image link, signed, with no token", bool(image) and "/api/v2/images/" in image
-              and "&s=" in image and "token" not in image.lower(), str(image))
+              and "s=" in image and "token" not in image.lower(), str(image))
+    ctx.check("…which does not expire: catalog art is linked for good", bool(image) and "e=" not in image.split("?", 1)[-1], str(image))
     st, _h, body = ctx.request("GET", f"/api/v2/albums/{track['album_id']}", tok)
     ctx.check("so does its album", st == 200 and json.loads(body).get("image") == image)
 
-    def fetch(url: str):
-        url = url if url.startswith("http") else ctx.url(url)
-        try:
-            with urllib.request.urlopen(urllib.request.Request(url), timeout=ctx.timeout) as r:
-                return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
-        except urllib.error.HTTPError as e:
-            return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
+    fetch = _fetch_image(ctx)
 
     if image:
         st, headers, small = fetch(image + "&w=64")
@@ -753,7 +747,111 @@ def images(ctx: Ctx, problem) -> None:
         st, _h, again = fetch(image + "&w=64")
         ctx.check("…the same bytes the second time", st == 200 and again == small)
         ctx.check("a size outside the set: 400 invalid_size", fetch(image + "&w=100")[0] == 400)
-        ctx.check("a link changed by hand: 403", fetch(image.replace("&s=", "&s=x"))[0] == 403)
+        ctx.check("a link changed by hand: 403", fetch(image.replace("s=", "s=x"))[0] == 403)
+        ctx.check("an expiry added to a permanent link: 403", fetch(image.replace("?s=", "?e=9999999999&s="))[0] == 403)
+
+
+def _fetch_image(ctx: Ctx):
+    import urllib.error
+    import urllib.request
+
+    def fetch(url: str):
+        url = url if url.startswith("http") else ctx.url(url)
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "own-audio-conformance/0.1"}), timeout=ctx.timeout) as r:
+                ctx.note("GET", url, r.status)
+                return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
+        except urllib.error.HTTPError as e:
+            ctx.note("GET", url, e.code)
+            return e.code, {k.lower(): v for k, v in e.headers.items()}, e.read()
+    return fetch
+
+
+def _png(side: int = 80) -> bytes:
+    import struct
+    import zlib
+    raw = b"".join(b"\x00" + b"".join(bytes((x % 256, y % 256, 64)) for x in range(side)) for y in range(side))
+
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", side, side, 8, 2, 0, 0, 0)) \
+        + chunk(b"IDAT", zlib.compress(raw)) + chunk(b"IEND", b"")
+
+
+def pictures(ctx: Ctx, problem) -> None:
+    """Phase 0: the household's and its members' pictures are signed image links, fetched without
+    a token, and they expire (people's pictures, unlike catalog art)."""
+    uid, _email, tok = ctx.make_family_admin("v2pic", PW)
+    fetch = _fetch_image(ctx)
+    png = _png()
+    ctx.call("POST", "/api/v1/users/me/avatar", tok, multipart={"avatar": ("me.png", png, "image/png")}, expect=(200, 204))
+    st, _h, raw = ctx.request("GET", "/api/v2/family/members", tok)
+    me = next((m for m in (json.loads(raw) if st == 200 else []) if m["user_id"] == uid), {})
+    image = me.get("image") or ""
+    ctx.check("a member's picture is a signed v2 image link, with an expiry", "/api/v2/images/" in image
+              and "e=" in image and "s=" in image and "/api/v1/" not in image, image[:120])
+    if image:
+        st, headers, body = fetch(image)
+        ctx.check("…fetched without a token", st == 200 and body == png and headers.get("content-type") == "image/png",
+                  f"{st} {headers.get('content-type')} {len(body)}")
+        ctx.check("…and scaled on request", fetch(image + "&w=64")[0] == 200)
+    ctx.call("POST", "/api/v1/users/me/avatar", tok, multipart={"avatar": ("me.png", _png(96), "image/png")}, expect=(200, 204))
+    st, _h, raw = ctx.request("GET", "/api/v2/family/members", tok)
+    again = next((m for m in (json.loads(raw) if st == 200 else []) if m["user_id"] == uid), {}).get("image") or ""
+    ctx.check("a new picture is a new link (an image never changes under its link)",
+              bool(again) and again.split("?")[0] != image.split("?")[0], again[:120])
+    ctx.check("v1 still names the picture by its own route",
+              any(m.get("avatar_url") == f"/api/v1/users/{uid}/avatar" for m in ctx.call("GET", "/api/v1/family/members", tok)))
+
+    st, _h, raw = ctx.request("GET", "/api/v2/family", tok)
+    if st == 200 and json.loads(raw).get("image"):
+        # One household per install, and it has a photo of its own: not the suite's to replace.
+        ctx.skip("the household's photo", "the household already has one")
+        return
+    ctx.call("POST", "/api/v1/family/avatar", tok, multipart={"avatar": ("home.png", png, "image/png")}, expect=(200, 204))
+    ctx.on_cleanup("household photo", lambda: ctx.call("DELETE", "/api/v1/family/avatar", tok, expect=(200, 204)))
+    st, _h, raw = ctx.request("GET", "/api/v2/family", tok)
+    fam_image = (json.loads(raw).get("image") if st == 200 else None) or ""
+    ctx.check("the household's photo is a signed v2 image link, with an expiry", "/api/v2/images/" in fam_image
+              and "e=" in fam_image and "/api/v1/" not in fam_image, fam_image[:120])
+    if fam_image:
+        ctx.check("…fetched without a token", fetch(fam_image)[0] == 200)
+
+
+def media(ctx: Ctx, problem) -> None:
+    """Phase 0: v2's own media route, where a server that keeps its files (local storage, S3 behind
+    STORAGE__PROXY) sends uploads and downloads; v1's route takes the same links."""
+    sfx = ctx.sfx
+    _uid, _email, tok = ctx.make_family_admin("v2media", PW)
+    audio = ctx.audio()
+    st, _h, raw = ctx.request("POST", "/api/v2/uploads", tok,
+                              {"kind": "track", "filename": f"media-{sfx}.mp3", "content_type": "audio/mpeg", "size_bytes": len(audio)})
+    up = json.loads(raw) if st == 201 else {}
+    put_url = up.get("url", "")
+    if "/media?k=" not in put_url:
+        ctx.skip("the server's media route", "this server hands out the object store's own links")
+        return
+    ctx.check("an upload target is v2's media route, not v1's", "/api/v2/media?k=" in put_url, put_url[:80])
+    ctx.check("a PUT to it stores the file", ctx.put_bytes(put_url, audio, up["headers"]["Content-Type"]) in (200, 201, 204))
+    st, _h, raw = ctx.request("POST", "/api/v2/tracks", tok, {"upload_id": up["upload_id"], "filename": f"media-{sfx}.mp3",
+                                                              "title": f"Media {sfx}", "artist": f"Media Band {sfx}"})
+    track = json.loads(raw) if st == 201 else {}
+    link = ctx.call("GET", f"/api/v1/music/tracks/{track.get('id')}/stream", tok).get("url", "")
+    ctx.check("a download link is v2's media route too", "/api/v2/media?k=" in link, link[:80])
+    st, headers, _b = ctx.request("HEAD", link)
+    ctx.check("HEAD: the size, ranges accepted", st == 200 and headers.get("content-length") == str(len(audio))
+              and headers.get("accept-ranges") == "bytes", f"{st} {headers.get('content-length')}")
+    st, headers, body = ctx.request("GET", link, headers={"Range": "bytes=0-99"})
+    ctx.check("a range: 206 with exactly those bytes", st == 206 and body == audio[:100]
+              and headers.get("content-range") == f"bytes 0-99/{len(audio)}", f"{st} {headers.get('content-range')}")
+    st, headers, body = ctx.request("GET", link, headers={"Range": f"bytes={len(audio) + 10}-"})
+    ctx.check("a range past the end: 416", st == 416, str(st))
+    old = link.replace("/api/v2/media?", "/api/v1/media?")
+    st, _h, body = ctx.request("GET", old, headers={"Range": "bytes=0-99"})
+    ctx.check("the same link on v1's route still plays", st == 206 and body == audio[:100], str(st))
+    ctx.check("a link changed by hand: 403 problem", problem(ctx.request("GET", link.replace("&e=", "&e=1")), 403))
+    ctx.check("an upload link does not read", problem(ctx.request("GET", put_url), 403))
+
 
 
 def household(ctx: Ctx, problem) -> None:
@@ -812,6 +910,7 @@ def live(ctx: Ctx, problem) -> None:
             headers["Last-Event-ID"] = last_id
         try:
             with urllib.request.urlopen(urllib.request.Request(ctx.url("/api/v2/events"), headers=headers), timeout=20) as r:
+                ctx.note("GET", "/api/v2/events", r.status)
                 out.append(("type", r.headers.get("Content-Type", "")))
                 for raw in r:
                     line = raw.decode().strip()

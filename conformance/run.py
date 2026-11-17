@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# SPDX-License-Identifier: AGPL-3.0-or-later
 """Black-box conformance suite for the own.audio server API.
 
     python3 conformance/run.py --base-url http://127.0.0.1:8080 \
@@ -17,6 +16,7 @@ import argparse
 import importlib
 import json
 import pathlib
+import re
 import sys
 import time
 import traceback
@@ -25,6 +25,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from core import ApiError, Ctx, Skip  # noqa: E402
 
 SUITES_DIR = pathlib.Path(__file__).resolve().parent / "suites"
+OPENAPI_V2 = pathlib.Path(__file__).resolve().parents[1] / "docs" / "api" / "openapi-v2.json"
 # Order matters a little: smoke first (it validates login), the rest independent.
 ORDER = ["server", "smoke", "families", "join", "mobile", "stats", "trash", "filesync", "library"]
 
@@ -32,6 +33,39 @@ ORDER = ["server", "smoke", "families", "join", "mobile", "stats", "trash", "fil
 def discover_suites() -> list[str]:
     names = [p.stem for p in SUITES_DIR.glob("*.py") if not p.stem.startswith("_")]
     return sorted(names, key=lambda n: (ORDER.index(n) if n in ORDER else len(ORDER), n))
+
+
+def v2_coverage(calls: list[tuple[str, str, int]]) -> dict[str, list[str]]:
+    """Which v2 operations answered 2xx in this run ("untested behaviour is not part of the
+    API", docs/api-v2-rules.md), which were called but never succeeded, which never called."""
+    if not OPENAPI_V2.exists():
+        return {}
+    doc = json.loads(OPENAPI_V2.read_text())
+    ops = [(m.upper(), p) for p, item in doc["paths"].items() for m in item
+           if m in ("get", "post", "put", "patch", "delete")]
+    # Literal segments win over parameters (`/me/sessions` before `/me/{x}`): fewer parameters first.
+    patterns = sorted(
+        ((m, p, re.compile("^" + re.sub(r"\\\{[^/]+?\\\}", "[^/]+", re.escape(p)) + "$")) for m, p in ops),
+        key=lambda t: t[1].count("{"),
+    )
+    seen: dict[tuple[str, str], set[int]] = {}
+    for method, path, status in calls:
+        method = "GET" if method == "HEAD" else method
+        for m, template, rx in patterns:
+            if m == method and rx.match(path):
+                seen.setdefault((m, template), set()).add(status)
+                break
+    out: dict[str, list[str]] = {"succeeded": [], "only_failed": [], "never_called": []}
+    for m, p in ops:
+        statuses = seen.get((m, p))
+        label = f"{m} {p}"
+        if statuses is None:
+            out["never_called"].append(label)
+        elif any(200 <= s < 400 for s in statuses):
+            out["succeeded"].append(label)
+        else:
+            out["only_failed"].append(f"{label} ({', '.join(str(s) for s in sorted(statuses))})")
+    return out
 
 
 def main() -> int:
@@ -47,6 +81,8 @@ def main() -> int:
     ap.add_argument("--skip", default="", help="comma-separated suite names to skip")
     ap.add_argument("--require-media", action="store_true", help="fail instead of skip when no streamable media exists")
     ap.add_argument("--report", type=pathlib.Path, default=None, help="write a JSON report here")
+    ap.add_argument("--v2-coverage-strict", action="store_true",
+                    help="fail when a v2 operation never answered 2xx in a full run (report only otherwise)")
     ap.add_argument("--list", action="store_true", help="list suites and exit")
     ap.add_argument("-q", "--quiet", action="store_true")
     args = ap.parse_args()
@@ -115,6 +151,17 @@ def main() -> int:
             outcome = "FAIL"
         suite_outcomes[name] = outcome
 
+    coverage = v2_coverage(ctx.v2_calls)
+    if coverage:
+        total = sum(len(v) for v in coverage.values())
+        untested = coverage["only_failed"] + coverage["never_called"]
+        print(f"\nv2 operations: {len(coverage['succeeded'])} of {total} answered 2xx in this run")
+        for label in untested:
+            print(f"  untested {label}")
+        if args.v2_coverage_strict and not only and not skip:
+            ctx.suite = "v2-coverage"
+            ctx.check("every v2 operation answered 2xx at least once", not untested, f"{len(untested)} did not")
+
     n_ok = sum(r.status == "ok" for r in ctx.results)
     n_fail = sum(r.status == "FAIL" for r in ctx.results)
     n_skip = sum(r.status == "skip" for r in ctx.results)
@@ -130,6 +177,7 @@ def main() -> int:
         args.report.write_text(json.dumps({
             "base_url": ctx.base_url, "server": ctx.server, "features": ctx.features,
             "suites": suite_outcomes, "ok": n_ok, "failed": n_fail, "skipped": n_skip,
+            "v2_operations": coverage,
             "results": [r.__dict__ for r in ctx.results],
         }, indent=2))
     return 1 if n_fail else 0

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! `GET | HEAD | PUT /api/v1/media?k=<key>&e=<expiry>&s=<signature>` — the
-//! server's own stand-in for presigned object-store URLs (`storage::links`).
+//! `GET | HEAD | PUT /api/v1/media?k=<key>&e=<expiry>&s=<signature>`, and the
+//! same at `/api/v2/media` (where new links point) — the server's own stand-in
+//! for presigned object-store URLs (`storage::links`).
 //!
 //! Serves local storage, and S3 objects when `STORAGE__PROXY` is set. The
 //! signature is the authorisation, exactly as with a presigned URL: no
@@ -81,12 +82,14 @@ pub async fn media(
 
     match method {
         Method::PUT => put(&state, &q.k, &headers, body).await,
-        Method::GET | Method::HEAD => get(&state, &q.k, &headers, method == Method::HEAD).await,
+        Method::GET | Method::HEAD => serve(&state, &q.k, &headers, method == Method::HEAD).await,
         _ => status(StatusCode::METHOD_NOT_ALLOWED),
     }
 }
 
-async fn get(state: &AppState, key: &str, headers: &HeaderMap, head_only: bool) -> Response {
+/// An object's bytes, or the `Range` asked for. Also how v2's `/stream` sends
+/// an original the server keeps itself, without a redirect to this route.
+pub(crate) async fn serve(state: &AppState, key: &str, headers: &HeaderMap, head_only: bool) -> Response {
     let store = state.storage();
     let wanted = headers.get(header::RANGE).and_then(|v| v.to_str().ok());
     // A suffix range (`bytes=-n`) needs the size first.

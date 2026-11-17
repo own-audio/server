@@ -14,13 +14,14 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       additive only from now on; discovery's v2 revision goes up with each line below so a
       client can check for it. It stays `draft` until the release that completes
       `api-v2-completion-plan.md`, then becomes stable. (M T W S A)
-- [ ] **Stable images.** `image` links are signed and expire in 1–2 weeks; `/sync/changes`
+- [x] **Stable images** (v2 revision 2): catalog art is linked for good; people's pictures keep
+      a weekly expiry. Was: `image` links are signed and expire in 1–2 weeks; `/sync/changes`
       doesn't resend unchanged records, so links kept in a cache, a widget or the car go dead.
       Either long-lived by-id image routes or a refresh rule clients can follow. (A, W, T)
-- [ ] **Auth error shapes.** Wrong credentials are `invalid_grant` on `/auth/token` but other
+- [x] **Auth error shapes** (written into `api-v2-first.md`, 2026-11-17). Wrong credentials are `invalid_grant` on `/auth/token` but other
       v2 auth errors answer 401 `invalid_credentials`; a dead refresh token is 400
       `invalid_grant` (not v1's 401). Document it in `api-v2-first.md` and keep it. (Ab Am Ap)
-- [ ] **A v2 home for `/api/v1/media`.** v2's playback and upload links for local storage are
+- [x] **A v2 home for `/api/v1/media`** (v2 revision 2: `/api/v2/media`). v2's playback and upload links for local storage are
       `/api/v1/media` links, so removing v1 would break v2 on servers without object storage.
       (audit)
 

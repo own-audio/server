@@ -378,12 +378,12 @@ async fn upload_avatar(
     }
 
     let ext = avatar_extension(&file_name).unwrap_or("jpg");
-    // Deterministic key (not content-addressed): a re-upload with the same extension
-    // overwrites in place via `upsert_object`'s `ON CONFLICT`, so there's nothing to garbage
-    // collect on the common "change my photo" path. Outside the `f/{family_id}/…` prefix
+    // A new object per picture: v2 hands out `/images/{object}` links that are cached as
+    // immutable, so an object must never change under its id. The replaced one is left to the
+    // storage sweep (`find_unreferenced`). Outside the `f/{family_id}/…` prefix
     // (`storage::family_key`), so avatars are never scooped into family storage billing —
     // `db::storage_usage::family_storage` filters strictly on that prefix.
-    let object_key = format!("u/{}/avatar.{ext}", auth.user_id);
+    let object_key = format!("u/{}/avatar-{}.{ext}", auth.user_id, Uuid::new_v4());
     let size_bytes = bytes.len() as i64;
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;

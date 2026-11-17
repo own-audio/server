@@ -42,7 +42,8 @@ boundary moves.
 |---|---|---|
 | `/api/v1` — the REST API | apps, the console | bearer tokens (1 h) + refresh tokens (rotating, 90 d) |
 | `/rest` — the Subsonic API | third-party music apps | per-user API key, `md5(key+salt)` token or legacy `p=` |
-| `/api/v1/media/*` — signed media links | players, browsers | the signature is the authorisation; short-lived |
+| `/api/v1/media`, `/api/v2/media` — signed media links | players, browsers | the signature is the authorisation; short-lived |
+| `/api/v2/images/{id}` — signed image links | players, widgets, caches | the signature is the authorisation; catalog art for good, people's pictures one to two weeks |
 | The console (static files) | browsers | same origin as the API |
 | Sign-in providers' callbacks | Google, Apple, Microsoft | id tokens verified against the providers' keys |
 | Podcast feeds, enclosures, artwork, transcripts | the server fetching out | user-supplied URLs |

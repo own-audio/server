@@ -41,9 +41,36 @@ The working client to copy from is `OwnAudioKit` in `music-ios`, `book-ios` and 
 10. **Visibility** is `private` or `family`. Private means "not shared with the family" — never
     a lock icon.
 
+## Sign-in and token errors
+
+These shapes are part of the contract (gaps plan §0) and stay as they are:
+
+- **`POST /auth/token`** answers OAuth errors (RFC 6749 §5.2) in problem shape: `code` and
+  `error` carry the same word, `detail` and `error_description` the same text.
+  - `400 invalid_grant`: wrong email or password, a refresh token that is unknown, used or
+    revoked, a wrong two-factor code, an approving account that is no longer active. **A dead
+    refresh token is `400 invalid_grant`, not v1's `401`**: sign in again.
+  - `400 invalid_request` (a field missing, a body that does not parse, a provider this server
+    does not accept), `400 unsupported_grant_type`.
+  - The device code grant: `400 authorization_pending`, `slow_down`, `access_denied`,
+    `expired_token` (RFC 8628).
+  - `403 mfa_required` with an `mfa_token`: finish with the `mfa-otp` grant.
+  - `429 account_locked` with `Retry-After` (too many wrong passwords for one account), and
+    `429 rate_limited` from the per-address bucket.
+- **Every other operation**, when the access token is missing, malformed, expired or revoked:
+  `401 unauthorized`. Refresh once; if the refresh answers `invalid_grant`, sign in again.
+- `401 invalid_credentials` comes from operations that check an account inside a signed-in
+  request (an account deleted while its token is still valid); treat it like `unauthorized`.
+- `403 insufficient_scope` (a personal access token without the operation's `x-scope`),
+  `403 demo_read_only`, `403 email_unverified`, `403 forbidden` (a role the operation needs).
+
 ## Still on v1 (check `openapi-v2.json` before relying on this list)
 
-As of 2026-11-17 the iPhone apps call v1 only for: artwork, deleting the account
+Pictures are not among them any more: `Family.image` and `Member.image` are signed
+`/images/{id}` links like every other `image` (catalog art never expires, people's pictures after
+one to two weeks), and every signed media link points at `/api/v2/media`.
+
+As of 2026-11-17 the iPhone apps call v1 only for: artwork uploads, deleting the account
 (`DELETE /api/v1/users/me`), stats and their visibility, and podcast discovery and directory
 search (`/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search`). Other v1-only areas: trash,
 push devices, family join links, jobs, setup and admin, v1 multipart uploads. When v2 gains one
