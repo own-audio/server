@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Deleting several items at once from a console on another origin (app.own.audio talking to
+  api.own.audio) works: the browser refused the request after the preflight, because the
+  console's `X-Trash-Batch` header was missing from the allowed CORS headers.
+
 ## [1.0.4-beta.2] - 2026-11-17
 
 Contract revision 28. API v2 revision 17, **stable**. A beta, like beta.1: test it before you

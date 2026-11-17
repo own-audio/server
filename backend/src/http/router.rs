@@ -185,6 +185,9 @@ fn api_cors(origins: &[String]) -> CorsLayer {
             header::IF_MATCH,
             header::IF_NONE_MATCH,
             HeaderName::from_static("idempotency-key"),
+            // The console groups one delete gesture into a trash batch; without it here the
+            // browser refused every multi-item delete after the preflight.
+            HeaderName::from_static(crate::trash::BATCH_HEADER),
         ])
         .expose_headers([header::RETRY_AFTER, header::ETAG])
         .max_age(std::time::Duration::from_secs(3600))
@@ -198,7 +201,31 @@ pub fn build(state: AppState) -> Router {
 
 #[cfg(test)]
 mod tests {
-    use super::hosted_feature_for;
+    use super::{api_cors, hosted_feature_for};
+    use axum::body::Body;
+    use axum::http::{header, Method, Request};
+    use tower::ServiceExt;
+
+    /// Every header the console sends on a cross-origin call passes the preflight.
+    #[tokio::test]
+    async fn the_preflight_allows_the_consoles_headers() {
+        let app = axum::Router::new()
+            .route("/x", axum::routing::delete(|| async { "" }))
+            .layer(api_cors(&["https://app.example".to_string()]));
+        let preflight = Request::builder()
+            .method(Method::OPTIONS)
+            .uri("/x")
+            .header(header::ORIGIN, "https://app.example")
+            .header(header::ACCESS_CONTROL_REQUEST_METHOD, "DELETE")
+            .header(header::ACCESS_CONTROL_REQUEST_HEADERS, "authorization,x-trash-batch,if-match,idempotency-key")
+            .body(Body::empty())
+            .unwrap();
+        let res = app.oneshot(preflight).await.unwrap();
+        let allowed = res.headers()[header::ACCESS_CONTROL_ALLOW_HEADERS].to_str().unwrap().to_ascii_lowercase();
+        for h in ["authorization", "x-trash-batch", "if-match", "idempotency-key"] {
+            assert!(allowed.split(',').any(|a| a.trim() == h), "{h} not in {allowed}");
+        }
+    }
 
     #[test]
     fn hosted_paths_map_to_their_feature() {
