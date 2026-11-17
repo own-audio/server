@@ -303,6 +303,25 @@ pub struct DevicePosition {
     pub current: bool,
 }
 
+/// A position in an edition's kind (the hosted edition's `translation`), in the one shape.
+pub(crate) fn edition_progress(kind: &str, p: crate::hooks::EditionProgress) -> Progress {
+    Progress {
+        kind: kind.to_string(),
+        id: p.item_id,
+        position_ms: p.position_ms,
+        finished: p.finished,
+        updated_at: p.updated_at,
+        file_id: None,
+        file_position_ms: None,
+        devices: None,
+    }
+}
+
+/// The edition's kind of this name, when the edition has one.
+fn edition(state: &AppState, name: &str) -> Option<std::sync::Arc<dyn crate::hooks::EditionKind>> {
+    crate::hooks::edition_kind(state.hooks().as_ref(), name)
+}
+
 pub(crate) fn progress(k: Kind, p: user_state::Progress) -> Progress {
     Progress {
         kind: k.as_str().into(),
@@ -320,7 +339,8 @@ pub(crate) fn progress(k: Kind, p: user_state::Progress) -> Progress {
 #[into_params(parameter_in = Query)]
 pub struct ProgressQuery {
     /// `track`, `book` or `episode`, or several comma-separated (`book,episode`): one list,
-    /// most recently changed first.
+    /// most recently changed first. On a server with translations (`modules.translation`),
+    /// `translation` too.
     pub kind: String,
     pub limit: Option<i64>,
     pub cursor: Option<String>,
@@ -339,28 +359,54 @@ pub struct ProgressQuery {
     params(ProgressQuery),
     responses((status = 200, body = Page<Progress>), (status = 400, description = "`unsupported_kind`, `invalid_include`", body = crate::v2::problem::ProblemBody)))]
 pub async fn list_progress(family: FamilyContext, State(state): State<AppState>, Query(q): Query<ProgressQuery>) -> Result<Json<Page<Progress>>, Problem> {
-    let kinds = progress_kinds(&q.kind)?;
+    let names: Vec<&'static str> = state.hooks().edition_kinds().iter().map(|k| k.name()).collect();
+    let (kinds, editions) = progress_kinds(&q.kind, &names)?;
     let include = ProgressInclude::parse(q.include.as_deref())?;
     let page = PageQuery { limit: q.limit, cursor: q.cursor.clone() };
     let limit = page.limit()?;
-    let rows = user_state::list_progress_of(state.db(), family.viewer(), &kinds, q.unfinished.unwrap_or(false), page.after()?, limit + 1).await?;
-    let page = Page::from_rows(rows, limit, |(_, p)| (p.updated_at, p.item_id));
-    let included = included_for_progress(&state, &family, &include, &page.items).await?;
-    Ok(Json(Page { items: page.items.into_iter().map(|(k, p)| progress(k, p)).collect(), next: page.next, included }))
+    let after: Option<(DateTime<Utc>, Uuid)> = page.after()?;
+    let unfinished = q.unfinished.unwrap_or(false);
+    // The core's kinds in one query, each edition kind on its own, merged in the one order.
+    let mut rows: Vec<(Option<Kind>, Progress, Option<user_state::Progress>)> = Vec::new();
+    if !kinds.is_empty() {
+        for (k, p) in user_state::list_progress_of(state.db(), family.viewer(), &kinds, unfinished, after, limit + 1).await? {
+            rows.push((Some(k), progress(k, p.clone()), Some(p)));
+        }
+    }
+    for name in &editions {
+        if let Some(k) = edition(&state, name) {
+            for p in k.list_progress(state.db(), family.viewer(), unfinished, after, limit + 1).await? {
+                rows.push((None, edition_progress(name, p), None));
+            }
+        }
+    }
+    rows.sort_by_key(|r| std::cmp::Reverse((r.1.updated_at, r.1.id)));
+    let page = Page::from_rows(rows, limit, |(_, p, _)| (p.updated_at, p.id));
+    let core: Vec<(Kind, user_state::Progress)> = page.items.iter().filter_map(|(k, _, p)| Some(((*k)?, p.clone()?))).collect();
+    let included = included_for_progress(&state, &family, &include, &core).await?;
+    Ok(Json(Page { items: page.items.into_iter().map(|(_, p, _)| p).collect(), next: page.next, included }))
 }
 
-fn progress_kinds(raw: &str) -> Result<Vec<Kind>, Problem> {
+/// The core's kinds and the edition's (`translation`) a `kind=` names, each once.
+fn progress_kinds(raw: &str, editions: &[&'static str]) -> Result<(Vec<Kind>, Vec<&'static str>), Problem> {
     let mut out: Vec<Kind> = Vec::new();
+    let mut theirs: Vec<&'static str> = Vec::new();
     for part in raw.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+        if let Some(name) = editions.iter().find(|n| **n == part) {
+            if !theirs.contains(name) {
+                theirs.push(name);
+            }
+            continue;
+        }
         let k = kind(part, Kind::has_progress, "progress")?;
         if !out.contains(&k) {
             out.push(k);
         }
     }
-    if out.is_empty() {
+    if out.is_empty() && theirs.is_empty() {
         return Err(Problem::bad_request("unsupported_kind", "kind is `track`, `book` or `episode`, or several").field("kind", "invalid", raw.to_string()));
     }
-    Ok(out)
+    Ok((out, theirs))
 }
 
 #[derive(Default, Debug, PartialEq)]
@@ -472,9 +518,13 @@ async fn included_for_progress(
 /// Where the caller is in one item, and where each of their devices last was.
 #[utoipa::path(get, path = "/me/progress/{kind}/{id}", tag = "state", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
-    params(("kind" = String, Path, description = "`track`, `book` or `episode`"), ("id" = Uuid, Path)),
+    params(("kind" = String, Path, description = "`track`, `book` or `episode`; `translation` where `modules.translation` is on"), ("id" = Uuid, Path)),
     responses((status = 200, body = Progress), (status = 404, description = "Not started, unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn get_progress(auth: AuthUser, family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>) -> Result<Json<Progress>, Problem> {
+    if let Some(ek) = edition(&state, &k) {
+        let p = ek.progress(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+        return Ok(Json(edition_progress(ek.name(), p)));
+    }
     let k = kind(&k, Kind::has_progress, "progress")?;
     visible(&state, &family, k, id).await?;
     let p = user_state::get_progress(state.db(), family.user_id, k, id).await?.ok_or_else(Problem::not_found)?;
@@ -533,6 +583,15 @@ async fn apply_progress(
     id: Uuid,
     body: &ProgressRequest,
 ) -> Result<ProgressAnswer, Problem> {
+    if let Some(ek) = edition(state, k) {
+        // An edition's kind is one file: a position from its start, nothing per device.
+        let pos = body.position_ms.ok_or_else(|| Problem::bad_request("invalid_body", "position_ms is required").field("/position_ms", "required", "milliseconds"))?;
+        let (now, applied) = ek
+            .put_progress(state.db(), family.viewer(), id, pos.max(0), body.finished, clamp(body.at))
+            .await?
+            .ok_or_else(Problem::not_found)?;
+        return Ok(ProgressAnswer { progress: edition_progress(ek.name(), now), applied });
+    }
     let k = kind(k, Kind::has_progress, "progress")?;
     visible(state, family, k, id).await?;
     let at = clamp(body.at);
@@ -595,7 +654,7 @@ pub(crate) async fn session_device(state: &AppState, auth: &AuthUser) -> Result<
 /// this device's last position.
 #[utoipa::path(put, path = "/me/progress/{kind}/{id}", tag = "state", security(("bearer" = [])),
     extensions(("x-permission" = json!("member")), ("x-scope" = json!("playback"))),
-    params(("kind" = String, Path, description = "`track`, `book` or `episode`"), ("id" = Uuid, Path)),
+    params(("kind" = String, Path, description = "`track`, `book` or `episode`; `translation` where `modules.translation` is on"), ("id" = Uuid, Path)),
     request_body = ProgressRequest,
     responses((status = 200, body = ProgressAnswer), (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn put_progress(
@@ -614,6 +673,10 @@ pub async fn put_progress(
     params(("kind" = String, Path), ("id" = Uuid, Path)),
     responses((status = 204, description = "Forgotten")))]
 pub async fn delete_progress(family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>) -> Result<StatusCode, Problem> {
+    if let Some(ek) = edition(&state, &k) {
+        ek.delete_progress(state.db(), family.viewer(), id).await?;
+        return Ok(StatusCode::NO_CONTENT);
+    }
     let k = kind(&k, Kind::has_progress, "progress")?;
     user_state::delete_progress(state.db(), family.user_id, k, id).await?;
     Ok(StatusCode::NO_CONTENT)
@@ -984,11 +1047,18 @@ mod tests {
 
     #[test]
     fn progress_takes_one_kind_or_several() {
-        assert_eq!(progress_kinds("book").unwrap(), vec![Kind::Book]);
-        assert_eq!(progress_kinds("book, episode,book").unwrap(), vec![Kind::Book, Kind::Episode]);
-        assert_eq!(progress_kinds("album").unwrap_err().code(), "unsupported_kind");
-        assert_eq!(progress_kinds("book,album").unwrap_err().code(), "unsupported_kind");
-        assert_eq!(progress_kinds(" , ").unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds("book", &[]).unwrap(), (vec![Kind::Book], vec![]));
+        assert_eq!(progress_kinds("book, episode,book", &[]).unwrap(), (vec![Kind::Book, Kind::Episode], vec![]));
+        assert_eq!(progress_kinds("album", &[]).unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds("book,album", &[]).unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds(" , ", &[]).unwrap_err().code(), "unsupported_kind");
+        // An edition's kind only where the edition has it.
+        assert_eq!(progress_kinds("translation", &[]).unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds("translation", &["translation"]).unwrap(), (vec![], vec!["translation"]));
+        assert_eq!(
+            progress_kinds("episode,translation,translation", &["translation"]).unwrap(),
+            (vec![Kind::Episode], vec!["translation"])
+        );
     }
 
     #[test]

@@ -35,12 +35,12 @@ def discover_suites() -> list[str]:
     return sorted(names, key=lambda n: (ORDER.index(n) if n in ORDER else len(ORDER), n))
 
 
-def v2_coverage(calls: list[tuple[str, str, int]]) -> dict[str, list[str]]:
+def v2_coverage(calls: list[tuple[str, str, int]], document: pathlib.Path = OPENAPI_V2) -> dict[str, list[str]]:
     """Which v2 operations answered 2xx in this run ("untested behaviour is not part of the
     API", docs/api-v2-rules.md), which were called but never succeeded, which never called."""
-    if not OPENAPI_V2.exists():
+    if not document.exists():
         return {}
-    doc = json.loads(OPENAPI_V2.read_text())
+    doc = json.loads(document.read_text())
     ops = [(m.upper(), p) for p, item in doc["paths"].items() for m in item
            if m in ("get", "post", "put", "patch", "delete")]
     # Literal segments win over parameters (`/me/sessions` before `/me/{x}`): fewer parameters first.
@@ -99,6 +99,9 @@ def main() -> int:
     ap.add_argument("--only", default="", help="comma-separated suite names to run")
     ap.add_argument("--skip", default="", help="comma-separated suite names to skip")
     ap.add_argument("--require-media", action="store_true", help="fail instead of skip when no streamable media exists")
+    ap.add_argument("--openapi-v2", type=pathlib.Path, default=None,
+                    help="the v2 document to walk and to count operations of, when not this repository's "
+                         "(the hosted edition's openapi-v2-hosted.json)")
     ap.add_argument("--report", type=pathlib.Path, default=None, help="write a JSON report here")
     ap.add_argument("--v2-coverage-strict", action="store_true",
                     help="fail when a v2 operation never answered 2xx in a full run (report only otherwise)")
@@ -125,6 +128,7 @@ def main() -> int:
         compose_dir=args.compose_dir.resolve() if args.compose_dir else None,
         database=args.database, database_user=args.database_user,
         require_media=args.require_media, verbose=not args.quiet,
+        openapi_v2=args.openapi_v2.resolve() if args.openapi_v2 else None,
     )
     started = time.time()
     print(f"server   {ctx.base_url}")
@@ -171,7 +175,7 @@ def main() -> int:
             outcome = "FAIL"
         suite_outcomes[name] = outcome
 
-    coverage = v2_coverage(ctx.v2_calls)
+    coverage = v2_coverage(ctx.v2_calls, ctx.openapi_v2 or OPENAPI_V2)
     if coverage:
         total = sum(len(v) for v in coverage.values())
         untested = coverage["only_failed"] + coverage["never_called"]

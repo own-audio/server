@@ -67,7 +67,7 @@ def run(ctx: Ctx) -> None:
               and (me.get("family") or {}).get("role") == "admin" and me["family"].get("can_upload") is True, str(me)[:160])
 
     # Every operation says who may call it, and the server agrees.
-    doc = json.loads(OPENAPI.read_text())
+    doc = json.loads((ctx.openapi_v2 or OPENAPI).read_text())
     undeclared = [f"{m} {p}" for m, p, o in _ops(doc) if o.get("x-permission") not in PERMISSIONS]
     ctx.check("every v2 operation declares its permission", not undeclared, ", ".join(undeclared))
     # Who may call what, someone else's ids and paging are walked over the whole document in

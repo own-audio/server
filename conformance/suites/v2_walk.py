@@ -1,8 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 """/api/v2 walked from its document: the permission matrix, another member's and another household's ids, problem shapes, paging without loss.
 
-Every check here reads `docs/api/openapi-v2.json`, so an operation is covered the day it is in
-the document (docs/api-v2-completion-plan.md §4.2):
+Every check here reads `docs/api/openapi-v2.json` (or the document `--openapi-v2` names: the
+hosted edition's `openapi-v2-hosted.json`), so an operation is covered the day it is in the
+document (docs/api-v2-completion-plan.md §4.2):
 
 - **Permissions.** Anonymous callers get 401 on everything not `public`; a member gets 403 or 404
   on `family_admin` and `instance_admin`; a household admin on `instance_admin`; a member who may
@@ -51,6 +52,10 @@ ID_KINDS = [
     ("/api/v2/library/quarantine/{track_id}", "track"),
     ("/api/v2/family/members/{user_id}", "member"),
     ("/api/v2/files/{id}", "file"),
+    # The hosted edition's, read from its document (`--openapi-v2`): by the episode or show they are about.
+    ("/api/v2/translation/episodes/{id}", "episode"),
+    ("/api/v2/translation/feeds/{id}", "podcast"),
+    ("/api/v2/summaries/episodes/{id}", "episode"),
 ]
 
 # A body that would succeed on the caller's own item, so a refusal is about the id, not the body.
@@ -87,6 +92,13 @@ BODIES = {
     ("PUT", "/api/v2/me/queue"): {"items": []},
     ("POST", "/api/v2/me/notifications/ack"): {"ids": []},
     ("POST", "/api/v2/me/push-tokens"): {"platform": "fcm", "token": "walk-token"},
+    # The hosted edition's: well formed, so a refusal is about the id or the right. None of them
+    # reaches paid work on an id the caller cannot see.
+    ("POST", "/api/v2/translation/episodes/{id}/quote"): {"target_language": "cs", "voice_profile_id": "walk"},
+    ("POST", "/api/v2/translation/episodes/{id}"): {"target_language": "cs", "voice_profile_id": "walk"},
+    ("PUT", "/api/v2/translation/episodes/{id}/progress"): {"position_secs": 1},
+    ("POST", "/api/v2/summaries/episodes/{id}/ask"): {"question": "walk?"},
+    ("POST", "/api/v2/admin/families/{id}/credit"): {"amount_minor": 1, "currency": "USD", "note": "walk"},
 }
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
@@ -141,9 +153,10 @@ class Walker:
 
 
 def run(ctx: Ctx) -> None:
-    if not OPENAPI.exists():
-        raise Skip(f"{OPENAPI} is not here (run from the server repository)")
-    doc = json.loads(OPENAPI.read_text())
+    document = ctx.openapi_v2 or OPENAPI
+    if not document.exists():
+        raise Skip(f"{document} is not here (run from the server repository, or give --openapi-v2)")
+    doc = json.loads(document.read_text())
     ops = _ops(doc)
     w = Walker(ctx)
 
@@ -177,8 +190,13 @@ def permissions(ctx: Ctx, w: Walker, ops) -> None:
             wrong.append(f"anonymous {method} {path} (public) → 401")
     ctx.check(f"anonymous: 401 on every operation not public, never on a public one ({len(ops)} checked)", not wrong, "; ".join(wrong[:8]))
 
-    _mid, _me, member = ctx.make_user("member", PW)
+    _mid, member_email, member = ctx.make_user("member", PW)
     _aid, _ae, admin = ctx.make_family_admin("admin", PW)
+    if not ctx.feature("one_family"):
+        # Each account founds its own household here, where it is the admin: the member joins
+        # the admin's, so it is a member somewhere.
+        inv = ctx.call("POST", "/api/v2/family/invites", admin, {"kind": "email", "email": member_email, "role": "member"}, expect=(201,))
+        ctx.call("POST", "/api/v2/family/join", member, {"code": inv["code"]})
     wrong = []
     for method, path, op in ops:
         perm = op.get("x-permission")

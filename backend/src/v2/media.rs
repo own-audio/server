@@ -150,7 +150,11 @@ async fn source(state: &AppState, viewer: Viewer, item: &str) -> Result<Option<S
                 (None, e.audio_url, e.duration_secs)
             }
         }),
-        _ => None,
+        // A kind only the edition has (the hosted edition's `translation`): it says where.
+        other => match crate::hooks::edition_kind(state.hooks().as_ref(), other) {
+            Some(k) => k.audio(pool, viewer, id).await?.map(|(object, secs)| (Some(object), None, secs)),
+            None => None,
+        },
     };
     let Some((object, remote, duration_secs)) = found else { return Ok(None) };
     if let Some(url) = remote {
@@ -212,7 +216,8 @@ pub struct Capabilities {
 #[derive(Deserialize, ToSchema)]
 pub struct PlaybackInfoRequest {
     /// `track`, `book_file` (one file of a book), `episode` or `file` (a companion file of the
-    /// own.audio folder, to download: always the original).
+    /// own.audio folder, to download: always the original); on a server with translations
+    /// (`modules.translation`), `translation` (a translated episode, by its id).
     pub kind: String,
     pub id: Uuid,
     #[serde(default)]
@@ -269,7 +274,8 @@ pub struct PlaybackInfo {
     request_body = PlaybackInfoRequest,
     responses((status = 200, body = PlaybackInfo), (status = 404, description = "Unknown, not visible, or not stored", body = crate::v2::problem::ProblemBody)))]
 pub async fn playback_info(family: FamilyContext, State(state): State<AppState>, Json(body): Json<PlaybackInfoRequest>) -> Result<Json<PlaybackInfo>, Problem> {
-    if !["track", "book_file", "episode", "file"].contains(&body.kind.as_str()) {
+    let edition = crate::hooks::edition_kind(state.hooks().as_ref(), &body.kind).is_some();
+    if !edition && !["track", "book_file", "episode", "file"].contains(&body.kind.as_str()) {
         return Err(Problem::bad_request("unsupported_kind", "kind is `track`, `book_file`, `episode` or `file`").field("/kind", "invalid", body.kind.clone()));
     }
     let item = format!("{}:{}", body.kind, body.id);

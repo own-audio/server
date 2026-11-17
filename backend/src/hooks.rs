@@ -15,9 +15,10 @@
 //! See `docs/foss-seam-plan.md` for the step-by-step refactor behind this and
 //! `own-audio-foss/docs/API_COMPATIBILITY.md` for the `features` contract.
 
+use crate::db::access::Viewer;
 use crate::storage::ObjectStore;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use serde_json::{Map, Value};
 use sqlx::PgPool;
 use std::collections::HashMap;
@@ -50,6 +51,109 @@ pub trait JobHandler: Send + Sync + 'static {
         storage: &ObjectStore,
         job: &crate::jobs::models::Job,
     ) -> anyhow::Result<()>;
+}
+
+/// A kind of item only an edition has — the hosted edition's `translation`, a podcast
+/// episode translated and narrated for the household — that `/api/v2` still plays, keeps
+/// progress on and sends in the change feed like its own kinds ([`Hooks::edition_kinds`]).
+/// The core knows the kind by its name only; the edition answers every question about it.
+#[async_trait]
+pub trait EditionKind: Send + Sync + 'static {
+    /// The kind's word in `/api/v2` (`translation`): in `POST /playback-info`, in
+    /// `/me/progress/{kind}/{id}`, and in the change feed as `translation` and
+    /// `progress.translation`.
+    fn name(&self) -> &'static str;
+
+    /// The stored audio of the item when the viewer may play it: its `media_objects` row and
+    /// its length in seconds.
+    async fn audio(&self, db: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<(Uuid, Option<i32>)>>;
+
+    /// The current records of these items as the viewer sees them, for the change feed; an item
+    /// left out is gone or no longer visible.
+    async fn records(&self, db: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<(Uuid, Value)>>;
+
+    /// Where the viewer is in the item; `None` when not started, unknown or not visible.
+    async fn progress(&self, db: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<EditionProgress>>;
+
+    /// The viewer's progress on this kind, most recently changed first, after a
+    /// `(updated_at, id)` cursor, at most `limit`.
+    async fn list_progress(
+        &self,
+        db: &PgPool,
+        viewer: Viewer,
+        unfinished: bool,
+        after: Option<(DateTime<Utc>, Uuid)>,
+        limit: i64,
+    ) -> anyhow::Result<Vec<EditionProgress>>;
+
+    /// Save a position; the later one wins, as on the core's kinds. Answers what is stored now
+    /// and whether this one was applied; `None` when the item is unknown or not visible.
+    async fn put_progress(
+        &self,
+        db: &PgPool,
+        viewer: Viewer,
+        id: Uuid,
+        position_ms: i64,
+        finished: bool,
+        at: DateTime<Utc>,
+    ) -> anyhow::Result<Option<(EditionProgress, bool)>>;
+
+    /// Start over.
+    async fn delete_progress(&self, db: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<()>;
+}
+
+/// A position in an [`EditionKind`]'s item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EditionProgress {
+    pub item_id: Uuid,
+    pub position_ms: i64,
+    pub finished: bool,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// Something the caller's own work did, told on `GET /api/v2/events`
+/// ([`Hooks::live_events`]): a narration or translation job that moved on.
+#[derive(Debug, Clone, PartialEq)]
+pub struct LiveEvent {
+    /// The event's name on the stream (`narration`, `translation`).
+    pub event: &'static str,
+    /// What it is about (the job); with `state`, what makes it news.
+    pub id: Uuid,
+    /// Told again only when this changes.
+    pub state: String,
+    /// The event's data.
+    pub data: Value,
+}
+
+/// A household's credit for the server's administrator (`GET /api/v2/admin/families/{id}`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct FamilyCredit {
+    /// Millionths of the currency's unit: the ledger counts storage by the day, in fractions
+    /// of a cent.
+    pub balance_micro: i64,
+    pub currency: String,
+    /// The last daily storage charge.
+    pub last_charge: Option<CreditEntry>,
+    /// The latest entries, newest first.
+    pub entries: Vec<CreditEntry>,
+}
+
+/// One entry of a household's credit.
+#[derive(Debug, Clone, PartialEq)]
+pub struct CreditEntry {
+    pub id: Uuid,
+    /// The ledger's word for it: `topup`, `storage_charge`, `adjustment`, …
+    pub kind: String,
+    pub amount_micro: i64,
+    pub storage_bytes: Option<i64>,
+    pub charge_date: Option<NaiveDate>,
+    pub note: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// The edition kind of this name, if the edition has one.
+pub fn edition_kind(hooks: &dyn Hooks, name: &str) -> Option<Arc<dyn EditionKind>> {
+    hooks.edition_kinds().into_iter().find(|k| k.name() == name)
 }
 
 #[async_trait]
@@ -181,6 +285,29 @@ pub trait Hooks: Send + Sync + 'static {
     /// own scheduled work (the hosted edition's daily storage charge).
     async fn worker_tick(&self, _db: &PgPool, _storage: &ObjectStore, _now: DateTime<Utc>) -> anyhow::Result<()> {
         Ok(())
+    }
+
+    /// The kinds of item only this edition has ([`EditionKind`]).
+    fn edition_kinds(&self) -> Vec<Arc<dyn EditionKind>> {
+        Vec::new()
+    }
+
+    /// The caller's own work as it stands, polled by `GET /api/v2/events` every few seconds:
+    /// each one is told when its `state` changes. Include what ended lately, so the end is told.
+    async fn live_events(&self, _db: &PgPool, _user_id: Uuid) -> anyhow::Result<Vec<LiveEvent>> {
+        Ok(Vec::new())
+    }
+
+    /// A household's credit, for `GET /api/v2/admin/families/{id}`; `None` where there is no
+    /// money.
+    async fn family_credit(&self, _db: &PgPool, _family_id: Uuid) -> anyhow::Result<Option<FamilyCredit>> {
+        Ok(None)
+    }
+
+    /// Every household's credit together, in millionths, with its currency, for
+    /// `GET /api/v2/admin/stats`; `None` where there is no money.
+    async fn credit_total(&self, _db: &PgPool) -> anyhow::Result<Option<(i64, String)>> {
+        Ok(None)
     }
 
     /// Feature flags this edition adds to `GET /api/v1/server` (`billing`,

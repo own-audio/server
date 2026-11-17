@@ -14,6 +14,11 @@
 //! run, and its proposals once it is `ready`. It has no id: missed ones are not
 //! replayed, so a client reconnecting reads its runs again.
 //!
+//! On the hosted edition, `narration` and `translation` events say one of the caller's
+//! narration or translation jobs moved on (revision 15): data `{"id", "status", …}` as the
+//! edition describes it. Like `identify`, no id and no replay: read the job again after a
+//! reconnect.
+//!
 //! Driven by polling the change log of migration 0109 and the runs table, so a
 //! change made by a job in another process reaches every API process alike.
 
@@ -39,6 +44,9 @@ struct Poll {
     now: bool,
     /// Each run's status and progress as last told.
     runs: HashMap<Uuid, (String, i32)>,
+    /// The edition's events (`Hooks::live_events`) as last told: their state by event and id.
+    edition: HashMap<(&'static str, Uuid), String>,
+    hooks: std::sync::Arc<dyn crate::hooks::Hooks>,
     queue: VecDeque<Event>,
 }
 
@@ -46,7 +54,7 @@ struct Poll {
 #[utoipa::path(get, path = "/events", tag = "sync", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(("Last-Event-ID" = Option<i64>, Header, description = "The id of the last event received, to resume")),
-    responses((status = 200, description = "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; `identify` events (no id), data `{\"run_id\", \"status\", \"groups_done\", \"groups_total\"}`; a comment every 30 s", content_type = "text/event-stream")))]
+    responses((status = 200, description = "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; `identify` events (no id), data `{\"run_id\", \"status\", \"groups_done\", \"groups_total\"}`; on the hosted edition `narration` and `translation` events (no id) for the caller's jobs, data `{\"id\", \"status\", …}`; a comment every 30 s", content_type = "text/event-stream")))]
 pub async fn events(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -66,7 +74,8 @@ pub async fn events(
             .unwrap_or(0),
     };
     let (family_id, user_id) = (family.family_id, family.user_id);
-    let initial = Poll { pool, last: start, now: true, runs: HashMap::new(), queue: VecDeque::new() };
+    let hooks = state.hooks().clone();
+    let initial = Poll { pool, last: start, now: true, runs: HashMap::new(), edition: HashMap::new(), hooks, queue: VecDeque::new() };
     let stream = futures_util::stream::unfold(initial, move |mut p| async move {
         loop {
             if let Some(event) = p.queue.pop_front() {
@@ -108,6 +117,14 @@ pub async fn events(
                 p.runs.insert(id, state);
                 let data = serde_json::json!({ "run_id": id, "status": status, "groups_done": done, "groups_total": total });
                 p.queue.push_back(Event::default().event("identify").data(data.to_string()));
+            }
+            // The edition's own work (the hosted edition's narrations and translations).
+            for e in p.hooks.live_events(&p.pool, user_id).await.unwrap_or_default() {
+                if p.edition.get(&(e.event, e.id)) == Some(&e.state) {
+                    continue;
+                }
+                p.edition.insert((e.event, e.id), e.state);
+                p.queue.push_back(Event::default().event(e.event).data(e.data.to_string()));
             }
         }
     });

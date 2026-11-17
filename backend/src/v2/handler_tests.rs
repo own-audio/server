@@ -622,3 +622,12 @@ async fn setup_is_on_the_setup_bucket() {
     let (s, p) = send(&app, "POST", "/api/v2/setup", body, false).await;
     assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")));
 }
+
+#[tokio::test]
+async fn a_hosted_route_on_a_server_without_it_names_its_feature() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    let (s, p) = send(&app, "POST", &format!("/api/v2/admin/families/{id}/credit"), json!({ "amount_minor": 500, "currency": "USD" }), false).await;
+    assert_eq!((s, p["code"].as_str(), p["feature"].as_str()), (StatusCode::NOT_IMPLEMENTED, Some("feature_unavailable"), Some("billing")));
+}

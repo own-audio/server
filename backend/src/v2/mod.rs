@@ -48,7 +48,17 @@ use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
 use utoipa::{Modify, OpenApi};
+use std::sync::OnceLock;
 use utoipa_axum::{router::OpenApiRouter, routes};
+
+/// An edition's own documented `/api/v2` routes, as `http::router::finalize_v2` mounted them:
+/// their `x-scope`s count for personal access tokens like the core's.
+static EDITION: OnceLock<OpenApiRouter<AppState>> = OnceLock::new();
+
+/// Remember the edition's documented routes (once; a second call is ignored).
+pub fn set_edition(edition: OpenApiRouter<AppState>) {
+    let _ = EDITION.set(edition);
+}
 
 /// What an operation may declare as `x-permission`. The extractors enforce it;
 /// the conformance `access` suite checks the answers against it.
@@ -279,11 +289,10 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
 /// document's `x-scope`; `None` for a path that is not a v2 operation.
 pub fn required_scope(method: &str, path: &str) -> Option<&'static str> {
     use std::collections::HashMap;
-    use std::sync::OnceLock;
     static TABLE: OnceLock<HashMap<(String, String), &'static str>> = OnceLock::new();
     let table = TABLE.get_or_init(|| {
         let mut table = HashMap::new();
-        for (path, item) in document().paths.paths {
+        for (path, item) in document_with(EDITION.get().cloned().unwrap_or_default()).paths.paths {
             for (method, op) in [("GET", &item.get), ("PUT", &item.put), ("POST", &item.post), ("DELETE", &item.delete), ("PATCH", &item.patch)] {
                 let scope = op.as_ref().and_then(|op| op.extensions.as_ref()?.get("x-scope")?.as_str().map(str::to_string));
                 if let Some(scope) = scope.and_then(|s| auth::SCOPES.iter().find(|k| **k == s)) {
@@ -345,11 +354,18 @@ struct V2Doc;
 /// is problem details; every signed-in operation can answer `401`, and every
 /// operation `429`, so those are stated once here rather than on each handler.
 pub fn document() -> utoipa::openapi::OpenApi {
+    document_with(OpenApiRouter::new())
+}
+
+/// The v2 document of an edition: the core's operations and the edition's own (`edition`, its
+/// routes under `/api/v2`), stated the same way — problem answers, `401`, `429`, `x-scope`.
+/// The hosted edition writes it to its `docs/api/openapi-v2-hosted.json`.
+pub fn document_with(edition: OpenApiRouter<AppState>) -> utoipa::openapi::OpenApi {
     use utoipa::openapi::{ContentBuilder, RefOr, Ref, ResponseBuilder};
     let limits = Limiters::from_config(&crate::app::config::RateLimitConfig::default());
     let (_, mut api) = OpenApiRouter::<AppState>::with_openapi(V2Doc::openapi())
         .routes(routes!(discovery::well_known))
-        .nest("/api/v2", router(&limits))
+        .nest("/api/v2", router(&limits).merge(edition))
         .split_for_parts();
     api.info.version = match discovery::V2_STATUS {
         "stable" => format!("2.{}", discovery::V2_REVISION),
@@ -406,7 +422,12 @@ pub fn document() -> utoipa::openapi::OpenApi {
 /// order changes from run to run; here each operation's `x-` members come last,
 /// sorted.
 pub fn document_json() -> String {
-    let mut value = serde_json::to_value(document()).expect("the v2 document serialises");
+    to_json(document())
+}
+
+/// A v2 document as committed (see [`document_json`]); an edition writes its own with it.
+pub fn to_json(api: utoipa::openapi::OpenApi) -> String {
+    let mut value = serde_json::to_value(api).expect("the v2 document serialises");
     if let Some(paths) = value.get_mut("paths").and_then(|p| p.as_object_mut()) {
         for item in paths.values_mut().filter_map(|i| i.as_object_mut()) {
             for op in item.values_mut().filter_map(|o| o.as_object_mut()) {
@@ -422,6 +443,22 @@ pub fn document_json() -> String {
         }
     }
     serde_json::to_string_pretty(&value).expect("the v2 document serialises") + "\n"
+}
+
+/// The operations of a v2 document without a valid `x-permission`; empty is right. An edition
+/// runs it over its own document in its tests.
+pub fn undeclared_permissions(api: &utoipa::openapi::OpenApi) -> Vec<String> {
+    let mut missing = Vec::new();
+    for (path, item) in &api.paths.paths {
+        for (method, op) in [("get", &item.get), ("put", &item.put), ("post", &item.post), ("delete", &item.delete), ("patch", &item.patch)] {
+            let Some(op) = op else { continue };
+            match permission(op) {
+                Some(p) if PERMISSIONS.contains(&p) => {}
+                other => missing.push(format!("{method} {path}: {other:?}")),
+            }
+        }
+    }
+    missing
 }
 
 fn permission(op: &utoipa::openapi::path::Operation) -> Option<&str> {
@@ -446,20 +483,32 @@ mod tests {
         );
     }
 
+    /// An edition's operation, as an edition would declare it.
+    #[utoipa::path(get, path = "/edition-thing", tag = "edition", security(("bearer" = [])),
+        extensions(("x-permission" = json!("member"))),
+        responses((status = 200, description = "Fine"), (status = 404, description = "Gone")))]
+    async fn edition_thing() {}
+
+    #[test]
+    fn an_editions_operations_are_stated_like_the_cores() {
+        use utoipa_axum::{router::OpenApiRouter, routes};
+        let edition = OpenApiRouter::<crate::app::AppState>::new().routes(routes!(edition_thing));
+        let api = super::document_with(edition);
+        let op = api.paths.paths.get("/api/v2/edition-thing").and_then(|i| i.get.as_ref()).expect("the edition's operation is in");
+        for status in ["401", "404", "429"] {
+            assert!(op.responses.responses.contains_key(status), "{status}");
+        }
+        let scope = op.extensions.as_ref().and_then(|e| e.get("x-scope")).and_then(|v| v.as_str());
+        assert_eq!(scope, Some("library:read"));
+        assert!(super::undeclared_permissions(&api).is_empty());
+        // The core's own operations are all still there.
+        assert_eq!(api.paths.paths.len(), super::document().paths.paths.len() + 1);
+    }
+
     /// Deny by default: an operation that does not say who may call it does not ship.
     #[test]
     fn openapi_v2_every_operation_declares_its_permission() {
-        let api = super::document();
-        let mut missing = Vec::new();
-        for (path, item) in &api.paths.paths {
-            for (method, op) in [("get", &item.get), ("put", &item.put), ("post", &item.post), ("delete", &item.delete), ("patch", &item.patch)] {
-                let Some(op) = op else { continue };
-                match super::permission(op) {
-                    Some(p) if super::PERMISSIONS.contains(&p) => {}
-                    other => missing.push(format!("{method} {path}: {other:?}")),
-                }
-            }
-        }
+        let missing = super::undeclared_permissions(&super::document());
         assert!(missing.is_empty(), "operations without a valid x-permission: {missing:#?}");
     }
 }

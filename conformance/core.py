@@ -75,6 +75,9 @@ class Ctx:
     database: str = "audio2"
     database_user: str = "audio2"
     require_media: bool = False
+    # The v2 document the walkers read: the core's `docs/api/openapi-v2.json`, or an edition's
+    # own (`--openapi-v2`, the hosted edition's `openapi-v2-hosted.json`).
+    openapi_v2: pathlib.Path | None = None
     timeout: float = 60.0
     verbose: bool = True
 

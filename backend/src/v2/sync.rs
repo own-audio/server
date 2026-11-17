@@ -68,11 +68,15 @@ const ID_BATCH: i64 = 5000;
 
 /// `kinds=` as a list of known kinds, or `None` for all of them. `favourite.track` and the
 /// like name one kind of a listener's state; `favourite` all of them.
-pub(crate) fn parse_kinds(raw: Option<&str>, known: &[&str], dotted: bool) -> Result<Option<Vec<String>>, Problem> {
+/// `editions` are the edition's own kinds (`translation`), known as themselves and, `dotted`,
+/// as `progress.<kind>`.
+pub(crate) fn parse_kinds(raw: Option<&str>, known: &[&str], dotted: bool, editions: &[&str]) -> Result<Option<Vec<String>>, Problem> {
     let Some(list) = raw.map(str::trim).filter(|k| !k.is_empty()) else { return Ok(None) };
     let mut wanted: Vec<String> = Vec::new();
     for k in list.split(',').map(str::trim).filter(|k| !k.is_empty()) {
         let ok = known.contains(&k)
+            || editions.contains(&k)
+            || (dotted && k.split_once('.').is_some_and(|(state, of)| state == "progress" && editions.contains(&of)))
             || (dotted
                 && k.split_once('.').is_some_and(|(state, of)| {
                     Kind::parse(of).is_some_and(|kind| match state {
@@ -228,7 +232,20 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
             }
         }
         other => {
+            // The edition's kinds: its records, and where the listener is in them.
+            if let Some(k) = crate::hooks::edition_kind(state.hooks().as_ref(), other) {
+                out.extend(k.records(pool, viewer, ids).await?);
+                return Ok(out);
+            }
             let Some((state_kind, of)) = other.split_once('.') else { return Ok(out) };
+            if let Some(k) = crate::hooks::edition_kind(state.hooks().as_ref(), of).filter(|_| state_kind == "progress") {
+                for id in ids {
+                    if let Some(p) = k.progress(pool, viewer, *id).await? {
+                        out.push((*id, json_of(st::edition_progress(of, p))?));
+                    }
+                }
+                return Ok(out);
+            }
             let Some(k) = Kind::parse(of) else { return Ok(out) };
             for id in ids {
                 // State about something no longer visible is gone, as far as the client knows.
@@ -294,7 +311,8 @@ pub struct ChangesQuery {
     /// `release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,
     /// `book`, `series`, `collection`, `podcast`, `episode`, `file`, `favourite`, `rating`, `feedback`,
     /// `progress`, `bookmark`, `queue`, `settings`, `notification`, `shortcut`, or one kind of state
-    /// (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
+    /// (`progress.episode`, `feedback.track`); on a server with translations
+    /// (`modules.translation`), `translation` and `progress.translation`. Filtered by the server, so the other kinds cost nothing; keep
     /// passing the same list with the cursor. A `reset` always comes through.
     pub kinds: Option<String>,
 }
@@ -303,7 +321,8 @@ pub struct ChangesQuery {
 pub struct Change {
     /// `track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`, `file`,
     /// `favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,
-    /// `notification`, `shortcut`. A client skips kinds it does not know.
+    /// `notification`, `shortcut`; `translation` and `progress.translation` on a server with
+    /// translations. A client skips kinds it does not know.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -338,7 +357,8 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
         Some(n) if (1..=1000).contains(&n) => n,
         Some(_) => return Err(Problem::bad_request("invalid_limit", "limit is 1 to 1000").field("limit", "out_of_range", "1 to 1000")),
     };
-    let kinds = parse_kinds(q.kinds.as_deref(), CHANGE_KINDS, true)?;
+    let editions: Vec<&'static str> = state.hooks().edition_kinds().iter().map(|k| k.name()).collect();
+    let kinds = parse_kinds(q.kinds.as_deref(), CHANGE_KINDS, true, &editions)?;
     let Some(raw) = q.cursor.as_deref().filter(|c| !c.trim().is_empty()) else {
         let cursor = changes::now(state.db()).await?;
         return Ok(Json(ChangesAnswer { changes: Vec::new(), cursor: cursor.encode(), has_more: false, reset: false }));
@@ -403,7 +423,7 @@ pub struct SnapshotQuery {
     responses((status = 200, description = "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines (`{\"type\":\"id\",\"kind\",\"id\"}` with `fields=ids`), then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`.", content_type = "application/x-ndjson"),
         (status = 400, description = "`invalid_kind`, `invalid_fields`, `invalid_cursor`, `invalid_after`", body = crate::v2::problem::ProblemBody)))]
 pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State<AppState>, Query(q): Query<SnapshotQuery>) -> Result<Response, Problem> {
-    let kinds: Vec<String> = match parse_kinds(q.kinds.as_deref(), SNAPSHOT_KINDS, false)? {
+    let kinds: Vec<String> = match parse_kinds(q.kinds.as_deref(), SNAPSHOT_KINDS, false, &[])? {
         None => SNAPSHOT_KINDS.iter().filter(|k| !FOLDER_KINDS.contains(k)).map(|k| k.to_string()).collect(),
         // Always in the snapshot's own order, so `after` means the same thing.
         Some(wanted) => SNAPSHOT_KINDS.iter().filter(|k| wanted.iter().any(|w| w == *k)).map(|k| k.to_string()).collect(),
@@ -708,31 +728,36 @@ mod tests {
 
     #[test]
     fn kinds_are_checked_and_kept_once() {
-        assert_eq!(parse_kinds(None, CHANGE_KINDS, true).unwrap(), None);
-        assert_eq!(parse_kinds(Some(" "), CHANGE_KINDS, true).unwrap(), None);
+        assert_eq!(parse_kinds(None, CHANGE_KINDS, true, &[]).unwrap(), None);
+        assert_eq!(parse_kinds(Some(" "), CHANGE_KINDS, true, &[]).unwrap(), None);
         assert_eq!(
-            parse_kinds(Some("track, episode,track"), CHANGE_KINDS, true).unwrap(),
+            parse_kinds(Some("track, episode,track"), CHANGE_KINDS, true, &[]).unwrap(),
             Some(vec!["track".to_string(), "episode".to_string()])
         );
-        assert_eq!(parse_kinds(Some("progress.episode,member"), CHANGE_KINDS, true).unwrap(), Some(vec!["progress.episode".into(), "member".into()]));
-        assert_eq!(code(parse_kinds(Some("track,teleport"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        assert_eq!(parse_kinds(Some("progress.episode,member"), CHANGE_KINDS, true, &[]).unwrap(), Some(vec!["progress.episode".into(), "member".into()]));
+        assert_eq!(code(parse_kinds(Some("track,teleport"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
         // A kind of state that does not exist, and dotted kinds where they are not taken.
-        assert_eq!(code(parse_kinds(Some("rating.book"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
-        assert_eq!(code(parse_kinds(Some("favourite.episode"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
-        assert_eq!(code(parse_kinds(Some("progress.book"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
-        assert_eq!(code(parse_kinds(Some("recording"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
-        assert!(parse_kinds(Some("recording"), CHANGE_KINDS, true).is_ok());
+        assert_eq!(code(parse_kinds(Some("rating.book"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("favourite.episode"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("progress.book"), SNAPSHOT_KINDS, false, &[]).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("recording"), SNAPSHOT_KINDS, false, &[]).unwrap_err()), "invalid_kind");
+        assert!(parse_kinds(Some("recording"), CHANGE_KINDS, true, &[]).is_ok());
+        // An edition's kind (the hosted `translation`) only where the edition has it.
+        assert_eq!(code(parse_kinds(Some("translation"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("progress.translation"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
+        assert!(parse_kinds(Some("translation,progress.translation"), CHANGE_KINDS, true, &["translation"]).is_ok());
+        assert_eq!(code(parse_kinds(Some("favourite.translation"), CHANGE_KINDS, true, &["translation"]).unwrap_err()), "invalid_kind");
         // Playlists and a listener's feedback (phase 6).
-        assert!(parse_kinds(Some("playlist,smart_playlist,feedback,feedback.track"), CHANGE_KINDS, true).is_ok());
-        assert!(parse_kinds(Some("playlist,smart_playlist,feedback"), SNAPSHOT_KINDS, false).is_ok());
-        assert_eq!(code(parse_kinds(Some("feedback.book"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        assert!(parse_kinds(Some("playlist,smart_playlist,feedback,feedback.track"), CHANGE_KINDS, true, &[]).is_ok());
+        assert!(parse_kinds(Some("playlist,smart_playlist,feedback"), SNAPSHOT_KINDS, false, &[]).is_ok());
+        assert_eq!(code(parse_kinds(Some("feedback.book"), CHANGE_KINDS, true, &[]).unwrap_err()), "invalid_kind");
         // The listener's queue, settings and inbox (phase 8); notifications only in the feed.
-        assert!(parse_kinds(Some("queue,settings,notification"), CHANGE_KINDS, true).is_ok());
-        assert!(parse_kinds(Some("queue,settings"), SNAPSHOT_KINDS, false).is_ok());
-        assert_eq!(code(parse_kinds(Some("notification"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
+        assert!(parse_kinds(Some("queue,settings,notification"), CHANGE_KINDS, true, &[]).is_ok());
+        assert!(parse_kinds(Some("queue,settings"), SNAPSHOT_KINDS, false, &[]).is_ok());
+        assert_eq!(code(parse_kinds(Some("notification"), SNAPSHOT_KINDS, false, &[]).unwrap_err()), "invalid_kind");
         // The own.audio folder (phase 11).
-        assert!(parse_kinds(Some("file,shortcut"), CHANGE_KINDS, true).is_ok());
-        assert!(parse_kinds(Some("file,shortcut"), SNAPSHOT_KINDS, false).is_ok());
+        assert!(parse_kinds(Some("file,shortcut"), CHANGE_KINDS, true, &[]).is_ok());
+        assert!(parse_kinds(Some("file,shortcut"), SNAPSHOT_KINDS, false, &[]).is_ok());
         for k in FOLDER_KINDS {
             assert!(SNAPSHOT_KINDS.contains(k), "{k} is asked for by name");
         }
@@ -745,7 +770,7 @@ mod tests {
         }
         assert_eq!(SNAPSHOT_KINDS[0], "member", "owners' names come before what they own");
         assert_eq!(SNAPSHOT_KINDS[1], "family", "the household itself (phase 7) before its library");
-        assert!(parse_kinds(Some("family"), CHANGE_KINDS, true).is_ok());
+        assert!(parse_kinds(Some("family"), CHANGE_KINDS, true, &[]).is_ok());
     }
 
     #[test]

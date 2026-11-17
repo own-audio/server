@@ -65,7 +65,9 @@ pub fn api_router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<A
 pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
     if let Some(p) = path.strip_prefix("/api/v2") {
         // v2 names them by what they are: billing, narration, translation, summaries.
-        return if p.starts_with("/family/billing") {
+        // The administrator's credit grant beside the core's `/admin/families/{id}`.
+        let admin_credit = p.starts_with("/admin/families/") && p.trim_end_matches('/').ends_with("/credit");
+        return if p.starts_with("/family/billing") || admin_credit {
             Some("billing")
         } else if p.starts_with("/narration") {
             Some("narration")
@@ -98,6 +100,14 @@ pub fn hosted_feature_for(path: &str) -> Option<&'static str> {
 /// hosted edition's Stripe landing pages); the core passes an empty router.
 pub fn finalize(api: Router<AppState>, root: Router<AppState>, state: AppState) -> Router {
     finalize_with(api, Router::new(), root, state)
+}
+
+/// [`finalize_with`] for an edition whose `/api/v2` routes are documented (`utoipa`): its
+/// operations' `x-scope`s then count for personal access tokens, as the core's do, and
+/// `v2::document_with` describes them.
+pub fn finalize_v2(api: Router<AppState>, edition_v2: OpenApiRouter<AppState>, root: Router<AppState>, state: AppState) -> Router {
+    crate::v2::set_edition(edition_v2.clone());
+    finalize_with(api, edition_v2.into(), root, state)
 }
 
 /// [`finalize`] with an edition's own routes under `/api/v2` (`edition_v2`):
@@ -202,6 +212,8 @@ mod tests {
         assert_eq!(hosted_feature_for("/api/v2/summaries/episodes/x/summary"), Some("summaries"));
         assert_eq!(hosted_feature_for("/api/v1/podcast-ai/episodes/x/ask"), Some("summaries"));
         assert_eq!(hosted_feature_for("/api/v2/family/members"), None);
+        assert_eq!(hosted_feature_for("/api/v2/admin/families/abc/credit"), Some("billing"));
+        assert_eq!(hosted_feature_for("/api/v2/admin/families/abc"), None);
         assert_eq!(hosted_feature_for("/api/v1/audiobook-gen/jobs"), Some("narration"));
         assert_eq!(hosted_feature_for("/api/v1/podcast-translate/episodes/x"), Some("translation"));
         assert_eq!(hosted_feature_for("/api/v1/family"), None);

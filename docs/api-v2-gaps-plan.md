@@ -79,7 +79,10 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       `PATCH /podcasts/{id}`). (M Ap)
 - [x] Episodes, books and podcasts in `/search` (v2 revision 12: `types=` takes `books`,
       `podcasts`, `episodes` and `contributors` beside the music). (T W)
-- [ ] Translations as a v2 kind for `playback-info` and progress. (Ap)
+- [x] Translations as a v2 kind for `playback-info` and progress (v2 revision 15, hosted:
+      kind `translation` in `POST /playback-info`, `/me/progress/translation/{id}` and the change
+      feed's `translation` and `progress.translation`; `PUT /translation/episodes/{id}/progress`
+      stays as the alias writing the same position). (Ap)
 - [x] Transcripts as text (v2 revision 4: `GET /episodes/{id}/transcript`, timed segments with
       speakers). (audit)
 - [x] Storing a show's and its episodes' art (v2 revision 4: part of the refresh). (audit)
@@ -167,8 +170,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       `GET /admin/families?state=active|locked|trashed`, `GET`/`PATCH {locked}`/`DELETE
       /admin/families/{id}`, `GET /admin/stats`, `DELETE /admin/users/{id}/sessions`,
       `POST /setup`; the disc-number back-fill as the server's `disc_backfill` job). (audit)
-- [ ] Hosted: an administrator grants credit (`POST /admin/families/{id}/credit`, phase 13).
-      (audit)
+- [x] Hosted: an administrator grants credit (v2 revision 15: `POST /admin/families/{id}/credit`
+      with `{amount_minor, currency, note}` and `Idempotency-Key`; `credit` in `GET
+      /admin/families/{id}` and `GET /admin/stats`). (audit)
 - [x] A member leaving the household themselves: `DELETE /family/members/{id}` on oneself
       (v2 revision 9; `409 last_admin`, `409 one_household`). (audit)
 - [x] Family settings: audio analysis, book source (v2 revision 9: `GET`/`PATCH
@@ -181,8 +185,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] An owner or visibility filter on lists, for a "private" section (v1 `/library/private`;
       v2 revision 12: `owner=me` and `visibility=private|family` on `GET /tracks`, `/albums`,
       `/books`, `/podcasts`). (audit)
-- [ ] Hosted billing, narration and translation: v2 bodies (they are v1's under `/api/v2`).
-      (W A)
+- [x] Hosted billing, narration and translation: v2 bodies (v2 revision 15, additively: minor
+      units with `currency`, milliseconds, `limit`/`cursor` on the growing lists, `x-permission`
+      in `audio2`'s `openapi-v2-hosted.json`; narration and translation jobs on `/events`). (W A)
 
 ## Order
 

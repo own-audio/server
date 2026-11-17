@@ -148,6 +148,17 @@
             "format": "date-time",
             "type": "string"
           },
+          "credit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/FamilyCredit",
+                "description": "Its credit, on a server that charges for storage and paid work (the hosted edition;\n`modules.billing`); absent elsewhere."
+              }
+            ]
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -236,6 +247,17 @@
       },
       "AdminStats": {
         "properties": {
+          "credit": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreditTotal",
+                "description": "What every household has in credit, on a server that charges (`modules.billing`)."
+              }
+            ]
+          },
           "families": {
             "format": "int64",
             "type": "integer"
@@ -1528,7 +1550,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`, `file`,\n`favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,\n`notification`, `shortcut`. A client skips kinds it does not know.",
+            "description": "`track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`, `file`,\n`favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,\n`notification`, `shortcut`; `translation` and `progress.translation` on a server with\ntranslations. A client skips kinds it does not know.",
             "type": "string"
           },
           "op": {
@@ -2021,35 +2043,79 @@
         "type": "object"
       },
       "CreditEntry": {
+        "description": "One entry of a household's credit.",
         "properties": {
-          "contributor_id": {
-            "description": "An existing contributor of the household…",
+          "amount_micro": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "amount_minor": {
+            "description": "Positive adds credit, negative takes it; minor units, toward zero.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "charge_date": {
+            "description": "The day a storage charge is for.",
+            "format": "date",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
             "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`topup`, `storage_charge`, `adjustment`, …; unknown kinds may appear.",
+            "type": "string"
+          },
+          "note": {
             "type": [
               "string",
               "null"
             ]
           },
-          "credited_as": {
-            "description": "The name as printed on this item, when it differs.",
+          "storage_bytes": {
+            "format": "int64",
             "type": [
-              "string",
+              "integer",
               "null"
             ]
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "amount_minor",
+          "amount_micro",
+          "created_at"
+        ],
+        "type": "object"
+      },
+      "CreditTotal": {
+        "description": "The server's credit, every household's together.",
+        "properties": {
+          "balance_micro": {
+            "format": "int64",
+            "type": "integer"
           },
-          "name": {
-            "description": "…or a name: the household's contributor of that name, made if new.",
-            "type": [
-              "string",
-              "null"
-            ]
+          "balance_minor": {
+            "format": "int64",
+            "type": "integer"
           },
-          "role": {
+          "currency": {
             "type": "string"
           }
         },
         "required": [
-          "role"
+          "balance_minor",
+          "balance_micro",
+          "currency"
         ],
         "type": "object"
       },
@@ -2910,6 +2976,50 @@
           "name",
           "created_at",
           "me"
+        ],
+        "type": "object"
+      },
+      "FamilyCredit": {
+        "description": "A household's credit.",
+        "properties": {
+          "balance_micro": {
+            "description": "Exact, in millionths of the currency's unit.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "balance_minor": {
+            "description": "In the currency's minor units (cents), toward zero.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "currency": {
+            "description": "ISO 4217, upper case (`USD`).",
+            "type": "string"
+          },
+          "entries": {
+            "description": "The latest entries, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/CreditEntry"
+            },
+            "type": "array"
+          },
+          "last_charge": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/CreditEntry",
+                "description": "The last daily storage charge."
+              }
+            ]
+          }
+        },
+        "required": [
+          "balance_minor",
+          "balance_micro",
+          "currency",
+          "entries"
         ],
         "type": "object"
       },
@@ -9153,7 +9263,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `book_file` (one file of a book), `episode` or `file` (a companion file of the\nown.audio folder, to download: always the original).",
+            "description": "`track`, `book_file` (one file of a book), `episode` or `file` (a companion file of the\nown.audio folder, to download: always the original); on a server with translations\n(`modules.translation`), `translation` (a translated episode, by its id).",
             "type": "string"
           },
           "start_ms": {
@@ -12615,7 +12725,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.14-draft"
+    "version": "2.15-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -18879,7 +18989,7 @@
             "content": {
               "text/event-stream": {}
             },
-            "description": "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; `identify` events (no id), data `{\"run_id\", \"status\", \"groups_done\", \"groups_total\"}`; a comment every 30 s"
+            "description": "`text/event-stream`: `library` events, id = change-log position, data `{\"seq\": n}`; `identify` events (no id), data `{\"run_id\", \"status\", \"groups_done\", \"groups_total\"}`; on the hosted edition `narration` and `translation` events (no id) for the caller's jobs, data `{\"id\", \"status\", …}`; a comment every 30 s"
           },
           "401": {
             "content": {
@@ -24680,7 +24790,7 @@
         "operationId": "state_list_progress",
         "parameters": [
           {
-            "description": "`track`, `book` or `episode`, or several comma-separated (`book,episode`): one list,\nmost recently changed first.",
+            "description": "`track`, `book` or `episode`, or several comma-separated (`book,episode`): one list,\nmost recently changed first. On a server with translations (`modules.translation`),\n`translation` too.",
             "in": "query",
             "name": "kind",
             "required": true,
@@ -24842,7 +24952,7 @@
         "operationId": "state_get_progress",
         "parameters": [
           {
-            "description": "`track`, `book` or `episode`",
+            "description": "`track`, `book` or `episode`; `translation` where `modules.translation` is on",
             "in": "path",
             "name": "kind",
             "required": true,
@@ -24919,7 +25029,7 @@
         "operationId": "state_put_progress",
         "parameters": [
           {
-            "description": "`track`, `book` or `episode`",
+            "description": "`track`, `book` or `episode`; `translation` where `modules.translation` is on",
             "in": "path",
             "name": "kind",
             "required": true,
@@ -31614,7 +31724,7 @@
             }
           },
           {
-            "description": "Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,\n`book`, `series`, `collection`, `podcast`, `episode`, `file`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`, `notification`, `shortcut`, or one kind of state\n(`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
+            "description": "Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,\n`book`, `series`, `collection`, `podcast`, `episode`, `file`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`, `notification`, `shortcut`, or one kind of state\n(`progress.episode`, `feedback.track`); on a server with translations\n(`modules.translation`), `translation` and `progress.translation`. Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
             "in": "query",
             "name": "kinds",
             "required": false,

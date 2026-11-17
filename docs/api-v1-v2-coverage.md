@@ -13,20 +13,20 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 305 |
+| covered | 306 |
 | partly covered | 0 |
-| missing | 1 |
+| missing | 0 |
 | not carried over | 10 |
 | **total** | **316** |
 
 "Not carried over" is either a decision in `api-v2-plan.md` (per-member media policies and item
 grants stay on v1, and with them sharing a playlist with chosen members), a route no client calls
-(the Stripe webhook), or a one-off back-fill that becomes a server job (disc numbers). The hosted routes count as
-covered because they answer under `/api/v2`, but their bodies are still v1's.
+(the Stripe webhook), or a one-off back-fill that becomes a server job (disc numbers). The hosted routes are
+covered since completion plan phase 13: their bodies follow the rules additively (see that section).
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 12, v2
-revision 14). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 13, v2
+revision 15). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -85,13 +85,13 @@ lists what is still open.
 | `DELETE /users/{id}` | `DELETE /admin/users/{id}` | covered | `404` for an unknown account (v1: `204`); one's own is `409 own_account` (v1: `400`), deleted with `DELETE /me`. |
 | `POST /users/{id}/revoke-sessions` | `DELETE /admin/users/{id}/sessions` | covered | `404` for an unknown account. |
 | `GET /users/{id}/avatar` | `Member.image` → `GET /images/{id}` | covered | For people in your household. A signed link since phase 0; until then `Member.image` was this v1 route, which wants the access token. |
-| `GET /admin/families` | `GET /admin/families` | covered | Cursor-paged in the order households were made (v1: all at once); `state=active|locked|trashed`; `locked` and the trash figures on each. No credit balance: the hosted edition's, phase 13. |
+| `GET /admin/families` | `GET /admin/families` | covered | Cursor-paged in the order households were made (v1: all at once); `state=active|locked|trashed`; `locked` and the trash figures on each. No credit balance here: the hosted edition's is on the detail. |
 | `GET /admin/families/trash` | `GET /admin/families` | covered | `state=trashed` lists the households with something in the trash; `trash` (items, bytes, restores in 30 days, `flagged`) is on every household. |
-| `GET /admin/families/{id}` | `GET /admin/families/{id}` | covered | Its people (`blocked`, `pending`, v2 roles), storage and trash. The credit history is the hosted edition's (phase 13). |
+| `GET /admin/families/{id}` | `GET /admin/families/{id}` | covered | Its people (`blocked`, `pending`, v2 roles), storage and trash. On the hosted edition, `credit`: the balance in minor units and millionths, the last storage charge and the latest entries (v2 revision 15). |
 | `DELETE /admin/families/{id}` | `DELETE /admin/families/{id}` | covered | Only a household nobody is in; `409 family_not_empty` (v1: `400`). |
 | `POST /admin/families/{id}/lock` | `PATCH /admin/families/{id}` | covered | `{locked: true}` → `AdminFamilyDetail`; not the household the administrator is in (`409 own_family`: on a one-household server it would lock everyone out; v1 allows it). |
 | `POST /admin/families/{id}/unlock` | `PATCH /admin/families/{id}` | covered | `{locked: false}`. |
-| `GET /admin/stats` | `GET /admin/stats` | covered | Listening in milliseconds (`listened_ms`), `sign_ins` for v1's `logins`, counted in SQL (v1 read every account). The credit balance is the hosted edition's (phase 13). |
+| `GET /admin/stats` | `GET /admin/stats` | covered | Listening in milliseconds (`listened_ms`), `sign_ins` for v1's `logins`, counted in SQL (v1 read every account). On the hosted edition, `credit`: every household's balance together (v2 revision 15). |
 
 ## Family and household
 
@@ -328,7 +328,7 @@ lists what is still open.
 | v1 operation | v2 | status | note |
 |---|---|---|---|
 | `GET /library/changes` | `GET /sync/changes`, `GET /sync/snapshot` | covered | Every kind, tombstones, user state. |
-| `GET /library/continue` | `GET /me/progress?kind=` | covered | `kind=track,book,episode&unfinished=true&include=items,podcasts`: one list across kinds, most recent first, the records embedded once. Translations follow with the hosted edition (phase 13). |
+| `GET /library/continue` | `GET /me/progress?kind=` | covered | `kind=track,book,episode&unfinished=true&include=items,podcasts`: one list across kinds, most recent first, the records embedded once. On the hosted edition `translation` too (v2 revision 15; not embedded by `include`). |
 | `GET /library/search` | `GET /search` | covered | `types=` adds `books`, `podcasts`, `episodes` and `contributors` (anyone credited) to the music; one request, ranked one way, only what the caller can see; full records (v1 sent titles). |
 | `GET /library/private` | `GET /tracks`, `GET /books`, `GET /podcasts`, `GET /albums` | covered | `owner=me&visibility=private` on each list, cursor-paged (v1 answered everything at once); `visibility=family` for what is shared. |
 | `GET /library/folders` | `GET /library/folders` | covered | Any member (v1: household admins); `media: music|books`, `last_scan` absent before the first. |
@@ -373,30 +373,40 @@ lists what is still open.
 
 ## Hosted edition (audio2)
 
+The hosted edition's routes, read from `audio2`'s `docs/api/openapi-v2-hosted.json` (the core's
+v2 document plus these, `x-permission` on each; `scripts/check-v2-coverage.py --hosted-openapi`
+checks the rows against it). Since completion plan phase 13 (v2 revision 15) their bodies follow
+the rules additively: v1's fields stay where the shipped apps read them, and v2's sit beside them
+— amounts in whole minor units with `currency` beside the exact `_micro` (the ledger counts
+storage by the day in fractions of a cent), milliseconds beside seconds, the lists that grow paged
+with `limit`/`cursor` (the first page, without either, is what the apps read today). Known
+deviations, kept for the shipped apps: v1 field names (`entry_type`, `quoted_price_cents`), ids as
+strings of UUIDs, `null` where v2 would leave a field out.
+
 | v1 operation | v2 | status | note |
 |---|---|---|---|
-| `GET /family/billing` | `GET /family/billing` | covered | Same handler, v1 body. |
-| `POST /family/billing/topup` | `POST /family/billing/topup` | covered | Same handler, v1 body. |
-| `GET /family/billing/alerts` | `GET /family/billing/alerts` | covered | Same handler, v1 body. |
-| `PUT /family/billing/alerts` | `PUT /family/billing/alerts` | covered | Same handler, v1 body. |
+| `GET /family/billing` | `GET /family/billing` | covered | Same handler; `currency` and `_minor` amounts beside the `_micro` ones (balance, available, held, monthly estimate, entries, the last charge, top-up presets and bounds). |
+| `POST /family/billing/topup` | `POST /family/billing/topup` | covered | Takes `amount_minor` with `currency` (USD) as well as v1's `amount_micro`. |
+| `GET /family/billing/alerts` | `GET /family/billing/alerts` | covered | `min_balance_minor` beside `min_balance_micro`; `family_admin`. |
+| `PUT /family/billing/alerts` | `PUT /family/billing/alerts` | covered | Takes `min_balance_minor` when `min_balance_micro` is absent. |
 | `POST /billing/stripe/webhook` | — | not carried over | Stripe calls it, not a client; stays where Stripe is configured. |
-| `POST /admin/families/{id}/credit` | — | missing | Instance admin grants credit. |
-| `GET /audiobook-gen/languages` | `GET /narration/languages` | covered | Same handler, v1 body. |
-| `GET /audiobook-gen/cover-prompt` | `GET /narration/cover-prompt` | covered | Same. |
+| `POST /admin/families/{id}/credit` | `POST /admin/families/{id}/credit` | covered | `instance_admin`; `{amount_minor, currency, note}` (v1: `amount_micro`), `Idempotency-Key` required (money), answers `201` with the entry and the balance. The credit is also in `AdminFamilyDetail.credit` and `AdminStats.credit`. |
+| `GET /audiobook-gen/languages` | `GET /narration/languages` | covered | Same handler. |
+| `GET /audiobook-gen/cover-prompt` | `GET /narration/cover-prompt` | covered | Same; `public`, as on v1 (a constant text). |
 | `GET /audiobook-gen/voices` | `GET /narration/voices` | covered | Same. |
-| `POST /audiobook-gen/estimate` | `POST /narration/estimate` | covered | Same. |
-| `POST /audiobook-gen/quote` | `POST /narration/quote` | covered | Same. |
-| `POST /audiobook-gen/jobs` | `POST /narration/jobs` | covered | Same, with `Idempotency-Key`. |
-| `GET /audiobook-gen/jobs/{id}` | `GET /narration/jobs/{id}` | covered | Same. |
-| `POST /podcast-translate/episodes/{id}/quote` | `POST /translation/episodes/{id}/quote` | covered | Same handler, v1 body. |
-| `POST /podcast-translate/episodes/{id}` | `POST /translation/episodes/{id}` | covered | Same. |
-| `GET /podcast-translate/episodes/{id}` | `GET /translation/episodes/{id}` | covered | Same. |
-| `PUT /podcast-translate/episodes/{id}/progress` | `PUT /translation/episodes/{id}/progress` | covered | Same; not in `/me/progress`. |
+| `POST /audiobook-gen/estimate` | `POST /narration/estimate` | covered | Same; quotes and estimates are free. |
+| `POST /audiobook-gen/quote` | `POST /narration/quote` | covered | Same; `quoted_price_cents` is whole cents with `currency`, minor units already. |
+| `POST /audiobook-gen/jobs` | `POST /narration/jobs` | covered | Same, with `Idempotency-Key`; `can_generate`. A job's moves come as `narration` events on `/events`. |
+| `GET /audiobook-gen/jobs/{id}` | `GET /narration/jobs/{id}` | covered | Same; the caller's own job. |
+| `POST /podcast-translate/episodes/{id}/quote` | `POST /translation/episodes/{id}/quote` | covered | Same handler. |
+| `POST /podcast-translate/episodes/{id}` | `POST /translation/episodes/{id}` | covered | Same; `can_generate`. Its moves come as `translation` events on `/events`. |
+| `GET /podcast-translate/episodes/{id}` | `GET /translation/episodes/{id}` | covered | Same; `duration_ms` and `progress_ms` beside the seconds. |
+| `PUT /podcast-translate/episodes/{id}/progress` | `PUT /me/progress/{kind}/{id}` | covered | Kind `translation` in the one progress model (`/me/progress`, `playback-info`, the change feed's `translation` and `progress.translation`); `PUT /translation/episodes/{id}/progress` stays as the shipped apps' alias writing the same position. The position is the household's, as on v1, with none per device. |
 | `GET /podcast-translate/feeds/{id}/count` | `GET /translation/feeds/{id}/count` | covered | Same. |
-| `GET /podcast-translate/feeds/{id}` | `GET /translation/feeds/{id}` | covered | Same. |
-| `GET /podcast-translate/recent` | `GET /translation/recent` | covered | Same. |
-| `GET /podcast-ai/episodes/{id}/summary` | `GET /summaries/episodes/{id}/summary` | covered | Same handler, v1 body. |
-| `POST /podcast-ai/episodes/{id}/summary` | `POST /summaries/episodes/{id}/summary` | covered | Same. |
-| `POST /podcast-ai/episodes/{id}/ask` | `POST /summaries/episodes/{id}/ask` | covered | Same. |
-| `GET /podcast-ai/episodes/{id}/questions` | `GET /summaries/episodes/{id}/questions` | covered | Same. |
+| `GET /podcast-translate/feeds/{id}` | `GET /translation/feeds/{id}` | covered | Same; with `limit` or `cursor` a `{items, next}` page. |
+| `GET /podcast-translate/recent` | `GET /translation/recent` | covered | Same latest 50 without paging; with `limit` or `cursor` every one, a page at a time, visibility in SQL. |
+| `GET /podcast-ai/episodes/{id}/summary` | `GET /summaries/episodes/{id}/summary` | covered | Same handler; `charged_minor` and `currency` beside `charged_micro`. |
+| `POST /podcast-ai/episodes/{id}/summary` | `POST /summaries/episodes/{id}/summary` | covered | Same; `can_generate`. |
+| `POST /podcast-ai/episodes/{id}/ask` | `POST /summaries/episodes/{id}/ask` | covered | Same; the kept turn with `charged_minor`. |
+| `GET /podcast-ai/episodes/{id}/questions` | `GET /summaries/episodes/{id}/questions` | covered | Same `{items}`; with `limit` or `cursor`, `next` too. |
 | `DELETE /podcast-ai/episodes/{id}/questions` | `DELETE /summaries/episodes/{id}/questions` | covered | Same. |

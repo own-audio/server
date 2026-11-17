@@ -389,6 +389,33 @@ semver. Each release states the **API contract revision** it serves
   arrive, the disc job on a track marked through SQL); `run.py` makes the first administrator
   through `POST /api/v2/setup` on a server not set up yet, and CI leaves that to it;
   `v2_walk` pages the administrator's lists with the administrator's token.
+- An edition's own kinds in `/api/v2` (the hosted edition's `translation`, a podcast episode
+  translated and narrated for the household): `POST /api/v2/playback-info` takes kind
+  `translation`, `/api/v2/me/progress/translation/{id}` keeps where the listener is (the later
+  position wins; `kind=translation` in `GET /api/v2/me/progress`, alone or with other kinds), and
+  the change feed sends `translation` and `progress.translation` (`kinds=` takes both). Where no
+  edition adds the kind it stays `400 unsupported_kind` / `invalid_kind`. v2 revision 15.
+- `GET /api/v2/events`: on the hosted edition, `narration` and `translation` events for the
+  caller's own narration and translation jobs as they move on, so an app need not poll them. v2
+  revision 15.
+- `credit` in `GET /api/v2/admin/families/{id}` (the balance in whole minor units and in
+  millionths with its `currency`, the last storage charge, the latest entries) and in `GET
+  /api/v2/admin/stats` (every household's together), where the server charges (the hosted
+  edition); absent elsewhere. A server without billing answers the hosted `POST
+  /api/v2/admin/families/{id}/credit` with `501 feature_unavailable` (`billing`). v2 revision 15.
+- For the hosted edition: `Hooks::edition_kinds` (`EditionKind`), `Hooks::live_events`,
+  `Hooks::family_credit` and `Hooks::credit_total`; `v2::document_with` (the v2 document with an
+  edition's own documented operations, as the hosted `openapi-v2-hosted.json`), `v2::to_json` and
+  `v2::undeclared_permissions`; `http::router::finalize_v2`, which mounts an edition's
+  documented `/api/v2` routes so personal access tokens reach them by their `x-scope`.
+- Conformance: the `v2_hosted` suite, each part gated on the module the server reports — the
+  credit in minor units, the administrator's credit grant (`Idempotency-Key` required, retried
+  once, refused to a household admin), narration's quote and estimate, translations played,
+  resumed through `/me/progress` and the apps' own route, in the change feed and on `/events`
+  (a translation made through SQL with `--compose-dir`), questions paged; on a server without
+  billing, the grant's `501`. `run.py --openapi-v2 <file>` walks another v2 document (the
+  hosted edition's) and counts its operations; on a server where every account founds its own
+  household, `v2_walk`'s member joins the admin's household first.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

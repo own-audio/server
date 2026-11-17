@@ -391,6 +391,72 @@ pub struct AdminFamilyDetail {
     pub members: Vec<AdminFamilyMember>,
     /// What the household keeps, in bytes.
     pub storage: BillingStorage,
+    /// Its credit, on a server that charges for storage and paid work (the hosted edition;
+    /// `modules.billing`); absent elsewhere.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credit: Option<FamilyCredit>,
+}
+
+/// Whole cents (minor units) of an amount in millionths, toward zero. The ledger counts
+/// storage by the day in fractions of a cent, so each amount also comes exact, as `_micro`.
+pub fn minor(micro: i64) -> i64 {
+    micro / 10_000
+}
+
+/// A household's credit.
+#[derive(Serialize, ToSchema)]
+pub struct FamilyCredit {
+    /// In the currency's minor units (cents), toward zero.
+    pub balance_minor: i64,
+    /// Exact, in millionths of the currency's unit.
+    pub balance_micro: i64,
+    /// ISO 4217, upper case (`USD`).
+    pub currency: String,
+    /// The last daily storage charge.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_charge: Option<CreditEntry>,
+    /// The latest entries, newest first.
+    pub entries: Vec<CreditEntry>,
+}
+
+/// One entry of a household's credit.
+#[derive(Serialize, ToSchema)]
+pub struct CreditEntry {
+    pub id: Uuid,
+    /// `topup`, `storage_charge`, `adjustment`, …; unknown kinds may appear.
+    pub kind: String,
+    /// Positive adds credit, negative takes it; minor units, toward zero.
+    pub amount_minor: i64,
+    pub amount_micro: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub storage_bytes: Option<i64>,
+    /// The day a storage charge is for.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub charge_date: Option<chrono::NaiveDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+pub fn credit_entry(e: crate::hooks::CreditEntry) -> CreditEntry {
+    CreditEntry {
+        id: e.id,
+        kind: e.kind,
+        amount_minor: minor(e.amount_micro),
+        amount_micro: e.amount_micro,
+        storage_bytes: e.storage_bytes,
+        charge_date: e.charge_date,
+        note: e.note,
+        created_at: e.created_at,
+    }
+}
+
+/// The server's credit, every household's together.
+#[derive(Serialize, ToSchema)]
+pub struct CreditTotal {
+    pub balance_minor: i64,
+    pub balance_micro: i64,
+    pub currency: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -497,7 +563,15 @@ async fn family_detail(state: &AppState, id: Uuid) -> Result<AdminFamilyDetail, 
     let members = db::families::list_members(pool, id).await?;
     let s = db::storage_usage::family_storage(pool, state.storage().bucket(), id).await?;
     let trash = trash_of(state, &[id]).await?.remove(&id).unwrap_or_else(empty_trash);
+    let credit = state.hooks().family_credit(pool, id).await?.map(|c| FamilyCredit {
+        balance_minor: minor(c.balance_micro),
+        balance_micro: c.balance_micro,
+        currency: c.currency,
+        last_charge: c.last_charge.map(credit_entry),
+        entries: c.entries.into_iter().map(credit_entry).collect(),
+    });
     Ok(AdminFamilyDetail {
+        credit,
         locked: is_locked(&row),
         id: row.id,
         name: row.name,
@@ -620,6 +694,9 @@ pub struct AdminStats {
     /// Everything in every household's trash.
     pub trash_bytes: i64,
     pub listening: ListeningWindows,
+    /// What every household has in credit, on a server that charges (`modules.billing`).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub credit: Option<CreditTotal>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -661,7 +738,13 @@ pub async fn stats(_admin: InstanceAdmin, State(state): State<AppState>) -> Resu
     let registrations = db::users::registration_counts(pool).await?;
     let sign_ins = db::sessions::login_counts(pool).await?;
     let (d1, d7, d30) = db::stats::streaming_totals(pool).await?;
+    let credit = state.hooks().credit_total(pool).await?.map(|(micro, currency)| CreditTotal {
+        balance_minor: minor(micro),
+        balance_micro: micro,
+        currency,
+    });
     Ok(Json(AdminStats {
+        credit,
         users,
         families,
         registrations: registrations.into(),
@@ -776,6 +859,15 @@ pub async fn get_job(_admin: InstanceAdmin, State(state): State<AppState>, Path(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn credit_in_minor_units_is_whole_cents_toward_zero() {
+        assert_eq!(minor(5_000_000), 500);
+        assert_eq!(minor(12_345), 1);
+        assert_eq!(minor(9_999), 0);
+        assert_eq!(minor(-31), 0);
+        assert_eq!(minor(-1_250_000), -125);
+    }
 
     #[test]
     fn a_new_account_is_checked_field_by_field() {

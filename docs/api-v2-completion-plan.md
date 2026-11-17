@@ -177,7 +177,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 10 | Search across media, list filters — **done** | 2 | S | T W |
 | 11 | File sync remainder — **done** | 11 | L | S M W |
 | 12 | Instance admin, setup, jobs, library folders — **done** | 18 | L | W, console |
-| 13 | Hosted edition (`audio2`) | 1 + 23 reworked | L | W A, apps |
+| 13 | Hosted edition (`audio2`) — **done** | 1 + 23 reworked | L | W A, apps |
 | 14 | Release: stable, docs, strict coverage | — | S | — |
 
 Permissions below use the `x-permission` words; "self" means the caller's own record, checked in
@@ -1096,7 +1096,42 @@ setup refuses once done (the compose stack is set up, so the positive case runs 
 and in CI's fresh stack before the suite's own setup); a locked family cannot sign in; jobs page
 without loss.
 
-### Phase 13 — hosted edition, `audio2` (L)
+### Phase 13 — hosted edition, `audio2` (L) — done 2026-11-17
+
+Done, v2 revision 15, in two repositories: the core's seams here, the routes and bodies in
+`audio2` (committed there against this repository's checkout through an uncommitted `[patch]`;
+its pin moves to the release tag in phase 14). `api-v1-v2-coverage.md` has no `missing` row left:
+`scripts/check-v2-coverage.py --strict` passes, also with `--hosted-openapi`. What the plan said,
+with these differences:
+
+- **The core's seams**: `Hooks::edition_kinds` (an `EditionKind` the core plays, keeps progress
+  on and sends in the change feed by its name only), `Hooks::live_events` (polled by `/events`
+  with the identify runs), `Hooks::family_credit` and `Hooks::credit_total` (typed, for v2;
+  v1's map-shaped hooks stay), `v2::document_with(edition)` and `http::router::finalize_v2`,
+  which also lets personal access tokens use the edition's routes by their `x-scope` (they were
+  refused before: the scope table knew the core's routes only).
+- **Translation progress stays the household's** (decided the safer way): the position lives
+  on the translation, as v1 and the shipped app have it; `/me/progress/translation/{id}` reads
+  and writes that one position, with the later-wins rule, and keeps none per device
+  (`progress_devices` allows the core's kinds only). So the one model is one storage, and the
+  alias cannot drift from it. `include=items` does not embed translations. The snapshot does not
+  carry them; the change feed does, through a hosted trigger (hosted migration 0008).
+- **Money**: `_minor` (whole cents, toward zero) beside every `_micro` amount, with `currency`;
+  the exact millionths stay because storage is charged by the day in fractions of a cent.
+  Narration and translation quotes were whole cents with a currency already and keep their
+  names. The credit grant requires `Idempotency-Key` (`400 idempotency_key_required`), takes the
+  ledger's currency only (`400 unsupported_currency`) and at most 1,000,000 minor units either
+  way (`400 invalid_amount`); the administrator's address is folded into the note, as on v1.
+- **Paging when asked**: `GET /translation/recent` and `/translation/feeds/{id}` answer the old
+  array without `limit` or `cursor` and a `{items, next}` page with either (the recent list then
+  reaches past its 50 and filters visibility in SQL); `/summaries/episodes/{id}/questions`
+  already answered `{items}` and adds `next` when paged.
+- `GET /narration/cover-prompt` is `public`, as on v1 (a constant text).
+- **Not done here**: the one real paid job on canary with test credit, and the hosted checks
+  against canary, wait for the release (no deploy before it). Locally the hosted checks ran
+  against a hosted build on this repository's checkout, paid work up to quote and estimate.
+- The `WORKER_JOB_TYPES` lists in `audio2`'s compose files name `disc_backfill` (phase 12).
+
 
 v1 ops: `POST /admin/families/{id}/credit` (missing) and the 23 routes mounted under `/api/v2`
 with v1 bodies.
