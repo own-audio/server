@@ -27,7 +27,8 @@ Three numbers exist. Do not confuse them.
 1. **API major version** — the path prefix, `/api/v1`. It changes only for an
    incompatible redesign. A new major is served **side by side** with the old
    one for at least 12 months, and the old one keeps receiving security fixes.
-   Nothing on the roadmap needs `/api/v2`.
+   `/api/v2` is served beside v1 (`api-v2-plan.md`), and clients use it first
+   (`api-v2-first.md`).
 2. **Contract revision** — an integer in `GET /api/v1/server` (`api.revision`),
    incremented every time the v1 contract gains something: a new endpoint, a
    new field, a new enum value, a new `features` key. It never goes down and is

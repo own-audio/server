@@ -97,6 +97,18 @@ builds against today's server — and against two editions of it.
 
 ---
 
+## API v2 first
+
+Clients use `/api/v2` first (decided 2026-11-17, `docs/api-v2-first.md` in the server repo
+(`own-audio-foss`, github.com/own-audio/server)). A new endpoint a client needs goes into v2 —
+`x-permission`, problem details, cursor paging, `openapi-v2.json` — not into v1. v1 changes stay
+additive and only for clients already shipped against it. A gap that makes a client fall back to
+v1 is worth closing in v2.
+
+What the clients still miss in v2, by priority: `docs/api-v2-gaps-plan.md` (from the clients'
+`API_V2_PLAN.md` files, 2026-11-17). Tick a line when it ships and bump the v2 revision in
+discovery.
+
 ## 4. Scope — what must never be in this repository
 
 Full list in `docs/SCOPE.md`. The short version, because it is also a
