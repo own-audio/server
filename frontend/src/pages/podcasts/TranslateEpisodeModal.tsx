@@ -62,7 +62,9 @@ export default function TranslateEpisodeModal({
   } = useQuery({
     queryKey: ["podcast-translate-quote", episodeId, targetLanguage, selectedVoice],
     queryFn: () => quoteTranslation(episodeId, targetLanguage, selectedVoice as string),
-    enabled: !!selectedVoice,
+    // Not before the languages are in: until then the target is the "en" fallback, which for
+    // an English show is its own language, and the server refuses that quote with a 400.
+    enabled: !!selectedVoice && languages.length > 0 && targetLanguage !== source,
     retry: false,
   });
 

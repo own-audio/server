@@ -12,6 +12,8 @@ semver. Each release states the **API contract revision** it serves
 - The console fetches the music library again when it opens a copy saved on the device less
   than 30 seconds earlier; a reload right after a visit showed the old list (songs another
   family member had just shared were missing).
+- The console's *Translate this episode* asks for a price only once its languages are loaded;
+  before, an English show's first quote went out for English and came back 400.
 
 ## [1.0.4] - 2026-11-17
 
