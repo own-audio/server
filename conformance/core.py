@@ -368,6 +368,14 @@ class Ctx:
         )
         tok = self.call("POST", "/api/v1/auth/login", body={"email": email, "password": password})["token"]
         self.track_user(u["id"], email)
+        if self.feature("billing"):
+            # A hosted server grants no welcome credit to reserved test domains, and an upload
+            # needs credit: the admin grants the new household a dollar, as an operator would.
+            family = (self.call("GET", "/api/v2/me", tok).get("family") or {}).get("id")
+            if family:
+                self.request("POST", f"/api/v2/admin/families/{family}/credit", self.admin_token,
+                             {"amount_minor": 100, "currency": "USD", "note": "conformance run"},
+                             headers={"Idempotency-Key": str(uuid.uuid4())})
         return u["id"], email, tok
 
     def make_family_admin(self, label: str, password: str) -> tuple[str, str, str]:
