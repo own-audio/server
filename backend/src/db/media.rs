@@ -301,6 +301,34 @@ pub async fn audio_props(pool: &PgPool, object_id: Uuid) -> anyhow::Result<Optio
     .context("db: audio properties")
 }
 
+/// Queues the checksum job for these objects when they have no checksum yet, so a
+/// client syncing the file can check what it downloaded soon after the upload rather
+/// than after the next sweep. Best effort: the sweep still catches anything missed.
+pub async fn queue_checksums(pool: &PgPool, object_ids: &[Uuid]) {
+    let result = sqlx::query(
+        "INSERT INTO jobs (job_type, payload, scheduled_at)
+         SELECT 'media_checksum', jsonb_build_object('media_object_id', m.id::text), now()
+           FROM media_objects m WHERE m.id = ANY($1) AND m.sha256 IS NULL",
+    )
+    .bind(object_ids)
+    .execute(pool)
+    .await;
+    if let Err(e) = result {
+        tracing::warn!("could not queue checksums: {e}");
+    }
+}
+
+/// [`queue_checksums`] for every file of a book.
+pub async fn queue_book_checksums(pool: &PgPool, book_id: Uuid) {
+    let objects: Vec<Uuid> = sqlx::query_scalar("SELECT audio_object_id FROM audiobook_files WHERE book_id = $1 AND audio_object_id IS NOT NULL")
+        .bind(book_id)
+        .fetch_all(pool)
+        .await
+        .unwrap_or_default();
+    queue_checksums(pool, &objects).await;
+}
+
+
 #[cfg(test)]
 mod sweep_tests {
     /// The guard that matters: an empty referrer list must refuse, not sweep.

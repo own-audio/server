@@ -456,7 +456,7 @@
             ]
           },
           "files": {
-            "description": "Only on `GET /books/{id}`.",
+            "description": "Only on `GET /books/{id}`, in the change feed and the snapshot.",
             "items": {
               "$ref": "#/components/schemas/BookFile"
             },
@@ -485,6 +485,13 @@
           "owner_id": {
             "format": "uuid",
             "type": "string"
+          },
+          "path": {
+            "description": "Its folder in its owner's own.audio folder (`Audiobooks/Author/Title`); the files'\n`relative_path`s are inside it.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "published_year": {
             "format": "int32",
@@ -576,6 +583,20 @@
           "position": {
             "format": "int32",
             "type": "integer"
+          },
+          "relative_path": {
+            "description": "Its path inside the book's folder (`path`); absent while the server is still naming it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "description": "SHA-256 of the file, hex; absent until the server has read it once.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "size_bytes": {
             "format": "int64",
@@ -780,7 +801,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `album`, …, `favourite.track`, `progress.book`, `bookmark`.",
+            "description": "`track`, `album`, …, `member`, `favourite.track`, `progress.book`, `bookmark`.",
             "type": "string"
           },
           "op": {
@@ -1750,6 +1771,13 @@
               "null"
             ]
           },
+          "path": {
+            "description": "Where the stored copy sits in the show owner's own.audio folder; absent when not stored.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "podcast_id": {
             "format": "uuid",
             "type": "string"
@@ -1765,6 +1793,13 @@
             "format": "int32",
             "type": [
               "integer",
+              "null"
+            ]
+          },
+          "sha256": {
+            "description": "SHA-256 of the stored copy, hex.",
+            "type": [
+              "string",
               "null"
             ]
           },
@@ -2091,9 +2126,21 @@
             },
             "type": "array"
           },
+          "books": {
+            "items": {
+              "$ref": "#/components/schemas/Book"
+            },
+            "type": "array"
+          },
           "contributors": {
             "items": {
               "$ref": "#/components/schemas/Contributor"
+            },
+            "type": "array"
+          },
+          "episodes": {
+            "items": {
+              "$ref": "#/components/schemas/Episode"
             },
             "type": "array"
           },
@@ -2103,9 +2150,23 @@
             },
             "type": "array"
           },
+          "podcasts": {
+            "description": "`include=podcasts`: the shows of the episodes.",
+            "items": {
+              "$ref": "#/components/schemas/Podcast"
+            },
+            "type": "array"
+          },
           "release_groups": {
             "items": {
               "$ref": "#/components/schemas/ReleaseGroup"
+            },
+            "type": "array"
+          },
+          "tracks": {
+            "description": "`GET /me/progress?include=items`: the tracks, books and episodes listed.",
+            "items": {
+              "$ref": "#/components/schemas/Track"
             },
             "type": "array"
           }
@@ -3388,7 +3449,7 @@
                   ]
                 },
                 "files": {
-                  "description": "Only on `GET /books/{id}`.",
+                  "description": "Only on `GET /books/{id}`, in the change feed and the snapshot.",
                   "items": {
                     "$ref": "#/components/schemas/BookFile"
                   },
@@ -3417,6 +3478,13 @@
                 "owner_id": {
                   "format": "uuid",
                   "type": "string"
+                },
+                "path": {
+                  "description": "Its folder in its owner's own.audio folder (`Audiobooks/Author/Title`); the files'\n`relative_path`s are inside it.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 },
                 "published_year": {
                   "format": "int32",
@@ -4006,6 +4074,13 @@
                     "null"
                   ]
                 },
+                "path": {
+                  "description": "Where the stored copy sits in the show owner's own.audio folder; absent when not stored.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "podcast_id": {
                   "format": "uuid",
                   "type": "string"
@@ -4021,6 +4096,13 @@
                   "format": "int32",
                   "type": [
                     "integer",
+                    "null"
+                  ]
+                },
+                "sha256": {
+                  "description": "SHA-256 of the stored copy, hex.",
+                  "type": [
+                    "string",
                     "null"
                   ]
                 },
@@ -5117,8 +5199,22 @@
                   "format": "uuid",
                   "type": "string"
                 },
+                "path": {
+                  "description": "Where the file sits in its owner's own.audio folder (`Music/Artist/Album/01 Song.mp3`),\nas its owner put it; family members see the owner's path too.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
                 "recording_id": {
                   "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "sha256": {
+                  "description": "SHA-256 of the file, hex; absent until the server has read the whole file once.",
                   "type": [
                     "string",
                     "null"
@@ -7575,8 +7671,22 @@
             "format": "uuid",
             "type": "string"
           },
+          "path": {
+            "description": "Where the file sits in its owner's own.audio folder (`Music/Artist/Album/01 Song.mp3`),\nas its owner put it; family members see the owner's path too.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "recording_id": {
             "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "description": "SHA-256 of the file, hex; absent until the server has read the whole file once.",
             "type": [
               "string",
               "null"
@@ -8015,7 +8125,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.4-draft"
+    "version": "2.5-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -14429,7 +14539,7 @@
         "operationId": "state_list_progress",
         "parameters": [
           {
-            "description": "`track`, `album`, `contributor`, `book` or `episode`, as the list allows.",
+            "description": "`track`, `book` or `episode`, or several comma-separated (`book,episode`): one list,\nmost recently changed first.",
             "in": "query",
             "name": "kind",
             "required": true,
@@ -14449,6 +14559,24 @@
           {
             "in": "query",
             "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`true`: only what is not finished, for \"continue listening\".",
+            "in": "query",
+            "name": "unfinished",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Records to embed in `included`, each once: `items` (the tracks, books and episodes\nlisted), `podcasts` (the episodes' shows), `albums` (the tracks'), `contributors`\n(credited on any of those).",
+            "in": "query",
+            "name": "include",
             "required": false,
             "schema": {
               "type": "string"
@@ -14474,7 +14602,7 @@
                 }
               }
             },
-            "description": "`unsupported_kind`"
+            "description": "`unsupported_kind`, `invalid_include`"
           },
           "401": {
             "content": {
@@ -14502,7 +14630,7 @@
             "bearer": []
           }
         ],
-        "summary": "The caller's progress on one kind, most recently changed first",
+        "summary": "The caller's progress, most recently changed first: on one kind or several, and with `unfinished=true&include=items,podcasts` the \"continue listening\" row in one request",
         "tags": [
           "state"
         ],
@@ -19936,6 +20064,15 @@
               "format": "int64",
               "type": "integer"
             }
+          },
+          {
+            "description": "Comma-separated kinds to read, every kind when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `book`, `podcast`,\n`episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state\n(`progress.episode`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
+            "in": "query",
+            "name": "kinds",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -19957,7 +20094,7 @@
                 }
               }
             },
-            "description": "`invalid_cursor`"
+            "description": "`invalid_cursor`, `invalid_kind`, `invalid_limit`"
           },
           "401": {
             "content": {
@@ -20079,9 +20216,18 @@
         "operationId": "sync_snapshot",
         "parameters": [
           {
-            "description": "Comma-separated kinds; all of them when absent: `contributor`,\n`release_group`, `album`, `genre`, `track`, `book`, `podcast`,\n`episode`, `favourite`, `rating`, `progress`, `bookmark`.",
+            "description": "Comma-separated kinds; all of them when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `track`, `book`, `podcast`,\n`episode`, `favourite`, `rating`, `progress`, `bookmark`.",
             "in": "query",
             "name": "kinds",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`ids`: each line names a record (`{\"type\":\"id\",\"kind\",\"id\"}`) without it, for a client\nthat checks what it holds is still there; about 60 bytes a line instead of a record.",
+            "in": "query",
+            "name": "fields",
             "required": false,
             "schema": {
               "type": "string"
@@ -20111,7 +20257,7 @@
             "content": {
               "application/x-ndjson": {}
             },
-            "description": "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines, then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`."
+            "description": "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines (`{\"type\":\"id\",\"kind\",\"id\"}` with `fields=ids`), then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`."
           },
           "400": {
             "content": {
@@ -20121,7 +20267,7 @@
                 }
               }
             },
-            "description": "`invalid_kind`, `invalid_cursor`"
+            "description": "`invalid_kind`, `invalid_fields`, `invalid_cursor`, `invalid_after`"
           },
           "401": {
             "content": {
@@ -20149,7 +20295,7 @@
             "bearer": []
           }
         ],
-        "summary": "Everything the caller can see, as NDJSON: a `begin` line with the cursor, one `record` line per item, an `end` line with the same cursor for `GET /sync/changes`",
+        "summary": "Everything the caller can see, as NDJSON: a `begin` line with the cursor, one `record` line per item (or one `id` line with `fields=ids`), an `end` line with the same cursor for `GET /sync/changes`",
         "tags": [
           "sync"
         ],

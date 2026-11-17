@@ -194,6 +194,7 @@ pub async fn create_book(family: FamilyContext, State(state): State<AppState>, J
     let viewer = family.viewer();
     let (_, Json(made)) = crate::audiobooks::create_book_from_uploads(family, State(state.clone()), Json(request)).await?;
     let id: Uuid = made.book.id.parse().map_err(|e: uuid::Error| Problem::internal(anyhow::anyhow!(e)))?;
+    db::media::queue_book_checksums(state.db(), id).await;
     let row = db::catalog::find_book(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
     Ok((StatusCode::CREATED, Json(spoken::full_book(&state, row).await?)))
 }
@@ -382,6 +383,7 @@ pub async fn create_episode(family: FamilyContext, State(state): State<AppState>
     if let Err(e) = crate::filesync::paths::ensure_episode(pool, episode_id).await {
         tracing::warn!(%episode_id, "no path for the uploaded episode: {e:#}");
     }
+    db::media::queue_checksums(pool, &[audio.media_object_id]).await;
     crate::podcasts::notify_new_episodes(pool, id, 1).await;
     Ok((StatusCode::CREATED, Json(spoken::episode_by_id(&state, &family, episode_id).await?)))
 }

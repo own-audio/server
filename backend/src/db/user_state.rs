@@ -269,6 +269,8 @@ fn start_of(timeline: &[(Uuid, i64, Option<i64>)], file_id: Uuid) -> Option<i64>
 }
 
 type Row = (Uuid, f64, bool, DateTime<Utc>, Option<Uuid>);
+/// A [`Row`] with its kind first, from a list over several kinds.
+type KindRow = (String, Uuid, f64, bool, DateTime<Utc>, Option<Uuid>);
 
 async fn progress_from(pool: &PgPool, kind: Kind, row: Row) -> anyhow::Result<Progress> {
     let (item_id, secs, finished, updated_at, file_id) = row;
@@ -415,6 +417,51 @@ pub async fn list_progress(
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
         out.push(progress_from(pool, kind, row).await?);
+    }
+    Ok(out)
+}
+
+/// The viewer's progress on several kinds at once, most recently changed first,
+/// optionally only what they have not finished: continue listening.
+pub async fn list_progress_of(
+    pool: &PgPool,
+    viewer: Viewer,
+    kinds: &[Kind],
+    unfinished: bool,
+    after: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<(Kind, Progress)>> {
+    let branches: Vec<String> = kinds
+        .iter()
+        .map(|kind| {
+            let (table, column, file) = progress_select(*kind);
+            format!(
+                "(SELECT '{}'::text AS kind, s.{column} AS item_id, s.position_secs, s.completed, s.updated_at, {} AS file_id
+                    FROM {table} s
+                   WHERE s.user_id = $1 AND {}
+                     AND ($4::timestamptz IS NULL OR (s.updated_at, s.{column}) < ($4, $5))
+                     AND (NOT $7 OR NOT s.completed)
+                   ORDER BY s.updated_at DESC, s.{column} DESC LIMIT $6)",
+                kind.as_str(),
+                if file == "file_id" { "s.file_id" } else { file },
+                visible(*kind, &format!("s.{column}"))
+            )
+        })
+        .collect();
+    let sql = format!("SELECT * FROM ({}) x ORDER BY x.updated_at DESC, x.item_id DESC LIMIT $6", branches.join(" UNION ALL "));
+    let (at, id) = after.unzip();
+    let rows: Vec<KindRow> = viewer!(sqlx::query_as(&sql), viewer)
+        .bind(at)
+        .bind(id)
+        .bind(limit)
+        .bind(unfinished)
+        .fetch_all(pool)
+        .await
+        .context("db: list progress of kinds")?;
+    let mut out = Vec::with_capacity(rows.len());
+    for (kind, item_id, secs, finished, updated_at, file_id) in rows {
+        let Some(k) = Kind::parse(&kind) else { continue };
+        out.push((k, progress_from(pool, k, (item_id, secs, finished, updated_at, file_id)).await?));
     }
     Ok(out)
 }

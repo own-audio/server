@@ -723,3 +723,33 @@ pub async fn set_book_source(
     .context("db: set book source")?;
     Ok(())
 }
+
+/// A household's people for the change feed (kind `member`): who is in it, and
+/// who left it (migration 0126). A deleted account has no name.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct MemberRecordRow {
+    pub user_id: Uuid,
+    pub display_name: Option<String>,
+    pub label: Option<String>,
+    pub avatar_object_id: Option<Uuid>,
+    pub left_at: Option<DateTime<Utc>>,
+}
+
+/// These people of the household, or all of them with `ids` = `None`, by id.
+pub async fn member_records(pool: &PgPool, family_id: Uuid, ids: Option<&[Uuid]>) -> anyhow::Result<Vec<MemberRecordRow>> {
+    sqlx::query_as::<_, MemberRecordRow>(
+        "SELECT u.id AS user_id, u.display_name, fm.display_label AS label, u.avatar_object_id, NULL::timestamptz AS left_at
+           FROM family_members fm JOIN users u ON u.id = fm.user_id
+          WHERE fm.family_id = $1 AND ($2::uuid[] IS NULL OR fm.user_id = ANY($2))
+         UNION ALL
+         SELECT f.user_id, f.display_name, f.label, NULL, f.left_at
+           FROM family_former_members f
+          WHERE f.family_id = $1 AND ($2::uuid[] IS NULL OR f.user_id = ANY($2))
+          ORDER BY 1",
+    )
+    .bind(family_id)
+    .bind(ids)
+    .fetch_all(pool)
+    .await
+    .context("db: member records")
+}

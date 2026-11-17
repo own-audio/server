@@ -127,6 +127,11 @@ pub struct Track {
     pub source: String,
     pub content_type: Option<String>,
     pub size_bytes: Option<i64>,
+    /// Where the file sits in its owner's own.audio folder (`Music/Artist/Album/01 Song.mp3`),
+    /// as its owner put it; family members see the owner's path too.
+    pub path: Option<String>,
+    /// SHA-256 of the file, hex; absent until the server has read the whole file once.
+    pub sha256: Option<String>,
     /// Its cover (`GET /images/{id}`; add `w` for the size).
     pub image: Option<String>,
     /// Chapter marks in its file, as a whole concert has one per song; the
@@ -156,6 +161,16 @@ pub struct Included {
     pub release_groups: Vec<ReleaseGroup>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub genres: Vec<Genre>,
+    /// `GET /me/progress?include=items`: the tracks, books and episodes listed.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub tracks: Vec<Track>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub books: Vec<crate::v2::spoken::Book>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub episodes: Vec<crate::v2::spoken::Episode>,
+    /// `include=podcasts`: the shows of the episodes.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub podcasts: Vec<crate::v2::spoken::Podcast>,
 }
 
 pub(crate) fn contributor(state: &AppState, row: catalog::ContributorRow) -> Contributor {
@@ -254,6 +269,8 @@ pub(crate) async fn tracks(state: &AppState, rows: Vec<catalog::TrackRow>) -> Re
             source: t.source,
             content_type: t.content_type,
             size_bytes: t.size_bytes,
+            path: t.path,
+            sha256: t.sha256,
             image: crate::v2::images::maybe(state, t.cover_object_id),
             chapter_count: chapter_counts.get(&t.id).copied().unwrap_or(0),
             created_at: t.created_at,

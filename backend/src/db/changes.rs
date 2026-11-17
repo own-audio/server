@@ -58,12 +58,15 @@ pub async fn now(pool: &PgPool) -> anyhow::Result<Cursor> {
 }
 
 /// What changed after `cursor` that the viewer's household or the viewer is
-/// named on: (kind, item), each once, in the order they changed.
-pub async fn read(pool: &PgPool, viewer: Viewer, cursor: &Cursor, limit: i64) -> anyhow::Result<(Vec<(String, Uuid)>, Cursor, bool)> {
+/// named on: (kind, item), each once, in the order they changed. `kinds`
+/// keeps only those kinds (`favourite` stands for every `favourite.<kind>`);
+/// a `reset` always comes through.
+pub async fn read(pool: &PgPool, viewer: Viewer, cursor: &Cursor, kinds: Option<&[String]>, limit: i64) -> anyhow::Result<(Vec<(String, Uuid)>, Cursor, bool)> {
     let (next, at) = if cursor.seq == 0 { (snapshot_xmin(pool).await?, Utc::now().timestamp()) } else { (cursor.next, cursor.at) };
     let rows: Vec<(i64, String, Uuid)> = sqlx::query_as(
         "SELECT seq, kind, item_id FROM changes
           WHERE xid >= $1::text::xid8 AND seq > $2 AND (family_id = $3 OR user_id = $4)
+            AND ($6::text[] IS NULL OR kind = 'reset' OR kind = ANY($6) OR split_part(kind, '.', 1) = ANY($6))
           ORDER BY seq LIMIT $5",
     )
     .bind(cursor.from)
@@ -71,6 +74,7 @@ pub async fn read(pool: &PgPool, viewer: Viewer, cursor: &Cursor, limit: i64) ->
     .bind(viewer.family_id)
     .bind(viewer.user_id)
     .bind(limit)
+    .bind(kinds)
     .fetch_all(pool)
     .await
     .context("db: read changes")?;

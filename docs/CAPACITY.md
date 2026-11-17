@@ -207,6 +207,30 @@ hash joins over the episodes; a smaller share of the catalog uses `podcast_episo
 The existing indexes serve it — the episodes' `feed_id`, the progress key `(user_id,
 episode_id)` — so no migration was added.
 
+## Measured: sync essentials and continue listening (2026-11-17)
+
+v2 phase 3 (`api-v2-completion-plan.md`), `EXPLAIN ANALYZE` on PostgreSQL 16 with its default
+settings (Apple-silicon Mac): 610,000 generated tracks (20,000 artists, 50,000 albums) with a
+path each, 1,000 books, 30,000 track positions (half unfinished), and the 2.5 million rows the
+change log wrote while it was filled.
+
+| Query | Time |
+|---|---|
+| A page of the ids-only snapshot (`fields=ids`, 5,000 track ids), household admin / member, start and middle of the catalog | 3–9 ms (primary key walk); about 120 pages, roughly 1 s of database time and 37 MB of NDJSON for the catalog |
+| 500 track records with `path` and `sha256` (the snapshot's and the change feed's batch) | 4.6 ms (one `sync_paths` and one `media_objects` key lookup per track) |
+| The checksum trigger finding the tracks of a file | 0.03 ms (new `music_tracks_audio_object_idx`; without it, a scan of every track per computed checksum) |
+| `/sync/changes?kinds=track`, 500 rows from the start of the log | 7 ms |
+| `/sync/changes?kinds=progress,episode` from the start, when the kinds asked for are rare | 280–390 ms: the read walks the log since the cursor and filters; a cursor from the last sync has little to walk. No index (`(kind, seq)` would help only this worst case). |
+| Continue listening (`kind=track,book,episode&unfinished=true`, 25) | 33 ms → **0.7 ms** with `music_progress_recent_idx` / `podcast_progress_recent_idx` `(user_id, updated_at DESC, id DESC)` |
+| Member records of a household | 0.02 ms |
+
+Writing the change log costs a little more where a track appears: 60,000 generated tracks in
+one statement took 44 s without the new "what the track makes visible" trigger and 48 s with it
+(about 10 %; a first version that also re-read the track's credits and genres on insert cost
+50 %). Inserting many tracks in one statement grows faster than linearly (20,000 in 12 s,
+60,000 in 44 s, before this phase): batches of tens of thousands, as the scan already does, keep
+it linear (55,000 a batch, 40 s each, up to 610,000).
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

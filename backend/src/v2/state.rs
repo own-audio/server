@@ -212,18 +212,157 @@ pub(crate) fn progress(k: Kind, p: user_state::Progress) -> Progress {
     }
 }
 
-/// The caller's progress on one kind, most recently changed first.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct ProgressQuery {
+    /// `track`, `book` or `episode`, or several comma-separated (`book,episode`): one list,
+    /// most recently changed first.
+    pub kind: String,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
+    /// `true`: only what is not finished, for "continue listening".
+    pub unfinished: Option<bool>,
+    /// Records to embed in `included`, each once: `items` (the tracks, books and episodes
+    /// listed), `podcasts` (the episodes' shows), `albums` (the tracks'), `contributors`
+    /// (credited on any of those).
+    pub include: Option<String>,
+}
+
+/// The caller's progress, most recently changed first: on one kind or several, and with
+/// `unfinished=true&include=items,podcasts` the "continue listening" row in one request.
 #[utoipa::path(get, path = "/me/progress", tag = "state", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
-    params(KindPage),
-    responses((status = 200, body = Page<Progress>), (status = 400, description = "`unsupported_kind`", body = crate::v2::problem::ProblemBody)))]
-pub async fn list_progress(family: FamilyContext, State(state): State<AppState>, Query(q): Query<KindPage>) -> Result<Json<Page<Progress>>, Problem> {
-    let k = kind(&q.kind, Kind::has_progress, "progress")?;
-    let page = q.page();
+    params(ProgressQuery),
+    responses((status = 200, body = Page<Progress>), (status = 400, description = "`unsupported_kind`, `invalid_include`", body = crate::v2::problem::ProblemBody)))]
+pub async fn list_progress(family: FamilyContext, State(state): State<AppState>, Query(q): Query<ProgressQuery>) -> Result<Json<Page<Progress>>, Problem> {
+    let kinds = progress_kinds(&q.kind)?;
+    let include = ProgressInclude::parse(q.include.as_deref())?;
+    let page = PageQuery { limit: q.limit, cursor: q.cursor.clone() };
     let limit = page.limit()?;
-    let rows = user_state::list_progress(state.db(), family.viewer(), k, page.after()?, limit + 1).await?;
-    let page = Page::from_rows(rows, limit, |p| (p.updated_at, p.item_id));
-    Ok(Json(Page { items: page.items.into_iter().map(|p| progress(k, p)).collect(), next: page.next, included: None }))
+    let rows = user_state::list_progress_of(state.db(), family.viewer(), &kinds, q.unfinished.unwrap_or(false), page.after()?, limit + 1).await?;
+    let page = Page::from_rows(rows, limit, |(_, p)| (p.updated_at, p.item_id));
+    let included = included_for_progress(&state, &family, &include, &page.items).await?;
+    Ok(Json(Page { items: page.items.into_iter().map(|(k, p)| progress(k, p)).collect(), next: page.next, included }))
+}
+
+fn progress_kinds(raw: &str) -> Result<Vec<Kind>, Problem> {
+    let mut out: Vec<Kind> = Vec::new();
+    for part in raw.split(',').map(str::trim).filter(|p| !p.is_empty()) {
+        let k = kind(part, Kind::has_progress, "progress")?;
+        if !out.contains(&k) {
+            out.push(k);
+        }
+    }
+    if out.is_empty() {
+        return Err(Problem::bad_request("unsupported_kind", "kind is `track`, `book` or `episode`, or several").field("kind", "invalid", raw.to_string()));
+    }
+    Ok(out)
+}
+
+#[derive(Default, Debug, PartialEq)]
+pub(crate) struct ProgressInclude {
+    items: bool,
+    podcasts: bool,
+    albums: bool,
+    contributors: bool,
+}
+
+impl ProgressInclude {
+    pub(crate) fn parse(raw: Option<&str>) -> Result<Self, Problem> {
+        let mut w = ProgressInclude::default();
+        for part in raw.unwrap_or("").split(',').map(str::trim).filter(|p| !p.is_empty()) {
+            match part {
+                "items" => w.items = true,
+                "podcasts" => w.podcasts = true,
+                "albums" => w.albums = true,
+                "contributors" => w.contributors = true,
+                other => {
+                    return Err(Problem::bad_request("invalid_include", format!("`{other}` cannot be included here; one of: items, podcasts, albums, contributors"))
+                        .field("include", "invalid", other.to_string()));
+                }
+            }
+        }
+        Ok(w)
+    }
+
+    fn any(&self) -> bool {
+        self.items || self.podcasts || self.albums || self.contributors
+    }
+}
+
+/// The records a page of progress refers to, each once, and only what the caller can see.
+async fn included_for_progress(
+    state: &AppState,
+    family: &FamilyContext,
+    w: &ProgressInclude,
+    items: &[(Kind, user_state::Progress)],
+) -> Result<Option<crate::v2::music::Included>, Problem> {
+    use crate::db::catalog;
+    use crate::v2::{music, spoken};
+    use std::collections::BTreeSet;
+    if !w.any() {
+        return Ok(None);
+    }
+    let pool = state.db();
+    let viewer = family.viewer();
+    let ids_of = |k: Kind| -> Vec<Uuid> { items.iter().filter(|(kind, _)| *kind == k).map(|(_, p)| p.item_id).collect::<BTreeSet<_>>().into_iter().collect() };
+    let tracks = music::tracks(state, catalog::tracks_by_ids(pool, viewer, &ids_of(Kind::Track)).await?).await?;
+    let book_rows = catalog::books_by_ids(pool, viewer, &ids_of(Kind::Book)).await?;
+    let book_ids: Vec<Uuid> = book_rows.iter().map(|b| b.id).collect();
+    let mut book_credits = spoken::credits_of(state, "book", &book_ids).await?;
+    let books: Vec<spoken::Book> = book_rows
+        .into_iter()
+        .map(|b| {
+            let c = book_credits.remove(&b.id).unwrap_or_default();
+            spoken::book(state, b, c)
+        })
+        .collect();
+    let episodes: Vec<spoken::Episode> = catalog::episodes_by_ids(pool, viewer, &ids_of(Kind::Episode)).await?.into_iter().map(|e| spoken::episode(state, e)).collect();
+    let mut podcasts = Vec::new();
+    if w.podcasts {
+        let ids: Vec<Uuid> = episodes.iter().map(|e| e.podcast_id).collect::<BTreeSet<_>>().into_iter().collect();
+        let rows = catalog::podcasts_by_ids(pool, viewer, &ids).await?;
+        let row_ids: Vec<Uuid> = rows.iter().map(|r| r.id).collect();
+        let mut credits = spoken::credits_of(state, "podcast", &row_ids).await?;
+        for row in rows {
+            let c = credits.remove(&row.id).unwrap_or_default();
+            podcasts.push(spoken::podcast(state, row, c));
+        }
+    }
+    let wanted = music::wanted(
+        Some(match (w.albums, w.contributors) {
+            (true, true) => "albums,contributors",
+            (true, false) => "albums",
+            (false, true) => "contributors",
+            (false, false) => "",
+        }),
+        &["albums", "contributors"],
+    )?;
+    let credited: Vec<Uuid> = tracks
+        .iter()
+        .flat_map(|t| t.credits.iter())
+        .chain(books.iter().flat_map(|b| b.credits.iter()))
+        .chain(podcasts.iter().flat_map(|p| p.credits.iter()))
+        .map(|c| c.contributor_id)
+        .collect();
+    let mut out = music::included(
+        state,
+        viewer,
+        &wanted,
+        credited.into_iter(),
+        tracks.iter().filter_map(|t| t.album_id),
+        std::iter::empty(),
+        std::iter::empty(),
+    )
+    .await?
+    .unwrap_or_default();
+    out.podcasts = podcasts;
+    if w.items {
+        out.tracks = tracks;
+        out.books = books;
+        out.episodes = episodes;
+    }
+    Ok(Some(out))
 }
 
 /// Where the caller is in one item, and where each of their devices last was.
@@ -720,4 +859,27 @@ pub async fn push(auth: AuthUser, family: FamilyContext, State(state): State<App
         out.push(result(&c.client_id, outcome));
     }
     Ok(Json(out))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn progress_takes_one_kind_or_several() {
+        assert_eq!(progress_kinds("book").unwrap(), vec![Kind::Book]);
+        assert_eq!(progress_kinds("book, episode,book").unwrap(), vec![Kind::Book, Kind::Episode]);
+        assert_eq!(progress_kinds("album").unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds("book,album").unwrap_err().code(), "unsupported_kind");
+        assert_eq!(progress_kinds(" , ").unwrap_err().code(), "unsupported_kind");
+    }
+
+    #[test]
+    fn progress_includes_what_it_lists() {
+        assert_eq!(ProgressInclude::parse(None).unwrap(), ProgressInclude::default());
+        let w = ProgressInclude::parse(Some("items, podcasts")).unwrap();
+        assert!(w.items && w.podcasts && !w.albums && !w.contributors);
+        assert!(ProgressInclude::parse(Some("albums,contributors")).unwrap().any());
+        assert_eq!(ProgressInclude::parse(Some("items,genres")).unwrap_err().code(), "invalid_include");
+    }
 }

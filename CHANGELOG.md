@@ -36,6 +36,22 @@ semver. Each release states the **API contract revision** it serves
 - `docs/api-v2-rules.md` rule 4: lists that grow with the catalog are cursor-paged; lists
   bounded by the household may stay arrays.
 
+- The change feed (`/api/v2/sync/changes`) also carries: a move or rename in the own.audio
+  folder (one change of the item, with its new `path`); a per-item grant (a change of that item
+  for that member only); a member's media policy (a `reset` for that member only); a checksum
+  computed after the upload; and what an item makes visible when it appears, is shared,
+  unshared, trashed or moved — its album, release group, recording, genres and contributors,
+  and a show's episodes. Before, a member could receive a shared track without its album, or a
+  shared show without its episodes. Migration 0126.
+- A new member joining the household is a `reset` for the newcomer only, and for everyone only
+  when they bring a library along; before, every new account sent every device in the household
+  back to a full snapshot.
+- Continue listening reads a listener's progress newest first through new indexes
+  (`(user_id, updated_at)` on track and episode progress): 0.7 ms instead of 33 ms for 15,000
+  unfinished songs in a 600,000-track catalog.
+- `POST /api/v2/books` and an uploaded episode queue the checksum of their files at once, as a
+  track upload does, instead of waiting for the periodic sweep.
+
 - Console wording follows `i18n/GLOSSARY.md` and matches the apps: American English throughout
   (catalog, favorites, canceled, recognize); Czech "obálka" for a cover, never "obal"; the
   permanent-delete dialogs say "Smazat" in their text as in their titles. The glossary records
@@ -114,12 +130,43 @@ semver. Each release states the **API contract revision** it serves
   `conformance/compose.feeds.yml` lets a test stack fetch it (and `filesync`'s and `gpodder`'s)
   on Linux, `conformance/compose.mail.yml` gives a test stack a mail catcher; CI's conformance
   job uses both.
+- `GET /api/v2/sync/changes?kinds=` — read only some kinds (`track,book`, or one kind of state
+  such as `progress.episode`), filtered by the server; a `reset` always comes through. v2
+  revision 5.
+- `GET /api/v2/sync/snapshot?fields=ids` — the snapshot as `{type: id, kind, id}` lines without
+  records, for a client checking that what it holds is still there (about 60 bytes an item;
+  replaces v1's `/sync/tree/ids`). v2 revision 5.
+- The `member` kind in `/api/v2/sync/snapshot` and `/sync/changes` (`MemberRecord`: `user_id`,
+  `display_name`, `label`, `image`, `left_at`): everyone in the household and everyone who left
+  it, so an owner id always has a name. Someone who leaves keeps the name the household knew;
+  a deleted account keeps none. A rename or a new picture is a change of the record. v2
+  revision 5.
+- `path` on `Track`, `Book` and `Episode` (where the file or folder sits in the owner's own.audio
+  folder), `sha256` on `Track` and `Episode`, `relative_path` and `sha256` on `BookFile`; in the
+  create answers (`POST /tracks`, `POST /books`, `POST /podcasts/{id}/episodes`) too. v2
+  revision 5.
+- `GET /api/v2/me/progress` takes several kinds (`kind=track,book,episode`, one list, most
+  recent first), `unfinished=true`, and `include=items,podcasts,albums,contributors` with the
+  records embedded once in `included` (`tracks`, `books`, `episodes`, `podcasts`): continue
+  listening in one request (v1's `/library/continue`). v2 revision 5.
+- Conformance: the `v2_sync` suite — a copy built from a snapshot and the change feed equals a
+  fresh snapshot, for the owner and for another member, after uploads, a rename, sharing, a
+  grant and a deletion; `kinds=` paging without loss; the ids-only snapshot against the full one;
+  member records through a rename and an account deletion; continue listening. `filesync` runs
+  on a server with one household, skipping its outsider checks there.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
   webhook can lag the redirect. `?topup=cancelled` says nothing was charged.
 - Console: `credit_topup` notifications (hosted servers) in the user's language, from their
   `data`.
+
+### Fixed
+
+- Deleting an account that follows a podcast failed (`500`): the gPodder subscription log
+  wrote an entry for the account being deleted. Migration 0126.
+- A member moving from one household to another in one step reached only the household they
+  left through the change feed; the change log keeps one row per household now.
 
 ### Security
 

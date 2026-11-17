@@ -445,6 +445,9 @@ pub struct TrackRow {
     pub source: String,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
+    /// Where it sits in its owner's own.audio folder (`sync_paths`).
+    pub path: Option<String>,
+    pub sha256: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     /// `lower(title)` as the database orders it, for the cursor.
@@ -455,6 +458,8 @@ const TRACK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.album_id, t.r
     t.track_number, t.duration_secs, t.cover_object_id, t.source,
     (SELECT o.size_bytes FROM media_objects o WHERE o.id = t.audio_object_id) AS size_bytes,
     (SELECT o.content_type FROM media_objects o WHERE o.id = t.audio_object_id) AS content_type,
+    (SELECT p.path FROM sync_paths p WHERE p.kind = 'music_track' AND p.item_id = t.id) AS path,
+    (SELECT o.sha256 FROM media_objects o WHERE o.id = t.audio_object_id) AS sha256,
     t.created_at, t.updated_at, lower(t.title) AS sort_key";
 
 #[derive(Debug, Default)]
@@ -570,13 +575,16 @@ pub struct BookRow {
     pub published_year: Option<i32>,
     pub cover_object_id: Option<Uuid>,
     pub source: String,
+    /// Its folder in its owner's own.audio folder (`sync_paths`).
+    pub path: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub sort_key: String,
 }
 
 const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
-    t.publisher, t.published_year, t.cover_object_id, t.source, t.created_at,
+    t.publisher, t.published_year, t.cover_object_id, t.source,
+    (SELECT p.path FROM sync_paths p WHERE p.kind = 'audiobook' AND p.item_id = t.id) AS path, t.created_at,
     t.updated_at, lower(t.title) AS sort_key";
 
 /// Where a page of books or podcasts starts: after this title, or before this time.
@@ -649,11 +657,13 @@ pub struct BookFileRow {
     pub duration_secs: Option<i32>,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
+    pub relative_path: Option<String>,
+    pub sha256: Option<String>,
 }
 
 pub async fn book_files(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<BookFileRow>> {
     sqlx::query_as::<_, BookFileRow>(
-        "SELECT f.id, f.position, f.title, f.duration_secs, m.size_bytes, m.content_type
+        "SELECT f.id, f.position, f.title, f.duration_secs, m.size_bytes, m.content_type, f.relative_path, m.sha256
            FROM audiobook_files f LEFT JOIN media_objects m ON m.id = f.audio_object_id
           WHERE f.book_id = $1 ORDER BY f.position, f.id",
     )
@@ -766,6 +776,9 @@ pub struct EpisodeRow {
     pub transcript_type: Option<String>,
     /// An uploaded episode's transcript file (migration 0116).
     pub transcript_object_id: Option<Uuid>,
+    /// Where a stored copy sits in its owner's own.audio folder (`sync_paths`).
+    pub path: Option<String>,
+    pub sha256: Option<String>,
     pub created_at: DateTime<Utc>,
     /// The order: published, or added when the feed gives no date.
     pub sort_at: DateTime<Utc>,
@@ -774,7 +787,9 @@ pub struct EpisodeRow {
 const EPISODE_COLS: &str = "e.id, e.feed_id AS podcast_id, e.guid, e.title, e.description, e.published_at,
     e.duration_secs, e.episode_number, e.season_number, e.audio_url, e.audio_object_id IS NOT NULL AS stored,
     m.size_bytes, m.content_type, e.image_object_id, e.image_url,
-    e.transcript_url, e.transcript_type, e.transcript_object_id, e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
+    e.transcript_url, e.transcript_type, e.transcript_object_id,
+    (SELECT p.path FROM sync_paths p WHERE p.kind = 'podcast_episode' AND p.item_id = e.id) AS path, m.sha256,
+    e.created_at, COALESCE(e.published_at, e.created_at) AS sort_at";
 
 /// A podcast's episodes, newest first.
 pub async fn list_episodes(

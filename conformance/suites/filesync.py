@@ -2,9 +2,10 @@
 """File sync: default paths, from-upload, the sync feed and cursor, shortcuts, holdings, auto-stored episodes, companion files, organise, fork.
 
 Ported from audio2/scripts/filesync_test.py (docs/file-sync-plan.md §5.2–§5.9).
-Builds a family (owner = family admin, adult = member) plus an outsider, then
-checks paths, the sync feed and its cursor, reconciliation ids, family
-shortcuts, device holdings and auto-stored podcast episodes. Serves a small
+Builds a family (owner = family admin, adult = member) plus an outsider in another
+household, then checks paths, the sync feed and its cursor, reconciliation ids, family
+shortcuts, device holdings and auto-stored podcast episodes. On a server with one household
+everyone is in it, so the outsider checks are skipped there. Serves a small
 RSS feed from this machine for the podcast part, reached from the backend
 container as host.docker.internal — hence REQUIRES local (loopback base URL
 plus --compose-dir for SQL).
@@ -113,8 +114,11 @@ def run(ctx: Ctx) -> None:
     server: _FeedServer | None = None
 
     try:
-        inv = call("POST", "/api/v1/family/invites", owner_tok, {"email": adult_email, "role": "member"})
-        call("POST", "/api/v1/family/invites/accept", adult_tok, {"code": inv["code"]})
+        # On a server with one household everyone is in it already, the outsider too.
+        one_household = ctx.feature("one_family")
+        if not one_household:
+            inv = call("POST", "/api/v1/family/invites", owner_tok, {"email": adult_email, "role": "member"})
+            call("POST", "/api/v1/family/invites/accept", adult_tok, {"code": inv["code"]})
 
         # ── Default paths ─────────────────────────────────────────────────────
         log("\n[default paths]")
@@ -327,8 +331,11 @@ def run(ctx: Ctx) -> None:
             check("a container that does not match the kind is 400", True)
         call("POST", "/api/v1/sync/shortcuts", adult_tok, {"member_id": adult_id, "kind": "music"}, expect=(400,))
         check("a shortcut to yourself is 400", True)
-        call("POST", "/api/v1/sync/shortcuts", adult_tok, {"member_id": out_id, "kind": "music"}, expect=(404,))
-        check("a shortcut to someone outside the family is 404", True)
+        if one_household:
+            ctx.skip("a shortcut to someone outside the family is 404", "the server has one household: nobody is outside it")
+        else:
+            call("POST", "/api/v1/sync/shortcuts", adult_tok, {"member_id": out_id, "kind": "music"}, expect=(404,))
+            check("a shortcut to someone outside the family is 404", True)
         priv = upload(ctx, owner_tok, f"Private {sfx}", visibility="private")
         call("POST", "/api/v1/sync/shortcuts", adult_tok, {"member_id": owner_id, "kind": "music",
              "container": {"kind": "album", "album": "Unknown Album", "album_artist": "Sync Test"}}, expect=(404,))
@@ -516,8 +523,11 @@ def run(ctx: Ctx) -> None:
             check("the track is at its new path, same id", items[tr["id"]]["path"] == applied[0]["to"])
             moved_companions = [v for v in items.values() if v.get("kind") == "companion_file" and v["path"].startswith(new_dir + "/")]
             check("its companions moved into the new folder", len(moved_companions) >= 2)
-            others = [i for i in mv if i != tr["id"]]
-            check("other tracks stayed", bool(others) and all(items[i]["path"] == before[i] for i in others))
+            # Everything else in the folder, not only what the preview listed: a song the
+            # fingerprint job set aside (quarantine) is not in the preview.
+            others = [i for i, v in items.items() if i != tr["id"] and i in before and v.get("kind") != "companion_file"]
+            moved_too = [(i, before.get(i), items.get(i, {}).get("path")) for i in others if items.get(i, {}).get("path") != before.get(i)]
+            check("other tracks stayed", bool(others) and not moved_too, str(moved_too)[:300])
             again = call("POST", "/api/v1/sync/paths/organise", owner_tok, {"kind": "music", "preview": True})
             check("organised items drop out of the next preview", tr["id"] not in {m["id"] for m in again})
             books = call("POST", "/api/v1/sync/paths/organise", owner_tok, {"kind": "audiobook"})

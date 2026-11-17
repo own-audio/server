@@ -16,6 +16,7 @@ use crate::v2::problem::Problem;
 use axum::Json;
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Deserializer, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -137,6 +138,34 @@ pub async fn list_members(family_ctx: FamilyContext, State(state): State<AppStat
             })
             .collect(),
     ))
+}
+
+/// Someone of the household as the change feed carries them (kind `member`): enough to
+/// name an item's owner. Everyone in the household, and everyone who left it, so an owner
+/// id always resolves. The rest of a member is on `GET /family/members`.
+#[derive(Serialize, ToSchema)]
+pub struct MemberRecord {
+    /// The account's id, as `owner_id` on items.
+    pub user_id: Uuid,
+    /// Absent for an account that was deleted.
+    pub display_name: Option<String>,
+    /// What the household calls them, when it differs ("Mum").
+    pub label: Option<String>,
+    /// Their picture: a signed link to `GET /images/{id}`, good for one to two weeks
+    /// (`GET /family/members` hands out a fresh one). None for someone who left.
+    pub image: Option<String>,
+    /// When they left the household; absent while they are in it.
+    pub left_at: Option<DateTime<Utc>>,
+}
+
+pub(crate) fn member_record(state: &AppState, row: crate::db::families::MemberRecordRow) -> MemberRecord {
+    MemberRecord {
+        user_id: row.user_id,
+        display_name: row.display_name,
+        label: row.label,
+        image: crate::v2::images::maybe_expiring(state, row.avatar_object_id),
+        left_at: row.left_at,
+    }
 }
 
 #[derive(Deserialize, ToSchema)]

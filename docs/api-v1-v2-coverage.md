@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 182 |
-| partly covered | 12 |
-| missing | 115 |
+| covered | 185 |
+| partly covered | 10 |
+| missing | 114 |
 | not carried over | 7 |
 | **total** | **316** |
 
@@ -24,8 +24,8 @@ grants stay on v1) or a route no client calls (the Stripe webhook). The hosted r
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 2, v2
-revision 4). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 3, v2
+revision 5). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -327,13 +327,13 @@ lists what is still open.
 | v1 operation | v2 | status | note |
 |---|---|---|---|
 | `GET /library/changes` | `GET /sync/changes`, `GET /sync/snapshot` | covered | Every kind, tombstones, user state. |
-| `GET /library/continue` | `GET /me/progress?kind=` | partly | One kind per call and no records along (`include=`). |
+| `GET /library/continue` | `GET /me/progress?kind=` | covered | `kind=track,book,episode&unfinished=true&include=items,podcasts`: one list across kinds, most recent first, the records embedded once. Translations follow with the hosted edition (phase 13). |
 | `GET /library/search` | `GET /search`, `GET /books?q=` | partly | `/search` is music only; podcasts and episodes cannot be searched. |
 | `GET /library/private` | `owner_id`, `visibility` on records | partly | No filter on the lists; a client filters its synced records. |
 | `GET /library/folders` | — | missing | Server-side library folders and their last scan. |
 | `POST /library/folders/scan` | — | missing |  |
-| `GET /sync/tree` | `GET /sync/changes` | partly | No `path` or `sha256` on records, no rename triggers. |
-| `GET /sync/tree/ids` | — | missing | An ids-only snapshot. |
+| `GET /sync/tree` | `GET /sync/changes` | covered | With `GET /sync/snapshot`: `path` and `sha256` on tracks, books and episodes, `relative_path` and `sha256` on book files; renames, grants and policy changes in the feed; owners' names as `member` records, people who left included; `kinds=` to read only what the folder shows. Companion files have rows of their own below. |
+| `GET /sync/tree/ids` | `GET /sync/snapshot` | covered | `fields=ids`: `{type: id, kind, id}` lines, every kind (v1: the folder's), about 60 bytes an item. |
 | `POST /sync/paths/organise` | — | missing | Move items to their default folder paths. |
 | `GET /sync/holdings` | — | missing |  |
 | `PUT /sync/holdings` | — | missing |  |

@@ -30,14 +30,19 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] **Podcast feeds** (v2 revision 4): follow (`POST /podcasts` with `feed_url`), unfollow
       (`DELETE /podcasts/{id}`), refresh (`POST /podcasts/{id}/refresh`, `POST /podcasts/refresh`).
       (M T W Ap)
-- [ ] **File sync records:** `path` on track, book, episode; `relative_path` and `sha256` on
-      book files; `sha256` on tracks and episodes; also in the create answers. (S, so M W)
-- [ ] **Change log triggers** for `sync_paths` (renames) and `content_grants`. (S)
+- [x] **File sync records** (v2 revision 5): `path` on track, book, episode; `relative_path`
+      and `sha256` on book files; `sha256` on tracks and episodes; also in the create answers.
+      (S, so M W)
+- [x] **Change log triggers** for `sync_paths` (renames) and `content_grants` (v2 revision 5;
+      also media policies as a reset for that member, checksums, and what sharing an item
+      makes visible: its album, contributors, a show's episodes). (S)
 - [ ] **Companion files** as a sync kind with create, visibility, delete, download. (S)
-- [ ] **`/sync/changes?kinds=`**, and an ids-only snapshot for the reconcile. (S, A)
-- [ ] **A `member` record kind** for owner names, including people who left. (S)
-- [ ] **Continue listening in one read:** `include=` on `GET /me/progress` (or a batch lookup).
-      (T Ap)
+- [x] **`/sync/changes?kinds=`**, and an ids-only snapshot for the reconcile
+      (`/sync/snapshot?fields=ids`; v2 revision 5). (S, A)
+- [x] **A `member` record kind** for owner names, including people who left (v2 revision 5).
+      (S)
+- [x] **Continue listening in one read** (v2 revision 5): `GET /me/progress` with several
+      kinds, `unfinished=true` and `include=items,podcasts`. (T Ap)
 
 ## 2. Account and sign-in
 

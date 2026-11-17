@@ -33,11 +33,14 @@ pub struct Book {
     pub visibility: String,
     pub owner_id: Uuid,
     pub source: String,
+    /// Its folder in its owner's own.audio folder (`Audiobooks/Author/Title`); the files'
+    /// `relative_path`s are inside it.
+    pub path: Option<String>,
     /// Its cover (`GET /images/{id}`; add `w` for the size).
     pub image: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
-    /// Only on `GET /books/{id}`.
+    /// Only on `GET /books/{id}`, in the change feed and the snapshot.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<BookFile>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -55,6 +58,10 @@ pub struct BookFile {
     pub duration_ms: Option<i64>,
     pub size_bytes: Option<i64>,
     pub content_type: Option<String>,
+    /// Its path inside the book's folder (`path`); absent while the server is still naming it.
+    pub relative_path: Option<String>,
+    /// SHA-256 of the file, hex; absent until the server has read it once.
+    pub sha256: Option<String>,
 }
 
 /// A chapter: where it starts in the whole book, across files.
@@ -126,6 +133,10 @@ pub struct Episode {
     /// transcript (renewed with the record, like `image`).
     pub transcript_url: Option<String>,
     pub transcript_type: Option<String>,
+    /// Where the stored copy sits in the show owner's own.audio folder; absent when not stored.
+    pub path: Option<String>,
+    /// SHA-256 of the stored copy, hex.
+    pub sha256: Option<String>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -210,6 +221,7 @@ pub(crate) fn book(state: &AppState, row: catalog::BookRow, credits: Vec<Credit>
         visibility: visibility_of(row.family_id).to_string(),
         owner_id: row.user_id,
         source: row.source,
+        path: row.path,
         image: crate::v2::images::maybe(state, row.cover_object_id),
         created_at: row.created_at,
         updated_at: row.updated_at,
@@ -261,6 +273,8 @@ pub(crate) fn episode(state: &AppState, row: catalog::EpisodeRow) -> Episode {
         // same endpoint as images, which serves any stored object with its own type.
         transcript_url: row.transcript_url.or_else(|| crate::v2::images::maybe(state, row.transcript_object_id)),
         transcript_type: row.transcript_type,
+        path: row.path,
+        sha256: row.sha256,
         created_at: row.created_at,
     }
 }
@@ -409,6 +423,8 @@ pub(crate) async fn full_book(state: &AppState, row: catalog::BookRow) -> Result
                 duration_ms: f.duration_secs.map(|s| i64::from(s) * 1000),
                 size_bytes: f.size_bytes,
                 content_type: f.content_type,
+                relative_path: f.relative_path,
+                sha256: f.sha256,
             })
             .collect(),
     );

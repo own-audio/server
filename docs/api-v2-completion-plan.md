@@ -167,7 +167,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 0 | Groundwork: v2 media path, people's pictures, image links, test tools — **done** | 2 | M | everything; v1 removal |
 | 1 | Account and sign-in — **done** | 23 | L | W Ab Am Ap M |
 | 2 | Podcast feeds and directory — **done** | 16 | L | M T W Ap |
-| 3 | Sync essentials and continue listening | 3 | M | S (so M W), A, T |
+| 3 | Sync essentials and continue listening — **done** | 3 | M | S (so M W), A, T |
 | 4 | Deletion and trash | 7 | M | M W Am, S |
 | 5 | Books: editing, files, series, collections, tags, authors, images | 34 | L | W Ab M |
 | 6 | Music remainder and playlists in sync | 17 | M | M W Am |
@@ -211,7 +211,7 @@ Tables a client caches that do not write to the change log yet (each phase below
 triggers): `music_playlists` and `music_playlist_tracks`, `music_smart_playlists` (phase 6);
 `audiobook_series`, `audiobook_series_books`, `audiobook_collections`,
 `audiobook_collection_books`, `audiobook_tags`, `audiobook_book_tags` (phase 5); `sync_paths`,
-`content_grants`, `family_members` (phase 3); `companion_files_all`, `sync_shortcuts`
+`content_grants`, `family_members` (phase 3, done); `companion_files_all`, `sync_shortcuts`
 (phase 11); `play_queues`, `pending_notifications`, `device_push_tokens` (phase 8).
 
 v1 ops: `GET /media`, `PUT /media` (partly).
@@ -389,7 +389,50 @@ removal in the change feed; store and drop an episode; unplayed counts drop afte
 transcript parsed from a served VTT/SRT; directory routes skipped when the module is off (CI has
 no outbound network), checked through a stub in a unit test.
 
-### Phase 3 — sync essentials and continue listening (M)
+### Phase 3 — sync essentials and continue listening (M) — done 2026-11-17
+
+Done, v2 revision 5: everything in the table below; the 3 rows covered (`GET /library/continue`,
+`GET /sync/tree`, `GET /sync/tree/ids`), and the gaps plan's §1 lines for file facts, triggers,
+`kinds=`, the ids-only snapshot, `member` and continue listening ticked. Migration 0126. Unit
+tests for the kinds, include and progress-kind parsing; the conformance suite `v2_sync` covers
+behaviour (a copy built from a snapshot and the change feed equals a fresh snapshot, for the
+owner and for another member). What the plan said, with these differences:
+
+- The ids-only snapshot is `fields=ids` with `{"type":"id","kind","id"}` lines, no `version`:
+  the reconcile needs ids, the change feed brings updates. A state line resumes its kind whole.
+- `MemberRecord` is `{user_id, display_name, label, image, left_at}` (`label` as on `Member`).
+  Someone who moves to another household keeps the name the household knew (new table
+  `family_former_members`); a deleted account stays a record with `left_at` and **no name**
+  (decided the safer way: an erased account leaves no name behind). On a one-household server
+  nobody leaves but by deleting the account, so the name-kept case is tested only where there
+  are several households. A former member has no `image`.
+- `include=` on `/me/progress` takes `items`, `podcasts`, `albums`, `contributors`; embedded
+  books are the list shape (no files). `Included` gains `tracks`, `books`, `episodes`,
+  `podcasts`.
+- `kinds=` on `/sync/changes` also takes one kind of state (`progress.episode`), and a `reset`
+  always comes through. `member` is first in the snapshot's kinds and in its default.
+- More triggers than the plan named, each because the reproduce check needed it: a grant is a
+  change of the item (and what it refers to) for that member only; a member's media policy is a
+  `reset` for that member only (the whole-kind gap the reconcile used to cover); a computed
+  checksum re-sends the items that play the file (three partial indexes on `audio_object_id`);
+  an item that appears, is shared, unshared, trashed, quarantined or missing also logs its
+  album, release group, recording, genres and contributors, and a show its episodes (before, a
+  member could get a shared track without its album, a shared show without its episodes); a
+  credit logs its contributor, a track genre its genre.
+- The change log's one-row-per-transaction index now includes the household, so a move between
+  households logs the member for both.
+- Joining a household is a `reset` for the newcomer, and for the household only when the
+  newcomer brings a library (0109 reset everyone on every new account).
+- Measured on 610,000 tracks (`CAPACITY.md`): two indexes for continue listening (progress by
+  listener and time, music and episodes: 33 ms → 0.7 ms), three for the checksum trigger; the
+  ids-only snapshot is about 37 MB; the new triggers add about 10 % to inserting tracks.
+- Fixed on the way: deleting an account that follows a podcast failed (`500`, the gPodder log
+  wrote for the deleted account). `POST /books` and uploaded episodes queue their checksums at
+  once, as tracks do.
+- `filesync` runs on a one-household server (its outsider checks skip there); with
+  `--compose-dir` it passes. `trash` still fails there and waits for phase 4, so CI keeps
+  running without `--compose-dir` until then.
+
 
 v1 ops (partly/missing): `GET /library/continue`, `GET /sync/tree`, `GET /sync/tree/ids`. Plus
 the gaps plan's blocking lines: `kinds=`, the `member` kind, `include=` on progress, file fields,

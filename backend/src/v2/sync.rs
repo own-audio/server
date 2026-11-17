@@ -12,7 +12,12 @@
 //!
 //! Records are the shapes of the rest of v2 (`Track`, `Album`, …); a listener's
 //! state comes as `favourite.<kind>`, `rating.<kind>`, `progress.<kind>` and
-//! `bookmark`, with the record of `GET /me/…`.
+//! `bookmark`, with the record of `GET /me/…`; the household's people as
+//! `member` (`MemberRecord`), those who left included.
+//!
+//! Both take `kinds=` so a client reads only what it keeps, and the snapshot
+//! answers ids alone (`fields=ids`) for a client that only checks what it holds
+//! is still there.
 
 use crate::app::AppState;
 use crate::auth::middleware::AuthUser;
@@ -36,9 +41,47 @@ use uuid::Uuid;
 
 /// The kinds a snapshot can hold, in the order it sends them.
 pub const SNAPSHOT_KINDS: &[&str] =
-    &["contributor", "release_group", "album", "genre", "track", "book", "podcast", "episode", "favourite", "rating", "progress", "bookmark"];
+    &["member", "contributor", "release_group", "album", "genre", "track", "book", "podcast", "episode", "favourite", "rating", "progress", "bookmark"];
+
+/// The kinds of the change feed: the snapshot's, and recordings (a track's
+/// `recording_id`; `GET /recordings/{id}`).
+pub const CHANGE_KINDS: &[&str] = &[
+    "member", "contributor", "release_group", "album", "genre", "recording", "track", "book", "podcast", "episode", "favourite", "rating", "progress",
+    "bookmark",
+];
+
+/// A listener's own state, small enough to send in one go.
+const STATE_KINDS: &[&str] = &["favourite", "rating", "progress", "bookmark"];
 
 const BATCH: i64 = 500;
+/// Ids only are small: more of them a round.
+const ID_BATCH: i64 = 5000;
+
+/// `kinds=` as a list of known kinds, or `None` for all of them. `favourite.track` and the
+/// like name one kind of a listener's state; `favourite` all of them.
+pub(crate) fn parse_kinds(raw: Option<&str>, known: &[&str], dotted: bool) -> Result<Option<Vec<String>>, Problem> {
+    let Some(list) = raw.map(str::trim).filter(|k| !k.is_empty()) else { return Ok(None) };
+    let mut wanted: Vec<String> = Vec::new();
+    for k in list.split(',').map(str::trim).filter(|k| !k.is_empty()) {
+        let ok = known.contains(&k)
+            || (dotted
+                && k.split_once('.').is_some_and(|(state, of)| {
+                    Kind::parse(of).is_some_and(|kind| match state {
+                        "favourite" => kind.can_favourite(),
+                        "rating" => kind.can_rate(),
+                        "progress" => kind.has_progress(),
+                        _ => false,
+                    })
+                }));
+        if !ok {
+            return Err(Problem::bad_request("invalid_kind", format!("`{k}` is not a kind here")).field("kinds", "invalid", k.to_string()));
+        }
+        if !wanted.iter().any(|w| w == k) {
+            wanted.push(k.to_string());
+        }
+    }
+    Ok(Some(wanted))
+}
 
 fn json_of<T: Serialize>(value: T) -> Result<Value, Problem> {
     serde_json::to_value(value).map_err(|e| Problem::internal(anyhow::anyhow!(e)))
@@ -51,6 +94,12 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
     let viewer = family.viewer();
     let mut out = Vec::new();
     match kind {
+        "member" => {
+            for row in crate::db::families::member_records(pool, family.family_id, Some(ids)).await? {
+                let m = crate::v2::household::member_record(state, row);
+                out.push((m.user_id, json_of(m)?));
+            }
+        }
         "track" => {
             let rows = catalog::tracks_by_ids(pool, viewer, ids).await?;
             for t in music::tracks(state, rows).await? {
@@ -175,11 +224,17 @@ pub struct ChangesQuery {
     pub cursor: Option<String>,
     /// Log rows to read, 1 to 1000; 500 when absent.
     pub limit: Option<i64>,
+    /// Comma-separated kinds to read, every kind when absent: `member`, `contributor`,
+    /// `release_group`, `album`, `genre`, `recording`, `track`, `book`, `podcast`,
+    /// `episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state
+    /// (`progress.episode`). Filtered by the server, so the other kinds cost nothing; keep
+    /// passing the same list with the cursor. A `reset` always comes through.
+    pub kinds: Option<String>,
 }
 
 #[derive(Serialize, ToSchema)]
 pub struct Change {
-    /// `track`, `album`, …, `favourite.track`, `progress.book`, `bookmark`.
+    /// `track`, `album`, …, `member`, `favourite.track`, `progress.book`, `bookmark`.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -206,7 +261,7 @@ pub struct ChangesAnswer {
     extensions(("x-permission" = json!("member"))),
     params(ChangesQuery),
     responses((status = 200, body = ChangesAnswer),
-        (status = 400, description = "`invalid_cursor`", body = crate::v2::problem::ProblemBody),
+        (status = 400, description = "`invalid_cursor`, `invalid_kind`, `invalid_limit`", body = crate::v2::problem::ProblemBody),
         (status = 410, description = "`sync_cursor_expired`: take a new snapshot", body = crate::v2::problem::ProblemBody)))]
 pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<AppState>, Query(q): Query<ChangesQuery>) -> Result<Json<ChangesAnswer>, Problem> {
     let limit = match q.limit {
@@ -214,6 +269,7 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
         Some(n) if (1..=1000).contains(&n) => n,
         Some(_) => return Err(Problem::bad_request("invalid_limit", "limit is 1 to 1000").field("limit", "out_of_range", "1 to 1000")),
     };
+    let kinds = parse_kinds(q.kinds.as_deref(), CHANGE_KINDS, true)?;
     let Some(raw) = q.cursor.as_deref().filter(|c| !c.trim().is_empty()) else {
         let cursor = changes::now(state.db()).await?;
         return Ok(Json(ChangesAnswer { changes: Vec::new(), cursor: cursor.encode(), has_more: false, reset: false }));
@@ -222,7 +278,7 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
     if cursor.expired() {
         return Err(Problem::new(StatusCode::GONE, "sync_cursor_expired").detail("the change log no longer reaches back that far: take a new snapshot"));
     }
-    let (rows, next, has_more) = changes::read(state.db(), family.viewer(), &cursor, limit).await?;
+    let (rows, next, has_more) = changes::read(state.db(), family.viewer(), &cursor, kinds.as_deref(), limit).await?;
     if rows.iter().any(|(k, _)| k == "reset") {
         let fresh = changes::now(state.db()).await?;
         return Ok(Json(ChangesAnswer { changes: Vec::new(), cursor: fresh.encode(), has_more: false, reset: true }));
@@ -253,10 +309,13 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct SnapshotQuery {
-    /// Comma-separated kinds; all of them when absent: `contributor`,
+    /// Comma-separated kinds; all of them when absent: `member`, `contributor`,
     /// `release_group`, `album`, `genre`, `track`, `book`, `podcast`,
     /// `episode`, `favourite`, `rating`, `progress`, `bookmark`.
     pub kinds: Option<String>,
+    /// `ids`: each line names a record (`{"type":"id","kind","id"}`) without it, for a client
+    /// that checks what it holds is still there; about 60 bytes a line instead of a record.
+    pub fields: Option<String>,
     /// To resume a broken snapshot: the last line's `kind` and `id`, as `kind:id`…
     pub after: Option<String>,
     /// …with the `begin` line's cursor, so the changes after it still follow on.
@@ -264,26 +323,24 @@ pub struct SnapshotQuery {
 }
 
 /// Everything the caller can see, as NDJSON: a `begin` line with the cursor,
-/// one `record` line per item, an `end` line with the same cursor for
-/// `GET /sync/changes`.
+/// one `record` line per item (or one `id` line with `fields=ids`), an `end`
+/// line with the same cursor for `GET /sync/changes`.
 #[utoipa::path(get, path = "/sync/snapshot", tag = "sync", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(SnapshotQuery),
-    responses((status = 200, description = "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines, then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`.", content_type = "application/x-ndjson"),
-        (status = 400, description = "`invalid_kind`, `invalid_cursor`", body = crate::v2::problem::ProblemBody)))]
+    responses((status = 200, description = "`application/x-ndjson`: `{\"type\":\"begin\",\"cursor\"}`, then `{\"type\":\"record\",\"kind\",\"id\",\"record\"}` lines (`{\"type\":\"id\",\"kind\",\"id\"}` with `fields=ids`), then `{\"type\":\"end\",\"cursor\"}`. A body that stops before `end` was cut: resume with `after` and `cursor`.", content_type = "application/x-ndjson"),
+        (status = 400, description = "`invalid_kind`, `invalid_fields`, `invalid_cursor`, `invalid_after`", body = crate::v2::problem::ProblemBody)))]
 pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State<AppState>, Query(q): Query<SnapshotQuery>) -> Result<Response, Problem> {
-    let kinds: Vec<String> = match q.kinds.as_deref().map(str::trim).filter(|k| !k.is_empty()) {
+    let kinds: Vec<String> = match parse_kinds(q.kinds.as_deref(), SNAPSHOT_KINDS, false)? {
         None => SNAPSHOT_KINDS.iter().map(|k| k.to_string()).collect(),
-        Some(list) => {
-            let mut wanted = Vec::new();
-            for k in list.split(',').map(str::trim).filter(|k| !k.is_empty()) {
-                if !SNAPSHOT_KINDS.contains(&k) {
-                    return Err(Problem::bad_request("invalid_kind", format!("`{k}` is not in a snapshot")).field("kinds", "invalid", k.to_string()));
-                }
-                wanted.push(k.to_string());
-            }
-            // Always in the snapshot's own order, so `after` means the same thing.
-            SNAPSHOT_KINDS.iter().filter(|k| wanted.iter().any(|w| w == *k)).map(|k| k.to_string()).collect()
+        // Always in the snapshot's own order, so `after` means the same thing.
+        Some(wanted) => SNAPSHOT_KINDS.iter().filter(|k| wanted.iter().any(|w| w == *k)).map(|k| k.to_string()).collect(),
+    };
+    let ids_only = match q.fields.as_deref().map(str::trim) {
+        None | Some("") => false,
+        Some("ids") => true,
+        Some(other) => {
+            return Err(Problem::bad_request("invalid_fields", format!("fields is `ids` or absent, not `{other}`")).field("fields", "invalid", other.to_string()));
         }
     };
     let cursor = match q.cursor.as_deref().filter(|c| !c.is_empty()) {
@@ -309,13 +366,33 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
         if tx.send(line(json!({ "type": "begin", "cursor": encoded }))).await.is_err() {
             return;
         }
-        let start = after.as_ref().and_then(|(k, _)| kinds.iter().position(|x| x == k)).unwrap_or(0);
+        // A state line names its kind as `favourite.track`: resume in `favourite`.
+        let base = |k: &str| k.split('.').next().unwrap_or(k).to_string();
+        let start = after.as_ref().and_then(|(k, _)| kinds.iter().position(|x| *x == base(k))).unwrap_or(0);
         for (i, kind) in kinds.iter().enumerate().skip(start) {
             let mut last = match &after {
-                Some((k, id)) if i == start && k == kind => *id,
+                // The household's people and a listener's state come whole: sent again.
+                Some((k, id)) if i == start && base(k) == *kind && !is_whole(kind) => *id,
                 _ => Uuid::nil(),
             };
             loop {
+                if ids_only {
+                    let page = match id_page(&state, &family, kind, last).await {
+                        Ok(page) => page,
+                        Err(e) => {
+                            tracing::warn!("snapshot ids of {kind} stopped: {}", e.code());
+                            return;
+                        }
+                    };
+                    let Some(next) = page.last_id else { break };
+                    for (wire, id) in page.ids {
+                        if tx.send(line(json!({ "type": "id", "kind": wire, "id": id }))).await.is_err() {
+                            return;
+                        }
+                    }
+                    last = next;
+                    continue;
+                }
                 let page = match snapshot_page(&state, &family, &auth, kind, last).await {
                     Ok(page) => page,
                     Err(e) => {
@@ -342,6 +419,10 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
     Ok(([(header::CONTENT_TYPE, "application/x-ndjson")], body).into_response())
 }
 
+fn is_whole(kind: &str) -> bool {
+    kind == "member" || STATE_KINDS.contains(&kind)
+}
+
 struct SnapshotPage {
     records: Vec<(Uuid, Value)>,
     /// The last id this page walked past; `None` when the kind is done.
@@ -360,6 +441,21 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
     let pool = state.db();
     let viewer = family.viewer();
     match kind {
+        "member" => {
+            if after != Uuid::nil() {
+                return Ok(SnapshotPage { records: Vec::new(), last_id: None });
+            }
+            let records = crate::db::families::member_records(pool, family.family_id, None)
+                .await?
+                .into_iter()
+                .map(|row| {
+                    let m = crate::v2::household::member_record(state, row);
+                    Ok((m.user_id, json_of(m)?))
+                })
+                .collect::<Result<Vec<_>, Problem>>()?;
+            let last_id = if records.is_empty() { None } else { Some(Uuid::max()) };
+            Ok(SnapshotPage { records, last_id })
+        }
         "favourite" | "rating" | "progress" | "bookmark" => {
             // A listener's own state is small: all of it in one page.
             if after != Uuid::nil() {
@@ -415,4 +511,116 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
 
 async fn records_for(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind: &str, ids: &[Uuid]) -> Result<Vec<(Uuid, Value)>, Problem> {
     if ids.is_empty() { Ok(Vec::new()) } else { records(state, family, auth, kind, ids).await }
+}
+
+struct IdPage {
+    /// (the line's kind, id).
+    ids: Vec<(String, Uuid)>,
+    last_id: Option<Uuid>,
+}
+
+/// The ids a snapshot of `kind` would send, without building a record.
+async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uuid) -> Result<IdPage, Problem> {
+    let pool = state.db();
+    let viewer = family.viewer();
+    if !is_whole(kind) {
+        let ids = catalog::visible_ids_after(pool, viewer, kind, after, ID_BATCH).await?;
+        let last_id = ids.last().copied();
+        return Ok(IdPage { ids: ids.into_iter().map(|id| (kind.to_string(), id)).collect(), last_id });
+    }
+    if after != Uuid::nil() {
+        return Ok(IdPage { ids: Vec::new(), last_id: None });
+    }
+    let mut ids: Vec<(String, Uuid)> = Vec::new();
+    if kind == "member" {
+        ids = crate::db::families::member_records(pool, family.family_id, None).await?.into_iter().map(|m| ("member".to_string(), m.user_id)).collect();
+    } else {
+        let kinds: &[Kind] = match kind {
+            "favourite" => &[Kind::Track, Kind::Album, Kind::Contributor, Kind::Book],
+            "rating" => &[Kind::Track, Kind::Album, Kind::Contributor],
+            _ => &[Kind::Track, Kind::Book, Kind::Episode],
+        };
+        for k in kinds {
+            let wire = if kind == "bookmark" { "bookmark".to_string() } else { format!("{kind}.{}", k.as_str()) };
+            let mut after_at = None;
+            loop {
+                let page: Vec<Uuid> = match kind {
+                    "favourite" => user_state::list_favourites(pool, viewer, *k, after_at, ID_BATCH).await?.into_iter().map(|(id, at)| {
+                        after_at = Some((at, id));
+                        id
+                    }).collect(),
+                    "rating" => user_state::list_ratings(pool, viewer, *k, after_at, ID_BATCH).await?.into_iter().map(|(id, _, at)| {
+                        after_at = Some((at, id));
+                        id
+                    }).collect(),
+                    "progress" => user_state::list_progress(pool, viewer, *k, after_at, ID_BATCH).await?.into_iter().map(|p| {
+                        after_at = Some((p.updated_at, p.item_id));
+                        p.item_id
+                    }).collect(),
+                    _ => user_state::list_bookmarks(pool, viewer, *k, None, after_at, ID_BATCH).await?.into_iter().map(|b| {
+                        after_at = Some((b.created_at, b.id));
+                        b.id
+                    }).collect(),
+                };
+                let done = (page.len() as i64) < ID_BATCH;
+                ids.extend(page.into_iter().map(|id| (wire.clone(), id)));
+                if done {
+                    break;
+                }
+            }
+        }
+    }
+    let last_id = if ids.is_empty() { None } else { Some(Uuid::max()) };
+    Ok(IdPage { ids, last_id })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn code(p: Problem) -> String {
+        p.code().to_string()
+    }
+
+    #[test]
+    fn kinds_are_checked_and_kept_once() {
+        assert_eq!(parse_kinds(None, CHANGE_KINDS, true).unwrap(), None);
+        assert_eq!(parse_kinds(Some(" "), CHANGE_KINDS, true).unwrap(), None);
+        assert_eq!(
+            parse_kinds(Some("track, episode,track"), CHANGE_KINDS, true).unwrap(),
+            Some(vec!["track".to_string(), "episode".to_string()])
+        );
+        assert_eq!(parse_kinds(Some("progress.episode,member"), CHANGE_KINDS, true).unwrap(), Some(vec!["progress.episode".into(), "member".into()]));
+        assert_eq!(code(parse_kinds(Some("track,teleport"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        // A kind of state that does not exist, and dotted kinds where they are not taken.
+        assert_eq!(code(parse_kinds(Some("rating.book"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("favourite.episode"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("progress.book"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
+        assert_eq!(code(parse_kinds(Some("recording"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
+        assert!(parse_kinds(Some("recording"), CHANGE_KINDS, true).is_ok());
+    }
+
+    #[test]
+    fn every_snapshot_kind_is_a_change_kind() {
+        for k in SNAPSHOT_KINDS {
+            assert!(CHANGE_KINDS.contains(k), "{k}");
+        }
+        assert_eq!(SNAPSHOT_KINDS[0], "member", "owners' names come before what they own");
+    }
+
+    #[test]
+    fn small_kinds_are_sent_whole() {
+        for k in ["member", "favourite", "rating", "progress", "bookmark"] {
+            assert!(is_whole(k), "{k}");
+        }
+        for k in ["track", "book", "episode", "album", "contributor"] {
+            assert!(!is_whole(k), "{k}");
+        }
+    }
+
+    #[test]
+    fn state_lines_name_their_kind() {
+        assert_eq!(wire_kind("favourite", &json!({"kind": "track"})), "favourite.track");
+        assert_eq!(wire_kind("member", &json!({"user_id": "x"})), "member");
+    }
 }
