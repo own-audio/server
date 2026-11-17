@@ -164,7 +164,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | # | Phase | v1 ops | Size | Unblocks |
 |---|---|---|---|---|
 | 0 | Groundwork: v2 media path, people's pictures, image links, test tools — **done** | 2 | M | everything; v1 removal |
-| 1 | Account and sign-in | 23 | L | W Ab Am Ap M |
+| 1 | Account and sign-in — **done** | 23 | L | W Ab Am Ap M |
 | 2 | Podcast feeds and directory | 16 | L | M T W Ap |
 | 3 | Sync essentials and continue listening | 3 | M | S (so M W), A, T |
 | 4 | Deletion and trash | 7 | M | M W Am, S |
@@ -240,7 +240,36 @@ weekly expiry would have passed (built with a past week in a unit test).
 CHANGELOG: "`/api/v2/media` — the server's signed media route for v2; v2 links no longer point
 at `/api/v1`." "`Family.image` and `Member.image` are signed image links."
 
-### Phase 1 — account and sign-in (L)
+### Phase 1 — account and sign-in (L) — done 2026-11-17
+
+Done, v2 revision 3: every operation in the table below, the two grants, the discovery fields;
+the 23 rows covered. Handler tests run through the v2 router with a database pool that points
+nowhere (validation and problem codes, the grants' checks, the sign-in bucket, discovery), the
+code grant's exchange against a stub provider; no `#[sqlx::test]` was needed, so the CI test job
+is unchanged. The conformance suite `v2_account` covers behaviour. What the plan said, with these
+differences:
+
+- `DELETE /me/two-factor` takes a code or a recovery code, not the password: v1's rule, so a
+  stolen session plus a guessed or phished password cannot remove the second factor.
+- `DELETE /me` asks for the password only when the account has one; an account that signs in
+  with a provider only sends no body (as v1, which asks for nothing).
+- `PUT /me/image` takes `{upload_id}` (an image upload of any kind) or the image itself as the
+  body, so a member who may not add to the library can still set a picture, as on v1.
+- `GET`/`POST /me/subsonic-key` answer `{username, key}`.
+- A server without mail answers `501 feature_unavailable` from `POST /auth/password-reset` and
+  `POST /me/email-verification` (rule 8), where v1 answers `200`; discovery gains
+  `auth.email_verification` beside `auth.password_reset`, and `auth.grants`.
+- The routes that hand out or change a credential (password, two-factor, Subsonic key, deleting
+  the account) refuse a personal access token (`403`), as `POST /me/tokens` does.
+- The sign-in bucket also covers `PUT /me/password`, `PUT`/`DELETE /me/two-factor` and
+  `DELETE /me` (v1 has no limit there beyond the API's).
+- `Me` is not a change-feed kind; a renamed or re-pictured member reaches other devices through
+  `family_members` in the change log (phase 3).
+- On a server without mail (CI, the compose stack) `POST /auth/password-reset` and
+  `POST /me/email-verification` answer `501` and never 2xx; without `--compose-dir` (CI today)
+  the mailed links' checks are skipped too, so `…/password-reset/confirm` and
+  `POST /auth/email-verification` join them. With an SMTP host set and `--compose-dir`, all of
+  phase 1 answers 2xx (checked 2026-11-17).
 
 v1 ops: `POST /auth/register`, `/auth/password`, `/auth/password/forgot`, `/auth/password/reset`,
 `/auth/email/resend`, `/auth/email/verify`, `GET /auth/security-events`, the four TOTP routes,

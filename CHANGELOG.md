@@ -39,6 +39,38 @@ semver. Each release states the **API contract revision** it serves
 
 ### Added
 
+- `POST /api/v2/auth/register` — sign-up with a password, with or without an invitation;
+  answers the account (`Me`), signing in stays `POST /auth/token`. Problem codes
+  `registration_closed`, `email_taken`, `weak_password`, `invalid_email`, `invalid_invite`.
+  v2 revision 3.
+- `POST /api/v2/auth/password-reset` and `…/password-reset/confirm`, `PUT /api/v2/me/password`
+  — the forgotten-password mail and its link, and changing the password (other devices signed
+  out), with v1's password rule and the sign-in rate bucket. A server without mail answers
+  `501 feature_unavailable` instead of pretending it sent something. v2 revision 3.
+- `POST /api/v2/auth/email-verification` (the mailed link's landing call) and
+  `POST /api/v2/me/email-verification` (another link: `202`, `409 already_verified`, `501`
+  without mail). v2 revision 3.
+- `GET /api/v2/me/security-events` — the account's security trail, cursor-paged, the address
+  cut to its network. v2 revision 3.
+- `POST`, `PUT`, `DELETE /api/v2/me/two-factor` — set up, confirm (recovery codes) and turn off
+  two-factor sign-in; `two_factor` in `GET /me`. v2 revision 3.
+- `PATCH /api/v2/me` (display name, `recommendations_enabled`, `discovery_languages`),
+  `DELETE /api/v2/me` (confirmed with the password when the account has one; `409 last_admin`),
+  `PUT`/`DELETE /api/v2/me/image` (an upload id or the image itself; anyone may set their
+  picture). `Me` gains `image`, `recommendations_enabled`, `discovery_languages`. v2 revision 3.
+- `GET`/`POST /api/v2/me/subsonic-key` — the key for third-party Subsonic players, and a new
+  one. v2 revision 3.
+- `POST /api/v2/auth/token` takes two more grants: `authorization_code` with PKCE for the
+  desktop apps' Google and Microsoft sign-in (loopback redirect only), and RFC 8693 token
+  exchange (a refresh token for a second, independent device — the Mac's Finder extension).
+  The credential routes (password, two-factor, Subsonic key, deleting the account) need a
+  signed-in session; a personal access token gets `403`. v2 revision 3.
+- `/.well-known/own-audio` adds `auth.grants`, `auth.clients` (the providers' desktop and web
+  client ids), `auth.email_verification`, `setup.complete` and, on a public demo, `demo`.
+  v2 revision 3.
+- Handler tests through the v2 router without a database (problem codes, the grants' checks,
+  the sign-in bucket on the password and code routes, discovery), and the code grant's exchange
+  against a stub provider. Conformance: the `v2_account` suite.
 - `scripts/check-v2-coverage.py` — checks `docs/api-v1-v2-coverage.md` against both OpenAPI
   documents (every v1 operation has a row, every v2 operation and field a row names exists,
   the counts add up) and lists what is still missing; run in CI. `--strict` fails on open rows.

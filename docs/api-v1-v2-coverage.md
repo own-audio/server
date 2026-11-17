@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 143 |
-| partly covered | 17 |
-| missing | 149 |
+| covered | 166 |
+| partly covered | 13 |
+| missing | 130 |
 | not carried over | 7 |
 | **total** | **316** |
 
@@ -24,8 +24,8 @@ grants stay on v1) or a route no client calls (the Stripe webhook). The hosted r
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 0, v2
-revision 2). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 1, v2
+revision 3). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -33,49 +33,49 @@ lists what is still open.
 
 | v1 operation | v2 | status | note |
 |---|---|---|---|
-| `POST /auth/register` | — | missing | No sign-up on v2, with or without an invite. |
+| `POST /auth/register` | `POST /auth/register` | covered | Answers `Me`; signing in is `POST /auth/token`. `registration_closed`, `email_taken`, `weak_password`, `invalid_invite`. |
 | `GET /auth/registration-status` | `GET /.well-known/own-audio` | covered | `modules.registration_open`. |
 | `POST /auth/login` | `POST /auth/token` | covered | `grant_type=password`. |
 | `POST /auth/totp/verify` | `POST /auth/token` | covered | The `mfa-otp` grant after `403 mfa_required`. |
 | `POST /auth/refresh` | `POST /auth/token` | covered | `grant_type=refresh_token`. |
 | `POST /auth/logout` | `POST /auth/revoke`, `DELETE /me/sessions/{id}` | covered |  |
-| `POST /auth/fork` | — | missing | A second session from a refresh token, for the Mac's Finder extension. |
+| `POST /auth/fork` | `POST /auth/token` | covered | The token-exchange grant (RFC 8693), `subject_token_type` a refresh token. |
 | `GET /auth/me` | `GET /me` | covered |  |
-| `POST /auth/google` | `POST /auth/token` | partly | The provider's id token works; the loopback code + PKCE exchange (desktop) does not. |
+| `POST /auth/google` | `POST /auth/token` | covered | The jwt-bearer grant for an id token; the `authorization_code` grant with PKCE for the desktop's loopback code. |
 | `POST /auth/apple` | `POST /auth/token` | covered | Assertion grant, `full_name` included. |
-| `POST /auth/microsoft` | `POST /auth/token` | partly | Same as Google: id token only, no code exchange. |
-| `GET /auth/providers` | `GET /.well-known/own-audio` | partly | `auth.providers` names them; the desktop and web client ids are missing. |
+| `POST /auth/microsoft` | `POST /auth/token` | covered | Same as Google. |
+| `GET /auth/providers` | `GET /.well-known/own-audio`, `AuthMethods.clients` | covered | `auth.providers` names them, `auth.clients` gives the desktop and web client ids, `auth.grants` the grants. |
 | `POST /auth/device/start` | `POST /auth/device` | covered | RFC 8628 wire format. |
 | `POST /auth/device/poll` | `POST /auth/token` | covered | The device-code grant. |
 | `GET /auth/device/{user_code}` | `GET /auth/device/{user_code}` | covered |  |
 | `POST /auth/device/{user_code}/approve` | `POST /auth/device/{user_code}/approve` | covered |  |
 | `POST /auth/device/{user_code}/deny` | `POST /auth/device/{user_code}/deny` | covered |  |
-| `POST /auth/password` | — | missing | Change password. |
-| `POST /auth/password/forgot` | — | missing | Discovery advertises `auth.password_reset`, but there is no v2 route for it. |
-| `POST /auth/password/reset` | — | missing | The mailed link's landing call. |
-| `POST /auth/email/resend` | — | missing |  |
-| `POST /auth/email/verify` | — | missing | The mailed link's landing call. |
-| `GET /auth/security-events` | — | missing |  |
+| `POST /auth/password` | `PUT /me/password` | covered | Signs the other devices out, as v1. A signed-in session only, not a personal token. |
+| `POST /auth/password/forgot` | `POST /auth/password-reset` | covered | `202` whatever the address; `501 feature_unavailable` on a server without mail (v1 answers `200` there). |
+| `POST /auth/password/reset` | `POST /auth/password-reset/confirm` | covered | `204`; `invalid_token`, `weak_password`. |
+| `POST /auth/email/resend` | `POST /me/email-verification` | covered | `202`; `409 already_verified`, `501` without mail instead of v1's `{sent, verified}`. |
+| `POST /auth/email/verify` | `POST /auth/email-verification` | covered | `204`; `invalid_token`. |
+| `GET /auth/security-events` | `GET /me/security-events` | covered | Cursor-paged over the whole year kept (v1: the last 100); the address cut to its network. |
 | `GET /auth/sessions` | `GET /me/sessions` | covered |  |
 | `DELETE /auth/sessions/{chain_id}` | `DELETE /me/sessions/{id}` | covered | v2 adds "sign out everywhere". |
-| `GET /auth/totp` | — | missing | `GET /me` does not say whether two-factor is on. |
-| `DELETE /auth/totp` | — | missing |  |
-| `POST /auth/totp/enable` | — | missing |  |
-| `POST /auth/totp/setup` | — | missing |  |
+| `GET /auth/totp` | `Me.two_factor` | covered | In `GET /me`. |
+| `DELETE /auth/totp` | `DELETE /me/two-factor` | covered | A code or a recovery code, as v1 (not the password). |
+| `POST /auth/totp/enable` | `PUT /me/two-factor` | covered |  |
+| `POST /auth/totp/setup` | `POST /me/two-factor` | covered | `201`. |
 | `GET /users/me` | `GET /me` | covered |  |
-| `PATCH /users/me` | — | missing | Display name, `recommendations_enabled`, `discovery_languages`. |
-| `DELETE /users/me` | — | missing |  |
-| `POST /users/me/avatar` | — | missing |  |
-| `DELETE /users/me/avatar` | — | missing |  |
-| `GET /users/me/subsonic-key` | — | missing |  |
-| `POST /users/me/subsonic-key/regenerate` | — | missing |  |
+| `PATCH /users/me` | `PATCH /me` | covered | Answers `Me`; nothing is written unless all of it is valid. |
+| `DELETE /users/me` | `DELETE /me` | covered | Asks for the password when the account has one (v1 does not); `409 last_admin`. |
+| `POST /users/me/avatar` | `PUT /me/image` | covered | `{upload_id}`, or the image as the body (anyone may set their picture, not only those who may upload). `Me.image` is a weekly signed link. |
+| `DELETE /users/me/avatar` | `DELETE /me/image` | covered |  |
+| `GET /users/me/subsonic-key` | `GET /me/subsonic-key` | covered | `{username, key}`; a signed-in session only. |
+| `POST /users/me/subsonic-key/regenerate` | `POST /me/subsonic-key` | covered |  |
 
 ## Server, setup and admin
 
 | v1 operation | v2 | status | note |
 |---|---|---|---|
-| `GET /server` | `GET /.well-known/own-audio` | partly | Everything but `demo` (the public demo's sign-in). |
-| `GET /setup/status` | — | missing |  |
+| `GET /server` | `GET /.well-known/own-audio`, `Discovery.demo` | covered | `demo` since v2 revision 3. |
+| `GET /setup/status` | `Discovery.setup` | covered | `setup.complete`. The health checks are `GET /health`'s. |
 | `POST /setup/complete` | — | missing | The first-run wizard. |
 | `POST /auth/admin-create-user` | — | missing |  |
 | `GET /users` | — | missing | Instance admin. |

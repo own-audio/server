@@ -58,6 +58,29 @@ pub async fn list_for_user(pool: &PgPool, user_id: Uuid, limit: i64) -> anyhow::
     .context("db: list security events")
 }
 
+/// One page of the account's trail, newest first, after `(at, id)` of the previous page's
+/// last row. Served by `security_events_user_at_idx`.
+pub async fn page_for_user(
+    pool: &PgPool,
+    user_id: Uuid,
+    after: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<SecurityEvent>> {
+    let (at, id) = after.unzip();
+    sqlx::query_as(
+        "SELECT id, at, kind, detail, actor_id, ip, user_agent FROM security_events
+          WHERE user_id = $1 AND ($2::timestamptz IS NULL OR (at, id) < ($2, $3))
+          ORDER BY at DESC, id DESC LIMIT $4",
+    )
+    .bind(user_id)
+    .bind(at)
+    .bind(id)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .context("db: page security events")
+}
+
 /// Retention: rows older than `days` go. Returns how many.
 pub async fn purge_older_than(pool: &PgPool, days: i64) -> anyhow::Result<u64> {
     let rows = sqlx::query("DELETE FROM security_events WHERE at < now() - make_interval(days => $1::int)")

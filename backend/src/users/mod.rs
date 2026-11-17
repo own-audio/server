@@ -21,7 +21,7 @@ use uuid::Uuid;
 /// Above the app-level `MAX_AVATAR_BYTES` check, so a body under that check's cap is never
 /// rejected purely by multipart-framing overhead — see `upload_avatar`.
 const AVATAR_BODY_LIMIT_BYTES: usize = 6 * 1024 * 1024;
-const MAX_AVATAR_BYTES: usize = 5 * 1024 * 1024;
+pub(crate) const MAX_AVATAR_BYTES: usize = 5 * 1024 * 1024;
 
 // ── DTOs ─────────────────────────────────────────────────────────────────
 
@@ -244,7 +244,7 @@ async fn get_self(
         (status = 204, description = "Updated"),
         (status = 400, description = "Empty display name, or more than 20 discovery languages", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-async fn update_self(
+pub(crate) async fn update_self(
     auth: AuthUser,
     State(state): State<AppState>,
     Json(body): Json<UpdateSelfRequest>,
@@ -289,7 +289,7 @@ async fn update_self(
 /// caller's OpenSubsonic API key, used to configure external music clients.
 #[utoipa::path(get, path = "/me/subsonic-key", tag = "users", security(("bearer" = [])),
     responses((status = 200, body = SubsonicKeyResponse), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-async fn get_subsonic_key(
+pub(crate) async fn get_subsonic_key(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<SubsonicKeyResponse>, AuthError> {
@@ -309,7 +309,7 @@ async fn get_subsonic_key(
 /// OpenSubsonic API key, invalidating any previously configured client.
 #[utoipa::path(post, path = "/me/subsonic-key/regenerate", tag = "users", security(("bearer" = [])),
     responses((status = 200, body = SubsonicKeyResponse), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-async fn regenerate_subsonic_key(
+pub(crate) async fn regenerate_subsonic_key(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<Json<SubsonicKeyResponse>, AuthError> {
@@ -377,37 +377,49 @@ async fn upload_avatar(
         )));
     }
 
-    let ext = avatar_extension(&file_name).unwrap_or("jpg");
+    store_avatar(&state, auth.user_id, bytes, &content_type, avatar_extension(&file_name).unwrap_or("jpg")).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Stores a picture as the account's own and points the account at it. Shared by v1's
+/// multipart upload and v2's `PUT /me/image`.
+pub(crate) async fn store_avatar(
+    state: &AppState,
+    user_id: Uuid,
+    bytes: axum::body::Bytes,
+    content_type: &str,
+    ext: &str,
+) -> Result<(), AuthError> {
     // A new object per picture: v2 hands out `/images/{object}` links that are cached as
     // immutable, so an object must never change under its id. The replaced one is left to the
     // storage sweep (`find_unreferenced`). Outside the `f/{family_id}/…` prefix
     // (`storage::family_key`), so avatars are never scooped into family storage billing —
     // `db::storage_usage::family_storage` filters strictly on that prefix.
-    let object_key = format!("u/{}/avatar-{}.{ext}", auth.user_id, Uuid::new_v4());
+    let object_key = format!("u/{}/avatar-{}.{ext}", user_id, Uuid::new_v4());
     let size_bytes = bytes.len() as i64;
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     state
         .storage()
-        .put(&object_key, bytes, &content_type)
+        .put(&object_key, bytes, content_type)
         .await
         .map_err(AuthError::Internal)?;
     let media_id = db::media::upsert_object(
         &mut *tx,
         state.storage().bucket(),
         &object_key,
-        &content_type,
+        content_type,
         Some(size_bytes),
     )
     .await
     .map_err(AuthError::Internal)?;
 
-    db::users::set_avatar(&mut *tx, auth.user_id, Some(media_id))
+    db::users::set_avatar(&mut *tx, user_id, Some(media_id))
         .await
         .map_err(AuthError::Internal)?;
 
     tx.commit().await.map_err(|e| AuthError::Internal(e.into()))?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(())
 }
 
 /// DELETE /api/v1/users/me/avatar — remove the caller's own profile picture. The stored object
@@ -415,7 +427,7 @@ async fn upload_avatar(
 /// for orphaned `media_objects` rows.
 #[utoipa::path(delete, path = "/me/avatar", tag = "users", security(("bearer" = [])),
     responses((status = 204, description = "Removed"), (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-async fn delete_avatar(auth: AuthUser, State(state): State<AppState>) -> Result<StatusCode, AuthError> {
+pub(crate) async fn delete_avatar(auth: AuthUser, State(state): State<AppState>) -> Result<StatusCode, AuthError> {
     db::users::set_avatar(state.db(), auth.user_id, None)
         .await
         .map_err(AuthError::Internal)?;
@@ -456,7 +468,7 @@ async fn get_avatar(
     Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response())
 }
 
-fn avatar_extension(file_name: &str) -> Option<&str> {
+pub(crate) fn avatar_extension(file_name: &str) -> Option<&str> {
     StdPath::new(file_name)
         .extension()
         .and_then(|ext| ext.to_str())
@@ -470,7 +482,7 @@ fn avatar_extension(file_name: &str) -> Option<&str> {
         (status = 204, description = "The account and everything it owns are deleted"),
         (status = 400, description = "The caller is the last admin", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Missing, invalid or revoked access token", body = crate::http::openapi::ErrorBody)))]
-async fn delete_self(
+pub(crate) async fn delete_self(
     auth: AuthUser,
     State(state): State<AppState>,
 ) -> Result<StatusCode, AuthError> {

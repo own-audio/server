@@ -40,21 +40,26 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 2. Account and sign-in
 
-- [ ] Register with an invite; join links and a join preview before sign-in. (W Ab Am Ap)
-- [ ] `PATCH /me` (display name, `discovery_languages`, skip intervals); profile picture
-      upload. (M W A T)
-- [ ] Password change, `DELETE /me`, two-factor setup and disable, security events, Subsonic
-      key, verification e-mail resend. (M W Ab)
-- [ ] Desktop Google/Microsoft: the loopback code + PKCE flow as a grant, and the desktop
-      client id in discovery. (W, M)
-- [ ] Setup state and the demo account in `/.well-known/own-audio`. (W Ab Am)
-- [ ] Sign-up without an invite (`POST /auth/register`). (audit)
-- [ ] Forgot and reset password, and the e-mail verification link's landing call; discovery
-      already advertises `auth.password_reset`. (audit)
-- [ ] Whether two-factor is on, e.g. in `GET /me` (v1 `GET /auth/totp`). (audit)
-- [ ] A second session from a refresh token for a helper process — the Mac's Finder
-      extension (v1 `/auth/fork`). (audit)
-- [ ] The Google and Apple web client ids in discovery (v1 `/auth/providers`). (audit)
+- [x] Register with an invite (v2 revision 3: `POST /auth/register` with `invite_code`). Join
+      links and a join preview before sign-in move with the household (completion plan phase 7).
+      (W Ab Am Ap)
+- [x] `PATCH /me` (display name, `discovery_languages`, `recommendations_enabled`); profile picture
+      (`PUT`/`DELETE /me/image`) (v2 revision 3). Skip intervals belong to the listening settings
+      (phase 8). (M W A T)
+- [x] Password change, `DELETE /me`, two-factor setup and disable, security events, Subsonic
+      key, verification e-mail resend (v2 revision 3). (M W Ab)
+- [x] Desktop Google/Microsoft: the loopback code + PKCE flow as the `authorization_code` grant,
+      and the desktop client ids in discovery (`auth.clients`) (v2 revision 3). (W, M)
+- [x] Setup state and the demo account in `/.well-known/own-audio` (`setup`, `demo`; v2
+      revision 3). (W Ab Am)
+- [x] Sign-up without an invite (`POST /auth/register`; v2 revision 3). (audit)
+- [x] Forgot and reset password, and the e-mail verification link's landing call
+      (`POST /auth/password-reset`, `…/confirm`, `POST /auth/email-verification`; v2 revision 3).
+      (audit)
+- [x] Whether two-factor is on: `two_factor` in `GET /me` (v2 revision 3). (audit)
+- [x] A second session from a refresh token for a helper process — the Mac's Finder
+      extension: the token-exchange grant (RFC 8693) on `POST /auth/token` (v2 revision 3). (audit)
+- [x] The Google and Apple web client ids in discovery (`auth.clients`; v2 revision 3). (audit)
 
 ## 3. Podcasts
 

@@ -4,13 +4,15 @@
 //! `POST /auth/token` is the one place tokens come from, answered with the
 //! OAuth 2.0 token response (RFC 6749 §5.1) whatever the grant: password,
 //! refresh, the device code (RFC 8628), a provider's id token (RFC 7523's
-//! jwt-bearer) or a two-factor code. The work behind each grant is v1's —
+//! jwt-bearer), a provider's authorization code with PKCE (RFC 7636, the
+//! desktop apps' loopback sign-in), a refresh token exchanged for a second
+//! session (RFC 8693, a helper process) or a two-factor code. The work behind each grant is v1's —
 //! lockout, the trail, rotation with reuse detection, two-factor — called, not
 //! copied. Errors carry OAuth's `error` and `error_description` beside the
 //! problem-details members, so OAuth libraries and our clients both read them.
 
 use crate::app::AppState;
-use crate::auth::audit::RequestMeta;
+use crate::auth::audit::{self, RequestMeta};
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
 use crate::auth::{LoginRequest, LoginResponse, RefreshRequest, device, oidc, totp};
@@ -29,6 +31,10 @@ pub const GRANT_REFRESH: &str = "refresh_token";
 pub const GRANT_DEVICE: &str = "urn:ietf:params:oauth:grant-type:device_code";
 pub const GRANT_ASSERTION: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 pub const GRANT_MFA: &str = "urn:own-audio:params:oauth:grant-type:mfa-otp";
+pub const GRANT_TOKEN_EXCHANGE: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
+pub const GRANT_CODE: &str = "authorization_code";
+pub const TOKEN_TYPE_REFRESH: &str = "urn:ietf:params:oauth:token-type:refresh_token";
+pub const TOKEN_TYPE_ACCESS: &str = "urn:ietf:params:oauth:token-type:access_token";
 
 /// Every scope there is (DESIGN §5.4).
 pub const SCOPES: &[&str] = &["library:read", "library:write", "playback", "user:write", "remote", "family:admin", "admin"];
@@ -84,8 +90,10 @@ fn oauth_from(e: AuthError) -> Problem {
 #[derive(Deserialize, ToSchema)]
 pub struct TokenRequest {
     /// `password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,
-    /// `urn:ietf:params:oauth:grant-type:jwt-bearer` or
-    /// `urn:own-audio:params:oauth:grant-type:mfa-otp`.
+    /// `urn:ietf:params:oauth:grant-type:jwt-bearer`, `authorization_code`,
+    /// `urn:ietf:params:oauth:grant-type:token-exchange` or
+    /// `urn:own-audio:params:oauth:grant-type:mfa-otp`. `auth.grants` in discovery lists
+    /// those this server takes.
     pub grant_type: String,
     /// password: the account's email.
     pub username: Option<String>,
@@ -94,13 +102,29 @@ pub struct TokenRequest {
     pub refresh_token: Option<String>,
     /// device_code: from `POST /auth/device`.
     pub device_code: Option<String>,
-    /// jwt-bearer: `apple`, `google` or `microsoft`, and the provider's id token.
+    /// jwt-bearer: `apple`, `google` or `microsoft`, and the provider's id token;
+    /// authorization_code: `google` or `microsoft`.
     pub provider: Option<String>,
     pub assertion: Option<String>,
     /// jwt-bearer, Apple only: the name Apple gives once, at the first sign-in.
     pub full_name: Option<String>,
-    /// jwt-bearer: an invitation, when the account is new.
+    /// jwt-bearer and authorization_code: an invitation, when the account is new.
     pub invite_code: Option<String>,
+    /// authorization_code: the code the provider sent to the app's loopback address, the
+    /// PKCE verifier its challenge was made from, and that loopback address
+    /// (`http://127.0.0.1:<port>/…`), exactly as sent to the provider. The desktop client ids
+    /// are `auth.clients` in discovery.
+    pub code: Option<String>,
+    pub code_verifier: Option<String>,
+    pub redirect_uri: Option<String>,
+    /// token-exchange: a live refresh token of the account, and its type,
+    /// `urn:ietf:params:oauth:token-type:refresh_token`. Answers tokens for a new, separate
+    /// device (a helper process that refreshes on its own); the presented token keeps working.
+    pub subject_token: Option<String>,
+    pub subject_token_type: Option<String>,
+    /// token-exchange: `urn:ietf:params:oauth:token-type:access_token` (the default) or
+    /// `…:refresh_token`; either way both are answered.
+    pub requested_token_type: Option<String>,
     /// mfa-otp: from the `mfa_required` answer, and the app's code or a recovery code.
     pub mfa_token: Option<String>,
     pub otp: Option<String>,
@@ -121,6 +145,9 @@ pub struct TokenResponse {
     pub refresh_token: String,
     /// What the token may do, space-separated.
     pub scope: String,
+    /// token-exchange only (RFC 8693 §2.2.1): `urn:ietf:params:oauth:token-type:access_token`.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub issued_token_type: Option<String>,
 }
 
 impl TokenRequest {
@@ -134,7 +161,8 @@ impl TokenRequest {
 }
 
 /// Tokens for an account: a password, a refresh token, an approved device, a
-/// provider's id token, or a two-factor code. An account with two-factor
+/// provider's id token or authorization code, a refresh token exchanged for a
+/// second device, or a two-factor code. An account with two-factor
 /// sign-in on answers the first step with `403 mfa_required` and an `mfa_token`
 /// for the `mfa-otp` grant.
 #[utoipa::path(post, path = "/auth/token", tag = "auth",
@@ -143,7 +171,7 @@ impl TokenRequest {
         description = "As a form, as OAuth clients send it; JSON is accepted too"),
     responses(
         (status = 200, body = TokenResponse),
-        (status = 400, description = "OAuth `error`: `invalid_request`, `invalid_grant`, `unsupported_grant_type`; for the device code also `authorization_pending`, `slow_down`, `access_denied`, `expired_token`", body = crate::v2::problem::ProblemBody),
+        (status = 400, description = "OAuth `error`: `invalid_request`, `invalid_grant`, `unsupported_grant_type`; for the device code also `authorization_pending`, `slow_down`, `access_denied`, `expired_token`; `account_locked` (429) after a run of wrong passwords", body = crate::v2::problem::ProblemBody),
         (status = 403, description = "`mfa_required`: finish with the `mfa-otp` grant and the `mfa_token` given", body = crate::v2::problem::ProblemBody),
         (status = 409, description = "`identity_conflict`: an account with the provider's email exists and the provider did not verify it", body = crate::v2::problem::ProblemBody)))]
 pub async fn token(
@@ -176,16 +204,21 @@ pub async fn token(
         }
         GRANT_DEVICE => totp::SignIn::Tokens(StatusCode::OK, device_grant(&state, body.need(&body.device_code, "device_code")?).await?),
         GRANT_ASSERTION => provider_grant(&state, &body).await?,
+        GRANT_CODE => code_grant(&state, &body).await?,
+        GRANT_TOKEN_EXCHANGE => totp::SignIn::Tokens(StatusCode::OK, token_exchange(&state, &meta, &body).await?),
         other => {
             return Err(oauth(StatusCode::BAD_REQUEST, "unsupported_grant_type", format!("`{other}` is not a grant this server knows")));
         }
     };
     match signed {
         // RFC 6749 §5.1: tokens are never cached.
-        totp::SignIn::Tokens(_, response) => Ok((
-            [(header::CACHE_CONTROL, "no-store"), (header::PRAGMA, "no-cache")],
-            Json(token_response(&state, response).await?),
-        )),
+        totp::SignIn::Tokens(_, response) => {
+            let mut answer = token_response(&state, response).await?;
+            if body.grant_type == GRANT_TOKEN_EXCHANGE {
+                answer.issued_token_type = Some(TOKEN_TYPE_ACCESS.into());
+            }
+            Ok(([(header::CACHE_CONTROL, "no-store"), (header::PRAGMA, "no-cache")], Json(answer)))
+        }
         totp::SignIn::Mfa(challenge) => Err(oauth(StatusCode::FORBIDDEN, "mfa_required", "finish with the mfa-otp grant")
             .with("mfa_token", challenge.mfa_token)
             .with("mfa_expires_in", challenge.expires_in_secs)
@@ -213,6 +246,7 @@ async fn token_response(state: &AppState, response: LoginResponse) -> Result<Tok
         expires_in: state.config().auth.access_ttl(),
         refresh_token: response.refresh_token,
         scope,
+        issued_token_type: None,
     })
 }
 
@@ -283,6 +317,87 @@ async fn provider_grant(state: &AppState, body: &TokenRequest) -> Result<totp::S
     )
     .await
     .map_err(oauth_from)
+}
+
+/// What an authorization-code grant names, checked before anyone is asked: the
+/// provider, the code, a PKCE verifier as RFC 7636 §4.1 has it, and a loopback
+/// redirect (the code endpoint is not to be pointed at another host).
+fn code_request(body: &TokenRequest) -> Result<(&str, &str, &str, &str), Problem> {
+    let provider = body.need(&body.provider, "provider")?;
+    let code = body.need(&body.code, "code")?;
+    let verifier = body.need(&body.code_verifier, "code_verifier")?;
+    let redirect = body.need(&body.redirect_uri, "redirect_uri")?;
+    let unreserved = |c: char| c.is_ascii_alphanumeric() || matches!(c, '-' | '.' | '_' | '~');
+    if !(43..=128).contains(&verifier.len()) || !verifier.chars().all(unreserved) {
+        return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", "`code_verifier` is 43 to 128 characters of A-Z, a-z, 0-9, -, ., _ and ~ (RFC 7636)"));
+    }
+    if !crate::auth::is_loopback_redirect(redirect) {
+        return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", "`redirect_uri` must be a loopback address (http://127.0.0.1, [::1] or localhost)"));
+    }
+    Ok((provider, code, verifier, redirect))
+}
+
+/// The desktop apps' sign-in (RFC 8252): the app ran the provider's page with a
+/// PKCE challenge and a loopback redirect, and sends the code it got; this
+/// server, which holds the client secret, exchanges it with the provider and
+/// signs in with the id token it gets back, as the jwt-bearer grant does.
+async fn code_grant(state: &AppState, body: &TokenRequest) -> Result<totp::SignIn, Problem> {
+    let (provider, code, verifier, redirect) = code_request(body)?;
+    let auth = &state.config().auth;
+    let not_here = || oauth(StatusCode::BAD_REQUEST, "invalid_request", format!("this server does not take `{provider}` codes"));
+    let refused = |e: AuthError| match e {
+        // The provider would not exchange the code: used, expired, or not made for this verifier.
+        AuthError::BadRequest(_) => oauth(StatusCode::BAD_REQUEST, "invalid_grant", "the provider did not accept the code"),
+        other => oauth_from(other),
+    };
+    let identity = match provider {
+        "google" => {
+            let cfg = auth.google.as_ref().filter(|g| g.enabled && desktop_client(g.desktop_client_id.as_deref()) && desktop_client(g.desktop_client_secret.as_deref()))
+                .ok_or_else(not_here)?;
+            let id_token = oidc::exchange_google_code(cfg, code, verifier, redirect).await.map_err(refused)?;
+            oidc::verify_google_id_token(cfg, &id_token).await
+        }
+        "microsoft" => {
+            let cfg = auth.microsoft.as_ref().filter(|m| m.enabled && desktop_client(m.desktop_client_id.as_deref())).ok_or_else(not_here)?;
+            let id_token = oidc::exchange_microsoft_code(cfg, code, verifier, redirect).await.map_err(refused)?;
+            oidc::verify_microsoft_id_token(cfg, &id_token).await
+        }
+        _ => return Err(not_here()),
+    }
+    .map_err(oauth_from)?;
+    crate::auth::sso_sign_in(state, provider, identity, body.device_name.as_deref(), body.device_kind.as_deref(), body.invite_code.as_deref())
+        .await
+        .map_err(oauth_from)
+}
+
+/// Whether a desktop client setting is there: compose hands an unset one over as empty.
+pub(crate) fn desktop_client(value: Option<&str>) -> bool {
+    value.is_some_and(|v| !v.trim().is_empty())
+}
+
+/// RFC 8693: a live refresh token for a second, independent device chain — a
+/// helper that runs apart from the app that signed in (the Mac's Finder
+/// extension). Sharing one chain would have the two present each other's
+/// rotated tokens, which reads as theft. The presented token is checked like a
+/// refresh and keeps working; the new device can be signed out on its own.
+async fn token_exchange(state: &AppState, meta: &RequestMeta, body: &TokenRequest) -> Result<LoginResponse, Problem> {
+    let subject = body.need(&body.subject_token, "subject_token")?;
+    if body.need(&body.subject_token_type, "subject_token_type")? != TOKEN_TYPE_REFRESH {
+        return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", format!("`subject_token_type` is `{TOKEN_TYPE_REFRESH}`")));
+    }
+    if let Some(wanted) = body.requested_token_type.as_deref().filter(|t| !t.is_empty()) {
+        if wanted != TOKEN_TYPE_ACCESS && wanted != TOKEN_TYPE_REFRESH {
+            return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", "`requested_token_type` is an access or a refresh token"));
+        }
+    }
+    let response = crate::auth::fork_session(state, subject, body.device_name.as_deref(), body.device_kind.as_deref())
+        .await
+        .map_err(oauth_from)?;
+    if let Ok(user) = response.user.id.parse::<uuid::Uuid>() {
+        let kind = crate::auth::normalize_device_kind(body.device_kind.as_deref());
+        audit::record(state, meta, Some(user), None, "session.forked", serde_json::json!({ "device_kind": kind, "device_name": body.device_name })).await;
+    }
+    Ok(response)
 }
 
 #[derive(Deserialize, ToSchema)]

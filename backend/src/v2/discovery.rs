@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 /// The v2 contract's revision: up by one with every addition, so a client can check for it.
 /// Counted from 2026-11-17 (revision 1). The iPhone apps already ship on v2, so changes are
 /// additive only even while the status says `draft`.
-pub const V2_REVISION: u32 = 2;
+pub const V2_REVISION: u32 = 3;
 /// `stable` at the release that completes docs/api-v2-completion-plan.md (its phase 14).
 pub const V2_STATUS: &str = "draft";
 
@@ -39,6 +39,24 @@ pub struct Discovery {
     #[schema(value_type = Vec<Object>)]
     pub addresses: Value,
     pub limits: Limits,
+    /// The first run: whether the server has its first admin yet.
+    pub setup: Setup,
+    /// A public demo's shared sign-in, published on purpose; absent everywhere else. The demo
+    /// account may listen but not change anything.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub demo: Option<Demo>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct Setup {
+    /// `false` until the first admin exists; until then the console shows the setup wizard.
+    pub complete: bool,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct Demo {
+    pub email: String,
+    pub password: String,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -60,7 +78,36 @@ pub struct AuthMethods {
     pub device_grant: bool,
     /// A second factor from an authenticator app.
     pub totp: bool,
+    /// `POST /auth/password-reset` mails links; `false` on a server without mail.
     pub password_reset: bool,
+    /// New addresses are confirmed by a mailed link; `false` on a server without mail, where
+    /// every address counts as confirmed.
+    pub email_verification: bool,
+    /// The `grant_type`s `POST /auth/token` takes here.
+    pub grants: Vec<String>,
+    /// The providers' public client ids an app needs to start their sign-in itself: the
+    /// desktop clients for the authorization-code grant, the web clients for a browser.
+    pub clients: AuthClients,
+}
+
+#[derive(Serialize, ToSchema, Default)]
+pub struct AuthClients {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub google: Option<ProviderClients>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub microsoft: Option<ProviderClients>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub apple: Option<ProviderClients>,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct ProviderClients {
+    /// For the loopback authorization-code grant (RFC 8252); this server holds its secret.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub desktop: Option<String>,
+    /// For the provider's sign-in in a browser.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web: Option<String>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -90,6 +137,33 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             enabled.push(name.to_string());
         }
     }
+    let auth_cfg = &cfg.auth;
+    let desktop = |id: Option<&str>, secret_ok: bool| crate::auth::non_empty(id).filter(|_| secret_ok);
+    let google_desktop = auth_cfg.google.as_ref().filter(|g| g.enabled).and_then(|g| {
+        desktop(g.desktop_client_id.as_deref(), crate::v2::auth::desktop_client(g.desktop_client_secret.as_deref()))
+    });
+    let microsoft_desktop =
+        auth_cfg.microsoft.as_ref().filter(|m| m.enabled).and_then(|m| desktop(m.desktop_client_id.as_deref(), true));
+    let mut grants = Vec::new();
+    if providers.local {
+        grants.push(crate::v2::auth::GRANT_PASSWORD);
+    }
+    grants.extend([crate::v2::auth::GRANT_REFRESH, crate::v2::auth::GRANT_DEVICE, crate::v2::auth::GRANT_MFA, crate::v2::auth::GRANT_TOKEN_EXCHANGE]);
+    if !enabled.is_empty() {
+        grants.push(crate::v2::auth::GRANT_ASSERTION);
+    }
+    if google_desktop.is_some() || microsoft_desktop.is_some() {
+        grants.push(crate::v2::auth::GRANT_CODE);
+    }
+    let clients = AuthClients {
+        google: providers.google.enabled.then(|| ProviderClients { desktop: google_desktop, web: providers.google.web_client_id.clone() }),
+        microsoft: providers.microsoft.enabled.then_some(ProviderClients { desktop: microsoft_desktop, web: None }),
+        apple: providers.apple.enabled.then(|| ProviderClients { desktop: None, web: providers.apple.web_client_id.clone() }),
+    };
+    let setup_complete = sqlx::query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM users)")
+        .fetch_one(state.db())
+        .await
+        .unwrap_or(true);
     Json(Discovery {
         id: crate::db::instance::id(state.db()).await.ok().map(|id| id.to_string()),
         name: "own.audio".into(),
@@ -105,6 +179,9 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             device_grant: true,
             totp: true,
             password_reset: crate::auth::password_reset_offered(cfg),
+            email_verification: crate::auth::verification::offered(cfg),
+            grants: grants.into_iter().map(str::to_string).collect(),
+            clients,
         },
         modules: features(&state),
         addresses: addresses(cfg.server.base_url.as_deref(), cfg.server.addresses.as_deref()),
@@ -116,6 +193,8 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             idempotency_hours: crate::v2::idempotency::RETENTION_HOURS,
             change_log_days: crate::db::changes::RETENTION_DAYS,
         },
+        setup: Setup { complete: setup_complete },
+        demo: cfg.server.demo.as_ref().map(|d| Demo { email: d.email.clone(), password: d.password.clone() }),
     })
 }
 

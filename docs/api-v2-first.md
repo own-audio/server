@@ -19,9 +19,12 @@ The working client to copy from is `OwnAudioKit` in `music-ios`, `book-ios` and 
    versions, modules, sign-in methods, addresses, limits. It replaces `GET /api/v1/server` for a
    v2 client. Branch on modules and features, never on `edition`.
 2. **Sign-in:** `POST /api/v2/auth/token` (grants: password, refresh, device code, provider
-   assertion), `POST /api/v2/auth/device` (RFC 8628 — a TV's or speaker's code sign-in),
-   `POST /api/v2/auth/revoke`. Two-factor is the problem code `mfa_required`; wrong credentials
-   `invalid_grant`. Sessions are under `/me/sessions`.
+   assertion, a provider's code with PKCE for desktop apps, token exchange for a helper
+   process; `auth.grants` in discovery lists them), `POST /api/v2/auth/device` (RFC 8628 — a
+   TV's or speaker's code sign-in), `POST /api/v2/auth/revoke`. Two-factor is the problem code
+   `mfa_required`; wrong credentials `invalid_grant`. Sessions are under `/me/sessions`; the
+   account (sign-up, password, two-factor, picture, Subsonic key) under `/auth/register`,
+   `/auth/password-reset` and `/me`.
 3. **Errors:** always `application/problem+json`: `type`, `title`, `status`, a stable `code`,
    `detail`, `errors[]` per field. Branch on `code`, never on text. `404` means missing *or not
    visible to you*.
@@ -61,6 +64,11 @@ These shapes are part of the contract (gaps plan §0) and stay as they are:
   `401 unauthorized`. Refresh once; if the refresh answers `invalid_grant`, sign in again.
 - `401 invalid_credentials` comes from operations that check an account inside a signed-in
   request (an account deleted while its token is still valid); treat it like `unauthorized`.
+  `403 invalid_credentials` is different: a password the person typed to confirm something
+  (`PUT /me/password`, `DELETE /me`) is wrong. The session is fine; ask again.
+- A server without mail answers `501 feature_unavailable` (with `feature`) from the routes
+  that would mail a link; discovery says so beforehand (`auth.password_reset`,
+  `auth.email_verification`).
 - `403 insufficient_scope` (a personal access token without the operation's `x-scope`),
   `403 demo_read_only`, `403 email_unverified`, `403 forbidden` (a role the operation needs).
 
@@ -71,7 +79,8 @@ Pictures are not among them any more: `Family.image` and `Member.image` are sign
 one to two weeks), and every signed media link points at `/api/v2/media`.
 
 As of 2026-11-17 the iPhone apps call v1 only for: artwork uploads, deleting the account
-(`DELETE /api/v1/users/me`), stats and their visibility, and podcast discovery and directory
+(`DELETE /api/v1/users/me`; v2 has `DELETE /me` since revision 3, which asks for the password
+of an account that has one), stats and their visibility, and podcast discovery and directory
 search (`/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search`). Other v1-only areas: trash,
 push devices, family join links, jobs, setup and admin, v1 multipart uploads. When v2 gains one
 of these, move the call over. The full list of what the clients still miss, and the order

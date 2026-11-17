@@ -100,6 +100,17 @@ pub async fn exchange_google_code(
     code_verifier: &str,
     redirect_uri: &str,
 ) -> Result<String, AuthError> {
+    exchange_google_code_at(GOOGLE_TOKEN_URL, cfg, code, code_verifier, redirect_uri).await
+}
+
+/// [`exchange_google_code`] against `token_url`: Google's in production, a stub in tests.
+async fn exchange_google_code_at(
+    token_url: &str,
+    cfg: &GoogleAuthConfig,
+    code: &str,
+    code_verifier: &str,
+    redirect_uri: &str,
+) -> Result<String, AuthError> {
     let client_id = cfg.desktop_client_id.as_deref().ok_or_else(|| {
         AuthError::BadRequest("Google desktop client is not configured".into())
     })?;
@@ -109,7 +120,7 @@ pub async fn exchange_google_code(
 
     let client = http_client()?;
     let resp = client
-        .post(GOOGLE_TOKEN_URL)
+        .post(token_url)
         .form(&[
             ("code", code),
             ("client_id", client_id),
@@ -642,5 +653,72 @@ jOOAImuQv4B3/d5ozBlTQDQ=
             params.n = TEST_N.replacen('i', "j", 1);
         }
         assert!(verify_claims(&bad_jwk, GOOGLE_ISSUERS, &google_audiences(), &token).is_err());
+    }
+
+    /// A stand-in for Google's token endpoint: it takes the code only with the verifier it
+    /// was issued for, the client's credentials and the loopback redirect, as Google does.
+    async fn stub_provider(id_token: String) -> (String, std::sync::Arc<std::sync::Mutex<Vec<std::collections::HashMap<String, String>>>>) {
+        use axum::extract::{Form, State};
+        use std::collections::HashMap;
+        use std::sync::{Arc, Mutex};
+        type Seen = Arc<Mutex<Vec<HashMap<String, String>>>>;
+        let seen: Seen = Arc::default();
+        let app = axum::Router::new()
+            .route(
+                "/token",
+                axum::routing::post(|State((seen, id_token)): State<(Seen, String)>, Form(form): Form<HashMap<String, String>>| async move {
+                    seen.lock().unwrap().push(form.clone());
+                    let good = form.get("grant_type").map(String::as_str) == Some("authorization_code")
+                        && form.get("code").map(String::as_str) == Some("the-code")
+                        && form.get("code_verifier").map(String::as_str) == Some("v".repeat(43).as_str())
+                        && form.get("client_id").map(String::as_str) == Some("desktop-id")
+                        && form.get("client_secret").map(String::as_str) == Some("desktop-secret")
+                        && form.get("redirect_uri").map(String::as_str) == Some("http://127.0.0.1:53682/");
+                    if good {
+                        (axum::http::StatusCode::OK, axum::Json(json!({ "id_token": id_token, "access_token": "x" })))
+                    } else {
+                        (axum::http::StatusCode::BAD_REQUEST, axum::Json(json!({ "error": "invalid_grant" })))
+                    }
+                }),
+            )
+            .with_state((seen.clone(), id_token));
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move { axum::serve(listener, app).await.unwrap() });
+        (format!("http://{addr}/token"), seen)
+    }
+
+    fn desktop_google() -> GoogleAuthConfig {
+        GoogleAuthConfig {
+            enabled: true,
+            client_ids: "my-client-id".into(),
+            desktop_client_id: Some("desktop-id".into()),
+            desktop_client_secret: Some("desktop-secret".into()),
+            web_client_id: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn a_pkce_code_is_exchanged_for_an_id_token_that_verifies() {
+        let (url, seen) = stub_provider(sign(valid_claims())).await;
+        let verifier = "v".repeat(43);
+        let id_token = exchange_google_code_at(&url, &desktop_google(), "the-code", &verifier, "http://127.0.0.1:53682/")
+            .await
+            .expect("the stub exchanges a good code");
+        let claims = verify_claims(&test_jwk(), GOOGLE_ISSUERS, &google_audiences(), &id_token).unwrap();
+        assert_eq!(claims.sub, "user-123");
+        assert_eq!(seen.lock().unwrap()[0].get("code_verifier"), Some(&verifier), "the verifier reaches the provider");
+    }
+
+    #[tokio::test]
+    async fn a_code_the_provider_refuses_is_a_bad_request_not_a_server_error() {
+        let (url, _seen) = stub_provider(sign(valid_claims())).await;
+        let wrong_verifier = "w".repeat(43);
+        let refused = exchange_google_code_at(&url, &desktop_google(), "the-code", &wrong_verifier, "http://127.0.0.1:53682/").await;
+        assert!(matches!(refused, Err(AuthError::BadRequest(_))), "a refused exchange is the caller's problem");
+        let mut no_secret = desktop_google();
+        no_secret.desktop_client_secret = None;
+        let unconfigured = exchange_google_code_at(&url, &no_secret, "the-code", &"v".repeat(43), "http://127.0.0.1:53682/").await;
+        assert!(matches!(unconfigured, Err(AuthError::BadRequest(_))));
     }
 }

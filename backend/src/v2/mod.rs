@@ -5,6 +5,7 @@
 //! are cursor pages ([`page`]), and every operation declares its permission as
 //! `x-permission` (security hardening plan §5.3).
 
+pub mod account;
 pub mod identify;
 pub mod auth;
 pub mod discover;
@@ -29,6 +30,9 @@ pub mod state;
 pub mod sync;
 pub mod uploads;
 
+#[cfg(test)]
+mod handler_tests;
+
 use crate::app::AppState;
 use crate::http::rate_limit::Limiters;
 use utoipa::openapi::security::{HttpAuthScheme, HttpBuilder, SecurityScheme};
@@ -51,7 +55,24 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(auth::describe_device))
         .routes(routes!(auth::approve_device))
         .routes(routes!(auth::deny_device))
-        .routes(routes!(me::me))
+        .routes(routes!(me::me, account::patch_me))
+        // Signing up, resetting and confirming answer as sign-in does, and so do the routes
+        // that check a password or a code: a guess costs the same everywhere.
+        .routes(map(routes!(account::delete_me), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::register), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::password_reset), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::password_reset_confirm), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::verify_email), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::resend_verification), |m| limits.login.apply(m)))
+        .routes(map(routes!(account::change_password), |m| limits.login.apply(m)))
+        .routes(routes!(account::security_events))
+        .routes(routes!(account::start_two_factor))
+        .routes(map(routes!(account::enable_two_factor, account::disable_two_factor), |m| limits.login.apply(m)))
+        // A picture may come as the body itself; 5 MB and the multipart framing v1 allows.
+        .routes(map(routes!(account::put_image, account::delete_image), |m| {
+            m.layer(axum::extract::DefaultBodyLimit::max(6 * 1024 * 1024))
+        }))
+        .routes(routes!(account::subsonic_key, account::new_subsonic_key))
         .routes(routes!(me::sessions, me::delete_sessions))
         .routes(routes!(me::delete_session))
         .routes(routes!(me::tokens, me::create_token))

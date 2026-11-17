@@ -25,6 +25,18 @@
         ],
         "type": "object"
       },
+      "AccountDeletion": {
+        "properties": {
+          "password": {
+            "description": "Required when the account has a password.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "AddEntries": {
         "properties": {
           "track_ids": {
@@ -282,17 +294,68 @@
         ],
         "type": "object"
       },
+      "AuthClients": {
+        "properties": {
+          "apple": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderClients"
+              }
+            ]
+          },
+          "google": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderClients"
+              }
+            ]
+          },
+          "microsoft": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProviderClients"
+              }
+            ]
+          }
+        },
+        "type": "object"
+      },
       "AuthMethods": {
         "properties": {
+          "clients": {
+            "$ref": "#/components/schemas/AuthClients",
+            "description": "The providers' public client ids an app needs to start their sign-in itself: the\ndesktop clients for the authorization-code grant, the web clients for a browser."
+          },
           "device_grant": {
             "description": "TVs and cars: the device authorization grant (RFC 8628).",
             "type": "boolean"
+          },
+          "email_verification": {
+            "description": "New addresses are confirmed by a mailed link; `false` on a server without mail, where\nevery address counts as confirmed.",
+            "type": "boolean"
+          },
+          "grants": {
+            "description": "The `grant_type`s `POST /auth/token` takes here.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           },
           "password": {
             "description": "Email and password (`grant_type=password`).",
             "type": "boolean"
           },
           "password_reset": {
+            "description": "`POST /auth/password-reset` mails links; `false` on a server without mail.",
             "type": "boolean"
           },
           "providers": {
@@ -312,7 +375,10 @@
           "providers",
           "device_grant",
           "totp",
-          "password_reset"
+          "password_reset",
+          "email_verification",
+          "grants",
+          "clients"
         ],
         "type": "object"
       },
@@ -1083,6 +1149,21 @@
         ],
         "type": "object"
       },
+      "Demo": {
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object"
+      },
       "DeviceAuthorizationRequest": {
         "properties": {
           "device_kind": {
@@ -1226,6 +1307,17 @@
           "auth": {
             "$ref": "#/components/schemas/AuthMethods"
           },
+          "demo": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Demo",
+                "description": "A public demo's shared sign-in, published on purpose; absent everywhere else. The demo\naccount may listen but not change anything."
+              }
+            ]
+          },
           "edition": {
             "description": "`core` for the open-source server; editions name themselves.",
             "type": "string"
@@ -1247,6 +1339,10 @@
           "name": {
             "type": "string"
           },
+          "setup": {
+            "$ref": "#/components/schemas/Setup",
+            "description": "The first run: whether the server has its first admin yet."
+          },
           "version": {
             "type": "string"
           }
@@ -1259,7 +1355,8 @@
           "auth",
           "modules",
           "addresses",
-          "limits"
+          "limits",
+          "setup"
         ],
         "type": "object"
       },
@@ -1392,6 +1489,18 @@
         },
         "required": [
           "index"
+        ],
+        "type": "object"
+      },
+      "EmailVerification": {
+        "properties": {
+          "token": {
+            "description": "The secret from the mailed link.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ],
         "type": "object"
       },
@@ -1793,6 +1902,23 @@
         ],
         "type": "object"
       },
+      "ImageBytes": {
+        "description": "A picture's bytes, as the request body.",
+        "format": "binary",
+        "type": "string"
+      },
+      "ImageRequest": {
+        "properties": {
+          "upload_id": {
+            "description": "From `POST /uploads` (any kind, an image of at most 5 MB).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "upload_id"
+        ],
+        "type": "object"
+      },
       "Included": {
         "description": "The records a list's items refer to, each once (`include=`).",
         "properties": {
@@ -2046,6 +2172,13 @@
       },
       "Me": {
         "properties": {
+          "discovery_languages": {
+            "description": "Base language subtags (`en`, `cs`) podcast discovery answers in; empty for every language.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "display_name": {
             "type": "string"
           },
@@ -2061,9 +2194,23 @@
           "id": {
             "type": "string"
           },
+          "image": {
+            "description": "The account's picture: a signed link good for one to two weeks; absent without one.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "instance_role": {
             "description": "`admin` runs the server; `user` is everyone else.",
             "type": "string"
+          },
+          "recommendations_enabled": {
+            "description": "Whether listening may be used to suggest things. Off until the person turns it on; a\nclient computes and shows nothing listening-derived while it is off.",
+            "type": "boolean"
+          },
+          "two_factor": {
+            "$ref": "#/components/schemas/TwoFactor"
           }
         },
         "required": [
@@ -2072,7 +2219,10 @@
           "display_name",
           "email_verified",
           "instance_role",
-          "family"
+          "family",
+          "recommendations_enabled",
+          "discovery_languages",
+          "two_factor"
         ],
         "type": "object"
       },
@@ -2099,6 +2249,33 @@
           "can_upload",
           "can_generate"
         ],
+        "type": "object"
+      },
+      "MePatch": {
+        "properties": {
+          "discovery_languages": {
+            "description": "The whole list (`en`, `cs`, or tags like `en-US`, kept as their base); `[]` for every\nlanguage. At most 20.",
+            "items": {
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "display_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "recommendations_enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "Member": {
@@ -4370,6 +4547,76 @@
         ],
         "type": "object"
       },
+      "Page_SecurityEvent": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "by_admin": {
+                  "description": "Someone else did it: an admin.",
+                  "type": "boolean"
+                },
+                "device": {
+                  "description": "The device's name when the event names one, else the client's user agent.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "type": "string"
+                },
+                "ip_hint": {
+                  "description": "Where it came from, shortened to the network (`203.0.113.*`, `2001:db8:1:2::*`).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "type": {
+                  "description": "`login.ok`, `login.failed`, `login.locked`, `login.mfa_pending`, `login.mfa_ok`,\n`login.mfa_failed`, `password.changed`, `password.reset_requested`, `password.reset`,\n`email.verified`, `totp.enabled`, `totp.disabled`, `session.revoked`,\n`session.revoked_all`, `session.forked`, `token.created`, `token.revoked`,\n`account.created`, `role.changed`…; new kinds may appear.",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "type",
+                "at",
+                "by_admin"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_SmartPlaylist": {
         "description": "One page of a list.",
         "properties": {
@@ -4597,6 +4844,48 @@
         },
         "required": [
           "items"
+        ],
+        "type": "object"
+      },
+      "PasswordChange": {
+        "properties": {
+          "current_password": {
+            "type": "string"
+          },
+          "new_password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "current_password",
+          "new_password"
+        ],
+        "type": "object"
+      },
+      "PasswordResetConfirm": {
+        "properties": {
+          "password": {
+            "type": "string"
+          },
+          "token": {
+            "description": "The secret from the mailed link.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ],
+        "type": "object"
+      },
+      "PasswordResetRequest": {
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
         ],
         "type": "object"
       },
@@ -5471,6 +5760,25 @@
         ],
         "type": "object"
       },
+      "ProviderClients": {
+        "properties": {
+          "desktop": {
+            "description": "For the loopback authorization-code grant (RFC 8252); this server holds its secret.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "web": {
+            "description": "For the provider's sign-in in a browser.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "PushRequest": {
         "properties": {
           "changes": {
@@ -5671,6 +5979,48 @@
         },
         "required": [
           "recording"
+        ],
+        "type": "object"
+      },
+      "RecoveryCodes": {
+        "properties": {
+          "recovery_codes": {
+            "description": "Shown this once; each works once in place of a code.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "recovery_codes"
+        ],
+        "type": "object"
+      },
+      "RegisterRequest": {
+        "properties": {
+          "display_name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "invite_code": {
+            "description": "A family invitation: lets the account in when registration is closed, and puts it in\nthe inviting household.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "description": "Twelve characters or more; a few words are fine.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "display_name"
         ],
         "type": "object"
       },
@@ -6256,6 +6606,46 @@
         ],
         "type": "object"
       },
+      "SecurityEvent": {
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "by_admin": {
+            "description": "Someone else did it: an admin.",
+            "type": "boolean"
+          },
+          "device": {
+            "description": "The device's name when the event names one, else the client's user agent.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "ip_hint": {
+            "description": "Where it came from, shortened to the network (`203.0.113.*`, `2001:db8:1:2::*`).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "description": "`login.ok`, `login.failed`, `login.locked`, `login.mfa_pending`, `login.mfa_ok`,\n`login.mfa_failed`, `password.changed`, `password.reset_requested`, `password.reset`,\n`email.verified`, `totp.enabled`, `totp.disabled`, `session.revoked`,\n`session.revoked_all`, `session.forked`, `token.created`, `token.revoked`,\n`account.created`, `role.changed`…; new kinds may appear.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "at",
+          "by_admin"
+        ],
+        "type": "object"
+      },
       "SeriesEntry": {
         "properties": {
           "name": {
@@ -6316,6 +6706,18 @@
           "signed_in_at",
           "expires_at",
           "current"
+        ],
+        "type": "object"
+      },
+      "Setup": {
+        "properties": {
+          "complete": {
+            "description": "`false` until the first admin exists; until then the console shows the setup wizard.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "complete"
         ],
         "type": "object"
       },
@@ -6434,9 +6836,39 @@
         ],
         "type": "object"
       },
+      "SubsonicKey": {
+        "properties": {
+          "key": {
+            "description": "What it asks for as the password (or API key).",
+            "type": "string"
+          },
+          "username": {
+            "description": "What a Subsonic app asks for as the user name.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username",
+          "key"
+        ],
+        "type": "object"
+      },
       "TokenRequest": {
         "properties": {
           "assertion": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code": {
+            "description": "authorization_code: the code the provider sent to the app's loopback address, the\nPKCE verifier its challenge was made from, and that loopback address\n(`http://127.0.0.1:<port>/…`), exactly as sent to the provider. The desktop client ids\nare `auth.clients` in discovery.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "code_verifier": {
             "type": [
               "string",
               "null"
@@ -6470,11 +6902,11 @@
             ]
           },
           "grant_type": {
-            "description": "`password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,\n`urn:ietf:params:oauth:grant-type:jwt-bearer` or\n`urn:own-audio:params:oauth:grant-type:mfa-otp`.",
+            "description": "`password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,\n`urn:ietf:params:oauth:grant-type:jwt-bearer`, `authorization_code`,\n`urn:ietf:params:oauth:grant-type:token-exchange` or\n`urn:own-audio:params:oauth:grant-type:mfa-otp`. `auth.grants` in discovery lists\nthose this server takes.",
             "type": "string"
           },
           "invite_code": {
-            "description": "jwt-bearer: an invitation, when the account is new.",
+            "description": "jwt-bearer and authorization_code: an invitation, when the account is new.",
             "type": [
               "string",
               "null"
@@ -6500,7 +6932,13 @@
             ]
           },
           "provider": {
-            "description": "jwt-bearer: `apple`, `google` or `microsoft`, and the provider's id token.",
+            "description": "jwt-bearer: `apple`, `google` or `microsoft`, and the provider's id token;\nauthorization_code: `google` or `microsoft`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redirect_uri": {
             "type": [
               "string",
               "null"
@@ -6508,6 +6946,26 @@
           },
           "refresh_token": {
             "description": "refresh_token",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requested_token_type": {
+            "description": "token-exchange: `urn:ietf:params:oauth:token-type:access_token` (the default) or\n`…:refresh_token`; either way both are answered.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_token": {
+            "description": "token-exchange: a live refresh token of the account, and its type,\n`urn:ietf:params:oauth:token-type:refresh_token`. Answers tokens for a new, separate\ndevice (a helper process that refreshes on its own); the presented token keeps working.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_token_type": {
             "type": [
               "string",
               "null"
@@ -6537,6 +6995,13 @@
             "format": "int64",
             "minimum": 0,
             "type": "integer"
+          },
+          "issued_token_type": {
+            "description": "token-exchange only (RFC 8693 §2.2.1): `urn:ietf:params:oauth:token-type:access_token`.",
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "refresh_token": {
             "description": "Rotates on every use; presenting a used one signs the device out.",
@@ -6860,6 +7325,53 @@
         ],
         "type": "object"
       },
+      "TwoFactor": {
+        "properties": {
+          "enabled": {
+            "description": "Sign-in asks for a code from an authenticator app.",
+            "type": "boolean"
+          },
+          "recovery_codes_left": {
+            "description": "Recovery codes not used yet; 0 while two-factor sign-in is off.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "enabled",
+          "recovery_codes_left"
+        ],
+        "type": "object"
+      },
+      "TwoFactorCode": {
+        "properties": {
+          "code": {
+            "description": "Six digits from the app; to turn it off, a recovery code works too.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "TwoFactorSetup": {
+        "properties": {
+          "otpauth_uri": {
+            "description": "For the QR code the app scans.",
+            "type": "string"
+          },
+          "secret": {
+            "description": "Base32, for typing into an app by hand.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret",
+          "otpauth_uri"
+        ],
+        "type": "object"
+      },
       "Undone": {
         "properties": {
           "batch_id": {
@@ -6977,7 +7489,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.2-draft"
+    "version": "2.3-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -7870,6 +8382,227 @@
         "x-scope": "user:write"
       }
     },
+    "/api/v2/auth/email-verification": {
+      "post": {
+        "operationId": "auth_verify_email",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailVerification"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The address is confirmed"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_token`: the link is unknown, used or expired"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "The mailed confirmation link's landing call; works without signing in",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
+      }
+    },
+    "/api/v2/auth/password-reset": {
+      "post": {
+        "description": "Mails a link to set a new password, good for thirty minutes. `202` whatever the address,\nso it says nothing about which addresses have accounts. `501` on a server that does not\nmail (`auth.password_reset` in discovery is `false`): there an admin sets a new password.",
+        "operationId": "auth_password_reset",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "A link is on its way if the address has an account with a password"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`feature_unavailable`: this server does not mail"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Mails a link to set a new password, good for thirty minutes",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
+      }
+    },
+    "/api/v2/auth/password-reset/confirm": {
+      "post": {
+        "operationId": "auth_password_reset_confirm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordResetConfirm"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Set; sign in again"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`weak_password`, or `invalid_token`: the link is unknown, used or expired"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Sets the password behind a mailed link and signs every device of the account out",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
+      }
+    },
+    "/api/v2/auth/register": {
+      "post": {
+        "description": "A new account with a password, in its own household or the inviting one. Answers the\naccount; signing in is `POST /auth/token`. On a server that mails confirmation links, the\naddress is unconfirmed until the link is used (`email_verified`), unless an invitation sent\nto this very address vouched for it.",
+        "operationId": "auth_register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "The account; sign in with `POST /auth/token`"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_email`, `weak_password`, `invalid_display_name`, `invalid_invite`"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`registration_closed`: this server takes new accounts by invitation only"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`email_taken`"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "A new account with a password, in its own household or the inviting one",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
+      }
+    },
     "/api/v2/auth/revoke": {
       "post": {
         "description": "Revoke a token (RFC 7009). Answers `200` whether or not the token was\nknown, so it says nothing about which tokens exist.",
@@ -7912,7 +8645,7 @@
     },
     "/api/v2/auth/token": {
       "post": {
-        "description": "Tokens for an account: a password, a refresh token, an approved device, a\nprovider's id token, or a two-factor code. An account with two-factor\nsign-in on answers the first step with `403 mfa_required` and an `mfa_token`\nfor the `mfa-otp` grant.",
+        "description": "Tokens for an account: a password, a refresh token, an approved device, a\nprovider's id token or authorization code, a refresh token exchanged for a\nsecond device, or a two-factor code. An account with two-factor\nsign-in on answers the first step with `403 mfa_required` and an `mfa_token`\nfor the `mfa-otp` grant.",
         "operationId": "auth_token",
         "requestBody": {
           "content": {
@@ -7944,7 +8677,7 @@
                 }
               }
             },
-            "description": "OAuth `error`: `invalid_request`, `invalid_grant`, `unsupported_grant_type`; for the device code also `authorization_pending`, `slow_down`, `access_denied`, `expired_token`"
+            "description": "OAuth `error`: `invalid_request`, `invalid_grant`, `unsupported_grant_type`; for the device code also `authorization_pending`, `slow_down`, `access_denied`, `expired_token`; `account_locked` (429) after a run of wrong passwords"
           },
           "403": {
             "content": {
@@ -7980,7 +8713,7 @@
         "security": [
           {}
         ],
-        "summary": "Tokens for an account: a password, a refresh token, an approved device, a provider's id token, or a two-factor code",
+        "summary": "Tokens for an account: a password, a refresh token, an approved device, a provider's id token or authorization code, a refresh token exchanged for a second device, or a two-factor code",
         "tags": [
           "auth"
         ],
@@ -11673,6 +12406,87 @@
       }
     },
     "/api/v2/me": {
+      "delete": {
+        "description": "Deletes the account and everything it owns, at once (its trash included). An account with a\npassword confirms with it; one that signs in only with a provider sends no body.",
+        "operationId": "me_delete_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AccountDeletion"
+              }
+            }
+          },
+          "description": "Needed when the account has a password",
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Deleted; every token of the account stops working"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`password_required`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_credentials`; or asked with a personal access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`last_admin`: the server's only admin cannot leave it without one"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes the account and everything it owns, at once (its trash included)",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      },
       "get": {
         "operationId": "me_me",
         "responses": {
@@ -11718,6 +12532,72 @@
         ],
         "x-permission": "user",
         "x-scope": "library:read"
+      },
+      "patch": {
+        "operationId": "me_patch_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MePatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_display_name`, `too_many_languages`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Changes the profile; only what the body names",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
       }
     },
     "/api/v2/me/bookmarks": {
@@ -12011,6 +12891,68 @@
         "x-scope": "playback"
       }
     },
+    "/api/v2/me/email-verification": {
+      "post": {
+        "description": "Another confirmation link for the signed-in account. `409 already_verified` when there is\nnothing to confirm, `501` on a server that does not mail (`auth.email_verification` in\ndiscovery), where every address counts as confirmed.",
+        "operationId": "me_resend_verification",
+        "responses": {
+          "202": {
+            "description": "A link is on its way"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`already_verified`"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`feature_unavailable`: this server does not mail"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Another confirmation link for the signed-in account",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      }
+    },
     "/api/v2/me/favourites": {
       "get": {
         "operationId": "state_list_favourites",
@@ -12224,6 +13166,230 @@
         ],
         "x-permission": "member",
         "x-scope": "library:write"
+      }
+    },
+    "/api/v2/me/image": {
+      "delete": {
+        "operationId": "me_delete_image",
+        "responses": {
+          "204": {
+            "description": "Removed, or there was none"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Removes the account's picture",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      },
+      "put": {
+        "operationId": "me_put_image",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageRequest"
+              }
+            },
+            "image/*": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageBytes"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_an_image`, `invalid_upload`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No such upload in this household"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`too_large`: over 5 MB"
+          },
+          "415": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`unsupported_media_type`: neither JSON nor an image"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The account's picture: `{upload_id}` of an image put with `POST /uploads`, or the image itself as the body (`image/jpeg`, `image/png`, `image/webp`…, at most 5 MB), for anyone who may not add to the library",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      }
+    },
+    "/api/v2/me/password": {
+      "put": {
+        "description": "A new password. Every other device of the account is signed out; this one stays.",
+        "operationId": "me_change_password",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Changed"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`weak_password`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_credentials`: the current password is wrong; or asked with a personal access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`no_password`: the account signs in with a provider only"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A new password",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
       }
     },
     "/api/v2/me/played": {
@@ -12861,6 +14027,85 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/me/security-events": {
+      "get": {
+        "operationId": "me_security_events",
+        "parameters": [
+          {
+            "description": "How many items, 1 to 500; 100 when absent.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`next` from the previous page; absent for the first.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_SecurityEvent"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_limit`, `invalid_cursor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What happened to the account's security, newest first; kept a year",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      }
+    },
     "/api/v2/me/sessions": {
       "delete": {
         "operationId": "me_delete_sessions",
@@ -13007,6 +14252,120 @@
           }
         ],
         "summary": "Sign one device out, at once",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      }
+    },
+    "/api/v2/me/subsonic-key": {
+      "get": {
+        "operationId": "me_subsonic_key",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubsonicKey"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Asked with a personal access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The key third-party Subsonic players sign in with, made on first asking",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      },
+      "post": {
+        "operationId": "me_new_subsonic_key",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubsonicKey"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Asked with a personal access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A new Subsonic key; players set up with the old one stop working",
         "tags": [
           "me"
         ],
@@ -13198,6 +14557,242 @@
           }
         ],
         "summary": "Revoke a personal access token",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      }
+    },
+    "/api/v2/me/two-factor": {
+      "delete": {
+        "description": "Turns two-factor sign-in off with a code from the app or a recovery code, so a session\nalone cannot remove it. A setup still pending is dropped without one.",
+        "operationId": "me_disable_two_factor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCode"
+              }
+            }
+          },
+          "description": "Not needed to drop a pending setup",
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Off"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_code`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Asked with a personal access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`two_factor_off`"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turns two-factor sign-in off with a code from the app or a recovery code, so a session alone cannot remove it",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      },
+      "post": {
+        "description": "Starts setting up two-factor sign-in: a fresh secret for an authenticator app, pending until\n`PUT /me/two-factor` confirms it with a code. Starting again replaces a pending secret.",
+        "operationId": "me_start_two_factor",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorSetup"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Asked with a personal access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`two_factor_on`: turn it off first"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Starts setting up two-factor sign-in: a fresh secret for an authenticator app, pending until `PUT /me/two-factor` confirms it with a code",
+        "tags": [
+          "me"
+        ],
+        "x-permission": "user",
+        "x-scope": "user:write"
+      },
+      "put": {
+        "operationId": "me_enable_two_factor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodes"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_code`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Asked with a personal access token"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`two_factor_not_pending`: start with `POST /me/two-factor`; `two_factor_on`"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Turns two-factor sign-in on: the first code from the app proves it holds the secret",
         "tags": [
           "me"
         ],

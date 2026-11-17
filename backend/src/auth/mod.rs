@@ -345,7 +345,7 @@ pub fn password_reset_offered(cfg: &crate::app::AppConfig) -> bool {
     responses(
         (status = 200, description = "Accepted. A link is on its way if the email has an account that can be reset; the answer is the same either way", body = Object),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
-async fn forgot_password(
+pub(crate) async fn forgot_password(
     State(state): State<AppState>,
     meta: audit::RequestMeta,
     Json(body): Json<ForgotPasswordRequest>,
@@ -399,7 +399,7 @@ async fn forgot_password(
         (status = 200, description = "Password set; sign in again", body = Object),
         (status = 400, description = "Link invalid, used or expired, or password under 12 characters", body = crate::http::openapi::ErrorBody),
         (status = 429, description = "Rate limited; see `Retry-After`", body = crate::http::openapi::ErrorBody)))]
-async fn reset_password(
+pub(crate) async fn reset_password(
     State(state): State<AppState>,
     meta: audit::RequestMeta,
     Json(body): Json<ResetPasswordRequest>,
@@ -435,7 +435,7 @@ async fn reset_password(
 /// The account behind an email and password, or `InvalidCredentials` — for an
 /// unknown email, an inactive account, no local identity and a wrong
 /// password alike, deliberately not told apart.
-async fn verify_password_login(pool: &sqlx::PgPool, body: &LoginRequest) -> Result<User, AuthError> {
+pub(crate) async fn verify_password_login(pool: &sqlx::PgPool, body: &LoginRequest) -> Result<User, AuthError> {
     let user = db::users::find_by_email(pool, &body.email)
         .await
         .map_err(AuthError::Internal)?
@@ -752,8 +752,22 @@ async fn fork(
     State(state): State<AppState>,
     Json(body): Json<ForkRequest>,
 ) -> Result<Json<LoginResponse>, AuthError> {
+    fork_session(&state, &body.refresh_token, body.device_name.as_deref(), body.device_kind.as_deref())
+        .await
+        .map(Json)
+}
+
+/// A new device chain for the account behind a live refresh token, which is
+/// checked like a refresh but not rotated. v1's `/auth/fork` and v2's
+/// token-exchange grant.
+pub(crate) async fn fork_session(
+    state: &AppState,
+    refresh_token: &str,
+    device_name: Option<&str>,
+    device_kind: Option<&str>,
+) -> Result<LoginResponse, AuthError> {
     let pool = state.db();
-    let hash = db::refresh_tokens::hash_token(&body.refresh_token);
+    let hash = db::refresh_tokens::hash_token(refresh_token);
     let stored = db::refresh_tokens::find_by_hash(pool, &hash)
         .await
         .map_err(AuthError::Internal)?
@@ -774,8 +788,8 @@ async fn fork(
     if !user.is_active {
         return Err(AuthError::InvalidCredentials);
     }
-    let issued = issue_tokens(&state, &user, body.device_name.as_deref(), body.device_kind.as_deref(), None).await?;
-    Ok(Json(login_response(issued, user)))
+    let issued = issue_tokens(state, &user, device_name, device_kind, None).await?;
+    Ok(login_response(issued, user))
 }
 
 /// GET /api/v1/auth/sessions — the caller's signed-in devices.
@@ -891,7 +905,7 @@ async fn providers(State(state): State<AppState>) -> Json<ProvidersResponse> {
 /// these variables explicitly and defaults them to empty. Clients check for
 /// null to decide whether to offer a button, so collapse the two here rather
 /// than handing every client an empty string to special-case.
-fn non_empty(value: Option<&str>) -> Option<String> {
+pub(crate) fn non_empty(value: Option<&str>) -> Option<String> {
     value.map(str::trim).filter(|v| !v.is_empty()).map(str::to_string)
 }
 
@@ -960,31 +974,47 @@ async fn register(
         ));
     }
 
-    // 4. Hash password
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
-        .to_string();
-
-    // 5. Create user + local identity
-    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, "user")
-        .await
-        .map_err(AuthError::Internal)?;
-
-    db::users::insert_local_identity(pool, user.id, &password_hash)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    // 6. Place the account in a family: the inviting one, or its own.
-    let proven = invite_proves(invite.as_ref(), &email);
-    let family_id = place_in_family(&state, user.id, invite).await?;
-    verification::born(&state, &user, family_id, proven).await?;
+    // 4–6. The account, in its family, verified or with a link on its way.
+    let user = create_local_account(&state, &email, &body.password, &display_name, invite).await?;
 
     // 7. Auto-login: mint access + refresh tokens
     let issued = issue_tokens(&state, &user, None, None, None).await?;
 
     Ok((StatusCode::CREATED, Json(login_response(issued, user))))
+}
+
+/// A new account with a password, after the caller has checked the address,
+/// the password, the name and that the address is free, and authorized it
+/// (open registration or `invite`): placed in the inviting family or its own,
+/// and verified or sent a confirmation link. Shared by v1's and v2's sign-up.
+pub(crate) async fn create_local_account(
+    state: &AppState,
+    email: &str,
+    password: &str,
+    display_name: &str,
+    invite: Option<db::families::FamilyInvite>,
+) -> Result<User, AuthError> {
+    let pool = state.db();
+    let password_hash = hash_password(password)?;
+    let user = db::users::insert(pool, state.at_rest(), email, display_name, "user")
+        .await
+        .map_err(AuthError::Internal)?;
+    db::users::insert_local_identity(pool, user.id, &password_hash)
+        .await
+        .map_err(AuthError::Internal)?;
+    let proven = invite_proves(invite.as_ref(), email);
+    let family_id = place_in_family(state, user.id, invite).await?;
+    verification::born(state, &user, family_id, proven).await?;
+    Ok(user)
+}
+
+/// Argon2id with a fresh salt.
+pub(crate) fn hash_password(password: &str) -> Result<String, AuthError> {
+    let salt = SaltString::generate(&mut OsRng);
+    Ok(Argon2::default()
+        .hash_password(password.as_bytes(), &salt)
+        .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
+        .to_string())
 }
 
 /// POST /api/v1/auth/google
@@ -1294,7 +1324,7 @@ fn invite_proves(invite: Option<&db::families::FamilyInvite>, email: &str) -> bo
 /// exchange — the backend is the confidential client here, so this exists to
 /// keep the code-exchange endpoint from being pointed at an arbitrary host,
 /// not to protect a secret the request already carries.
-fn is_loopback_redirect(uri: &str) -> bool {
+pub(crate) fn is_loopback_redirect(uri: &str) -> bool {
     if !uri.starts_with("http://") {
         return false;
     }
@@ -1318,7 +1348,7 @@ fn is_loopback_redirect(uri: &str) -> bool {
         (status = 204, description = "Changed; every other session and device is signed out"),
         (status = 400, description = "New password under 12 characters, or current password incorrect", body = crate::http::openapi::ErrorBody),
         (status = 401, description = "Invalid access token, or the account has no password", body = crate::http::openapi::ErrorBody)))]
-async fn change_password(
+pub(crate) async fn change_password(
     auth: AuthUser,
     State(state): State<AppState>,
     meta: audit::RequestMeta,

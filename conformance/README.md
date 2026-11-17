@@ -52,6 +52,7 @@ uploads, file sync and Subsonic on, everything else off.
 | `filesync` | the own.audio folder: paths, sync feed and cursor, shortcuts, holdings, auto-stored episodes | loopback `--base-url` and `--compose-dir` (serves an RSS feed the server fetches from this machine) |
 | `gpodder` | the gPodder sync API: basic auth with the app key, devices, subscriptions both ways, play actions as progress and progress as play actions, removals | loopback `--base-url` and Docker (serves two RSS feeds the server fetches from this machine) |
 | `v2` | `/api/v2`: discovery, problem details, sign-in grants, the catalogue, user state, sync, playback and the media route, images and pictures, the household, uploads, playlists | — |
+| `v2_account` | `/api/v2` account and sign-in: sign-up, password change and reset, address confirmation, security events, two-factor, profile and picture, Subsonic key, deleting the account, token exchange, the code grant's checks, discovery's sign-in fields; that a server without mail says so | the mailed links' checks need `--compose-dir` |
 | `v2_walk` | `/api/v2` walked from `docs/api/openapi-v2.json`: the permission matrix, another member's (or household's) ids, problem shapes, paging without loss in every order | — |
 | `library` | read-only library folders: scan, tags, books as folders in natural order, streaming from a folder, removing hides | a server with folders configured: `tools/make_library_fixtures.sh /tmp/oa-library` and `-f conformance/compose.library.yml`; skipped otherwise |
 

@@ -24,6 +24,15 @@ pub struct Me {
     /// `admin` runs the server; `user` is everyone else.
     pub instance_role: String,
     pub family: MeFamily,
+    /// The account's picture: a signed link good for one to two weeks; absent without one.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub image: Option<String>,
+    /// Whether listening may be used to suggest things. Off until the person turns it on; a
+    /// client computes and shows nothing listening-derived while it is off.
+    pub recommendations_enabled: bool,
+    /// Base language subtags (`en`, `cs`) podcast discovery answers in; empty for every language.
+    pub discovery_languages: Vec<String>,
+    pub two_factor: TwoFactor,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -36,16 +45,33 @@ pub struct MeFamily {
     pub can_generate: bool,
 }
 
+#[derive(Serialize, ToSchema)]
+pub struct TwoFactor {
+    /// Sign-in asks for a code from an authenticator app.
+    pub enabled: bool,
+    /// Recovery codes not used yet; 0 while two-factor sign-in is off.
+    pub recovery_codes_left: i64,
+}
+
 /// The signed-in account and its household.
 #[utoipa::path(get, path = "/me", tag = "me", security(("bearer" = [])),
     extensions(("x-permission" = json!("user"))),
     responses((status = 200, body = Me)))]
 pub async fn me(family: FamilyContext, State(state): State<AppState>) -> Result<Json<Me>, Problem> {
-    let user = db::users::find_by_id(state.db(), family.user_id)
+    Ok(Json(build(&state, &family).await?))
+}
+
+/// The account behind `family`, as `GET /me` answers it.
+pub async fn build(state: &AppState, family: &FamilyContext) -> Result<Me, Problem> {
+    let pool = state.db();
+    let user = db::users::find_by_id(pool, family.user_id)
         .await?
         .ok_or_else(|| Problem::new(StatusCode::UNAUTHORIZED, "unauthorized"))?;
-    Ok(Json(Me {
+    let enabled = db::totp::is_enabled(pool, user.id).await?;
+    let left = if enabled { db::totp::recovery_codes_left(pool, user.id).await? } else { 0 };
+    Ok(Me {
         id: user.id.to_string(),
+        image: crate::v2::images::maybe_expiring(state, user.avatar_object_id),
         email: user.email,
         display_name: user.display_name,
         email_verified: user.email_verified_at.is_some(),
@@ -56,7 +82,25 @@ pub async fn me(family: FamilyContext, State(state): State<AppState>) -> Result<
             can_upload: family.effective_can_upload(),
             can_generate: family.effective_can_generate(),
         },
-    }))
+        recommendations_enabled: user.recommendations_enabled,
+        discovery_languages: user.discovery_languages,
+        two_factor: TwoFactor { enabled, recovery_codes_left: left },
+    })
+}
+
+/// [`build`] for an account that has no request of its own yet (just made by sign-up).
+pub async fn build_for(state: &AppState, user_id: Uuid) -> Result<Me, Problem> {
+    let user = db::users::find_by_id(state.db(), user_id).await?.ok_or_else(Problem::not_found)?;
+    let membership = db::families::ensure_membership(state.db(), user_id, state.hooks().one_family()).await?;
+    let family = FamilyContext {
+        user_id,
+        family_id: membership.family_id,
+        family_role: membership.role,
+        is_global_admin: user.role == "admin",
+        can_upload: membership.can_upload,
+        can_generate: membership.can_generate,
+    };
+    build(state, &family).await
 }
 
 // ── Sessions ────────────────────────────────────────────────────────────────
