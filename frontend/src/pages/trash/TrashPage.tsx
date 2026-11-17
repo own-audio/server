@@ -151,7 +151,7 @@ export default function TrashPage() {
         )
       }
     >
-      <p className="-mt-3 mb-5 max-w-2xl text-sm text-muted">{t("trash.intro")}</p>
+      <p className="-mt-3 mb-5 max-w-2xl text-sm text-muted">{features.billing ? `${t("trash.intro")} ${t("trash.introBilling")}` : t("trash.intro")}</p>
 
       {isFamilyAdmin && (
         <SegmentedControl

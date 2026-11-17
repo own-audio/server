@@ -4,8 +4,13 @@
     "cs": "Koš"
   },
   "trash.intro": {
-    "en": "Deleted items wait here for 30 days, then they're gone for good. The trash costs nothing; restoring an item charges the storage for the days it spent here, and restoring on the day it was deleted is free.",
-    "cs": "Smazané položky tu čekají 30 dní, pak zmizí natrvalo. Koš nic nestojí; obnovení položky se účtuje za úložiště po dny, které tu strávila, a obnovení v den smazání je zdarma."
+    "en": "Deleted items wait here for 30 days, then they're gone for good.",
+    "cs": "Smazané položky tu čekají 30 dní, pak zmizí natrvalo."
+  },
+  "trash.introBilling": {
+    "en": "The trash costs nothing; restoring an item charges the storage for the days it spent here, and restoring on the day it was deleted is free.",
+    "cs": "Koš nic nestojí; obnovení položky se účtuje za úložiště po dny, které tu strávila, a obnovení v den smazání je zdarma.",
+    "note": "Follows trash.intro on a server with storage billing only."
   },
   "trash.empty": {
     "en": "Empty Trash",

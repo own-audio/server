@@ -13,6 +13,8 @@ semver. Each release states the **API contract revision** it serves
   server runs outside its image): the server says so once in its log and fingerprints nothing,
   as with `FINGERPRINT__MODE=off`. Every upload was quarantined as "does not decode" and left
   the library. The image's ffmpeg has Chromaprint; nothing changes there.
+- The console's Trash page says restoring charges the storage only on a server with billing
+  (`features.billing`).
 
 ## [1.0.4] - 2026-11-17
 

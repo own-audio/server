@@ -1933,6 +1933,7 @@ export interface MessageParams {
   "trash.group.deletedBy": { "when": string | number; "name": string | number };
   "trash.group.deletedByYou": { "when": string | number };
   "trash.intro": undefined;
+  "trash.introBilling": undefined;
   "trash.item.goneIn": { "days": number };
   "trash.item.goneTomorrow": undefined;
   "trash.item.owner": { "name": string | number };
