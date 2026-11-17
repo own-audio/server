@@ -39,6 +39,20 @@ pub(crate) fn credited_visibly(roles: &str) -> String {
     )
 }
 
+/// `owner=me` and `visibility=` on the lists (v2 phase 10): only the viewer's own items, only
+/// the private or only the shared ones. Both narrow what the viewer can see; neither widens it.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub struct Ownership {
+    pub mine: bool,
+    /// `Some(true)`: shared with the household; `Some(false)`: private.
+    pub shared: Option<bool>,
+}
+
+/// [`Ownership`] over the item aliased `alias`, its two values bound at `mine` and `shared`.
+fn ownership_sql(alias: &str, mine: &str, shared: &str) -> String {
+    format!("({mine}::boolean IS NOT TRUE OR {alias}.user_id = $1) AND ({shared}::boolean IS NULL OR ({alias}.family_id IS NOT NULL) = {shared})")
+}
+
 // ── Contributors ─────────────────────────────────────────────────────────────
 
 #[derive(Debug, Clone, sqlx::FromRow)]
@@ -259,6 +273,8 @@ pub struct AlbumFilter {
     /// The release group's kind (`live`).
     pub kind: Option<String>,
     pub query: Option<String>,
+    /// Kept when one of its visible tracks is the viewer's own, private or shared.
+    pub ownership: Ownership,
 }
 
 /// Where a page of albums starts: after this title, or before this time (newest first).
@@ -276,6 +292,15 @@ pub async fn list_albums(
     limit: i64,
 ) -> anyhow::Result<Vec<AlbumRow>> {
     let music = music();
+    // With an owner or visibility filter, also the albums of the tracks it keeps, as a join the
+    // planner can start from: a few private albums are found from their tracks instead of by
+    // walking every album in title order (183 ms to 11 ms on 600,000 tracks, docs/CAPACITY.md).
+    // Its own statement, so a list without the filter plans as before.
+    let narrowed = if filter.ownership == Ownership::default() {
+        String::new()
+    } else {
+        format!("AND a.id IN (SELECT t.album_id FROM music_tracks t WHERE {music} AND {})", ownership_sql("t", "$13", "$14"))
+    };
     let (order, keyset) = if by_added {
         ("a.created_at DESC, a.id DESC", "($9::timestamptz IS NULL OR (a.created_at, a.id) < ($9, $10))")
     } else {
@@ -290,10 +315,12 @@ pub async fn list_albums(
             AND ($5::uuid IS NULL OR a.release_group_id = $5)
             AND ($7::text IS NULL OR a.title ILIKE '%' || $7 || '%')
             AND ($12::text IS NULL OR EXISTS (SELECT 1 FROM release_groups g WHERE g.id = a.release_group_id AND g.kind = $12))
-            AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {music}
+            AND EXISTS (SELECT 1 FROM music_tracks t WHERE t.album_id = a.id AND {music} AND {owned}
                           AND ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM track_genres g WHERE g.track_id = t.id AND g.genre_id = $6)))
+            {narrowed}
           ORDER BY {order}
-          LIMIT $11"
+          LIMIT $11",
+        owned = ownership_sql("t", "$13", "$14")
     );
     let (title, added, id) = match after {
         None => (None, None, None),
@@ -310,6 +337,8 @@ pub async fn list_albums(
         .bind(id)
         .bind(limit)
         .bind(filter.kind.as_deref())
+        .bind(filter.ownership.mine)
+        .bind(filter.ownership.shared)
         .fetch_all(pool)
         .await
         .context("db: list albums")
@@ -526,6 +555,7 @@ pub struct TrackFilter {
     pub genre_id: Option<Uuid>,
     pub recording_id: Option<Uuid>,
     pub query: Option<String>,
+    pub ownership: Ownership,
 }
 
 /// Where a page of tracks starts.
@@ -567,9 +597,11 @@ pub async fn list_tracks(
             AND ($6::uuid IS NULL OR EXISTS (SELECT 1 FROM track_genres g WHERE g.track_id = t.id AND g.genre_id = $6))
             AND ($7::uuid IS NULL OR t.recording_id = $7)
             AND ($8::text IS NULL OR t.title ILIKE '%' || $8 || '%')
+            AND {owned}
           ORDER BY {order_sql}
           LIMIT $15",
-        music()
+        music(),
+        owned = ownership_sql("t", "$16", "$17")
     );
     let (title, added, disc, number, in_album_title, id) = match after {
         None => (None, None, None, None, None, None),
@@ -590,6 +622,8 @@ pub async fn list_tracks(
         .bind(in_album_title)
         .bind(id)
         .bind(limit)
+        .bind(filter.ownership.mine)
+        .bind(filter.ownership.shared)
         .fetch_all(pool)
         .await
         .context("db: list tracks")
@@ -672,6 +706,7 @@ pub struct BookFilter<'a> {
     pub contributor_id: Option<Uuid>,
     pub query: Option<&'a str>,
     pub tag: Option<&'a str>,
+    pub ownership: Ownership,
 }
 
 pub async fn list_books(
@@ -690,8 +725,10 @@ pub async fn list_books(
             AND ($5::text IS NULL OR t.title ILIKE '%' || $5 || '%')
             AND ($10::text IS NULL OR EXISTS (SELECT 1 FROM audiobook_book_tags bt JOIN audiobook_tags g ON g.id = bt.tag_id
                                                WHERE bt.book_id = t.id AND lower(g.name) = lower($10)))
+            AND {owned}
           ORDER BY {order} LIMIT $9",
-        books()
+        books(),
+        owned = ownership_sql("t", "$11", "$12")
     );
     let (title, added, id) = title_or_added(after);
     viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer)
@@ -702,6 +739,8 @@ pub async fn list_books(
         .bind(id)
         .bind(limit)
         .bind(filter.tag)
+        .bind(filter.ownership.mine)
+        .bind(filter.ownership.shared)
         .fetch_all(pool)
         .await
         .context("db: list books")
@@ -770,11 +809,18 @@ const PODCAST_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.feed_url, t
     t.last_refreshed_at, t.created_at, t.updated_at, lower(t.title) AS sort_key,
     t.source_type AS source, t.auto_store_since IS NOT NULL AS auto_store";
 
+/// What a podcast list keeps: credited to a contributor, a part of the title, whose and how shared.
+#[derive(Default)]
+pub struct PodcastFilter<'a> {
+    pub contributor_id: Option<Uuid>,
+    pub query: Option<&'a str>,
+    pub ownership: Ownership,
+}
+
 pub async fn list_podcasts(
     pool: &PgPool,
     viewer: Viewer,
-    contributor_id: Option<Uuid>,
-    query: Option<&str>,
+    filter: PodcastFilter<'_>,
     by_added: bool,
     after: Option<TitleOrAdded>,
     limit: i64,
@@ -785,17 +831,21 @@ pub async fn list_podcasts(
           WHERE {} AND {keyset}
             AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'podcast' AND c.item_id = t.id AND c.contributor_id = $4))
             AND ($5::text IS NULL OR t.title ILIKE '%' || $5 || '%')
+            AND {owned}
           ORDER BY {order} LIMIT $9",
-        podcasts()
+        podcasts(),
+        owned = ownership_sql("t", "$10", "$11")
     );
     let (title, added, id) = title_or_added(after);
     viewer!(sqlx::query_as::<_, PodcastRow>(&sql), viewer)
-        .bind(contributor_id)
-        .bind(query.map(escape_like))
+        .bind(filter.contributor_id)
+        .bind(filter.query.map(escape_like))
         .bind(title)
         .bind(added)
         .bind(id)
         .bind(limit)
+        .bind(filter.ownership.mine)
+        .bind(filter.ownership.shared)
         .fetch_all(pool)
         .await
         .context("db: list podcasts")
@@ -1324,6 +1374,84 @@ pub async fn search_tracks(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -
         .fetch_all(pool)
         .await
         .context("db: search tracks")
+}
+
+/// Visible books whose title or a credited name (author, narrator…) holds `q`; titles that
+/// start with it first, then titles that hold it.
+pub async fn search_books(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<BookRow>> {
+    let sql = format!(
+        "SELECT {BOOK_COLS} FROM audiobook_books t
+          WHERE (t.title ILIKE '%' || $4 || '%'
+                 OR t.id IN (SELECT c.item_id FROM contributors k JOIN credits c ON c.contributor_id = k.id AND c.item_kind = 'book'
+                              WHERE k.family_id = $2 AND k.name ILIKE '%' || $4 || '%'))
+            AND {}
+          ORDER BY (t.title ILIKE $4 || '%') DESC, (t.title ILIKE '%' || $4 || '%') DESC, lower(t.title), t.id
+          LIMIT $5",
+        books()
+    );
+    viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search books")
+}
+
+/// Visible podcasts whose title or a credited name (a host, an author) holds `q`.
+pub async fn search_podcasts(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<PodcastRow>> {
+    let sql = format!(
+        "SELECT {PODCAST_COLS} FROM podcast_feeds t
+          WHERE (t.title ILIKE '%' || $4 || '%'
+                 OR t.id IN (SELECT c.item_id FROM contributors k JOIN credits c ON c.contributor_id = k.id AND c.item_kind = 'podcast'
+                              WHERE k.family_id = $2 AND k.name ILIKE '%' || $4 || '%'))
+            AND {}
+          ORDER BY (t.title ILIKE $4 || '%') DESC, (t.title ILIKE '%' || $4 || '%') DESC, lower(t.title), t.id
+          LIMIT $5",
+        podcasts()
+    );
+    viewer!(sqlx::query_as::<_, PodcastRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search podcasts")
+}
+
+/// Episodes of visible podcasts whose title holds `q`; titles that start with it first, then
+/// the newest.
+pub async fn search_episodes(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<EpisodeRow>> {
+    let sql = format!(
+        "SELECT {EPISODE_COLS} FROM podcast_episodes e LEFT JOIN media_objects m ON m.id = e.audio_object_id
+          WHERE e.title ILIKE '%' || $4 || '%'
+            AND EXISTS (SELECT 1 FROM podcast_feeds t WHERE t.id = e.feed_id AND {})
+          ORDER BY (e.title ILIKE $4 || '%') DESC, COALESCE(e.published_at, e.created_at) DESC, e.id DESC
+          LIMIT $5",
+        podcasts()
+    );
+    viewer!(sqlx::query_as::<_, EpisodeRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search episodes")
+}
+
+/// Contributors in any role (artists, authors, narrators, hosts…) credited on something
+/// visible, whose name holds `q`; names that start with it first.
+pub async fn search_contributors(pool: &PgPool, viewer: Viewer, q: &str, limit: i64) -> anyhow::Result<Vec<ContributorRow>> {
+    let sql = format!(
+        "SELECT {CONTRIBUTOR_COLS} FROM contributors k
+          WHERE k.family_id = $2 AND k.name ILIKE '%' || $4 || '%' AND {}
+          ORDER BY (k.name ILIKE $4 || '%') DESC, lower(COALESCE(k.sort_name, k.name)), k.id
+          LIMIT $5",
+        credited_visibly("NULL")
+    );
+    viewer!(sqlx::query_as::<_, ContributorRow>(&sql), viewer)
+        .bind(escape_like(q))
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: search contributors")
 }
 
 /// Visible tracks in random order, from one genre when given.

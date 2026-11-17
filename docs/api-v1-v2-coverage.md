@@ -13,8 +13,8 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 274 |
-| partly covered | 3 |
+| covered | 276 |
+| partly covered | 1 |
 | missing | 29 |
 | not carried over | 10 |
 | **total** | **316** |
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 9, v2
-revision 11). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 10, v2
+revision 12). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -329,8 +329,8 @@ lists what is still open.
 |---|---|---|---|
 | `GET /library/changes` | `GET /sync/changes`, `GET /sync/snapshot` | covered | Every kind, tombstones, user state. |
 | `GET /library/continue` | `GET /me/progress?kind=` | covered | `kind=track,book,episode&unfinished=true&include=items,podcasts`: one list across kinds, most recent first, the records embedded once. Translations follow with the hosted edition (phase 13). |
-| `GET /library/search` | `GET /search`, `GET /books?q=` | partly | `/search` is music only; podcasts and episodes cannot be searched. |
-| `GET /library/private` | `owner_id`, `visibility` on records | partly | No filter on the lists; a client filters its synced records. |
+| `GET /library/search` | `GET /search` | covered | `types=` adds `books`, `podcasts`, `episodes` and `contributors` (anyone credited) to the music; one request, ranked one way, only what the caller can see; full records (v1 sent titles). |
+| `GET /library/private` | `GET /tracks`, `GET /books`, `GET /podcasts`, `GET /albums` | covered | `owner=me&visibility=private` on each list, cursor-paged (v1 answered everything at once); `visibility=family` for what is shared. |
 | `GET /library/folders` | — | missing | Server-side library folders and their last scan. |
 | `POST /library/folders/scan` | — | missing |  |
 | `GET /sync/tree` | `GET /sync/changes` | covered | With `GET /sync/snapshot`: `path` and `sha256` on tracks, books and episodes, `relative_path` and `sha256` on book files; renames, grants and policy changes in the feed; owners' names as `member` records, people who left included; `kinds=` to read only what the folder shows. Companion files have rows of their own below. |

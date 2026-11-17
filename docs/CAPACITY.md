@@ -343,6 +343,40 @@ names its bound on `started_at`. A statistic costs the plays in its range, never
 a year of a heavy listener is under 30 ms. The hourly rollup (`listening_daily`) was not used:
 it counts UTC days and lags by up to an hour, and the question is the listener's own days now.
 
+## Measured: search across media and the lists' filters on v2 (2026-11-17)
+
+Phase 10 of `api-v2-completion-plan.md`, on the compose stack (PostgreSQL 16, Apple-silicon
+Mac): 607,869 generated tracks (605,000 shared by the household admin, 5,000 kept private by
+the admin and 5,000 by a member), 110,000 albums, 1,000 books, 300 shows with 100,200 episodes,
+20,400 contributors. Whole requests (best of three, server included):
+
+| Request | Time |
+|---|---|
+| `GET /search?q=` (music, as before) | 105 ms |
+| `types=books` by title / by an author's name | 5 ms |
+| `types=podcasts` | 2 ms |
+| `types=episodes` (100,200 episodes read) | 17 ms |
+| `types=contributors` | 5 ms |
+| All seven types, nothing found (every table read whole) | 126 ms |
+| A member, `types=books,podcasts,episodes,contributors` | 78 ms |
+| `GET /tracks?owner=me`, `?visibility=private`, `?visibility=family`, either order, admin or member | 2.4–4 ms |
+| `GET /tracks?owner=me` for a member who owns nothing (an empty answer) | 1.3 ms |
+| `GET /albums?visibility=private` (5,000 private tracks), as first written | 183 ms |
+| …with the albums of the kept tracks joined in (as shipped) | 11 ms |
+| `GET /albums?owner=me` for a member (5,000 own tracks) | 117 ms → 12–20 ms |
+| `GET /albums?owner=me` for the admin (605,000 own tracks) | 2.3 ms (twelve calls in a row, so past the prepared statement's generic plan) |
+| `GET /books?owner=me`, `/podcasts?owner=me`, `/books?visibility=family` | 1.2–1.9 ms |
+
+No index added. The new search types read their tables with `ILIKE`, as music search does: books,
+shows and contributors are small, and episodes (tens of thousands at most) cost 17 ms; the
+search's time is still the tracks'. `pg_trgm` stays out (gap 8). A track list with `owner=me`
+uses the owner index, and `visibility=` filters a walk in the list's order that meets private
+and shared tracks alike. The albums' filter needed one change: the album list walks albums in
+title order and asks each for a visible track, which reads every album before the few that hold
+someone's private tracks; with a filter, the query also joins the albums of the tracks the
+filter keeps, so the planner starts from those tracks when they are few and still walks when
+they are many (a statement of its own: an unfiltered list plans as before).
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

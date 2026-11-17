@@ -9788,6 +9788,27 @@
             },
             "type": "array"
           },
+          "books": {
+            "description": "Whose title or a credited name (author, narrator…) matches; empty unless asked for.",
+            "items": {
+              "$ref": "#/components/schemas/Book"
+            },
+            "type": "array"
+          },
+          "contributors": {
+            "description": "Anyone credited on something the caller can see, in any role; empty unless asked for.",
+            "items": {
+              "$ref": "#/components/schemas/Contributor"
+            },
+            "type": "array"
+          },
+          "episodes": {
+            "description": "Whose title matches, the newest first after those that start with the words; empty\nunless asked for.",
+            "items": {
+              "$ref": "#/components/schemas/Episode"
+            },
+            "type": "array"
+          },
           "included": {
             "oneOf": [
               {
@@ -9797,6 +9818,13 @@
                 "$ref": "#/components/schemas/Included"
               }
             ]
+          },
+          "podcasts": {
+            "description": "Whose title or a credited name (a host) matches; empty unless asked for.",
+            "items": {
+              "$ref": "#/components/schemas/Podcast"
+            },
+            "type": "array"
           },
           "tracks": {
             "description": "Whose title, album or a credited name matches.",
@@ -9809,7 +9837,11 @@
         "required": [
           "artists",
           "albums",
-          "tracks"
+          "tracks",
+          "books",
+          "podcasts",
+          "episodes",
+          "contributors"
         ],
         "type": "object"
       },
@@ -11245,7 +11277,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.11-draft"
+    "version": "2.12-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -11335,6 +11367,24 @@
             }
           },
           {
+            "description": "`me`: only albums with a track of the caller's own.",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`private` or `family`: only albums with a track kept private or shared with the household.",
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "`title` (default) or `added`, newest first.",
             "in": "query",
             "name": "sort",
@@ -11380,6 +11430,16 @@
               }
             },
             "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`"
           },
           "401": {
             "content": {
@@ -12730,6 +12790,24 @@
             }
           },
           {
+            "description": "`me`: only the caller's own.",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`private` (not shared with the household) or `family` (shared).",
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "`title` (default) or `added`, newest first.",
             "in": "query",
             "name": "sort",
@@ -12775,6 +12853,16 @@
               }
             },
             "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`"
           },
           "401": {
             "content": {
@@ -25014,6 +25102,24 @@
             }
           },
           {
+            "description": "`me`: only the caller's own.",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`private` (not shared with the household) or `family` (shared).",
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "`title` (default) or `added`, newest first.",
             "in": "query",
             "name": "sort",
@@ -25059,6 +25165,16 @@
               }
             },
             "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`"
           },
           "401": {
             "content": {
@@ -26808,7 +26924,7 @@
             }
           },
           {
-            "description": "What to look in, comma-separated: `artists`, `albums`, `tracks` (all three by default).",
+            "description": "What to look in, comma-separated: `artists`, `albums`, `tracks` (these three by default),\n`books`, `podcasts`, `episodes`, `contributors` (anyone credited: authors, narrators,\nhosts, artists).",
             "in": "query",
             "name": "types",
             "required": false,
@@ -26827,7 +26943,7 @@
             }
           },
           {
-            "description": "For the tracks: `albums`, `contributors`, `genres`.",
+            "description": "`albums`, `contributors`, `genres` for the tracks; `contributors` also for the books and\npodcasts.",
             "in": "query",
             "name": "include",
             "required": false,
@@ -26855,7 +26971,7 @@
                 }
               }
             },
-            "description": "`invalid_query` (empty), `invalid_type`, `invalid_limit`"
+            "description": "`invalid_query` (empty), `invalid_type`, `invalid_limit`, `invalid_include`"
           },
           "401": {
             "content": {
@@ -26883,7 +26999,7 @@
             "bearer": []
           }
         ],
-        "summary": "Search the music the caller can see",
+        "summary": "Search everything the caller can see: music, books, podcasts and their episodes, and the people credited on them, ranked one way (names and titles that start with the words first)",
         "tags": [
           "catalog"
         ],
@@ -28556,6 +28672,24 @@
             }
           },
           {
+            "description": "`me`: only the caller's own tracks.",
+            "in": "query",
+            "name": "owner",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`private` (not shared with the household) or `family` (shared).",
+            "in": "query",
+            "name": "visibility",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "description": "`album` (disc and number; the default with `album_id`), `title` (otherwise the default) or `added`, newest first.",
             "in": "query",
             "name": "sort",
@@ -28601,6 +28735,16 @@
               }
             },
             "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`"
           },
           "401": {
             "content": {

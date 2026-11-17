@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-//! Finding music (docs/api-v2-plan.md, V10): one search across artists,
-//! albums and tracks, random tracks, the caller's own most and most recently
+//! Finding things (docs/api-v2-plan.md, V10; completion plan phase 10): one
+//! search across artists, albums, tracks, books, podcasts, episodes and
+//! everyone credited on them, random tracks, the caller's own most and most recently
 //! played, and a track's lyrics.
 //!
 //! Search matches parts of names, any case, and puts what starts with the
@@ -11,6 +12,7 @@ use crate::app::AppState;
 use crate::db::catalog;
 use crate::families::FamilyContext;
 use crate::v2::music::{Album, Contributor, Included, Track, albums, contributor, included, tracks, wanted};
+use crate::v2::spoken::{self, Book, Episode, Podcast};
 use crate::v2::page::Page;
 use crate::v2::problem::Problem;
 use axum::Json;
@@ -43,11 +45,14 @@ async fn with_included(state: &AppState, family: &FamilyContext, include: Option
 pub struct SearchQuery {
     /// What to look for: part of a name or title, any case.
     pub q: String,
-    /// What to look in, comma-separated: `artists`, `albums`, `tracks` (all three by default).
+    /// What to look in, comma-separated: `artists`, `albums`, `tracks` (these three by default),
+    /// `books`, `podcasts`, `episodes`, `contributors` (anyone credited: authors, narrators,
+    /// hosts, artists).
     pub types: Option<String>,
     /// At most this many of each, 1 to 100; 20 by default.
     pub limit: Option<i64>,
-    /// For the tracks: `albums`, `contributors`, `genres`.
+    /// `albums`, `contributors`, `genres` for the tracks; `contributors` also for the books and
+    /// podcasts.
     pub include: Option<String>,
 }
 
@@ -58,44 +63,122 @@ pub struct SearchAnswer {
     pub albums: Vec<Album>,
     /// Whose title, album or a credited name matches.
     pub tracks: Vec<Track>,
+    /// Whose title or a credited name (author, narrator…) matches; empty unless asked for.
+    pub books: Vec<Book>,
+    /// Whose title or a credited name (a host) matches; empty unless asked for.
+    pub podcasts: Vec<Podcast>,
+    /// Whose title matches, the newest first after those that start with the words; empty
+    /// unless asked for.
+    pub episodes: Vec<Episode>,
+    /// Anyone credited on something the caller can see, in any role; empty unless asked for.
+    pub contributors: Vec<Contributor>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub included: Option<Included>,
 }
 
-/// Search the music the caller can see.
+/// Which lists a search fills.
+#[derive(Debug, Default, PartialEq, Eq)]
+pub(crate) struct Types {
+    artists: bool,
+    albums: bool,
+    tracks: bool,
+    books: bool,
+    podcasts: bool,
+    episodes: bool,
+    contributors: bool,
+}
+
+pub(crate) fn search_types(raw: Option<&str>) -> Result<Types, Problem> {
+    let parts: Vec<&str> = raw.unwrap_or("").split(',').map(str::trim).filter(|p| !p.is_empty()).collect();
+    if parts.is_empty() {
+        return Ok(Types { artists: true, albums: true, tracks: true, ..Types::default() });
+    }
+    let mut t = Types::default();
+    for part in parts {
+        match part {
+            "artists" => t.artists = true,
+            "albums" => t.albums = true,
+            "tracks" => t.tracks = true,
+            "books" => t.books = true,
+            "podcasts" => t.podcasts = true,
+            "episodes" => t.episodes = true,
+            "contributors" => t.contributors = true,
+            other => {
+                return Err(Problem::bad_request("invalid_type", format!("`{other}`: one of artists, albums, tracks, books, podcasts, episodes, contributors"))
+                    .field("types", "invalid", other.to_string()));
+            }
+        }
+    }
+    Ok(t)
+}
+
+/// Search everything the caller can see: music, books, podcasts and their episodes, and the
+/// people credited on them, ranked one way (names and titles that start with the words first).
 #[utoipa::path(get, path = "/search", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(SearchQuery),
     responses((status = 200, body = SearchAnswer),
-        (status = 400, description = "`invalid_query` (empty), `invalid_type`, `invalid_limit`", body = crate::v2::problem::ProblemBody)))]
+        (status = 400, description = "`invalid_query` (empty), `invalid_type`, `invalid_limit`, `invalid_include`", body = crate::v2::problem::ProblemBody)))]
 pub async fn search(family: FamilyContext, State(state): State<AppState>, Query(q): Query<SearchQuery>) -> Result<Json<SearchAnswer>, Problem> {
     let text = q.q.trim();
     if text.is_empty() || text.chars().count() > 200 {
         return Err(Problem::bad_request("invalid_query", "search for 1 to 200 characters").field("q", "invalid", "1 to 200 characters"));
     }
     let limit = limit_of(q.limit, 20, 100)?;
-    let (mut want_artists, mut want_albums, mut want_tracks) = (q.types.is_none(), q.types.is_none(), q.types.is_none());
-    for part in q.types.as_deref().unwrap_or("").split(',').map(str::trim).filter(|p| !p.is_empty()) {
-        match part {
-            "artists" => want_artists = true,
-            "albums" => want_albums = true,
-            "tracks" => want_tracks = true,
-            other => {
-                return Err(Problem::bad_request("invalid_type", format!("`{other}`: one of artists, albums, tracks")).field("types", "invalid", other.to_string()));
-            }
-        }
-    }
+    let t = search_types(q.types.as_deref())?;
+    let w = wanted(q.include.as_deref(), &["albums", "contributors", "genres"])?;
     let viewer = family.viewer();
     let pool = state.db();
-    let artists = if want_artists {
+    let artists = if t.artists {
         catalog::search_artists(pool, viewer, text, limit).await?.into_iter().map(|k| contributor(&state, k)).collect()
     } else {
         Vec::new()
     };
-    let found_albums = if want_albums { albums(&state, viewer, catalog::search_albums(pool, viewer, text, limit).await?).await? } else { Vec::new() };
-    let found_tracks = if want_tracks { tracks(&state, catalog::search_tracks(pool, viewer, text, limit).await?).await? } else { Vec::new() };
-    let included = with_included(&state, &family, q.include.as_deref(), &found_tracks).await?;
-    Ok(Json(SearchAnswer { artists, albums: found_albums, tracks: found_tracks, included }))
+    let found_albums = if t.albums { albums(&state, viewer, catalog::search_albums(pool, viewer, text, limit).await?).await? } else { Vec::new() };
+    let found_tracks = if t.tracks { tracks(&state, catalog::search_tracks(pool, viewer, text, limit).await?).await? } else { Vec::new() };
+    let books = if t.books {
+        let rows = catalog::search_books(pool, viewer, text, limit).await?;
+        let ids: Vec<Uuid> = rows.iter().map(|b| b.id).collect();
+        let mut credits = spoken::credits_of(&state, "book", &ids).await?;
+        rows.into_iter().map(|b| {
+            let c = credits.remove(&b.id).unwrap_or_default();
+            spoken::book(&state, b, c)
+        }).collect()
+    } else {
+        Vec::new()
+    };
+    let podcasts = if t.podcasts {
+        let rows = catalog::search_podcasts(pool, viewer, text, limit).await?;
+        let ids: Vec<Uuid> = rows.iter().map(|p| p.id).collect();
+        let mut credits = spoken::credits_of(&state, "podcast", &ids).await?;
+        rows.into_iter().map(|p| {
+            let c = credits.remove(&p.id).unwrap_or_default();
+            spoken::podcast(&state, p, c)
+        }).collect()
+    } else {
+        Vec::new()
+    };
+    let episodes = if t.episodes {
+        catalog::search_episodes(pool, viewer, text, limit).await?.into_iter().map(|e| spoken::episode(&state, e)).collect()
+    } else {
+        Vec::new()
+    };
+    let contributors = if t.contributors {
+        catalog::search_contributors(pool, viewer, text, limit).await?.into_iter().map(|k| contributor(&state, k)).collect()
+    } else {
+        Vec::new()
+    };
+    let credit_ids: Vec<Uuid> = found_tracks
+        .iter()
+        .flat_map(|t| t.credits.iter())
+        .chain(books.iter().flat_map(|b: &Book| b.credits.iter()))
+        .chain(podcasts.iter().flat_map(|p: &Podcast| p.credits.iter()))
+        .map(|c| c.contributor_id)
+        .collect();
+    let album_ids: Vec<Uuid> = found_tracks.iter().filter_map(|t| t.album_id).collect();
+    let genre_ids: Vec<Uuid> = found_tracks.iter().flat_map(|t| t.genre_ids.iter().copied()).collect();
+    let included = included(&state, viewer, &w, credit_ids.into_iter(), album_ids.into_iter(), std::iter::empty(), genre_ids.into_iter()).await?;
+    Ok(Json(SearchAnswer { artists, albums: found_albums, tracks: found_tracks, books, podcasts, episodes, contributors, included }))
 }
 
 // ── Random tracks ────────────────────────────────────────────────────────────
@@ -242,5 +325,16 @@ mod tests {
         assert!(!plain.synced && plain.lines.len() == 2 && plain.lines[0].start_ms.is_none());
         let none = answer("  ".into());
         assert!(none.text.is_none() && none.lines.is_empty());
+    }
+
+    #[test]
+    fn search_types_default_to_music_and_take_every_medium() {
+        let music = search_types(None).unwrap();
+        assert!(music.artists && music.albums && music.tracks && !music.books && !music.podcasts && !music.episodes && !music.contributors);
+        assert_eq!(search_types(Some(" , ")).unwrap(), music);
+        let all = search_types(Some("books, podcasts,episodes,contributors,tracks")).unwrap();
+        assert!(all.books && all.podcasts && all.episodes && all.contributors && all.tracks && !all.artists && !all.albums);
+        let err = search_types(Some("books,films")).map(|_| ()).unwrap_err();
+        assert_eq!(err.code(), "invalid_type");
     }
 }

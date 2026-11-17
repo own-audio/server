@@ -454,6 +454,27 @@ pub async fn get_contributor(family: FamilyContext, State(state): State<AppState
     Ok(Json(answer))
 }
 
+// ── Whose, and how shared ────────────────────────────────────────────────────
+
+/// `owner=me` and `visibility=private|family` as a list's filter (v1's `GET /library/private` is
+/// `owner=me&visibility=private`). Anything else is a problem, not an ignored parameter.
+pub(crate) fn ownership(owner: Option<&str>, visibility: Option<&str>) -> Result<catalog::Ownership, Problem> {
+    let mine = match owner.map(str::trim) {
+        None | Some("") => false,
+        Some("me") => true,
+        Some(other) => return Err(Problem::bad_request("invalid_owner", format!("`{other}`: owner is `me`")).field("owner", "invalid", other.to_string())),
+    };
+    let shared = match visibility.map(str::trim) {
+        None | Some("") => None,
+        Some(crate::db::access::VIS_PRIVATE) => Some(false),
+        Some(crate::db::access::VIS_FAMILY) => Some(true),
+        Some(other) => {
+            return Err(Problem::bad_request("invalid_visibility", format!("`{other}`: visibility is `private` or `family`")).field("visibility", "invalid", other.to_string()));
+        }
+    };
+    Ok(catalog::Ownership { mine, shared })
+}
+
 // ── Albums ───────────────────────────────────────────────────────────────────
 
 #[derive(Deserialize, IntoParams)]
@@ -467,6 +488,10 @@ pub struct AlbumsQuery {
     pub kind: Option<String>,
     /// Part of the title, any case.
     pub q: Option<String>,
+    /// `me`: only albums with a track of the caller's own.
+    pub owner: Option<String>,
+    /// `private` or `family`: only albums with a track kept private or shared with the household.
+    pub visibility: Option<String>,
     /// `title` (default) or `added`, newest first.
     pub sort: Option<String>,
     /// Comma-separated: `contributors`, `release_groups`.
@@ -479,7 +504,8 @@ pub struct AlbumsQuery {
 #[utoipa::path(get, path = "/albums", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(AlbumsQuery),
-    responses((status = 200, body = Page<Album>)))]
+    responses((status = 200, body = Page<Album>),
+        (status = 400, description = "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`", body = crate::v2::problem::ProblemBody)))]
 pub async fn list_albums(family: FamilyContext, State(state): State<AppState>, Query(q): Query<AlbumsQuery>) -> Result<Json<Page<Album>>, Problem> {
     let w = wanted(q.include.as_deref(), &["contributors", "release_groups"])?;
     let by_added = match q.sort.as_deref() {
@@ -494,7 +520,8 @@ pub async fn list_albums(family: FamilyContext, State(state): State<AppState>, Q
     } else {
         page.after::<(String, Uuid)>()?.map(|(t, id)| AlbumAfter::Title(t, id))
     };
-    let filter = catalog::AlbumFilter { contributor_id: q.contributor_id, release_group_id: q.release_group_id, genre_id: q.genre_id, kind: q.kind, query: q.q };
+    let ownership = ownership(q.owner.as_deref(), q.visibility.as_deref())?;
+    let filter = catalog::AlbumFilter { contributor_id: q.contributor_id, release_group_id: q.release_group_id, genre_id: q.genre_id, kind: q.kind, query: q.q, ownership };
     let viewer = family.viewer();
     let rows = catalog::list_albums(state.db(), viewer, &filter, by_added, after, limit + 1).await?;
     let page = if by_added {
@@ -592,6 +619,10 @@ pub struct TracksQuery {
     pub recording_id: Option<Uuid>,
     /// Part of the title, any case.
     pub q: Option<String>,
+    /// `me`: only the caller's own tracks.
+    pub owner: Option<String>,
+    /// `private` (not shared with the household) or `family` (shared).
+    pub visibility: Option<String>,
     /// `album` (disc and number; the default with `album_id`), `title` (otherwise the default) or `added`, newest first.
     pub sort: Option<String>,
     /// Comma-separated: `albums`, `contributors`, `genres`.
@@ -604,7 +635,8 @@ pub struct TracksQuery {
 #[utoipa::path(get, path = "/tracks", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(TracksQuery),
-    responses((status = 200, body = Page<Track>)))]
+    responses((status = 200, body = Page<Track>),
+        (status = 400, description = "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`", body = crate::v2::problem::ProblemBody)))]
 pub async fn list_tracks(family: FamilyContext, State(state): State<AppState>, Query(q): Query<TracksQuery>) -> Result<Json<Page<Track>>, Problem> {
     let w = wanted(q.include.as_deref(), &["albums", "contributors", "genres"])?;
     let order = match (q.sort.as_deref(), q.album_id) {
@@ -622,7 +654,9 @@ pub async fn list_tracks(family: FamilyContext, State(state): State<AppState>, Q
         TrackOrder::Added => page.after::<(DateTime<Utc>, Uuid)>()?.map(|(at, id)| TrackAfter::Added(at, id)),
         TrackOrder::InAlbum => page.after::<(i32, i32, String, Uuid)>()?.map(|(d, n, t, id)| TrackAfter::InAlbum(d, n, t, id)),
     };
+    let ownership = ownership(q.owner.as_deref(), q.visibility.as_deref())?;
     let filter = catalog::TrackFilter {
+        ownership,
         album_id: q.album_id,
         contributor_id: q.contributor_id,
         genre_id: q.genre_id,
@@ -689,4 +723,18 @@ pub async fn get_track(
         None
     };
     Ok(Json(TrackAnswer { track, chapters, included }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn owner_and_visibility_filters() {
+        assert_eq!(ownership(None, None).unwrap(), catalog::Ownership::default());
+        assert_eq!(ownership(Some("me"), Some("private")).unwrap(), catalog::Ownership { mine: true, shared: Some(false) });
+        assert_eq!(ownership(Some(""), Some("family")).unwrap(), catalog::Ownership { mine: false, shared: Some(true) });
+        assert_eq!(ownership(Some("someone"), None).unwrap_err().code(), "invalid_owner");
+        assert_eq!(ownership(None, Some("shared")).unwrap_err().code(), "invalid_visibility");
+    }
 }

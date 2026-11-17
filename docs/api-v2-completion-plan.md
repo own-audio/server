@@ -174,7 +174,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 7 | Household remainder — **done** | 18 | L | M W Ab |
 | 8 | Listening settings, queue, notifications, push — **done** | 11 | M | M T W A |
 | 9 | Statistics — **done** | 5 | S | M W A |
-| 10 | Search across media, list filters | 2 | S | T W |
+| 10 | Search across media, list filters — **done** | 2 | S | T W |
 | 11 | File sync remainder | 11 | L | S M W |
 | 12 | Instance admin, setup, jobs, library folders | 18 | L | W, console |
 | 13 | Hosted edition (`audio2`) | 1 + 23 reworked | L | W A, apps |
@@ -912,7 +912,29 @@ v1 ops: `GET /stats/me`, `GET /stats/me/history`, `PUT /stats/me/visibility`, `G
 Tests: the v1 `stats` suite's checks on v2 — day bucketing, a retried play counted once, privacy
 (a member who does not share is absent); history pages without loss.
 
-### Phase 10 — search across media, list filters (S)
+### Phase 10 — search across media, list filters (S) — done 2026-11-17
+
+Done, v2 revision 12: both rows covered (`GET /library/search`, `GET /library/private`), and the
+gaps plan's lines for search across media and the private filter ticked. No migration. Unit
+tests for the search's types and the filters' words; the conformance suite `v2_search` covers
+behaviour. What the plan said, with these differences:
+
+- `types` also takes `contributors`: anyone credited on something visible, in any role
+  (authors, narrators, hosts, artists), beside `artists` (credited as artists, as before). A
+  show is found by its title or a credited host, a book by its title or a credited name, an
+  episode by its title (those that start with the words first, then the newest).
+- Without `types` the answer is the music, as before (additive: a shipped app asks for nothing
+  new and gets nothing new); the new arrays are always present, empty unless asked for.
+  `include=contributors` embeds the books' and shows' people too.
+- `owner` takes only `me` (`400 invalid_owner` otherwise): nobody lists another member's items
+  by owner, which would only repeat `visibility=family` with a filter on `owner_id`. Both
+  filters narrow what the caller can see and never widen it; on `/albums` they keep the albums
+  with such a track.
+- Measured on 607,869 tracks (`CAPACITY.md`): no index. The album list needed its filtered
+  form to join the albums of the kept tracks (183 ms → 11 ms for a few private albums).
+- `organize`'s identify-undo check counted the reverted edits (1–2), which depended on whether
+  the release's cover arrived before the undo; it now checks that each reverted edit is the
+  song's and in the batch, and that the song is back as it was.
 
 v1 ops (partly): `GET /library/search`, `GET /library/private`.
 

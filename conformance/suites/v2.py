@@ -1160,10 +1160,12 @@ def finding(ctx: Ctx, problem) -> None:
     ctx.check("…an album, and only what was asked for",
               st == 200 and [x["title"] for x in by_album["albums"]] == [album] and by_album["tracks"] == [] and by_album["artists"] == [], str(by_album)[:200])
     ctx.check("% is a letter, not a wildcard", one not in [t["id"] for t in req("GET", "/api/v2/search?q=%25&types=tracks&limit=100")[1]["tracks"]])
-    ctx.check("nothing private of someone else", req("GET", f"/api/v2/search?q={band}", token=other)[1] == {"artists": [], "albums": [], "tracks": []})
+    hidden = req("GET", f"/api/v2/search?q={band}", token=other)[1]
+    ctx.check("nothing private of someone else", hidden.get("artists") == [] and hidden.get("albums") == [] and hidden.get("tracks") == []
+              and not any(v for k, v in hidden.items() if isinstance(v, list)), str(hidden)[:200])
     ctx.check("an empty search, or an unknown type: 400",
               problem(ctx.request("GET", "/api/v2/search?q=%20", tok), 400, "invalid_query")
-              and problem(ctx.request("GET", "/api/v2/search?q=x&types=books", tok), 400, "invalid_type"))
+              and problem(ctx.request("GET", "/api/v2/search?q=x&types=films", tok), 400, "invalid_type"))
 
     genre_id = req("GET", f"/api/v2/tracks/{one}")[1]["genre_ids"][0]
     st, drawn = req("GET", f"/api/v2/tracks/random?genre_id={genre_id}&limit=10")

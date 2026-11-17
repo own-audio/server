@@ -163,11 +163,18 @@ def releases_and_artists(ctx, songs):
               and any(e["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"] for e in hist), str(hist)[:300])
     back = ctx.call("POST", f"/api/v2/edits/batches/{applied['batch_id']}/undo", ctx.admin_token)
     now = next(s for s in ctx.call("GET", "/api/v2/organize/tracks?limit=500", ctx.admin_token)["items"] if s["id"] == ids[0])
+    # How many edits the undo reverts depends on timing: the identify's own, plus the release's
+    # cover when it was fetched (in the background, since revision 15) before the undo. What
+    # must hold is that it reverted at least one, that each one it reverted is in the batch and
+    # about this song, and that the song is back as it was.
+    in_batch = ctx.call("GET", f"/api/v2/edits?batch_id={applied['batch_id']}&limit=500", ctx.admin_token).get("items", [])
+    reverted = [e for e in in_batch if e.get("undone_at")]
     ctx.check("and undone, the song is as it was, unidentified",
-              # One edit, or two when the release's cover (fetched in the background since
-              # revision 15) came in before the undo; both are undone.
-              back.get("items") in (1, 2) and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None
-              and now["identity"] is None, str((back, now["title"], now["identity"])))
+              (back.get("items") or 0) >= 1 and back.get("items") == len(reverted)
+              and all(e["item_kind"] == "track" and e["item_id"] == ids[0] for e in reverted)
+              and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None and now["identity"] is None,
+              str((back, [(e["item_kind"], e["item_id"] == ids[0], bool(e.get("undone_at"))) for e in in_batch],
+                   now["title"], now["identity"])))
 
     artists = ctx.call("GET", "/api/v2/contributors?limit=50", ctx.admin_token).get("items", [])
     who = next((a for a in artists if a.get("name") == "Test Artist"), None)

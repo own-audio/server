@@ -150,6 +150,10 @@ pub struct ShelfQuery {
     pub contributor_id: Option<Uuid>,
     /// Part of the title, any case.
     pub q: Option<String>,
+    /// `me`: only the caller's own.
+    pub owner: Option<String>,
+    /// `private` (not shared with the household) or `family` (shared).
+    pub visibility: Option<String>,
     /// `title` (default) or `added`, newest first.
     pub sort: Option<String>,
     /// `contributors` to send them along.
@@ -167,6 +171,10 @@ pub struct BookShelfQuery {
     pub q: Option<String>,
     /// Carrying this tag, by name, any case (`GET /book-tags`).
     pub tag: Option<String>,
+    /// `me`: only the caller's own.
+    pub owner: Option<String>,
+    /// `private` (not shared with the household) or `family` (shared).
+    pub visibility: Option<String>,
     /// `title` (default) or `added`, newest first.
     pub sort: Option<String>,
     /// `contributors` to send them along.
@@ -304,14 +312,16 @@ pub(crate) fn episode(state: &AppState, row: catalog::EpisodeRow) -> Episode {
 #[utoipa::path(get, path = "/books", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(BookShelfQuery),
-    responses((status = 200, body = Page<Book>)))]
+    responses((status = 200, body = Page<Book>),
+        (status = 400, description = "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`", body = crate::v2::problem::ProblemBody)))]
 pub async fn list_books(family: FamilyContext, State(state): State<AppState>, Query(b): Query<BookShelfQuery>) -> Result<Json<Page<Book>>, Problem> {
     let tag = b.tag.as_deref().map(str::trim).filter(|t| !t.is_empty()).map(str::to_string);
-    let q = ShelfQuery { contributor_id: b.contributor_id, q: b.q, sort: b.sort, include: b.include, limit: b.limit, cursor: b.cursor };
+    let q = ShelfQuery { contributor_id: b.contributor_id, q: b.q, owner: b.owner, visibility: b.visibility, sort: b.sort, include: b.include, limit: b.limit, cursor: b.cursor };
+    let ownership = crate::v2::music::ownership(q.owner.as_deref(), q.visibility.as_deref())?;
     let by_added = q.by_added()?;
     let include = q.include_contributors()?;
     let (limit, after) = q.page(by_added)?;
-    let rows = catalog::list_books(state.db(), family.viewer(), catalog::BookFilter { contributor_id: q.contributor_id, query: q.q.as_deref(), tag: tag.as_deref() }, by_added, after, limit + 1).await?;
+    let rows = catalog::list_books(state.db(), family.viewer(), catalog::BookFilter { contributor_id: q.contributor_id, query: q.q.as_deref(), tag: tag.as_deref(), ownership }, by_added, after, limit + 1).await?;
     let page = if by_added {
         let p = Page::from_rows(rows, limit, |b| (b.created_at, b.id));
         (p.items, p.next)
@@ -353,12 +363,15 @@ pub async fn get_book(family: FamilyContext, State(state): State<AppState>, Path
 #[utoipa::path(get, path = "/podcasts", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(ShelfQuery),
-    responses((status = 200, body = Page<Podcast>)))]
+    responses((status = 200, body = Page<Podcast>),
+        (status = 400, description = "`invalid_owner`, `invalid_visibility`, `invalid_sort`, `invalid_include`, `invalid_limit`, `invalid_cursor`", body = crate::v2::problem::ProblemBody)))]
 pub async fn list_podcasts(family: FamilyContext, State(state): State<AppState>, Query(q): Query<ShelfQuery>) -> Result<Json<Page<Podcast>>, Problem> {
     let by_added = q.by_added()?;
     let include = q.include_contributors()?;
     let (limit, after) = q.page(by_added)?;
-    let rows = catalog::list_podcasts(state.db(), family.viewer(), q.contributor_id, q.q.as_deref(), by_added, after, limit + 1).await?;
+    let ownership = crate::v2::music::ownership(q.owner.as_deref(), q.visibility.as_deref())?;
+    let filter = catalog::PodcastFilter { contributor_id: q.contributor_id, query: q.q.as_deref(), ownership };
+    let rows = catalog::list_podcasts(state.db(), family.viewer(), filter, by_added, after, limit + 1).await?;
     let page = if by_added {
         let p = Page::from_rows(rows, limit, |r| (r.created_at, r.id));
         (p.items, p.next)

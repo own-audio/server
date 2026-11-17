@@ -75,7 +75,8 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] Keep an episode on the server / drop the server's copy / store-all / auto-store (v2
       revision 4: `PUT`/`DELETE /episodes/{id}/stored`, `POST /podcasts/{id}/store`,
       `PATCH /podcasts/{id}`). (M Ap)
-- [ ] Episodes, books and podcasts in `/search` (music only today). (T W)
+- [x] Episodes, books and podcasts in `/search` (v2 revision 12: `types=` takes `books`,
+      `podcasts`, `episodes` and `contributors` beside the music). (T W)
 - [ ] Translations as a v2 kind for `playback-info` and progress. (Ap)
 - [x] Transcripts as text (v2 revision 4: `GET /episodes/{id}/transcript`, timed segments with
       speakers). (audit)
@@ -164,8 +165,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [ ] Library folders and their scan. (audit)
 - [ ] Moving items to their default folder paths (`/sync/paths/organise`); a companion image
       as cover (`use-as-cover`). (audit)
-- [ ] An owner or visibility filter on lists, for a "private" section (v1 `/library/private`).
-      (audit)
+- [x] An owner or visibility filter on lists, for a "private" section (v1 `/library/private`;
+      v2 revision 12: `owner=me` and `visibility=private|family` on `GET /tracks`, `/albums`,
+      `/books`, `/podcasts`). (audit)
 - [ ] Hosted billing, narration and translation: v2 bodies (they are v1's under `/api/v2`).
       (W A)
 

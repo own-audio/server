@@ -316,6 +316,21 @@ semver. Each release states the **API contract revision** it serves
 - Handler tests for the statistics routes without a token; unit tests for the range, the
   buckets and a play's words. Conformance: the `v2_stats` suite. `CAPACITY.md`: the history and
   the statistics on 2,100,000 plays.
+- `GET /api/v2/search` searches every medium: `types=` takes `books` (by title or a credited
+  name), `podcasts` (by title or a host), `episodes` (by title, newest first) and
+  `contributors` (anyone credited: authors, narrators, hosts, artists) beside `artists`,
+  `albums` and `tracks`; one request, ranked one way, only what the caller can see;
+  `include=contributors` embeds the books' and shows' people too. Without `types` the answer
+  is the music, as before. v2 revision 12.
+- `owner=me` and `visibility=private|family` on `GET /api/v2/tracks`, `/albums`, `/books` and
+  `/podcasts`: the caller's own items, the private or the shared ones, cursor-paged (v1's
+  `GET /library/private` is `owner=me&visibility=private`); `400 invalid_owner`,
+  `invalid_visibility`. v2 revision 12.
+- Unit tests for the search's types and the filters' words. Conformance: the `v2_search` suite
+  (and `v2`'s search checks know the new types);
+  `organize`'s identify undo checks what it reverted (at least one change, each of the song in
+  the batch) instead of a count that depended on when the release's cover arrived.
+  `CAPACITY.md`: search and the filters on 600,000 tracks.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
