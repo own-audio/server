@@ -758,6 +758,15 @@ pub(crate) async fn update_member(
 ) -> Result<StatusCode, AuthError> {
     family.require_family_admin()?;
 
+    // Someone outside the household is not found even when the body changes nothing: a 204
+    // there would read as a change made to another household's member.
+    let target = db::families::list_members(state.db(), family.family_id)
+        .await
+        .map_err(AuthError::Internal)?
+        .into_iter()
+        .find(|m| m.user_id == user_id)
+        .ok_or(AuthError::NotFound)?;
+
     // Nobody edits their own permissions, admin or not — a restriction you can
     // lift from yourself is advisory, not a control. Role and label keep their
     // existing behaviour.
@@ -770,12 +779,6 @@ pub(crate) async fn update_member(
     }
 
     if touches_permissions {
-        let target = db::families::list_members(state.db(), family.family_id)
-            .await
-            .map_err(AuthError::Internal)?
-            .into_iter()
-            .find(|m| m.user_id == user_id)
-            .ok_or(AuthError::NotFound)?;
 
         let (bracket, can_upload, can_generate) = resolve_member_permissions(
             body.age_bracket.as_deref(),
@@ -814,13 +817,7 @@ pub(crate) async fn update_member(
             let admins = db::families::count_admins(state.db(), family.family_id)
                 .await
                 .map_err(AuthError::Internal)?;
-            let target_is_admin = db::families::list_members(state.db(), family.family_id)
-                .await
-                .map_err(AuthError::Internal)?
-                .into_iter()
-                .any(|m| m.user_id == user_id && m.role == "family_admin");
-
-            if target_is_admin && admins <= 1 {
+            if target.role == "family_admin" && admins <= 1 {
                 return Err(AuthError::BadRequest(
                     "cannot demote the last family admin".into(),
                 ));

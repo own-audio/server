@@ -30,6 +30,11 @@ PREFIXES = {
     "/api/v1/audiobooks/authors/{id}": "author",
 }
 
+SELF_SCOPED = {
+    ("DELETE", "/api/v1/music/tracks/{id}/star"),
+    ("DELETE", "/api/v1/music/tracks/{id}/feedback"),
+}
+
 
 def _ops(doc: dict):
     for path, methods in doc["paths"].items():
@@ -55,6 +60,18 @@ def run(ctx: Ctx) -> None:
     book = ctx.call("POST", "/api/v1/audiobooks", a_tok, {"title": f"A book {ctx.sfx}", "author": f"A author {ctx.sfx}"})
     author = ctx.call("GET", f"/api/v1/audiobooks/authors/book/{book['id']}", a_tok)[0]
     ids = {"track": track["id"], "playlist": playlist["id"], "member": a_id, "book": book["id"], "author": author["author_id"]}
+    # A's own state on those ids, so the end can show that B's calls changed none of it.
+    ctx.call("PUT", f"/api/v1/family/members/{a_id}", a_tok, {"display_label": f"A label {ctx.sfx}"})
+    ctx.call("PUT", f"/api/v1/music/tracks/{track['id']}/star", a_tok)
+    ctx.call("PUT", f"/api/v1/music/tracks/{track['id']}/feedback", a_tok, {"kind": "dislike"})
+
+    def a_state() -> tuple:
+        me = next(m for m in ctx.call("GET", "/api/v1/family/members", a_tok) if m["user_id"] == a_id)
+        feedback = sorted(f["track_id"] for f in ctx.call("GET", "/api/v1/music/feedback", a_tok))
+        return (me["display_label"], me["role"], me["age_bracket"], me["can_upload"], me["can_generate"], me["is_active"],
+                track["id"] in ctx.call("GET", "/api/v1/music/starred", a_tok), feedback)
+
+    before = a_state()
 
     reached = []
     checked = 0
@@ -69,11 +86,25 @@ def run(ctx: Ctx) -> None:
             body = {} if method in ("POST", "PUT", "PATCH") else None
             status = ctx.status_of(method, filled, b_tok, body)
             checked += 1
-            if 200 <= status < 300:
+            # Clearing one's own star or feedback is idempotent and touches only the caller's
+            # rows, so it answers 204 for any id; that A's are still there is checked below.
+            if 200 <= status < 300 and (method, path) not in SELF_SCOPED:
                 reached.append(f"{method} {path} → {status}")
             break
     ctx.check(f"no operation on family A's track, playlist, members, book or author answers 2xx to family B ({checked} checked)",
               not reached, "; ".join(reached[:12]))
+
+    # The member routes again, with bodies that would write if the id were not checked.
+    writes = [("PUT", f"/api/v1/family/members/{a_id}", body) for body in (
+        {"display_label": "B was here"}, {"role": "member"}, {"age_bracket": "child"}, {"can_upload": False})]
+    writes += [("PATCH", f"/api/v2/family/members/{a_id}", body) for body in (
+        {"label": "B was here"}, {"role": "member"}, {"age_bracket": "child"}, {"blocked": True},
+        {"stats_visible_to_admin": True})]
+    wrote = [f"{m} {p} {b} → {s}" for m, p, b in writes if 200 <= (s := ctx.status_of(m, p, b_tok, b)) < 300]
+    ctx.check("family B's admin cannot change a member of family A, on v1 or v2", not wrote, "; ".join(wrote))
+    after = a_state()
+    ctx.check("family A's member, star and feedback are as they were after family B's calls", after == before,
+              f"{before} → {after}")
 
     # The same from the other side of the fence: A's track is not in B's library or search.
     lib = ctx.call("GET", "/api/v1/music/tracks", b_tok)

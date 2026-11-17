@@ -431,6 +431,9 @@ semver. Each release states the **API contract revision** it serves
   change feed with its `image_credit`.
 - `PATCH` and `DELETE /api/v2/family/members/{user_id}` answered `401` for someone not in the
   household, which a client takes for a signed-out session; they answer `404`, as documented.
+- `PUT /api/v1/family/members/{user_id}` with nothing to change answered `204` for someone in
+  another household; it answers `401` (no such member in this household), as it already did
+  when the body changed something. Nothing was ever written to another household's member.
 - `conformance/tools/scale_catalog.py` adds a second batch of tracks after the first
   (the object keys of a second run collided with the first's).
 - `Book.series` named every series a book is in, another member's private one included; it
