@@ -1689,6 +1689,8 @@
   "settings.totp.wrongCode": "That code isn't right.",
   "setup.admin.badEmail": "That doesn't look like an email address.",
   "setup.admin.failed": "Setup didn't complete. Try again.",
+  "setup.admin.familyHint": "Invites will read “join the {family} family”. You can change it later.",
+  "setup.admin.familyName": "Family name",
   "setup.admin.subtitle": "This account administers the server. It can invite everyone else.",
   "setup.admin.title": "Create the first account",
   "setup.apps.address": "Server address",

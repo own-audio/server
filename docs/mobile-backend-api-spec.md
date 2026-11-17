@@ -71,7 +71,7 @@ supported.
 | Method | Path | Auth | Purpose |
 |---|---|---|---|
 | GET | `/setup/status` | none | Whether an admin exists yet + DB/storage health. First-run gate. |
-| POST | `/setup/complete` | none | Create the first admin account (fails if any user already exists). Returns token + user. |
+| POST | `/setup/complete` | none | `{email, password, display_name, family_name?}` — create the first admin account (fails if any user already exists). `family_name` (revision 27) names the household; without it, the last word of `display_name`. Returns token + user. |
 | POST | `/auth/login` | none | `{email, password, device_name?, device_kind?}` → `{token, refresh_token, user}`. `device_kind` ∈ `web\|ios\|android\|macos\|windows`; anything else is stored as `other`. |
 | POST | `/auth/refresh` | none | `{refresh_token}` → `{token, refresh_token, user}` with a **rotated** refresh token. Reusing the old one 401s and kills the device chain. |
 | POST | `/auth/fork` | none | `{refresh_token, device_name?, device_kind?}` → `{token, refresh_token, user}` for a **new, independent** device chain; the presented token is checked but not rotated (a rotated one 401s and kills its chain, as on refresh). For a helper process that must refresh on its own — the Mac's Finder extension (file-sync-plan §7.1): two processes sharing one chain would present each other's rotated tokens. |

@@ -136,14 +136,17 @@ pub async fn home_new_user(pool: &PgPool, user_id: Uuid, one_family: bool) -> an
     let (family_id, role) = match existing {
         Some(id) => (id, "member"),
         None => {
-            let id: Uuid = sqlx::query_scalar(
-                "INSERT INTO families (name, created_by)
-                 SELECT display_name, id FROM users WHERE id = $1 RETURNING id",
-            )
-            .bind(user_id)
-            .fetch_one(&mut *tx)
-            .await
-            .context("db: found the install's family")?;
+            let display_name: String = sqlx::query_scalar("SELECT display_name FROM users WHERE id = $1")
+                .bind(user_id)
+                .fetch_one(&mut *tx)
+                .await
+                .context("db: load the install's first user")?;
+            let id: Uuid = sqlx::query_scalar("INSERT INTO families (name, created_by) VALUES ($1, $2) RETURNING id")
+                .bind(default_name(&display_name))
+                .bind(user_id)
+                .fetch_one(&mut *tx)
+                .await
+                .context("db: found the install's family")?;
             (id, "family_admin")
         }
     };
@@ -158,6 +161,15 @@ pub async fn home_new_user(pool: &PgPool, user_id: Uuid, one_family: bool) -> an
     find_membership(pool, user_id)
         .await?
         .context("db: membership just created is missing")
+}
+
+/// The install's family, named after the person who founds it until someone renames it. Every
+/// text that shows the name says "the {name} family" / "rodina {name}", so it is a surname, not
+/// the whole name: "Jana Novák invited you to Jana Novák" read as nonsense. One word is all there
+/// is to go on.
+pub fn default_name(display_name: &str) -> String {
+    let name = display_name.trim();
+    name.rsplit(char::is_whitespace).next().filter(|last| !last.is_empty()).unwrap_or(name).to_string()
 }
 
 /// Create a personal family of one with `user_id` as its family_admin.
@@ -755,4 +767,16 @@ pub async fn member_records(pool: &PgPool, family_id: Uuid, ids: Option<&[Uuid]>
     .fetch_all(pool)
     .await
     .context("db: member records")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::default_name;
+
+    #[test]
+    fn the_install_s_family_is_named_after_its_founder_s_surname() {
+        assert_eq!(default_name("Release Owner"), "Owner");
+        assert_eq!(default_name("  Jana  Nováková "), "Nováková");
+        assert_eq!(default_name("Kornel"), "Kornel");
+    }
 }

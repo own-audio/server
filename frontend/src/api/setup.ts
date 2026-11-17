@@ -20,11 +20,13 @@ export async function completeSetup(
   email: string,
   password: string,
   displayName: string,
+  familyName?: string,
 ): Promise<LoginResponse> {
   const { data } = await api.post<LoginResponse>("/setup/complete", {
     email,
     password,
     display_name: displayName,
+    family_name: familyName || undefined,
   });
   return data;
 }

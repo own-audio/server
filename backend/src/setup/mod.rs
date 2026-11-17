@@ -42,6 +42,10 @@ pub struct CompleteSetupRequest {
     pub email: String,
     pub password: String,
     pub display_name: String,
+    /// The household's name, shown in invitations as "the {name} family". Blank or absent: the
+    /// last word of `display_name` (a surname), renamable later with `PUT /api/v1/family`.
+    #[serde(default)]
+    pub family_name: Option<String>,
 }
 
 // ── Handlers ──────────────────────────────────────────────────────────────
@@ -121,6 +125,7 @@ async fn complete_setup(
 
     // 3. Create the admin, in the install's household
     let user = crate::auth::create_vouched_account(&state, &email, &body.password, &display_name, "admin").await?;
+    name_family(pool, user.id, body.family_name.as_deref()).await.map_err(AuthError::Internal)?;
 
     tracing::info!(
         email = %user.email,
@@ -138,6 +143,17 @@ async fn complete_setup(
         StatusCode::CREATED,
         Json(crate::auth::login_response(issued, user)),
     ))
+}
+
+/// Give the first household the name typed in the setup wizard, if one was.
+pub(crate) async fn name_family(pool: &sqlx::PgPool, admin: uuid::Uuid, name: Option<&str>) -> anyhow::Result<()> {
+    let Some(name) = name.map(str::trim).filter(|n| !n.is_empty()) else {
+        return Ok(());
+    };
+    if let Some(membership) = db::families::find_membership(pool, admin).await? {
+        db::families::rename(pool, membership.family_id, name).await?;
+    }
+    Ok(())
 }
 
 /// Check that the storage backend is functional.

@@ -80,9 +80,14 @@ def first_admin(ctx: Ctx) -> None:
     ctx.suite = "setup"
     print("setup    making the first admin through POST /api/v2/setup")
     me = ctx.call("POST", "/api/v2/setup", body={"email": ctx.admin_email, "password": ctx.admin_password,
-                                                  "display_name": "Conformance admin"}, expect=(201,))
+                                                  "display_name": "Conformance admin",
+                                                  "family_name": "Conformance"}, expect=(201,))
     ctx.check("POST /api/v2/setup on a fresh server → 201, the server's administrator",
               me.get("instance_role") == "admin" and me.get("email") == ctx.admin_email.lower())
+    ctx.login_admin()
+    family = ctx.call("GET", "/api/v1/family", ctx.admin_token)
+    ctx.check("…its household has the family_name it was given, not the admin's name",
+              family.get("name") == "Conformance", str(family.get("name")))
     after = ctx.call("GET", "/.well-known/own-audio")
     ctx.check("…and discovery says setup is complete", (after.get("setup") or {}).get("complete") is True)
 

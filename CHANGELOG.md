@@ -7,12 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- `family_name` (optional) in `POST /api/v1/setup/complete` and `POST /api/v2/setup`: the
+  household's name. Contract revision 27, v2 revision 16. The console's setup wizard asks for
+  it, filled in with the admin's surname.
+
 ### Fixed
 
 - Acoustic fingerprints with an ffmpeg that has no Chromaprint (Homebrew's, for one, when the
   server runs outside its image): the server says so once in its log and fingerprints nothing,
   as with `FINGERPRINT__MODE=off`. Every upload was quarantined as "does not decode" and left
   the library. The image's ffmpeg has Chromaprint; nothing changes there.
+- The first household is no longer named after its admin's whole name, which made invites read
+  "Jana Novák invited you to Jana Novák": without a `family_name` it is the name's last word
+  (a surname), as every invite says "the {name} family".
 - The console's Trash page says restoring charges the storage only on a server with billing
   (`features.billing`).
 

@@ -1695,6 +1695,8 @@ export interface MessageParams {
   "settings.totp.wrongCode": undefined;
   "setup.admin.badEmail": undefined;
   "setup.admin.failed": undefined;
+  "setup.admin.familyHint": { "family": string | number };
+  "setup.admin.familyName": undefined;
   "setup.admin.subtitle": undefined;
   "setup.admin.title": undefined;
   "setup.apps.address": undefined;

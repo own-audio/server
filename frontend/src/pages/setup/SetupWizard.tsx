@@ -3,6 +3,7 @@ import { useState, useEffect, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { BookOpen, Check, CircleAlert, Database, FolderOpen, HardDrive, Loader2, Music } from "lucide-react";
+import { defaultFamilyName } from "../../lib/familyName";
 import { getSetupStatus, completeSetup, getLibraryFolders, type SetupFolder } from "../../api/setup";
 import { getServerInfo } from "../../api/server";
 import { useAuthStore } from "../../store/authStore";
@@ -156,6 +157,9 @@ function AdminStep({ onBack, onComplete }: { onBack: () => void; onComplete: (to
   const { t } = useT();
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
+  // Follows the name as it is typed until the family name is edited by hand.
+  const [familyTyped, setFamilyTyped] = useState<string | null>(null);
+  const familyName = familyTyped ?? defaultFamilyName(displayName);
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,7 +172,7 @@ function AdminStep({ onBack, onComplete }: { onBack: () => void; onComplete: (to
     if (password.length < 12) return setError(t("auth.error.passwordShort"));
     setLoading(true);
     try {
-      const { token, user, refresh_token } = await completeSetup(email.trim(), password, displayName.trim());
+      const { token, user, refresh_token } = await completeSetup(email.trim(), password, displayName.trim(), familyName.trim());
       onComplete(token, user, refresh_token);
     } catch (err) {
       setError(apiErrorMessage(err, t("setup.admin.failed")));
@@ -182,6 +186,14 @@ function AdminStep({ onBack, onComplete }: { onBack: () => void; onComplete: (to
       <AuthHeading title={t("setup.admin.title")} subtitle={t("setup.admin.subtitle")} />
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <Input label={t("auth.field.name")} autoCapitalize="words" autoComplete="name" autoFocus value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+        <Input
+          label={t("setup.admin.familyName")}
+          autoCapitalize="words"
+          autoComplete="family-name"
+          value={familyName}
+          onChange={(e) => setFamilyTyped(e.target.value)}
+          hint={familyName.trim() ? t("setup.admin.familyHint", { family: familyName.trim() }) : undefined}
+        />
         <Input label={t("auth.field.email")} type="email" inputMode="email" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <PasswordInput
           label={t("auth.field.password")}

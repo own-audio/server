@@ -11475,6 +11475,13 @@
           "email": {
             "type": "string"
           },
+          "family_name": {
+            "description": "The household's name, shown in invitations as \"the {name} family\". Blank or absent: the\nlast word of `display_name` (a surname), renamable later.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "password": {
             "description": "Twelve characters or more; a few words are fine.",
             "type": "string"
@@ -12725,7 +12732,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.15"
+    "version": "2.16"
   },
   "openapi": "3.1.0",
   "paths": {

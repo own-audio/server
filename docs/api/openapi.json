@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.26"
+    "version": "1.27"
   },
   "servers": [
     {
@@ -16220,6 +16220,13 @@
           },
           "display_name": {
             "type": "string"
+          },
+          "family_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The household's name, shown in invitations as \"the {name} family\". Blank or absent: the\nlast word of `display_name` (a surname), renamable later with `PUT /api/v1/family`."
           }
         }
       },

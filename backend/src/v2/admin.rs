@@ -33,6 +33,10 @@ pub struct SetupRequest {
     /// Twelve characters or more; a few words are fine.
     pub password: String,
     pub display_name: String,
+    /// The household's name, shown in invitations as "the {name} family". Blank or absent: the
+    /// last word of `display_name` (a surname), renamable later.
+    #[serde(default)]
+    pub family_name: Option<String>,
 }
 
 /// An account's fields as typed, checked: the address folded to lower case, the name trimmed.
@@ -85,6 +89,7 @@ pub async fn setup(State(state): State<AppState>, meta: RequestMeta, Json(body):
     .await;
     let _ = sqlx::query("SELECT pg_advisory_unlock(hashtext('own-audio:setup'))").execute(&mut *lock).await;
     let user = made?;
+    crate::setup::name_family(pool, user.id, body.family_name.as_deref()).await?;
     tracing::info!(email = %user.email, "initial admin user created via setup (v2)");
     audit::record(&state, &meta, Some(user.id), None, "account.created", serde_json::json!({ "via": "setup" })).await;
     crate::library_folders::request_scan();

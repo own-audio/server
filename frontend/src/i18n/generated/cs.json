@@ -1689,6 +1689,8 @@
   "settings.totp.wrongCode": "Tento kód není správný.",
   "setup.admin.badEmail": "Tohle nevypadá jako e-mailová adresa.",
   "setup.admin.failed": "Nastavení se nedokončilo. Zkuste to znovu.",
+  "setup.admin.familyHint": "Pozvánky budou znít „vás zve do rodiny {family}“. Později ho můžete změnit.",
+  "setup.admin.familyName": "Název rodiny",
   "setup.admin.subtitle": "Tento účet spravuje server a může pozvat všechny ostatní.",
   "setup.admin.title": "Vytvořte první účet",
   "setup.apps.address": "Adresa serveru",
