@@ -164,6 +164,11 @@ async fn loudness(path: &Path) -> anyhow::Result<Option<f32>> {
             "info",
             "-i",
             &path.to_string_lossy(),
+            // The audio only: left to choose, ffmpeg also takes an embedded
+            // cover (a video stream) to `null`, and the image's ffmpeg has no
+            // picture decoders, so the whole measurement failed.
+            "-map",
+            "0:a:0",
             "-af",
             // NOT `ebur128=framelog=quiet`. ffmpeg only learned that option in
             // 6.x; on 5.1 (Debian bookworm's, which the image shipped until it built its own) the

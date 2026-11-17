@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Security
+
+- The image's FFmpeg carries only audio components: no video or image decoder is built, so a
+  crafted upload cannot reach the ones recent FFmpeg CVEs hit (CVE-2026-30997 in the AV1
+  decoder, which 8.1.3 does not fix; tiff, rasc, lcldec, rscc). Files with a video stream or
+  an embedded cover play, scan, fingerprint and measure as before. The image is ~23 MB smaller.
+
 ## [1.0.4-beta.1] - 2026-11-17
 
 Contract revision 27. API v2 revision 16, **stable**.

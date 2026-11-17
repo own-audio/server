@@ -44,17 +44,35 @@ RUN cmake -S chromaprint -B chromaprint/build -DCMAKE_BUILD_TYPE=Release \
       -DBUILD_SHARED_LIBS=OFF -DBUILD_TOOLS=OFF -DBUILD_TESTS=OFF -DFFT_LIB=kissfft \
       -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DCMAKE_INSTALL_PREFIX=/opt/chromaprint \
  && cmake --build chromaprint/build -j"$(nproc)" && cmake --install chromaprint/build
-# Every native decoder, demuxer, muxer, parser, filter and encoder stays: limiting
-# encoders and filters to audio saved 3 MB of 21 and risked a code path that
-# meets a cover picture. External libraries are only LAME (MP3 out),
-# Chromaprint (`-f chromaprint`) and OpenSSL (https links into object storage);
-# the one device is `-f lavfi` (generated tones, as the tests make them).
-# Shared libraries, because ffmpeg and ffprobe would each carry a static copy.
+# Audio only, from an allowlist: an uploaded file reaches nothing but these.
+# Most FFmpeg CVEs are in video and image decoders (AV1's CVE-2026-30997, which
+# 8.1.3 does not fix, tiff, rasc, lcldec, rscc), and none of them is built. A file
+# with a video stream or a cover still plays: every call maps the audio only
+# (`-map 0:a:0`, `-vn`) and covers are read by lofty, not decoded by ffmpeg.
+# Decoders and containers are generous (anything a library, audiobook or podcast
+# may hold); what is written is exactly what the server writes: MP3 (LAME) and
+# AAC/ADTS for transcodes, WAV and f32le for analysis, `-f chromaprint`, `null`
+# for the length check, and M4A/MP4, `concat`, `ffmetadata` and `loudnorm` for
+# the hosted edition's narration. Protocols: files, pipes and http(s) links into
+# object storage (OpenSSL; `udp` only because 8.1's OpenSSL code links against it
+# for DTLS, nothing opens it). The one device is `-f lavfi` (generated tones).
+# Adding a component: CLAUDE.md §8. Shared libraries, because ffmpeg and
+# ffprobe would each carry a static copy.
 RUN cd ffmpeg \
  && PKG_CONFIG_PATH=/opt/chromaprint/lib/pkgconfig ./configure --prefix=/usr/local \
       --enable-shared --disable-static --disable-debug --disable-doc --disable-ffplay \
-      --disable-indevs --enable-indev=lavfi --disable-outdevs --disable-autodetect --enable-pthreads \
+      --disable-autodetect --enable-pthreads --disable-swscale \
       --enable-zlib --enable-bzlib --enable-iconv --enable-openssl --enable-libmp3lame --enable-chromaprint \
+      --disable-everything \
+      --enable-decoder='aac*,ac3*,eac3,alac,als,amrnb,amrwb,apac,ape,aptx*,atrac*,bonk,cook,dca,dolby_e,dsd_*,dst,flac,g723_1,g728,g729,gsm*,ilbc,mace3,mace6,mlp,truehd,mp1*,mp2*,mp3*,mpc7,mpc8,nellymoser,opus,osq,qcelp,qdm2,qdmc,qoa,ra_144,ra_288,ralf,s302m,sbc,shorten,sipr,speex,tak,truespeech,tta,twinvq,vorbis,wavpack,wma*,xma1,xma2,pcm_*,adpcm_*' \
+      --enable-demuxer='aa,aac,ac3,eac3,aiff,amr,apac,ape,asf,au,bonk,caf,concat,dsf,dts,dtshd,ffmetadata,flac,iff,loas,matroska,mlp,truehd,mov,mp3,mpc,mpc8,ogg,oma,osq,qoa,rm,shorten,spdif,tak,tta,vqf,w64,wav,wsd,wv,xwma' \
+      --enable-parser='aac,aac_latm,ac3,amr,cook,dca,dolby_e,flac,g723_1,g729,gsm,mlp,mpegaudio,opus,sbc,sipr,tak,vorbis,xma' \
+      --enable-encoder='aac,libmp3lame,pcm_s16le,pcm_f32le' \
+      --enable-muxer='adts,chromaprint,ipod,mp3,mp4,null,pcm_f32le,wav' \
+      --enable-bsf='aac_adtstoasc' \
+      --enable-filter='aformat,anull,aresample,atrim,volume,volumedetect,ebur128,loudnorm,sine,anullsrc' \
+      --enable-protocol='file,pipe,http,https,tcp,tls,udp' \
+      --enable-indev=lavfi \
       --extra-libs="-lstdc++ -lm" \
  && make -j"$(nproc)" && make install DESTDIR=/out \
  && rm -rf /out/usr/local/include /out/usr/local/lib/pkgconfig /out/usr/local/share
@@ -162,7 +180,13 @@ RUN echo "packages of $APT_DAY" && apt-get update && apt-get upgrade -y --no-ins
 # ffmpeg, ffprobe and aubiotrack from the media-tools stage, with the Debian
 # libraries above as their only dependencies; the build stops here if one is missing.
 COPY --from=media-tools /out/usr/local/ /usr/local/
-RUN ldconfig && ! ldd /usr/local/bin/* | grep 'not found' && ffmpeg -hide_banner -version | head -1
+# Then a round trip through what the server uses, and no video decoder.
+RUN ldconfig && ! ldd /usr/local/bin/* | grep 'not found' && ffmpeg -hide_banner -version | head -1 \
+ && cd /tmp && ffmpeg -v error -f lavfi -i sine=duration=3 -c:a aac t.m4a \
+ && ffmpeg -v error -i t.m4a -map 0:a:0 -vn -af aformat=channel_layouts=stereo -c:a libmp3lame -f mp3 t.mp3 \
+ && ffmpeg -v error -i t.mp3 -ac 1 -af volumedetect -f chromaprint -fp_format base64 - >/dev/null \
+ && ffprobe -v error -show_entries format=duration -of csv=p=0 t.mp3 \
+ && ! ffmpeg -hide_banner -decoders | sed '1,/^ *-----/d' | awk '$1 ~ /^V/' | grep . && rm t.m4a t.mp3
 
 COPY .docker-certs/ /tmp/audio2-extra-certs/
 RUN if find /tmp/audio2-extra-certs -type f \( -name '*.crt' -o -name '*.pem' \) | grep -q .; then \

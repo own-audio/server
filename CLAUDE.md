@@ -351,6 +351,20 @@ python3 conformance/run.py --base-url http://localhost:8083 --admin-email admin@
   branch, bump `FFMPEG_VERSION` + `FFMPEG_SHA256` (verify the tarball's
   signature, key `FCF986EA15E6E293A5644F10B4322F04D67658D8`), and copy the
   stage to `audio2`'s `hosted/Dockerfile`. Questions go to GitHub Discussions, bugs to issues.
+- **FFmpeg is built from an allowlist** (`--disable-everything`, then
+  `--enable-decoder=…` and the rest; since 2026-11-17). An uploaded file
+  reaches audio code only: no video or image decoder is built, because most
+  FFmpeg CVEs are there (AV1's CVE-2026-30997 is unfixed in 8.1.3). Decoders
+  and containers are generous for audio; encoders, muxers, filters and
+  protocols are exactly what `backend/` and `audio2/hosted` call. So: **every
+  ffmpeg call maps the audio** (`-map 0:a:0` or `-vn`) — left to choose,
+  ffmpeg picks an embedded cover as a video stream and fails without its
+  decoder (the loudness measurement did). Covers come from lofty, never
+  ffmpeg. A new ffmpeg use (a filter, an output format, a protocol) needs its
+  component added to the `configure` line in the same commit; the build's
+  round-trip check in the runtime stage catches only the common path, so run
+  the change on the built image. `./configure --list-decoders` (and
+  `-demuxers`, `-filters`…) names them; globs work (`pcm_*`).
 - Semver tags `vMAJOR.MINOR.PATCH`; the image is tagged the same plus
   `latest`. The contract revision is stated in every `CHANGELOG.md` entry.
 - **Every tag gets a GitHub Release** (a tag alone shows nothing on the
