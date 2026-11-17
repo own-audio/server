@@ -110,6 +110,100 @@ pub async fn delete_favourite(family: FamilyContext, State(state): State<AppStat
     Ok(StatusCode::NO_CONTENT)
 }
 
+// ── Feedback ─────────────────────────────────────────────────────────────────
+
+/// A listener's "not for me" on a track. Neither touches the track: it stays in the library
+/// and for everyone else; only this listener's automatic selection (smart playlists, mixes)
+/// skips it.
+#[derive(Serialize, ToSchema)]
+pub struct Feedback {
+    /// `track`.
+    pub kind: String,
+    pub id: Uuid,
+    /// `dislike` (weighs it down, and wears off over months) or `ban` (never picked until
+    /// taken back).
+    pub value: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+pub(crate) fn feedback(id: Uuid, stored: &str, updated_at: DateTime<Utc>) -> Feedback {
+    Feedback { kind: "track".into(), id, value: user_state::feedback_word(stored).into(), updated_at }
+}
+
+/// v2's word to the stored one.
+fn feedback_value(value: &str) -> Result<&'static str, Problem> {
+    match value {
+        "dislike" => Ok("dislike"),
+        "ban" => Ok("banned"),
+        other => Err(Problem::bad_request("invalid_value", format!("`{other}` is neither `dislike` nor `ban`")).field("value", "invalid", "dislike or ban")),
+    }
+}
+
+fn feedback_kind(k: &str) -> Result<Kind, Problem> {
+    kind(k, |k| k == Kind::Track, "feedback")
+}
+
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct FeedbackQuery {
+    /// `dislike` or `ban`; both when absent.
+    pub value: Option<String>,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
+}
+
+/// The tracks the caller disliked or banned, most recently changed first: the list to take
+/// one back from (nothing about the track itself shows it).
+#[utoipa::path(get, path = "/me/feedback", tag = "state", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member"))),
+    params(FeedbackQuery),
+    responses((status = 200, body = Page<Feedback>), (status = 400, description = "`invalid_value`", body = crate::v2::problem::ProblemBody)))]
+pub async fn list_feedback(family: FamilyContext, State(state): State<AppState>, Query(q): Query<FeedbackQuery>) -> Result<Json<Page<Feedback>>, Problem> {
+    let value = q.value.as_deref().map(feedback_value).transpose()?;
+    let page = PageQuery { limit: q.limit, cursor: q.cursor };
+    let limit = page.limit()?;
+    let rows = user_state::list_feedback(state.db(), family.viewer(), value, page.after()?, limit + 1).await?;
+    let page = Page::from_rows(rows, limit, |(id, _, at)| (*at, *id));
+    Ok(Json(Page {
+        items: page.items.into_iter().map(|(id, stored, at)| feedback(id, &stored, at)).collect(),
+        next: page.next,
+        included: None,
+    }))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct FeedbackRequest {
+    /// `dislike` or `ban`; one replaces the other.
+    pub value: String,
+}
+
+/// Dislike or ban a track, for the caller only.
+#[utoipa::path(put, path = "/me/feedback/{kind}/{id}", tag = "state", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member"))),
+    params(("kind" = String, Path, description = "`track`"), ("id" = Uuid, Path)), request_body = FeedbackRequest,
+    responses((status = 204, description = "Given"),
+        (status = 400, description = "`unsupported_kind`, `invalid_value`", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
+pub async fn put_feedback(family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>, Json(body): Json<FeedbackRequest>) -> Result<StatusCode, Problem> {
+    let k = feedback_kind(&k)?;
+    let value = feedback_value(body.value.trim())?;
+    visible(&state, &family, k, id).await?;
+    db::music::set_track_feedback(state.db(), family.user_id, id, value).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Take a dislike or a ban back.
+#[utoipa::path(delete, path = "/me/feedback/{kind}/{id}", tag = "state", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member"))),
+    params(("kind" = String, Path, description = "`track`"), ("id" = Uuid, Path)),
+    responses((status = 204, description = "None now (also when there was none)"),
+        (status = 400, description = "`unsupported_kind`", body = crate::v2::problem::ProblemBody)))]
+pub async fn delete_feedback(family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>) -> Result<StatusCode, Problem> {
+    feedback_kind(&k)?;
+    db::music::clear_track_feedback(state.db(), family.user_id, id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 // ── Ratings ──────────────────────────────────────────────────────────────────
 
 #[derive(Serialize, ToSchema)]

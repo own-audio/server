@@ -1048,7 +1048,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `album`, …, `member`, `series`, `collection`, `favourite.track`, `progress.book`,\n`bookmark`. A client skips kinds it does not know.",
+            "description": "`track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`,\n`favourite.track`, `feedback.track`, `progress.book`, `bookmark`. A client skips kinds it\ndoes not know.",
             "type": "string"
           },
           "op": {
@@ -1919,6 +1919,33 @@
         ],
         "type": "object"
       },
+      "DuplicateGroup": {
+        "description": "Tracks of the caller's that are the same file.",
+        "properties": {
+          "key": {
+            "description": "What they share: the file's SHA-256.",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`identical`: byte for byte the same file.",
+            "type": "string"
+          },
+          "track_ids": {
+            "description": "Oldest first, so the first is the one to keep when in doubt.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "track_ids"
+        ],
+        "type": "object"
+      },
       "EditBatch": {
         "properties": {
           "at": {
@@ -2311,6 +2338,46 @@
         ],
         "type": "object"
       },
+      "Feedback": {
+        "description": "A listener's \"not for me\" on a track. Neither touches the track: it stays in the library\nand for everyone else; only this listener's automatic selection (smart playlists, mixes)\nskips it.",
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track`.",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "value": {
+            "description": "`dislike` (weighs it down, and wears off over months) or `ban` (never picked until\ntaken back).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "value",
+          "updated_at"
+        ],
+        "type": "object"
+      },
+      "FeedbackRequest": {
+        "properties": {
+          "value": {
+            "description": "`dislike` or `ban`; one replaces the other.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "type": "object"
+      },
       "FieldError": {
         "properties": {
           "code": {
@@ -2341,6 +2408,81 @@
         },
         "required": [
           "title"
+        ],
+        "type": "object"
+      },
+      "FileTags": {
+        "description": "What a track's file says about itself.",
+        "properties": {
+          "album": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "artist": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "disc_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "disc_total": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "file_name": {
+            "description": "The file's own name, often the last honest clue when tags are missing or wrong.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_cover": {
+            "description": "Whether the file carries a picture.",
+            "type": "boolean"
+          },
+          "is_compilation": {
+            "type": "boolean"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "track_number": {
+            "format": "int32",
+            "type": [
+              "integer",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "is_compilation",
+          "has_cover"
         ],
         "type": "object"
       },
@@ -2638,6 +2780,30 @@
         },
         "type": "object"
       },
+      "IntentAnswer": {
+        "properties": {
+          "rule": {
+            "description": "A rule to resolve, save or change; nothing is saved or played yet.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "rule"
+        ],
+        "type": "object"
+      },
+      "IntentRequest": {
+        "properties": {
+          "text": {
+            "description": "What the listener asked for, in their words (\"an hour of jazz for dinner\"); English\nor Czech, at most 500 characters.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
       "Invite": {
         "properties": {
           "code": {
@@ -2833,6 +2999,26 @@
         ],
         "type": "object"
       },
+      "LineInput": {
+        "description": "One timed line to write.",
+        "properties": {
+          "start_ms": {
+            "description": "Where it starts; leave it out on every line for words without timing.",
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "type": "object"
+      },
       "Lyrics": {
         "properties": {
           "lines": {
@@ -2857,6 +3043,28 @@
           "synced",
           "lines"
         ],
+        "type": "object"
+      },
+      "LyricsRequest": {
+        "properties": {
+          "lines": {
+            "description": "Or the lines (the shape `GET` answers), instead of `text`; kept as LRC when they\ncarry times.",
+            "items": {
+              "$ref": "#/components/schemas/LineInput"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "text": {
+            "description": "The words as plain text, or as LRC (`[mm:ss.xx] line`) with their times. Empty or\n`null` takes the owner's lyrics away, and the file's own are read again.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "Me": {
@@ -4672,6 +4880,63 @@
         ],
         "type": "object"
       },
+      "Page_DuplicateGroup": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "description": "Tracks of the caller's that are the same file.",
+              "properties": {
+                "key": {
+                  "description": "What they share: the file's SHA-256.",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "`identical`: byte for byte the same file.",
+                  "type": "string"
+                },
+                "track_ids": {
+                  "description": "Oldest first, so the first is the one to keep when in doubt.",
+                  "items": {
+                    "format": "uuid",
+                    "type": "string"
+                  },
+                  "type": "array"
+                }
+              },
+              "required": [
+                "key",
+                "kind",
+                "track_ids"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_EditBatch": {
         "description": "One page of a list.",
         "properties": {
@@ -5011,6 +5276,64 @@
         ],
         "type": "object"
       },
+      "Page_Feedback": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "description": "A listener's \"not for me\" on a track. Neither touches the track: it stays in the library\nand for everyone else; only this listener's automatic selection (smart playlists, mixes)\nskips it.",
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "`track`.",
+                  "type": "string"
+                },
+                "updated_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "value": {
+                  "description": "`dislike` (weighs it down, and wears off over months) or `ban` (never picked until\ntaken back).",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "value",
+                "updated_at"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Genre": {
         "description": "One page of a list.",
         "properties": {
@@ -5239,6 +5562,10 @@
                   "format": "int64",
                   "type": "integer"
                 },
+                "generated": {
+                  "description": "Made by the smart-playlist generator (\"ask for a playlist\").",
+                  "type": "boolean"
+                },
                 "id": {
                   "format": "uuid",
                   "type": "string"
@@ -5249,6 +5576,10 @@
                     "string",
                     "null"
                   ]
+                },
+                "kept": {
+                  "description": "A generated playlist its owner chose to keep; those not kept may be offered for\nclearing out. Always false for one made by hand.",
+                  "type": "boolean"
                 },
                 "name": {
                   "type": "string"
@@ -5263,6 +5594,7 @@
                   "type": "integer"
                 },
                 "updated_at": {
+                  "description": "Changes with its name, sharing, cover and entries.",
                   "format": "date-time",
                   "type": "string"
                 },
@@ -5278,6 +5610,8 @@
                 "owner_id",
                 "track_count",
                 "duration_ms",
+                "generated",
+                "kept",
                 "created_at",
                 "updated_at"
               ],
@@ -6349,6 +6683,13 @@
               "null"
             ]
           },
+          "kept": {
+            "description": "Keep a generated playlist (`true`), or let it be offered for clearing out again.\n`409 not_generated` for one made by hand.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "name": {
             "type": [
               "string",
@@ -6634,6 +6975,10 @@
             "format": "int64",
             "type": "integer"
           },
+          "generated": {
+            "description": "Made by the smart-playlist generator (\"ask for a playlist\").",
+            "type": "boolean"
+          },
           "id": {
             "format": "uuid",
             "type": "string"
@@ -6644,6 +6989,10 @@
               "string",
               "null"
             ]
+          },
+          "kept": {
+            "description": "A generated playlist its owner chose to keep; those not kept may be offered for\nclearing out. Always false for one made by hand.",
+            "type": "boolean"
           },
           "name": {
             "type": "string"
@@ -6658,6 +7007,7 @@
             "type": "integer"
           },
           "updated_at": {
+            "description": "Changes with its name, sharing, cover and entries.",
             "format": "date-time",
             "type": "string"
           },
@@ -6673,6 +7023,8 @@
           "owner_id",
           "track_count",
           "duration_ms",
+          "generated",
+          "kept",
           "created_at",
           "updated_at"
         ],
@@ -9357,7 +9709,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.7-draft"
+    "version": "2.8-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -13298,6 +13650,7 @@
     },
     "/api/v2/contributors/{id}/image": {
       "delete": {
+        "description": "Forget a contributor's photo, set by hand or looked up, and look for one again: an artist's\n(credited on music) or an author's (on a book) from the public source v1 uses, in the\nbackground. What it finds reaches `/sync/changes` as a change of the contributor, with its\n`image_credit`; until then, and when nothing is found, `image` is absent.",
         "operationId": "corrections_delete_contributor_image",
         "parameters": [
           {
@@ -13312,7 +13665,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Forgotten"
+            "description": "Forgotten; the lookup runs after the answer"
           },
           "401": {
             "content": {
@@ -13360,7 +13713,7 @@
             "bearer": []
           }
         ],
-        "summary": "Forget a contributor's photo, set by hand or looked up, so the server looks for one again",
+        "summary": "Forget a contributor's photo, set by hand or looked up, and look for one again: an artist's (credited on music) or an author's (on a book) from the public source v1 uses, in the background",
         "tags": [
           "corrections"
         ],
@@ -17453,6 +17806,252 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/me/feedback": {
+      "get": {
+        "operationId": "state_list_feedback",
+        "parameters": [
+          {
+            "description": "`dislike` or `ban`; both when absent.",
+            "in": "query",
+            "name": "value",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Feedback"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_value`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The tracks the caller disliked or banned, most recently changed first: the list to take one back from (nothing about the track itself shows it)",
+        "tags": [
+          "state"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/me/feedback/{kind}/{id}": {
+      "delete": {
+        "operationId": "state_delete_feedback",
+        "parameters": [
+          {
+            "description": "`track`",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "None now (also when there was none)"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`unsupported_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a dislike or a ban back",
+        "tags": [
+          "state"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      },
+      "put": {
+        "operationId": "state_put_feedback",
+        "parameters": [
+          {
+            "description": "`track`",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Given"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`unsupported_kind`, `invalid_value`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Dislike or ban a track, for the caller only",
+        "tags": [
+          "state"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/me/image": {
       "delete": {
         "operationId": "me_delete_image",
@@ -20331,6 +20930,16 @@
             },
             "description": "Unknown or not visible"
           },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_generated`: `kept` on a playlist made by hand"
+          },
           "429": {
             "content": {
               "application/problem+json": {
@@ -20347,7 +20956,7 @@
             "bearer": []
           }
         ],
-        "summary": "Rename a playlist, describe it, share it or stop sharing it",
+        "summary": "Rename a playlist, describe it, share it or stop sharing it, keep a generated one",
         "tags": [
           "playlists"
         ],
@@ -20713,6 +21322,186 @@
           }
         ],
         "summary": "Take one entry out of a playlist",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/playlists/{id}/image": {
+      "delete": {
+        "operationId": "playlists_delete_image",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed, or there was none"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a playlist's own cover away: it shows its first track's again",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "put": {
+        "description": "Put a cover on a playlist, from an upload (`POST /uploads`, kind `track_cover`). Without\none it shows its first track's.",
+        "operationId": "playlists_put_image",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            },
+            "description": "The playlist now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_an_image`, `invalid_upload`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not its owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible, or no such upload in this household"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`too_large`: over 20 MB"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a cover on a playlist, from an upload (`POST /uploads`, kind `track_cover`)",
         "tags": [
           "playlists"
         ],
@@ -23216,6 +24005,85 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/smart-playlists/intent": {
+      "post": {
+        "description": "A sentence to a rule, on the server: the fallback for a device without a language model\nof its own. What it reads is the sentence and the names of the household's genres, never\ntitles or listening history.",
+        "operationId": "playlists_intent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IntentRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IntentAnswer"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`: empty, or over 500 characters"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_understood`: nothing in it names music to look for"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "A sentence to a rule, on the server: the fallback for a device without a language model of its own",
+        "tags": [
+          "playlists"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/smart-playlists/presets": {
       "get": {
         "operationId": "playlists_presets",
@@ -23919,7 +24787,7 @@
             }
           },
           {
-            "description": "Comma-separated kinds to read, every kind when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `book`, `series`, `collection`,\n`podcast`, `episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state\n(`progress.episode`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
+            "description": "Comma-separated kinds to read, every kind when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,\n`book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, or one kind of state (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
             "in": "query",
             "name": "kinds",
             "required": false,
@@ -24069,7 +24937,7 @@
         "operationId": "sync_snapshot",
         "parameters": [
           {
-            "description": "Comma-separated kinds; all of them when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `track`, `book`, `series`, `collection`, `podcast`,\n`episode`, `favourite`, `rating`, `progress`, `bookmark`.",
+            "description": "Comma-separated kinds; all of them when absent: `member`, `contributor`,\n`release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,\n`series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`.",
             "in": "query",
             "name": "kinds",
             "required": false,
@@ -24428,6 +25296,93 @@
         ],
         "x-permission": "can_upload",
         "x-scope": "library:write"
+      }
+    },
+    "/api/v2/tracks/duplicates": {
+      "get": {
+        "description": "The caller's own tracks that are the same file uploaded more than once, a group a file.\nFound by the checksum the server keeps, so a song uploaded a moment ago joins once its\nfile has been read (`Track.sha256`). Another member's copy is theirs, never a duplicate.",
+        "operationId": "catalog_duplicates",
+        "parameters": [
+          {
+            "description": "`tracks` embeds the tracks in `included`.",
+            "in": "query",
+            "name": "include",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_DuplicateGroup"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_include`, `invalid_limit`, `invalid_cursor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The caller's own tracks that are the same file uploaded more than once, a group a file",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
       }
     },
     "/api/v2/tracks/random": {
@@ -24863,6 +25818,85 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/tracks/{id}/file-tags": {
+      "get": {
+        "operationId": "catalog_file_tags",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileTags"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The tags in a track's file, read now and written nowhere: what the file says, which may differ from the library after an identify or an edit",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:read"
+      }
+    },
     "/api/v2/tracks/{id}/identity": {
       "delete": {
         "description": "Undo one track's identify: its title, artist, album, album artist, genre, track\nnumber and MusicBrainz ids go back to what they were before it was first\nidentified, by a run or on its own. A run's proposal for it is pending again.\nThe file was never touched.",
@@ -25150,6 +26184,186 @@
         "x-scope": "library:write"
       }
     },
+    "/api/v2/tracks/{id}/image": {
+      "delete": {
+        "operationId": "catalog_delete_image",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed, or there was none"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Take a track's cover away (an edit, undone like any other)",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "put": {
+        "description": "Put a cover on a track, from an upload (`POST /uploads`, kind `track_cover`). One change in\nthe edit history, which undoes it.",
+        "operationId": "catalog_put_image",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImageUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              }
+            },
+            "description": "The track now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`not_an_image`, `invalid_upload`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner, or not allowed to add to the library"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible, or no such upload in this household"
+          },
+          "413": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`too_large`: over 20 MB"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Put a cover on a track, from an upload (`POST /uploads`, kind `track_cover`)",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/tracks/{id}/lyrics": {
       "get": {
         "operationId": "catalog_lyrics",
@@ -25217,6 +26431,204 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      },
+      "put": {
+        "description": "Write a track's lyrics by hand. They are kept as written (LRC times included) and win\nover the file's own; taking them away reads the file again.",
+        "operationId": "catalog_put_lyrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LyricsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Lyrics"
+                }
+              }
+            },
+            "description": "The lyrics now"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`: both `text` and `lines`, lines with times on some only or going back, too long"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Write a track's lyrics by hand",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/tracks/{id}/rescan": {
+      "post": {
+        "description": "Read a track's tags from its file again, into the library: the file wins where it has a\nvalue, what is stored stays where it has none, and its picture becomes the cover. Not on\na track identified here (MusicBrainz is the better source).",
+        "operationId": "catalog_rescan",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Track"
+                }
+              }
+            },
+            "description": "The track now"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the track's owner"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown or not visible"
+          },
+          "409": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`identified`: identified through MusicBrainz; undo that first (`DELETE /tracks/{id}/identity`)"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`no_tags`: the file carries none"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read a track's tags from its file again, into the library: the file wins where it has a value, what is stored stays where it has none, and its picture becomes the cover",
+        "tags": [
+          "catalog"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
       }
     },
     "/api/v2/tracks/{id}/visibility": {

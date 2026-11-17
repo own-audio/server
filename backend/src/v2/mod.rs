@@ -31,6 +31,7 @@ pub mod smart;
 pub mod spoken;
 pub mod state;
 pub mod sync;
+pub mod tracks;
 pub mod trash;
 pub mod uploads;
 
@@ -95,9 +96,13 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(music::list_genres))
         .routes(routes!(music::list_tracks, uploads::create_track))
         .routes(routes!(music::get_track, trash::delete_track))
+        .routes(routes!(tracks::duplicates))
+        .routes(routes!(tracks::file_tags))
+        .routes(routes!(tracks::rescan))
+        .routes(routes!(tracks::put_image, tracks::delete_image))
         .routes(routes!(edit::set_track_chapters))
         .routes(routes!(discover::random_tracks))
-        .routes(routes!(discover::lyrics))
+        .routes(routes!(discover::lyrics, tracks::put_lyrics))
         .routes(routes!(discover::search))
         .routes(routes!(discover::played))
         .routes(routes!(playlists::list_playlists, playlists::create_playlist))
@@ -105,9 +110,11 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(playlists::list_entries, playlists::add_entries))
         .routes(routes!(playlists::remove_entry))
         .routes(routes!(playlists::order_entries))
+        .routes(routes!(playlists::put_image, playlists::delete_image))
         .routes(routes!(smart::list_smart, smart::create_smart))
         .routes(routes!(smart::presets))
         .routes(routes!(smart::resolve_rule))
+        .routes(routes!(smart::intent))
         .routes(routes!(smart::get_smart, smart::patch_smart, smart::delete_smart))
         .routes(routes!(smart::resolve_smart))
         .routes(routes!(smart::freeze_smart))
@@ -158,6 +165,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(state::put_favourite, state::delete_favourite))
         .routes(routes!(state::list_ratings))
         .routes(routes!(state::put_rating))
+        .routes(routes!(state::list_feedback))
+        .routes(routes!(state::put_feedback, state::delete_feedback))
         .routes(routes!(state::list_progress))
         .routes(routes!(state::get_progress, state::put_progress, state::delete_progress))
         .routes(routes!(state::post_plays))

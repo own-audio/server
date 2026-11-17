@@ -422,3 +422,29 @@ async fn a_book_identity_search_reads_the_source_and_answers_items() {
     let work = crate::metadata::open_library::work_at(&base, "OL66554W").await.unwrap();
     assert_eq!((work.volume_id.as_str(), work.description.as_deref()), ("ol:OL66554W", Some("A matchmaker.")));
 }
+
+#[tokio::test]
+async fn track_playlist_and_feedback_routes_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("PUT", format!("/api/v2/tracks/{id}/lyrics")),
+        ("GET", format!("/api/v2/tracks/{id}/file-tags")),
+        ("POST", format!("/api/v2/tracks/{id}/rescan")),
+        ("GET", "/api/v2/tracks/duplicates".to_string()),
+        ("GET", "/api/v2/tracks/duplicates?include=tracks".to_string()),
+        ("PUT", format!("/api/v2/tracks/{id}/image")),
+        ("DELETE", format!("/api/v2/tracks/{id}/image")),
+        ("PUT", format!("/api/v2/playlists/{id}/image")),
+        ("DELETE", format!("/api/v2/playlists/{id}/image")),
+        ("PATCH", format!("/api/v2/playlists/{id}")),
+        ("GET", "/api/v2/me/feedback".to_string()),
+        ("PUT", format!("/api/v2/me/feedback/track/{id}")),
+        ("DELETE", format!("/api/v2/me/feedback/track/{id}")),
+        ("POST", "/api/v2/smart-playlists/intent".to_string()),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "text": "jazz", "value": "ban", "upload_id": "x", "kept": true }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}

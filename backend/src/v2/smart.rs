@@ -48,6 +48,11 @@ pub struct SmartPlaylist {
     pub updated_at: DateTime<Utc>,
 }
 
+/// The record a reader sees, as the change feed sends it.
+pub(crate) fn record(row: db::music::SmartPlaylist) -> SmartPlaylist {
+    smart(row)
+}
+
 fn smart(row: db::music::SmartPlaylist) -> SmartPlaylist {
     SmartPlaylist {
         id: row.id,
@@ -194,6 +199,46 @@ pub async fn resolve_smart(
 pub struct RuleRequest {
     #[schema(value_type = Object)]
     pub rule: Rule,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct IntentRequest {
+    /// What the listener asked for, in their words ("an hour of jazz for dinner"); English
+    /// or Czech, at most 500 characters.
+    pub text: String,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct IntentAnswer {
+    /// A rule to resolve, save or change; nothing is saved or played yet.
+    #[schema(value_type = Object)]
+    pub rule: serde_json::Value,
+}
+
+/// A sentence to a rule, on the server: the fallback for a device without a language model
+/// of its own. What it reads is the sentence and the names of the household's genres, never
+/// titles or listening history.
+#[utoipa::path(post, path = "/smart-playlists/intent", tag = "playlists", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member")), ("x-scope" = json!("library:read"))),
+    request_body = IntentRequest,
+    responses((status = 200, body = IntentAnswer),
+        (status = 400, description = "`invalid_body`: empty, or over 500 characters", body = crate::v2::problem::ProblemBody),
+        (status = 422, description = "`not_understood`: nothing in it names music to look for", body = crate::v2::problem::ProblemBody)))]
+pub async fn intent(family: FamilyContext, State(state): State<AppState>, Json(body): Json<IntentRequest>) -> Result<Json<IntentAnswer>, Problem> {
+    let text = intent_text(&body.text)?;
+    let genres = catalog::visible_genre_names(state.db(), family.viewer()).await?;
+    match crate::music::intent::parse(text, &genres) {
+        Ok(rule) => Ok(Json(IntentAnswer { rule: serde_json::to_value(rule).map_err(Problem::internal)? })),
+        Err(e) => Err(Problem::new(StatusCode::UNPROCESSABLE_ENTITY, "not_understood").detail(e.to_string())),
+    }
+}
+
+fn intent_text(text: &str) -> Result<&str, Problem> {
+    let text = text.trim();
+    if text.is_empty() || text.chars().count() > 500 {
+        return Err(Problem::bad_request("invalid_body", "the text is 1 to 500 characters").field("/text", "invalid", "1 to 500 characters"));
+    }
+    Ok(text)
 }
 
 /// Try a rule without saving it: what an editor shows while it is changed.
@@ -354,4 +399,17 @@ pub async fn freeze_smart(
     }
     let playlist = crate::v2::playlists::find_for(&state, &family, made.id).await?;
     Ok((StatusCode::CREATED, Json(playlist)))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_sentence_is_one_to_five_hundred_characters() {
+        assert_eq!(intent_text("  jazz for dinner ").unwrap(), "jazz for dinner");
+        assert_eq!(intent_text("   ").unwrap_err().code(), "invalid_body");
+        assert!(intent_text(&"ž".repeat(500)).is_ok());
+        assert_eq!(intent_text(&"a".repeat(501)).unwrap_err().code(), "invalid_body");
+    }
 }

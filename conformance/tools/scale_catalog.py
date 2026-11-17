@@ -85,10 +85,13 @@ def main():
 
     if a.tracks:
         t0 = time.time()
+        # Numbered on from the tracks an earlier run made, so a second batch adds to the
+        # catalog instead of colliding with its object keys.
+        first = int(psql(a, "SELECT COALESCE(max(split_part(split_part(object_key, '/', 3), '.', 1)::int), 0) FROM media_objects WHERE object_key LIKE 'scale/t/%'")) + 1
         psql(a, f"""
             WITH objs AS (
                 INSERT INTO media_objects (bucket, object_key, content_type, size_bytes)
-                SELECT 'scale', 'scale/t/' || g || '.mp3', 'audio/mpeg', 7700000 FROM generate_series(1, {a.tracks}) g
+                SELECT 'scale', 'scale/t/' || g || '.mp3', 'audio/mpeg', 7700000 FROM generate_series({first}, {first + a.tracks - 1}) g
                 RETURNING id, object_key)
             INSERT INTO music_tracks_all (user_id, family_id, title, artist, album, genre, track_number, duration_secs, audio_object_id)
             SELECT '{user_id}', '{family_id}',

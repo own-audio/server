@@ -271,6 +271,30 @@ one contributor by id, and "still credited" (`DELETE /contributors/{id}`) is the
 collection membership, so the change-log trigger goes from a book to its series and
 collections without a scan.
 
+## Measured: duplicates on v2 (2026-11-17)
+
+v2 phase 6 (`api-v2-completion-plan.md`), `EXPLAIN ANALYZE` on PostgreSQL 16 (compose stack,
+Apple-silicon Mac): 601,000 generated tracks of one owner, every file with a checksum, 3,968 of
+them in pairs (0.7 %).
+
+| `GET /api/v2/tracks/duplicates`, a page of 100 groups | Time |
+|---|---|
+| First page | 60 ms |
+| A page from the middle (cursor half way through the checksums) | 56 ms |
+| A library without a single duplicate (the whole checksum index walked for an empty page) | 2.3 s |
+
+No migration for it: the walk goes along `media_objects_sha256_idx` in checksum order and joins
+each object's track through `music_tracks_audio_object_idx` (0126), stopping after 100 groups, so
+memory stays flat and a page costs what it walks. The fewer duplicates a library has, the more it
+walks per page; the worst case is the empty answer above. If that ever matters, a partial index of
+duplicated checksums (kept by the checksum job) makes it a key read. Filling the fixture also
+showed that one 50,000-track `INSERT` now takes minutes where 5,000-track statements take 4 s
+each (600,000 in about 9 minutes): load in batches of thousands, as the scan does.
+
+Migration 0128 adds `music_playlist_tracks (track_id)`: the playlists that hold a track are now a
+key read, for the new trigger and for the cascade when a track is purged, which scanned every
+playlist entry before.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

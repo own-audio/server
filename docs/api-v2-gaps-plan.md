@@ -83,22 +83,31 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 4. Music
 
-- [ ] Track feedback (dislike/ban) — or fold it into ratings. (M T W)
+- [x] Track feedback (dislike/ban) (v2 revision 8: `GET /me/feedback`, `PUT`/`DELETE
+      /me/feedback/track/{id}`, kind `feedback.track` in sync; kept apart from ratings, as v1). (M T W)
 - [x] Delete a track and a book (v2 revision 6: `DELETE /tracks/{id}`, `DELETE /books/{id}`,
       several at once with `POST /trash`). (M W Am)
 - [ ] Delete an uploaded podcast: needs a show kind in the trash (completion plan phase 11);
       a followed show is unfollowed with `DELETE /podcasts/{id}` since revision 4. (M W Am)
-- [ ] Lyrics write; file tags and rescan; the duplicates list; album identify. (M W Am)
-- [ ] Cover uploads: track, playlist, artist picture. (M W Am)
-- [ ] Playlists in `/sync/changes` (not blocking: read when shown). (M W Am)
-- [ ] Playlists shared with chosen members, live or as copies, and who can play one
-      (`share`, `audience`); keeping a generated playlist (`keep`). v2 shares with the whole
-      household only. (audit)
-- [ ] Artist and author pictures: forget one and look it up again; the fetched picture's
-      credit and licence (`image-info`). (audit)
-- [ ] A sentence to a smart-playlist rule (`/music/intent`). (audit)
-- [ ] The disc-number back-fill for old uploads (`tracks/discs`), or a server job instead.
-      (audit)
+- [x] Lyrics write; file tags and rescan; the duplicates list; album identify (v2 revision 8:
+      `PUT /tracks/{id}/lyrics`, `GET /tracks/{id}/file-tags`, `POST /tracks/{id}/rescan`,
+      `GET /tracks/duplicates`; album identify is `POST /organize/releases` since revision 1).
+      (M W Am)
+- [x] Cover uploads: track, playlist, artist picture (v2 revision 8: `PUT`/`DELETE
+      /tracks/{id}/image`, `/playlists/{id}/image`; artists through `/contributors/{id}/image`
+      since revision 7). (M W Am)
+- [x] Playlists in `/sync/changes` (v2 revision 8: kinds `playlist` and `smart_playlist` in the
+      snapshot and the change feed, the trash included; entries stay a paged read). (M W Am)
+- [x] Keeping a generated playlist (v2 revision 8: `kept` in `PATCH /playlists/{id}`). Playlists
+      shared with chosen members, live or as copies, and who can play one (`share`, `audience`)
+      stay on v1 with the per-member model (completion plan question 2, decided 2026-11-17 in
+      line with question 1, pending Kornel); v2 shares with the whole household. (audit)
+- [x] Artist and author pictures: forget one and look it up again; the fetched picture's
+      credit and licence (`image-info`) (v2 revisions 7–8: `PUT`/`DELETE
+      /contributors/{id}/image`, the lookup after a `DELETE`, `Contributor.image_credit`). (audit)
+- [x] A sentence to a smart-playlist rule (v2 revision 8: `POST /smart-playlists/intent`). (audit)
+- [ ] The disc-number back-fill for old uploads (`tracks/discs`): not carried over as a route;
+      a server job with completion plan phase 12. (audit)
 
 ## 5. Books
 

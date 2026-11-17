@@ -13,19 +13,20 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 226 |
-| partly covered | 5 |
-| missing | 78 |
-| not carried over | 7 |
+| covered | 240 |
+| partly covered | 4 |
+| missing | 62 |
+| not carried over | 10 |
 | **total** | **316** |
 
 "Not carried over" is either a decision in `api-v2-plan.md` (per-member media policies and item
-grants stay on v1) or a route no client calls (the Stripe webhook). The hosted routes count as
+grants stay on v1, and with them sharing a playlist with chosen members), a route no client calls
+(the Stripe webhook), or a one-off back-fill that becomes a server job (disc numbers). The hosted routes count as
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 5, v2
-revision 7). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 6, v2
+revision 8). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -233,37 +234,37 @@ lists what is still open.
 | `POST /music/artists/{id}/merge` | `POST /contributors/{id}/merge` | covered |  |
 | `POST /music/artists/{id}/split` | `POST /contributors/{id}/split` | covered |  |
 | `GET /music/artists/image` | `Contributor.image` | covered |  |
-| `POST /music/artists/upload-image` | — | missing |  |
-| `DELETE /music/artists/image` | — | missing | Forget the picture and look it up again. |
-| `GET /music/artists/image-info` | — | missing | Credit and licence of a fetched picture. |
+| `POST /music/artists/upload-image` | `PUT /contributors/{id}/image` | covered | An upload id; an artist is a contributor, so one route for artists and authors. Kept for good: never replaced by a looked-up photo. |
+| `DELETE /music/artists/image` | `DELETE /contributors/{id}/image` | covered | Forget the picture and look again, in the background: an artist's photo when credited on music, an author's when only on books. What is found reaches the change feed as the contributor. |
+| `GET /music/artists/image-info` | `Contributor.image_credit` | covered | In the record: no request of its own. `null` for a picture set by hand (v1's `is_user_set`). |
 | `GET /music/genres` | `GET /genres` | covered |  |
-| `GET /music/duplicates` | — | missing |  |
-| `GET /music/feedback` | — | missing | The dislike/ban undo list. |
-| `POST /music/intent` | — | missing | A sentence to a smart-playlist rule (server fallback for the on-device model). |
+| `GET /music/duplicates` | `GET /tracks/duplicates` | covered | Cursor-paged groups `{key, kind, track_ids}` (the file's SHA-256, `identical`), found in SQL; `include=tracks` embeds the tracks once (v1: the whole list with copies of each track). The caller's own tracks only, as v1. |
+| `GET /music/feedback` | `GET /me/feedback` | covered | Cursor-paged, most recent first; `value=dislike` or `ban` (v1's `banned`); only tracks the caller can see. Also kind `feedback.track` in `/sync/snapshot` and `/sync/changes`. |
+| `POST /music/intent` | `POST /smart-playlists/intent` | covered | `{rule}`; a sentence with no music in it is `422 not_understood` (v1: `400`). Reads the household's genre names from the genre table instead of grouping every track. |
 | `GET /music/starred` | `GET /me/favourites?kind=track` | covered |  |
 | `GET /music/tracks` | `GET /tracks`, `GET /sync/snapshot` | covered |  |
 | `POST /music/tracks/upload` | `POST /uploads` + `POST /tracks` | covered | No multipart on v2, by design. |
 | `POST /music/tracks/from-upload` | `POST /tracks` | covered |  |
-| `POST /music/tracks/discs` | — | missing | Back-fills disc numbers of old uploads; could be a server job instead. |
+| `POST /music/tracks/discs` | — | not carried over | A one-off back-fill of the disc numbers of uploads made before they were read: no client should have to start it. It becomes a server job with the instance-admin and jobs work (completion plan phase 12); v1's route stays until then. |
 | `GET /music/tracks/{id}` | `GET /tracks/{id}` | covered |  |
 | `PUT /music/tracks/{id}` | `PATCH /tracks` | covered | One song or many, as a batch in the edit history. |
 | `DELETE /music/tracks/{id}` | `DELETE /tracks/{id}` | covered | As a book. v1's `X-Trash-Batch` header is not taken: one `POST /trash` is one batch. |
 | `GET /music/tracks/{id}/chapters` | `GET /tracks/{id}` | covered | Chapters are in the track answer. |
 | `GET /music/tracks/{id}/cover` | `Track.image` | covered |  |
-| `POST /music/tracks/{id}/upload-cover` | — | missing |  |
+| `POST /music/tracks/{id}/upload-cover` | `PUT /tracks/{id}/image` | covered | An upload id (no multipart); `DELETE /tracks/{id}/image` takes it away. Both are changes in the edit history, as v1's upload. |
 | `GET /music/tracks/{id}/stream` | `POST /playback-info` | covered | Adds transcoding. |
 | `PUT /music/tracks/{id}/visibility` | `PUT /tracks/{id}/visibility` | covered |  |
 | `PUT /music/tracks/{id}/star` | `PUT /me/favourites/track/{id}` | covered |  |
 | `DELETE /music/tracks/{id}/star` | `DELETE /me/favourites/track/{id}` | covered |  |
-| `PUT /music/tracks/{id}/feedback` | — | missing |  |
-| `DELETE /music/tracks/{id}/feedback` | — | missing |  |
+| `PUT /music/tracks/{id}/feedback` | `PUT /me/feedback/{kind}/{id}` | covered | `{value}`, `dislike` or `ban`, kind `track`; the listener's state like favourites. |
+| `DELETE /music/tracks/{id}/feedback` | `DELETE /me/feedback/{kind}/{id}` | covered | Idempotent, as v1. |
 | `GET /music/tracks/{id}/lyrics` | `GET /tracks/{id}/lyrics` | covered |  |
-| `PUT /music/tracks/{id}/lyrics` | — | missing |  |
+| `PUT /music/tracks/{id}/lyrics` | `PUT /tracks/{id}/lyrics` | covered | `{text}` (plain or LRC) or timed `{lines}`, answers what `GET` answers. Taking them away reads the file's own again (v1 stored an empty text and never looked again). |
 | `POST /music/tracks/{id}/metadata/search` | `POST /tracks/{id}/identity/search` | covered |  |
 | `POST /music/tracks/{id}/metadata/apply` | `PUT /tracks/{id}/identity` | covered |  |
 | `POST /music/tracks/{id}/metadata/revert` | `DELETE /tracks/{id}/identity` | covered |  |
-| `GET /music/tracks/{id}/metadata/file-tags` | — | missing |  |
-| `POST /music/tracks/{id}/metadata/rescan` | — | missing |  |
+| `GET /music/tracks/{id}/metadata/file-tags` | `GET /tracks/{id}/file-tags` | covered | The owner's (v1: anyone who sees the track; reading a whole file is not every member's to ask for); disc numbers too. |
+| `POST /music/tracks/{id}/metadata/rescan` | `POST /tracks/{id}/rescan` | covered | Answers the track; `409 identified`, `422 no_tags` (v1: `400` for both). |
 | `GET /music/playlists` | `GET /playlists` | covered |  |
 | `POST /music/playlists` | `POST /playlists` | covered |  |
 | `GET /music/playlists/{id}` | `GET /playlists/{id}` | covered |  |
@@ -275,10 +276,10 @@ lists what is still open.
 | `PUT /music/playlists/{id}/tracks/reorder` | `PUT /playlists/{id}/entries/order` | covered |  |
 | `DELETE /music/playlists/{id}/tracks/{entry_id}` | `DELETE /playlists/{id}/entries/{entry_id}` | covered |  |
 | `GET /music/playlists/{id}/cover` | `Playlist.image` | covered |  |
-| `POST /music/playlists/{id}/upload-cover` | — | missing |  |
-| `PUT /music/playlists/{id}/share` | `PATCH /playlists/{id}` | partly | v2 shares with the whole household only; chosen members and copies are missing. |
-| `GET /music/playlists/{id}/audience` | — | missing | Which members can play it. |
-| `PUT /music/playlists/{id}/keep` | — | missing | Keep a generated playlist. |
+| `POST /music/playlists/{id}/upload-cover` | `PUT /playlists/{id}/image` | covered | An upload id; `DELETE /playlists/{id}/image` goes back to the first track's cover. |
+| `PUT /music/playlists/{id}/share` | — | not carried over | Sharing a playlist with chosen members, live or as copies, is the per-member access model that stays on v1 (question 2 of the completion plan, decided 2026-11-17 in line with question 1, pending Kornel). Sharing with the whole household is `visibility` in `PATCH /playlists/{id}`. |
+| `GET /music/playlists/{id}/audience` | — | not carried over | Which chosen members can play it: the same per-member model (question 2 of the completion plan, decided 2026-11-17 in line with question 1, pending Kornel). |
+| `PUT /music/playlists/{id}/keep` | `PATCH /playlists/{id}` | covered | `{kept}`, which also lets one go again; `Playlist.generated` and `Playlist.kept` in the record; `409 not_generated` for one made by hand (v1: `404`). |
 | `GET /music/smart-playlists` | `GET /smart-playlists` | covered |  |
 | `POST /music/smart-playlists` | `POST /smart-playlists` | covered |  |
 | `GET /music/smart-playlists/presets` | `GET /smart-playlists/presets` | covered |  |

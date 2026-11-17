@@ -216,7 +216,7 @@ pub async fn lyrics(family: FamilyContext, State(state): State<AppState>, Path(i
     Ok(Json(answer(text)))
 }
 
-fn answer(text: String) -> Lyrics {
+pub(crate) fn answer(text: String) -> Lyrics {
     if text.trim().is_empty() {
         return Lyrics { text: None, synced: false, lines: Vec::new() };
     }

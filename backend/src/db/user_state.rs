@@ -153,6 +153,50 @@ pub async fn favourite_at(pool: &PgPool, user_id: Uuid, kind: Kind, id: Uuid) ->
         .context("db: favourite at")
 }
 
+// ── Feedback ─────────────────────────────────────────────────────────────────
+
+/// `dislike` or `ban` as v2 says it; v1 stores `banned`.
+pub fn feedback_word(stored: &str) -> &'static str {
+    if stored == "banned" { "ban" } else { "dislike" }
+}
+
+/// The caller's dislikes and bans of tracks they can see, most recently changed first;
+/// `value` keeps one of the two (`dislike`, `banned` as stored).
+pub async fn list_feedback(
+    pool: &PgPool,
+    viewer: Viewer,
+    value: Option<&str>,
+    after: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<(Uuid, String, DateTime<Utc>)>> {
+    let (at, id) = after.unzip();
+    let sql = format!(
+        "SELECT s.track_id, s.kind, s.updated_at FROM music_track_feedback s
+          WHERE s.user_id = $1 AND ($4::text IS NULL OR s.kind = $4) AND {}
+            AND ($5::timestamptz IS NULL OR (s.updated_at, s.track_id) < ($5, $6))
+          ORDER BY s.updated_at DESC, s.track_id DESC LIMIT $7",
+        visible(Kind::Track, "s.track_id")
+    );
+    viewer!(sqlx::query_as::<_, (Uuid, String, DateTime<Utc>)>(&sql), viewer)
+        .bind(value)
+        .bind(at)
+        .bind(id)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: list feedback")
+}
+
+/// The user's feedback on a track (as stored), and when it was given.
+pub async fn feedback_of(pool: &PgPool, user_id: Uuid, track_id: Uuid) -> anyhow::Result<Option<(String, DateTime<Utc>)>> {
+    sqlx::query_as("SELECT kind, updated_at FROM music_track_feedback WHERE user_id = $1 AND track_id = $2")
+        .bind(user_id)
+        .bind(track_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: feedback of")
+}
+
 // ── Ratings ──────────────────────────────────────────────────────────────────
 
 /// 1 to 5, or `None` to take the rating away.

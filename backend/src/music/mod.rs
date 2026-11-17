@@ -516,13 +516,22 @@ async fn get_artist_image(
         return Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response());
     }
 
+    match look_up_artist_image(&state, family.family_id, contributor, artist).await.map_err(AuthError::Internal)? {
+        Some((content_type, bytes)) => Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response()),
+        None => Err(AuthError::ItemNotFound),
+    }
+}
+
+/// Look an artist's photo up and keep it: from a public source, with its credit painted in.
+/// A miss is remembered (so every render does not ask again), a source that did not answer
+/// is not. The picture's content type and bytes, or `None`. Also what forgetting a picture on
+/// v2 starts (`DELETE /api/v2/contributors/{id}/image`).
+pub(crate) async fn look_up_artist_image(state: &AppState, family_id: Uuid, contributor: Uuid, artist: &str) -> anyhow::Result<Option<(String, Vec<u8>)>> {
     // The MusicBrainz artist id, if any of this artist's tracks have been
     // identified — an exact identity, and far better than matching on a name.
     // Absent is normal and handled: the lookup falls back to an exact-label
     // match constrained to entities that carry a MusicBrainz artist id at all.
-    let mb_artist_id = db::music::find_artist_mbid(state.db(), contributor)
-        .await
-        .map_err(AuthError::Internal)?;
+    let mb_artist_id = db::music::find_artist_mbid(state.db(), contributor).await?;
 
     let mut image = match wikimedia::resolve(artist, mb_artist_id.as_deref()).await
     {
@@ -530,11 +539,11 @@ async fn get_artist_image(
         // Remember the miss, then report it.
         Err(wikimedia::Miss::Missing) => {
             let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
-            return Err(AuthError::ItemNotFound);
+            return Ok(None);
         }
         // Nothing was learned about this artist, so nothing is remembered: the
         // next render asks again instead of showing a placeholder forever.
-        Err(wikimedia::Miss::Unavailable) => return Err(AuthError::ItemNotFound),
+        Err(wikimedia::Miss::Unavailable) => return Ok(None),
     };
 
     // The credit is painted into the picture rather than carried beside it.
@@ -550,7 +559,7 @@ async fn get_artist_image(
         image.attribution.license.as_deref(),
     ) else {
         let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
-        return Err(AuthError::ItemNotFound);
+        return Ok(None);
     };
 
     match crate::metadata::watermark::burn(&image.bytes, &credit) {
@@ -563,14 +572,14 @@ async fn get_artist_image(
         Err(error) => {
             tracing::warn!(%artist, %error, "could not watermark artist image; dropping it");
             let _ = db::music::upsert_artist_image(state.db(), contributor, None).await;
-            return Err(AuthError::ItemNotFound);
+            return Ok(None);
         }
     }
 
     let content_type = image.content_type.to_string();
     let bytes = image.bytes.clone();
-    store_artist_image(&state, &family, contributor, image).await;
-    Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response())
+    store_artist_image(state, family_id, contributor, image).await;
+    Ok(Some((content_type, bytes)))
 }
 
 /// Best-effort, like every other cover write in this module: the caller already
@@ -578,7 +587,7 @@ async fn get_artist_image(
 /// time rather than the request.
 async fn store_artist_image(
     state: &AppState,
-    family: &FamilyContext,
+    family_id: Uuid,
     contributor: Uuid,
     image: crate::metadata::wikimedia::ArtistImage,
 ) {
@@ -593,7 +602,7 @@ async fn store_artist_image(
         size_bytes: image.bytes.len() as i64,
     };
     // Keyed by the contributor, the household's, not the asking user's.
-    let key = crate::storage::family_key(family.family_id, format!("music/artists/{contributor}.{}", image.extension));
+    let key = crate::storage::family_key(family_id, format!("music/artists/{contributor}.{}", image.extension));
 
     let Ok(mut tx) = state.db().begin().await else { return };
     let Ok(media_id) = store_temp_upload(state.storage(), &mut tx, &key, &upload).await else {
@@ -1496,18 +1505,10 @@ async fn get_track_file_tags(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    let key: String = sqlx::query_scalar("SELECT object_key FROM media_objects WHERE id = $1")
-        .bind(track.audio_object_id)
-        .fetch_one(state.db())
-        .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
-
-    // Streamed to disk: a FLAC is easily 100–300 MB.
-    let temp = state.storage().download_to_temp(&key).await.map_err(AuthError::Internal)?;
-    let tags = read_embedded_tags(temp.path());
+    let (file_name, tags) = file_tags(&state, track.audio_object_id).await.map_err(AuthError::Internal)?;
 
     Ok(Json(FileTagsResponse {
-        file_name: key.rsplit('/').next().map(ToOwned::to_owned),
+        file_name,
         title: tags.title,
         artist: tags.artist,
         album: tags.album,
@@ -1517,6 +1518,81 @@ async fn get_track_file_tags(
         track_number: tags.track_number,
         has_cover: tags.cover.is_some(),
     }))
+}
+
+/// What a track's file says about itself, read now and written nowhere: its name and tags.
+pub(crate) async fn file_tags(state: &AppState, audio_object_id: Uuid) -> anyhow::Result<(Option<String>, EmbeddedTags)> {
+    let key: String = sqlx::query_scalar("SELECT object_key FROM media_objects WHERE id = $1")
+        .bind(audio_object_id)
+        .fetch_one(state.db())
+        .await?;
+    // Streamed to disk: a FLAC is easily 100–300 MB.
+    let temp = state.storage().download_to_temp(&key).await?;
+    let path = temp.path().to_path_buf();
+    let tags = tokio::task::spawn_blocking(move || read_embedded_tags(&path)).await?;
+    drop(temp);
+    Ok((key.rsplit('/').next().map(ToOwned::to_owned), tags))
+}
+
+/// How a rescan of a track's own tags went.
+pub(crate) enum Rescan {
+    Done,
+    /// Identified through MusicBrainz here: the file may not overwrite that.
+    Identified,
+    /// The file carries nothing to read.
+    NoTags,
+}
+
+/// Read a track's own tags from its file again: the file wins where it has a value, the
+/// stored value survives where it has none, and its embedded cover is stored. The owner's.
+pub(crate) async fn rescan_track(state: &AppState, family: &FamilyContext, track: &models::MusicTrack) -> anyhow::Result<Rescan> {
+    let id = track.id;
+    if !db::music::file_tags_may_overwrite(state.db(), id).await? {
+        return Ok(Rescan::Identified);
+    }
+    let (_, tags) = file_tags(state, track.audio_object_id).await?;
+
+    if tags.title.is_none()
+        && tags.artist.is_none()
+        && tags.album.is_none()
+        && tags.genre.is_none()
+        && tags.track_number.is_none()
+    {
+        return Ok(Rescan::NoTags);
+    }
+
+    // The file wins where it has something, and the existing value survives
+    // where it doesn't — so a rescan can only ever add information. The title
+    // is the exception worth noting: it is never null, so without preferring
+    // the tag the filename-derived title this exists to replace would stay.
+    db::music::update_track(
+        state.db(),
+        id,
+        family.user_id,
+        tags.title.as_deref().unwrap_or(&track.title),
+        tags.artist.as_deref().or(track.artist.as_deref()),
+        tags.album.as_deref().or(track.album.as_deref()),
+        // Only a tag the file actually has may replace the stored value, same as every other
+        // field here.
+        tags.album_artist
+            .as_deref()
+            .or(tags.is_compilation.then_some(VARIOUS_ARTISTS))
+            .map(Some),
+        tags.genre.as_deref().or(track.genre.as_deref()),
+        tags.track_number.or(track.track_number),
+        None,
+    )
+    .await?;
+
+    db::music::set_disc(state.db(), id, tags.disc_number, tags.disc_total).await?;
+    let mut conn = state.db().acquire().await?;
+    db::music::sync_tag_mbids(&mut conn, id, tags.mbids.as_ref()).await?;
+    drop(conn);
+
+    if let Some((cover_bytes, ext, content_type)) = tags.cover {
+        store_rescanned_cover(state, family, id, cover_bytes, ext, content_type).await;
+    }
+    Ok(Rescan::Done)
 }
 
 #[derive(Serialize, ToSchema)]
@@ -1584,73 +1660,18 @@ async fn rescan_track_tags(
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
 
-    if !db::music::file_tags_may_overwrite(state.db(), id).await.map_err(AuthError::Internal)? {
-        return Err(AuthError::BadRequest(
-            "this track was identified via MusicBrainz; re-reading its file tags would overwrite that".to_string(),
-        ));
-    }
-
-    let key: String = sqlx::query_scalar("SELECT object_key FROM media_objects WHERE id = $1")
-        .bind(track.audio_object_id)
-        .fetch_one(state.db())
-        .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
-
-    // `lofty` reads from a path; the object is streamed into a temp file that
-    // goes away when this returns, never held in memory whole.
-    let temp = state
-        .storage()
-        .download_to_temp(&key)
-        .await
-        .map_err(AuthError::Internal)?;
-    let tags = read_embedded_tags(temp.path());
-
-    if tags.title.is_none()
-        && tags.artist.is_none()
-        && tags.album.is_none()
-        && tags.genre.is_none()
-        && tags.track_number.is_none()
-    {
-        return Err(AuthError::BadRequest(
-            "this file carries no embedded tags to read".to_string(),
-        ));
-    }
-
-    // The file wins where it has something, and the existing value survives
-    // where it doesn't — so a rescan can only ever add information. The title
-    // is the exception worth noting: it is never null, so without preferring
-    // the tag the filename-derived title this exists to replace would stay.
-    db::music::update_track(
-        state.db(),
-        id,
-        family.user_id,
-        tags.title.as_deref().unwrap_or(&track.title),
-        tags.artist.as_deref().or(track.artist.as_deref()),
-        tags.album.as_deref().or(track.album.as_deref()),
-        // Only a tag the file actually has may replace the stored value, same as every other
-        // field here.
-        tags.album_artist
-            .as_deref()
-            .or(tags.is_compilation.then_some(VARIOUS_ARTISTS))
-            .map(Some),
-        tags.genre.as_deref().or(track.genre.as_deref()),
-        tags.track_number.or(track.track_number),
-        None,
-    )
-    .await
-    .map_err(AuthError::Internal)?;
-
-    db::music::set_disc(state.db(), id, tags.disc_number, tags.disc_total)
-        .await
-        .map_err(AuthError::Internal)?;
-    let mut conn = state.db().acquire().await.map_err(|e| AuthError::Internal(e.into()))?;
-    db::music::sync_tag_mbids(&mut conn, id, tags.mbids.as_ref())
-        .await
-        .map_err(AuthError::Internal)?;
-    drop(conn);
-
-    if let Some((cover_bytes, ext, content_type)) = tags.cover {
-        store_rescanned_cover(&state, &family, id, cover_bytes, ext, content_type).await;
+    match rescan_track(&state, &family, &track).await.map_err(AuthError::Internal)? {
+        Rescan::Done => {}
+        Rescan::Identified => {
+            return Err(AuthError::BadRequest(
+                "this track was identified via MusicBrainz; re-reading its file tags would overwrite that".to_string(),
+            ));
+        }
+        Rescan::NoTags => {
+            return Err(AuthError::BadRequest(
+                "this file carries no embedded tags to read".to_string(),
+            ));
+        }
     }
 
     let fresh = db::music::find_track_owned(state.db(), id, family.user_id)
@@ -2334,26 +2355,26 @@ async fn get_track_lyrics(
 /// front cover picture if one is embedded. All `None`/empty on any parse failure — same
 /// "never fail the request over unreadable tags" reasoning as `parse_lyrics_tag`.
 #[derive(Default)]
-struct EmbeddedTags {
-    title: Option<String>,
-    artist: Option<String>,
-    album: Option<String>,
+pub(crate) struct EmbeddedTags {
+    pub(crate) title: Option<String>,
+    pub(crate) artist: Option<String>,
+    pub(crate) album: Option<String>,
     /// ID3 `TPE2`, MP4 `aART`, Vorbis `ALBUMARTIST`.
-    album_artist: Option<String>,
+    pub(crate) album_artist: Option<String>,
     /// ID3 `TCMP`, MP4 `cpil`, Vorbis `COMPILATION`.
-    is_compilation: bool,
-    genre: Option<String>,
-    track_number: Option<i32>,
+    pub(crate) is_compilation: bool,
+    pub(crate) genre: Option<String>,
+    pub(crate) track_number: Option<i32>,
     /// Vorbis `DISCNUMBER`/`DISCTOTAL`, ID3 `TPOS`, MP4 `disk`.
-    disc_number: Option<i32>,
-    disc_total: Option<i32>,
+    pub(crate) disc_number: Option<i32>,
+    pub(crate) disc_total: Option<i32>,
     /// MusicBrainz ids the file carries, as MusicBrainz Picard writes them (Vorbis
     /// `MUSICBRAINZ_TRACKID` is the *recording* id there, ID3 `UFID`, MP4
     /// `----:com.apple.iTunes:MusicBrainz Track Id`; `lofty` maps all of them).
     mbids: Option<db::music::TagMbids>,
     /// (raw bytes, file extension, content type) — extension and content type both come from
     /// the picture's own declared MIME type, not guessed from bytes.
-    cover: Option<(Vec<u8>, &'static str, &'static str)>,
+    pub(crate) cover: Option<(Vec<u8>, &'static str, &'static str)>,
 }
 
 /// Reads whatever `upload_track` didn't already get from the multipart form directly off the

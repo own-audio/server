@@ -666,6 +666,37 @@ pub async fn set_user_track_lyrics(
     Ok(())
 }
 
+/// The owner takes their lyrics away: nothing is stored, so the next read looks in the file
+/// (and a sidecar) again.
+pub async fn clear_user_track_lyrics(pool: &PgPool, id: Uuid, user_id: Uuid) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE music_tracks SET lyrics = NULL, lyrics_source = NULL, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $1 AND user_id = $2",
+    )
+    .bind(id)
+    .bind(user_id)
+    .execute(pool)
+    .await
+    .context("db: clear track lyrics")?;
+    Ok(())
+}
+
+/// A track's cover from a picture of the household's, or none; one change in the edit
+/// history, so it can be undone (the old picture is kept for that).
+pub async fn set_track_cover(pool: &PgPool, id: Uuid, user_id: Uuid, cover: Option<Uuid>, edit: &crate::db::edits::Edit) -> anyhow::Result<()> {
+    let mut tx = pool.begin().await.context("db: begin track cover")?;
+    crate::db::edits::mark(&mut tx, edit).await?;
+    sqlx::query("UPDATE music_tracks SET cover_object_id = $3, updated_at = CURRENT_TIMESTAMP WHERE id = $1 AND user_id = $2")
+        .bind(id)
+        .bind(user_id)
+        .bind(cover)
+        .execute(&mut *tx)
+        .await
+        .context("db: set track cover")?;
+    tx.commit().await.context("db: commit track cover")?;
+    Ok(())
+}
+
 pub async fn update_track_lyrics(pool: &PgPool, id: Uuid, lyrics: &str) -> anyhow::Result<()> {
     sqlx::query("UPDATE music_tracks SET lyrics = $2 WHERE id = $1")
         .bind(id)
@@ -1272,6 +1303,22 @@ pub struct SmartPlaylist {
     pub mode: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+/// The ones of these smart playlists the caller can see, for the change feed.
+pub async fn smart_playlists_by_ids(pool: &PgPool, user_id: Uuid, family_id: Uuid, ids: &[Uuid]) -> anyhow::Result<Vec<SmartPlaylist>> {
+    sqlx::query_as::<_, SmartPlaylist>(
+        "SELECT id, user_id, family_id, name, description, rule, mode, created_at, updated_at
+         FROM music_smart_playlists
+         WHERE id = ANY($3) AND (user_id = $1 OR family_id = $2)
+         ORDER BY id",
+    )
+    .bind(user_id)
+    .bind(family_id)
+    .bind(ids)
+    .fetch_all(pool)
+    .await
+    .context("db: smart playlists by ids")
 }
 
 /// Every smart playlist the caller can see: their own, plus any shared with

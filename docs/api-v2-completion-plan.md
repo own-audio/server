@@ -99,7 +99,7 @@ Each phase is one to five commits on `main`, each commit complete on its own:
    the user code in the path (RFC 8628's own pattern; approving needs a signed-in user). Kept.
    New routes put invite and claim codes in the body (phase 7).
 4. **Rule 7, changes reach the change feed.** Playlists and smart playlists are in v2 but not in
-   the change log. Phase 6 fixes that.
+   the change log. Phase 6 fixes that (done: kinds `playlist`, `smart_playlist`).
 5. **Rule 1 in the hosted edition.** Translation progress has its own route
    (`PUT /translation/episodes/{id}/progress`) beside `/me/progress`. Phase 13 fixes that.
 6. **Rule 10 and the hosted bodies.** The iPhone apps on the App Store already call
@@ -170,7 +170,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 3 | Sync essentials and continue listening — **done** | 3 | M | S (so M W), A, T |
 | 4 | Deletion and trash — **done** | 7 | M | M W Am, S |
 | 5 | Books: editing, files, series, collections, tags, authors, images — **done** | 34 | L | W Ab M |
-| 6 | Music remainder and playlists in sync | 17 | M | M W Am |
+| 6 | Music remainder and playlists in sync — **done** | 17 | M | M W Am |
 | 7 | Household remainder | 18 | L | M W Ab |
 | 8 | Listening settings, queue, notifications, push | 11 | M | M T W A |
 | 9 | Statistics | 5 | S | M W A |
@@ -208,7 +208,8 @@ report (`run.py`, `--v2-coverage-strict` to fail on it); the auth error shapes i
   shares.
 
 Tables a client caches that do not write to the change log yet (each phase below adds its
-triggers): `music_playlists` and `music_playlist_tracks`, `music_smart_playlists` (phase 6);
+triggers): `music_playlists` and `music_playlist_tracks`, `music_smart_playlists` (phase 6,
+done);
 `audiobook_series`, `audiobook_series_books`, `audiobook_collections`,
 `audiobook_collection_books`, `audiobook_tags`, `audiobook_book_tags` (phase 5); `sync_paths`,
 `content_grants`, `family_members` (phase 3, done); `companion_files_all`, `sync_shortcuts`
@@ -615,7 +616,66 @@ series change arrives as one change row; collections page without loss; tags fil
 search against a stub source in a unit test, `PUT identity` through the suite's book; uploads
 through `POST /uploads` only (no multipart, by design).
 
-### Phase 6 — music remainder and playlists in sync (M)
+### Phase 6 — music remainder and playlists in sync (M) — done 2026-11-17
+
+Done, v2 revision 8: every operation in the table below but the audience and copies; the 17 rows
+closed (14 covered, 3 not carried over: `share`, `audience`, `tracks/discs`), and the gaps plan's
+§4 music lines ticked, the artist pictures' among them. Migration 0128. Handler tests (no token
+is `401` on every new route) and unit tests for lyrics as text or timed lines, the intent's
+checks, the new kinds and the demo's allow-list; the conformance suite `v2_music` covers
+behaviour, and `v2_walk` walks feedback and the new image and lyrics routes. What the plan said,
+with these differences:
+
+- `PUT /tracks/{id}/lyrics` takes `{text}` (plain or LRC) or timed `{lines: [{start_ms, text}]}`
+  — the shape `GET` answers (rule 1), not `{plain, synced}` — and answers `Lyrics`. `null` or
+  empty takes the owner's lyrics away and the file's own are read again (v1 stored an empty
+  text, which the read takes as "none", for good).
+- `GET /tracks/{id}/file-tags` is the owner's (`x-permission: owner`), as the plan said; v1 lets
+  anyone who sees the track ask, and reading a whole file on request is not every member's. It
+  adds `disc_number` and `disc_total`.
+- `POST /tracks/{id}/rescan` reads the file during the request and answers the track (`200`),
+  as v1, rather than `202`: it is one file, the owner waits for its answer, and a queued rescan
+  would need a job and polling for no gain. `409 identified`, `422 no_tags` (v1: `400`).
+- `GET /tracks/duplicates` answers `{key, kind: identical, track_ids}` groups, cursor-paged by
+  the key (the file's SHA-256) in SQL, `include=tracks` to embed them; the caller's own tracks
+  only, as v1. "The stored grouping keys" of the plan are the album grouping keys (0089); v1
+  groups by the checksum and so does v2. Measured on 601,000 tracks (`CAPACITY.md`): 60 ms a page, 2.3 s for
+  the empty answer of a library without duplicates; no migration.
+- Feedback is `GET /me/feedback` (cursor-paged, `value=`), `PUT`/`DELETE
+  /me/feedback/{kind}/{id}` with kind `track` only (`400 unsupported_kind` otherwise), values
+  `dislike` and `ban` (v1 stores `banned`). Kind `feedback.track` in the snapshot (`feedback`)
+  and the change feed; not in `POST /sync/push` yet (an offline dislike waits for the network).
+  The demo account may not give feedback (favourites are refused there too); it may ask
+  `POST /smart-playlists/intent`, a read sent as `POST`.
+- `POST /smart-playlists/intent` reads the household's genre names from the genre table instead
+  of v1's grouping of every visible track; `422 not_understood`, `400 invalid_body`.
+- Images: `PUT`/`DELETE /tracks/{id}/image` mark the edit history (undo puts the old cover back,
+  so its object is kept, as v1's upload); a track cover also needs the right to add to the
+  library, as a book's. `PUT`/`DELETE /playlists/{id}/image` drop the old picture when nothing
+  else uses it; without one, a playlist shows its first track's cover.
+- `PATCH /playlists/{id}` takes `kept` both ways (keep, or let go again); `409 not_generated` on
+  a playlist made by hand (v1: `404`). `Playlist` gains `generated` and `kept`. The record keeps
+  `track_count` (of the entries the reader can see) rather than adding `entry_count`: one shape
+  for one thing.
+- Migration 0128: change-log triggers on playlists (the trash included: a playlist deleted,
+  restored or purged reaches `/sync/changes`, which phase 4 left for this phase), their entries,
+  smart playlists and track feedback; a track that is shared, unshared, trashed, quarantined or
+  missing, or changes its length or cover, logs the playlists that hold it (their records count
+  and picture only what the reader can see); a grant on a track or a playlist logs the playlists
+  it shows (0127's `change_log_item` again). New index `music_playlist_tracks (track_id)`: the
+  trigger's lookup, and the cascade when a track is purged scanned every entry before.
+- Kinds `playlist`, `smart_playlist` and `feedback` are in the default snapshot and change feed:
+  music-ios and book-ios ask for explicit kinds and keep only theirs (`OwnAudioSource.keeps`),
+  podcast-ios does not sync, and the TV skips kinds it does not know (`LibraryCache`); all of
+  them decode a change's record by kind, so an unknown kind costs nothing (checked 2026-11-17).
+- Artist pictures: `PUT`/`DELETE /contributors/{id}/image` and `Contributor.image_credit` (phase
+  5) serve artists. `DELETE` now looks again in the background, as its description said:
+  an artist's photo when the contributor is credited on music, an author's when only on books
+  (v1's two lookups, moved into functions both versions call). Before, v2 only cleared it and
+  nothing looked again until a v1 client asked.
+- Sharing a playlist with chosen members, live or as copies, and its audience stay on v1
+  (question 2). The disc-number back-fill is not a route; it becomes a job in phase 12.
+
 
 v1 ops: `POST /music/artists/upload-image`, `DELETE /music/artists/image`,
 `GET /music/artists/image-info`, `GET /music/duplicates`, `GET /music/feedback`,
@@ -746,6 +806,13 @@ v1 ops: `POST /setup/complete`, `POST /auth/admin-create-user`, `GET /users`, `P
 `GET /admin/stats`, `GET /jobs`, `GET /jobs/{id}`, `GET /library/folders`,
 `POST /library/folders/scan`.
 
+Also from phase 6: the disc-number back-fill (v1 `POST /music/tracks/discs`, not carried over as
+a route) becomes a job — a slow sweep over tracks with `disc_checked = false`, a few at a time
+like the checksum sweep (each reads a file), in `WORKER_JOB_TYPES`' default set, its progress
+visible in `GET /admin/jobs`. Not added in phase 6: it would read every old upload's file again
+on servers upgraded from before disc numbers were kept, and the jobs it would show up in are
+this phase's.
+
 | v2 | Permission | Request → answer |
 |---|---|---|
 | `POST /setup` | `public`, only while `setup.complete` is false (`409 setup_complete`) | `{email, password, display_name}` → `Me`. |
@@ -866,8 +933,12 @@ a line in `CAPACITY.md`.
 ## 5. Open questions for Kornel
 
 1. ~~Per-member policies, grants and audience~~ — answered: they stay on v1.
-2. Not carried over as proposed: the disc-number back-fill becomes a job; and is sharing a
-   playlist with chosen members part of the per-member model (stays on v1) or does it move?
+2. ~~Not carried over as proposed~~ — decided 2026-11-17 in line with question 1, pending
+   Kornel: sharing a playlist with chosen members (`share`'s members part, `audience`, copies)
+   is part of the per-member model and stays on v1; the disc-number back-fill is not a route on
+   v2 and becomes a server job in phase 12. Kornel may reverse the first: it would be
+   `GET`/`PUT /playlists/{id}/audience` and `POST /playlists/{id}/copies`, as the phase-6 table
+   sketched.
 3. ~~Rule 4~~ — answered: household-bounded lists may stay arrays; reworded in phase 2.
 4. ~~Handler tests~~ — answered: `#[sqlx::test]` may be used; PostgreSQL joins the CI test job
    with the first phase that needs it (§1.4 item 2).

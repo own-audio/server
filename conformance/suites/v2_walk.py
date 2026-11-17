@@ -46,6 +46,7 @@ ID_KINDS = [
     ("/api/v2/me/favourites/{kind}/{id}", "track"),
     ("/api/v2/me/progress/{kind}/{id}", "track"),
     ("/api/v2/me/ratings/{kind}/{id}", "track"),
+    ("/api/v2/me/feedback/{kind}/{id}", "track"),
     ("/api/v2/library/quarantine/{track_id}", "track"),
     ("/api/v2/family/members/{user_id}", "member"),
 ]
@@ -75,6 +76,11 @@ BODIES = {
     ("POST", "/api/v2/series"): {"name": "x"},
     ("POST", "/api/v2/contributors"): {"name": "x"},
     ("PUT", "/api/v2/contributors/{id}/image"): {"upload_id": "x"},
+    ("PUT", "/api/v2/tracks/{id}/image"): {"upload_id": "x"},
+    ("PUT", "/api/v2/playlists/{id}/image"): {"upload_id": "x"},
+    ("PUT", "/api/v2/tracks/{id}/lyrics"): {"text": "taken"},
+    ("PUT", "/api/v2/me/feedback/{kind}/{id}"): {"value": "dislike"},
+    ("POST", "/api/v2/smart-playlists/intent"): {"text": "jazz"},
 }
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
@@ -316,6 +322,7 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
         ctx.call("PUT", f"/api/v2/me/favourites/track/{tid}", tok, expect=(200, 204))
         ctx.call("PUT", f"/api/v2/me/ratings/track/{tid}", tok, {"rating": 4}, expect=(200, 204))
         ctx.call("PUT", f"/api/v2/me/progress/track/{tid}", tok, {"position_ms": 1000}, expect=(200, 204))
+        ctx.call("PUT", f"/api/v2/me/feedback/track/{tid}", tok, {"value": "dislike"}, expect=(204,))
     for i in range(3):
         ctx.call("POST", "/api/v2/me/bookmarks", tok, {"kind": "track", "item_id": tids[0], "position_ms": 1000 * (i + 1)}, expect=(201,))
     fills = {"/api/v2/playlists/{id}/entries": playlist["id"], "/api/v2/podcasts/{id}/episodes": show["id"],

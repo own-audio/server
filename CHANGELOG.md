@@ -211,6 +211,34 @@ semver. Each release states the **API contract revision** it serves
 - Handler tests for every phase-5 route without a token, the outbound bucket on the identity
   routes, and an identity search against a stub Open Library. Conformance: the `v2_books` suite;
   `v2_walk` walks series and collections too (someone else's, paging).
+- Track feedback on v2: `GET /api/v2/me/feedback` (cursor-paged, `value=dislike|ban`) and
+  `PUT`/`DELETE /api/v2/me/feedback/track/{id}` (`{value: "dislike" | "ban"}`) — a listener's
+  "not for me", which only their own automatic selection skips. Kind `feedback.track` in the
+  snapshot and the change feed, for that listener only. v2 revision 8.
+- `PUT /api/v2/tracks/{id}/lyrics` — the owner writes a track's lyrics, as text (plain or LRC)
+  or timed lines; `null` takes them away and the file's own are read again. v2 revision 8.
+- `GET /api/v2/tracks/{id}/file-tags` (what the file says, read now, written nowhere) and
+  `POST /api/v2/tracks/{id}/rescan` (read them into the library again: `409 identified`,
+  `422 no_tags`) — the owner's. v2 revision 8.
+- `GET /api/v2/tracks/duplicates` — the caller's own tracks that are the same file, a group per
+  SHA-256, cursor-paged and found in SQL; `include=tracks`. v2 revision 8.
+- `POST /api/v2/smart-playlists/intent` — a sentence to a smart-playlist rule, the server's
+  fallback for a device without its own model; `422 not_understood`. The demo account may ask.
+  v2 revision 8.
+- `PUT`/`DELETE /api/v2/tracks/{id}/image` (a track's cover from an upload, in the edit history)
+  and `PUT`/`DELETE /api/v2/playlists/{id}/image` (a playlist's own cover; without one it shows
+  its first track's). v2 revision 8.
+- `kept` in `PATCH /api/v2/playlists/{id}` keeps a generated playlist (or lets it go again);
+  `Playlist` gains `generated` and `kept`. v2 revision 8.
+- Kinds `playlist` and `smart_playlist` in `/api/v2/sync/snapshot` and `/sync/changes`: a
+  playlist's name, sharing, cover and entries, its trip through the trash (deleted, restored,
+  purged), and a track it holds being shared, unshared, trashed or given a new cover or length
+  reach the change feed as a change of the playlist; a deleted one is a tombstone. Entries stay a
+  paged read. Migration 0128 (also an index on playlist entries by track, so purging a track no
+  longer scans every entry). v2 revision 8.
+- Handler tests for every phase-6 route without a token; unit tests for lyrics as timed lines,
+  the intent's checks and the new kinds. Conformance: the `v2_music` suite; `v2_walk` walks
+  feedback, lyrics and the new image routes.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
@@ -220,6 +248,12 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- `DELETE /api/v2/contributors/{id}/image` forgot the picture but nothing looked for a new one
+  until a v1 client asked; it now looks again in the background (an artist's photo for someone
+  credited on music, an author's for someone only on books), and what it finds reaches the
+  change feed with its `image_credit`.
+- `conformance/tools/scale_catalog.py` adds a second batch of tracks after the first
+  (the object keys of a second run collided with the first's).
 - `Book.series` named every series a book is in, another member's private one included; it
   names those the reader can see.
 - Deleting an account that follows a podcast failed (`500`): the gPodder subscription log

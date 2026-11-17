@@ -389,14 +389,24 @@ async fn get_author_image(
         return Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response());
     }
 
-    let mut image = match wikimedia::resolve_author(&author.name).await {
+    match look_up_author_image(&state, family.family_id, id, &author.name).await {
+        Some((content_type, bytes)) => Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response()),
+        None => Err(AuthError::ItemNotFound),
+    }
+}
+
+/// Look an author's photo up and keep it, with its credit painted in; a miss is remembered,
+/// a source that did not answer is not. Also what forgetting a picture on v2 starts
+/// (`DELETE /api/v2/contributors/{id}/image`).
+pub(crate) async fn look_up_author_image(state: &AppState, family_id: Uuid, id: Uuid, name: &str) -> Option<(String, Vec<u8>)> {
+    let mut image = match wikimedia::resolve_author(name).await {
         Ok(image) => image,
         Err(wikimedia::Miss::Missing) => {
             let _ = db::music::upsert_artist_image(state.db(), id, None).await;
-            return Err(AuthError::ItemNotFound);
+            return None;
         }
         // Nothing was learned, so nothing is remembered — the next render asks again.
-        Err(wikimedia::Miss::Unavailable) => return Err(AuthError::ItemNotFound),
+        Err(wikimedia::Miss::Unavailable) => return None,
     };
 
     // The credit is painted into the picture itself, not carried beside it —
@@ -407,7 +417,7 @@ async fn get_author_image(
         image.attribution.license.as_deref(),
     ) else {
         let _ = db::music::upsert_artist_image(state.db(), id, None).await;
-        return Err(AuthError::ItemNotFound);
+        return None;
     };
 
     match crate::metadata::watermark::burn(&image.bytes, &credit) {
@@ -417,16 +427,16 @@ async fn get_author_image(
             image.content_type = "image/jpeg";
         }
         Err(error) => {
-            tracing::warn!(author = %author.name, %error, "could not watermark author image; dropping it");
+            tracing::warn!(author = %name, %error, "could not watermark author image; dropping it");
             let _ = db::music::upsert_artist_image(state.db(), id, None).await;
-            return Err(AuthError::ItemNotFound);
+            return None;
         }
     }
 
     let content_type = image.content_type.to_string();
     let bytes = image.bytes.clone();
-    store_author_image(&state, family.family_id, id, image).await;
-    Ok(([(header::CONTENT_TYPE, content_type)], Body::from(bytes)).into_response())
+    store_author_image(state, family_id, id, image).await;
+    Some((content_type, bytes))
 }
 
 /// Best-effort, like every other cover write in this codebase: the caller

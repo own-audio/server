@@ -392,17 +392,37 @@ pub async fn put_contributor_image(
     Ok(Json(editable_contributor(&state, &family, id).await?))
 }
 
-/// Forget a contributor's photo, set by hand or looked up, so the server looks for one again.
+/// Forget a contributor's photo, set by hand or looked up, and look for one again: an artist's
+/// (credited on music) or an author's (on a book) from the public source v1 uses, in the
+/// background. What it finds reaches `/sync/changes` as a change of the contributor, with its
+/// `image_credit`; until then, and when nothing is found, `image` is absent.
 #[utoipa::path(delete, path = "/contributors/{id}/image", tag = "corrections", security(("bearer" = [])),
     extensions(("x-permission" = json!("can_upload"))),
     params(("id" = Uuid, Path)),
-    responses((status = 204, description = "Forgotten"),
+    responses((status = 204, description = "Forgotten; the lookup runs after the answer"),
         (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn delete_contributor_image(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
     family.require_can_upload()?;
-    editable_contributor(&state, &family, id).await?;
+    let contributor = editable_contributor(&state, &family, id).await?;
     db::music::clear_artist_image(state.db(), id).await?;
+    let (music, book) = catalog::contributor_credit_kinds(state.db(), id).await?;
+    if music || book {
+        let family_id = family.family_id;
+        tokio::spawn(async move {
+            let found = if music {
+                crate::music::look_up_artist_image(&state, family_id, id, &contributor.name).await.unwrap_or_else(|e| {
+                    tracing::warn!(contributor = %id, error = %format!("{e:#}"), "artist photo lookup failed");
+                    None
+                })
+            } else {
+                None
+            };
+            if found.is_none() && book && !music {
+                crate::audiobooks::authors::look_up_author_image(&state, family_id, id, &contributor.name).await;
+            }
+        });
+    }
     Ok(StatusCode::NO_CONTENT)
 }
 

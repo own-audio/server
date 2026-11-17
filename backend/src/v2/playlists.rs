@@ -6,8 +6,8 @@
 //! Entries have ids of their own, since a track may be in a playlist twice;
 //! removing and reordering name entries, not tracks. A reader is shown only
 //! the entries whose tracks they can see, and counts and durations are of
-//! those. Playlists are not in the change feed yet: a client reads them when
-//! it shows them.
+//! those. Playlists are in the change feed (kind `playlist`, the record without
+//! its entries); a client reads the entries when it shows them.
 
 use crate::app::AppState;
 use crate::db::access::{self, visibility_of};
@@ -44,8 +44,19 @@ pub struct Playlist {
     pub duration_ms: i64,
     /// Its cover, or its first track's (`GET /images/{id}`; add `w` for the size).
     pub image: Option<String>,
+    /// Made by the smart-playlist generator ("ask for a playlist").
+    pub generated: bool,
+    /// A generated playlist its owner chose to keep; those not kept may be offered for
+    /// clearing out. Always false for one made by hand.
+    pub kept: bool,
     pub created_at: DateTime<Utc>,
+    /// Changes with its name, sharing, cover and entries.
     pub updated_at: DateTime<Utc>,
+}
+
+/// The record a reader sees, as the change feed sends it.
+pub(crate) fn record(state: &AppState, row: PlaylistRow) -> Playlist {
+    playlist(state, row)
 }
 
 fn playlist(state: &AppState, row: PlaylistRow) -> Playlist {
@@ -58,6 +69,8 @@ fn playlist(state: &AppState, row: PlaylistRow) -> Playlist {
         track_count: row.track_count,
         duration_ms: row.duration_secs * 1000,
         image: crate::v2::images::maybe(state, row.cover_object_id.or(row.first_cover)),
+        generated: row.generated_at.is_some(),
+        kept: row.kept_at.is_some(),
         created_at: row.created_at,
         updated_at: row.updated_at,
     }
@@ -225,16 +238,20 @@ pub struct PatchPlaylist {
     pub description: Option<Option<String>>,
     /// `private` or `family`.
     pub visibility: Option<String>,
+    /// Keep a generated playlist (`true`), or let it be offered for clearing out again.
+    /// `409 not_generated` for one made by hand.
+    pub kept: Option<bool>,
 }
 
-/// Rename a playlist, describe it, share it or stop sharing it.
+/// Rename a playlist, describe it, share it or stop sharing it, keep a generated one.
 #[utoipa::path(patch, path = "/playlists/{id}", tag = "playlists", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)), request_body = PatchPlaylist,
     responses((status = 200, body = Playlist),
         (status = 400, description = "`invalid_body`", body = crate::v2::problem::ProblemBody),
         (status = 403, description = "Not its owner", body = crate::v2::problem::ProblemBody),
-        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody),
+        (status = 409, description = "`not_generated`: `kept` on a playlist made by hand", body = crate::v2::problem::ProblemBody)))]
 pub async fn patch_playlist(
     family: FamilyContext,
     State(state): State<AppState>,
@@ -254,7 +271,15 @@ pub async fn patch_playlist(
         Some(v) => family_for(Some(v), &family)?,
         None => current.family_id,
     };
-    catalog::update_playlist(state.db(), id, family.user_id, &name, description.as_deref(), family_id).await?;
+    if body.kept.is_some() && current.generated_at.is_none() {
+        return Err(Problem::new(StatusCode::CONFLICT, "not_generated").detail("only a generated playlist is kept or let go"));
+    }
+    let mut tx = state.db().begin().await.map_err(anyhow::Error::from)?;
+    catalog::update_playlist(&mut *tx, id, family.user_id, &name, description.as_deref(), family_id).await?;
+    if let Some(kept) = body.kept {
+        catalog::set_playlist_kept(&mut *tx, id, kept).await?;
+    }
+    tx.commit().await.map_err(anyhow::Error::from)?;
     Ok(Json(playlist(&state, find(&state, &family, id).await?)))
 }
 
@@ -340,6 +365,49 @@ pub async fn order_entries(
     owned(&state, &family, id).await?;
     if !catalog::order_playlist(state.db(), id, &body.entry_ids).await? {
         return Err(Problem::bad_request("invalid_entry", "every id once, each an entry of this playlist").field("entry_ids", "invalid", "unknown or repeated entry"));
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+// ── Cover ────────────────────────────────────────────────────────────────────
+
+/// Put a cover on a playlist, from an upload (`POST /uploads`, kind `track_cover`). Without
+/// one it shows its first track's.
+#[utoipa::path(put, path = "/playlists/{id}/image", tag = "playlists", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)), request_body = crate::v2::books::ImageUpload,
+    responses((status = 200, description = "The playlist now", body = Playlist),
+        (status = 400, description = "`not_an_image`, `invalid_upload`", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not its owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible, or no such upload in this household", body = crate::v2::problem::ProblemBody),
+        (status = 413, description = "`too_large`: over 20 MB", body = crate::v2::problem::ProblemBody)))]
+pub async fn put_image(
+    family: FamilyContext,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<crate::v2::books::ImageUpload>,
+) -> Result<Json<Playlist>, Problem> {
+    owned(&state, &family, id).await?;
+    let image = crate::v2::books::adopt_image(&state, &family, &body.upload_id).await?;
+    if let Some(old) = catalog::set_playlist_cover(state.db(), id, Some(image)).await? {
+        crate::trash::delete_orphans(state.db(), state.storage(), &[old]).await;
+    }
+    Ok(Json(playlist(&state, find(&state, &family, id).await?)))
+}
+
+/// Take a playlist's own cover away: it shows its first track's again.
+#[utoipa::path(delete, path = "/playlists/{id}/image", tag = "playlists", security(("bearer" = [])),
+    extensions(("x-permission" = json!("owner"))),
+    params(("id" = Uuid, Path)),
+    responses((status = 204, description = "Removed, or there was none"),
+        (status = 403, description = "Not its owner", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
+pub async fn delete_image(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
+    let row = owned(&state, &family, id).await?;
+    if row.cover_object_id.is_some() {
+        if let Some(old) = catalog::set_playlist_cover(state.db(), id, None).await? {
+            crate::trash::delete_orphans(state.db(), state.storage(), &[old]).await;
+        }
     }
     Ok(StatusCode::NO_CONTENT)
 }

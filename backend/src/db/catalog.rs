@@ -159,6 +159,19 @@ pub async fn contributor_credited(pool: &PgPool, id: Uuid) -> anyhow::Result<boo
         .context("db: contributor credited")
 }
 
+/// Whether a contributor is credited on music (a track or an album) and on a book: which public
+/// source to look their photo up in, an artist's or an author's.
+pub async fn contributor_credit_kinds(pool: &PgPool, id: Uuid) -> anyhow::Result<(bool, bool)> {
+    sqlx::query_as(
+        "SELECT EXISTS (SELECT 1 FROM credits WHERE contributor_id = $1 AND item_kind IN ('track', 'album')),
+                EXISTS (SELECT 1 FROM credits WHERE contributor_id = $1 AND item_kind = 'book')",
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await
+    .context("db: contributor credit kinds")
+}
+
 /// The household's words about a contributor; `None` clears them.
 pub async fn set_contributor_bio(pool: &PgPool, family_id: Uuid, id: Uuid, bio: Option<&str>) -> anyhow::Result<()> {
     sqlx::query("UPDATE contributors SET biography = $3, edited_at = now(), updated_at = now() WHERE id = $1 AND family_id = $2")
@@ -917,6 +930,39 @@ pub async fn visible_genres_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) 
     viewer!(sqlx::query_as::<_, GenreRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: visible genres by ids")
 }
 
+/// The names of the genres the viewer can see, for reading a sentence: one row per genre,
+/// found through the genre table rather than by grouping every track.
+pub async fn visible_genre_names(pool: &PgPool, viewer: Viewer) -> anyhow::Result<Vec<String>> {
+    let sql = format!(
+        "SELECT g.name FROM genres g WHERE g.family_id = $2
+            AND EXISTS (SELECT 1 FROM track_genres tg JOIN music_tracks t ON t.id = tg.track_id WHERE tg.genre_id = g.id AND {})
+          ORDER BY lower(g.name)",
+        music()
+    );
+    viewer!(sqlx::query_scalar::<_, String>(&sql), viewer).fetch_all(pool).await.context("db: visible genre names")
+}
+
+/// Groups of the owner's own tracks that are the same file (the same SHA-256), in order of
+/// the checksum after `after`: (checksum, the tracks, oldest first). Another member's copy of
+/// the same song is their own choice, not a duplicate (v1's rule).
+pub async fn duplicate_groups(pool: &PgPool, user_id: Uuid, after: Option<&str>, limit: i64) -> anyhow::Result<Vec<(String, Vec<Uuid>)>> {
+    sqlx::query_as::<_, (String, Vec<Uuid>)>(
+        "SELECT mo.sha256, array_agg(t.id ORDER BY t.created_at, t.id)
+           FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
+          WHERE t.user_id = $1 AND mo.sha256 IS NOT NULL AND ($2::text IS NULL OR mo.sha256 > $2)
+          GROUP BY mo.sha256
+         HAVING count(*) > 1
+          ORDER BY mo.sha256
+          LIMIT $3",
+    )
+    .bind(user_id)
+    .bind(after)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .context("db: duplicate groups")
+}
+
 pub async fn books_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<BookRow>> {
     let sql = format!("SELECT {BOOK_COLS} FROM audiobook_books t WHERE t.id = ANY($4) AND {} ORDER BY t.id", books());
     viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer).bind(ids).fetch_all(pool).await.context("db: books by ids")
@@ -959,6 +1005,12 @@ pub async fn visible_ids_after(pool: &PgPool, viewer: Viewer, kind: &str, after:
         // Series and collections are seen through the `audiobook` policy, as books are.
         "series" => format!("SELECT t.id FROM audiobook_series t WHERE {} AND t.id > $4", books()),
         "collection" => format!("SELECT t.id FROM audiobook_collections t WHERE {} AND t.id > $4", books()),
+        // A playlist is seen through the `music` policy, as its tracks are.
+        "playlist" => format!("SELECT t.id FROM music_playlists t WHERE {} AND t.id > $4", music()),
+        // A smart playlist is its owner's or the household's (`db::music::find_smart_playlist`).
+        "smart_playlist" => {
+            "SELECT t.id FROM music_smart_playlists t WHERE (t.user_id = $1 OR t.family_id = $2) AND $3::boolean IS NOT NULL AND t.id > $4".to_string()
+        }
         "podcast" => format!("SELECT t.id FROM podcast_feeds t WHERE {} AND t.id > $4", podcasts()),
         "episode" => format!(
             "SELECT e.id FROM podcast_episodes e JOIN podcast_feeds t ON t.id = e.feed_id WHERE {} AND e.id > $4",
@@ -992,6 +1044,9 @@ pub struct PlaylistRow {
     pub cover_object_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Made by the smart-playlist generator, and when its owner kept it.
+    pub generated_at: Option<DateTime<Utc>>,
+    pub kept_at: Option<DateTime<Utc>>,
     /// What the viewer sees of it.
     pub track_count: i64,
     pub duration_secs: i64,
@@ -1001,11 +1056,11 @@ pub struct PlaylistRow {
     pub sort_key: String,
 }
 
-/// Visible playlists in name order after `after`, or the one with `id`.
+/// Visible playlists in name order after `after`, or those of `ids`.
 pub async fn list_playlists(
     pool: &PgPool,
     viewer: Viewer,
-    id: Option<Uuid>,
+    ids: Option<&[Uuid]>,
     after: Option<(String, Uuid)>,
     limit: i64,
 ) -> anyhow::Result<Vec<PlaylistRow>> {
@@ -1014,9 +1069,10 @@ pub async fn list_playlists(
     // the lateral count, hence the CTE between them.
     let sql = format!(
         "WITH pl AS (
-            SELECT t.id, t.user_id, t.family_id, t.name, t.description, t.cover_object_id, t.created_at, t.updated_at
+            SELECT t.id, t.user_id, t.family_id, t.name, t.description, t.cover_object_id, t.created_at, t.updated_at,
+                   t.generated_at, t.kept_at
               FROM music_playlists t
-             WHERE {music} AND ($4::uuid IS NULL OR t.id = $4)
+             WHERE {music} AND ($4::uuid[] IS NULL OR t.id = ANY($4))
                AND ($5::text IS NULL OR (lower(t.name), t.id) > ($5, $6))
              ORDER BY lower(t.name), t.id
              LIMIT $7)
@@ -1031,7 +1087,7 @@ pub async fn list_playlists(
     );
     let (name, after_id) = after.map_or((None, None), |(n, i)| (Some(n), Some(i)));
     viewer!(sqlx::query_as::<_, PlaylistRow>(&sql), viewer)
-        .bind(id)
+        .bind(ids)
         .bind(name)
         .bind(after_id)
         .bind(limit)
@@ -1041,7 +1097,46 @@ pub async fn list_playlists(
 }
 
 pub async fn find_playlist(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<PlaylistRow>> {
-    Ok(list_playlists(pool, viewer, Some(id), None, 1).await?.into_iter().next())
+    Ok(list_playlists(pool, viewer, Some(&[id]), None, 1).await?.into_iter().next())
+}
+
+/// The visible ones of these playlists, for the change feed.
+pub async fn playlists_by_ids(pool: &PgPool, viewer: Viewer, ids: &[Uuid]) -> anyhow::Result<Vec<PlaylistRow>> {
+    list_playlists(pool, viewer, Some(ids), None, ids.len() as i64).await
+}
+
+/// A playlist's own cover; the one it had, for the caller to drop if nothing else uses it.
+pub async fn set_playlist_cover(pool: &PgPool, id: Uuid, cover: Option<Uuid>) -> anyhow::Result<Option<Uuid>> {
+    let mut tx = pool.begin().await.context("db: begin playlist cover")?;
+    let old: Option<Option<Uuid>> = sqlx::query_scalar("SELECT cover_object_id FROM music_playlists_all WHERE id = $1 FOR UPDATE")
+        .bind(id)
+        .fetch_optional(&mut *tx)
+        .await
+        .context("db: playlist cover")?;
+    sqlx::query("UPDATE music_playlists_all SET cover_object_id = $2, updated_at = now() WHERE id = $1")
+        .bind(id)
+        .bind(cover)
+        .execute(&mut *tx)
+        .await
+        .context("db: set playlist cover")?;
+    tx.commit().await.context("db: commit playlist cover")?;
+    Ok(old.flatten().filter(|o| Some(*o) != cover))
+}
+
+/// Keep a generated playlist, or let it go back to being offered for clearing out. `false`
+/// when it was not generated.
+pub async fn set_playlist_kept<'e, E: sqlx::PgExecutor<'e>>(pool: E, id: Uuid, kept: bool) -> anyhow::Result<bool> {
+    let done = sqlx::query(
+        "UPDATE music_playlists_all
+            SET kept_at = CASE WHEN $2 THEN COALESCE(kept_at, now()) END
+          WHERE id = $1 AND generated_at IS NOT NULL",
+    )
+    .bind(id)
+    .bind(kept)
+    .execute(pool)
+    .await
+    .context("db: keep playlist")?;
+    Ok(done.rows_affected() > 0)
 }
 
 /// A playlist's entries the viewer can see, in order, after position `after`.
@@ -1079,8 +1174,8 @@ pub async fn playlist_entries(
 }
 
 /// Name, description and sharing at once; the owner's only.
-pub async fn update_playlist(
-    pool: &PgPool,
+pub async fn update_playlist<'e, E: sqlx::PgExecutor<'e>>(
+    pool: E,
     id: Uuid,
     user_id: Uuid,
     name: &str,

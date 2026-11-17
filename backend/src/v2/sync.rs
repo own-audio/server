@@ -41,19 +41,19 @@ use uuid::Uuid;
 
 /// The kinds a snapshot can hold, in the order it sends them.
 pub const SNAPSHOT_KINDS: &[&str] = &[
-    "member", "contributor", "release_group", "album", "genre", "track", "book", "series", "collection", "podcast", "episode", "favourite", "rating",
-    "progress", "bookmark",
+    "member", "contributor", "release_group", "album", "genre", "track", "playlist", "smart_playlist", "book", "series", "collection", "podcast",
+    "episode", "favourite", "rating", "feedback", "progress", "bookmark",
 ];
 
 /// The kinds of the change feed: the snapshot's, and recordings (a track's
 /// `recording_id`; `GET /recordings/{id}`).
 pub const CHANGE_KINDS: &[&str] = &[
-    "member", "contributor", "release_group", "album", "genre", "recording", "track", "book", "series", "collection", "podcast", "episode", "favourite",
-    "rating", "progress", "bookmark",
+    "member", "contributor", "release_group", "album", "genre", "recording", "track", "playlist", "smart_playlist", "book", "series", "collection",
+    "podcast", "episode", "favourite", "rating", "feedback", "progress", "bookmark",
 ];
 
 /// A listener's own state, small enough to send in one go.
-const STATE_KINDS: &[&str] = &["favourite", "rating", "progress", "bookmark"];
+const STATE_KINDS: &[&str] = &["favourite", "rating", "feedback", "progress", "bookmark"];
 
 const BATCH: i64 = 500;
 /// Ids only are small: more of them a round.
@@ -71,6 +71,7 @@ pub(crate) fn parse_kinds(raw: Option<&str>, known: &[&str], dotted: bool) -> Re
                     Kind::parse(of).is_some_and(|kind| match state {
                         "favourite" => kind.can_favourite(),
                         "rating" => kind.can_rate(),
+                        "feedback" => kind == Kind::Track,
                         "progress" => kind.has_progress(),
                         _ => false,
                     })
@@ -150,6 +151,18 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
                 out.push((s.id, json_of(s)?));
             }
         }
+        "playlist" => {
+            for row in catalog::playlists_by_ids(pool, viewer, ids).await? {
+                let p = crate::v2::playlists::record(state, row);
+                out.push((p.id, json_of(p)?));
+            }
+        }
+        "smart_playlist" => {
+            for row in crate::db::music::smart_playlists_by_ids(pool, family.user_id, family.family_id, ids).await? {
+                let p = crate::v2::smart::record(row);
+                out.push((p.id, json_of(p)?));
+            }
+        }
         "collection" => {
             for c in crate::db::shelves::list_collections(pool, viewer, Some(ids), None, ids.len() as i64).await? {
                 let c = crate::v2::shelves::collection(state, c);
@@ -194,6 +207,10 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
                     "rating" if k.can_rate() => user_state::rating_of(pool, family.user_id, k, *id)
                         .await?
                         .map(|(rating, at)| json!({ "kind": of, "id": id, "rating": rating, "updated_at": at })),
+                    "feedback" if k == Kind::Track => match user_state::feedback_of(pool, family.user_id, *id).await? {
+                        Some((stored, at)) => Some(json_of(st::feedback(*id, &stored, at))?),
+                        None => None,
+                    },
                     "progress" if k.has_progress() => match user_state::get_progress(pool, family.user_id, k, *id).await? {
                         Some(p) => {
                             let mut p = st::progress(k, p);
@@ -239,17 +256,18 @@ pub struct ChangesQuery {
     /// Log rows to read, 1 to 1000; 500 when absent.
     pub limit: Option<i64>,
     /// Comma-separated kinds to read, every kind when absent: `member`, `contributor`,
-    /// `release_group`, `album`, `genre`, `recording`, `track`, `book`, `series`, `collection`,
-    /// `podcast`, `episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state
-    /// (`progress.episode`). Filtered by the server, so the other kinds cost nothing; keep
+    /// `release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,
+    /// `book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
+    /// `progress`, `bookmark`, or one kind of state (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
     /// passing the same list with the cursor. A `reset` always comes through.
     pub kinds: Option<String>,
 }
 
 #[derive(Serialize, ToSchema)]
 pub struct Change {
-    /// `track`, `album`, …, `member`, `series`, `collection`, `favourite.track`, `progress.book`,
-    /// `bookmark`. A client skips kinds it does not know.
+    /// `track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`,
+    /// `favourite.track`, `feedback.track`, `progress.book`, `bookmark`. A client skips kinds it
+    /// does not know.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -325,8 +343,9 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
 #[into_params(parameter_in = Query)]
 pub struct SnapshotQuery {
     /// Comma-separated kinds; all of them when absent: `member`, `contributor`,
-    /// `release_group`, `album`, `genre`, `track`, `book`, `series`, `collection`, `podcast`,
-    /// `episode`, `favourite`, `rating`, `progress`, `bookmark`.
+    /// `release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,
+    /// `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
+    /// `progress`, `bookmark`.
     pub kinds: Option<String>,
     /// `ids`: each line names a record (`{"type":"id","kind","id"}`) without it, for a client
     /// that checks what it holds is still there; about 60 bytes a line instead of a record.
@@ -447,7 +466,7 @@ struct SnapshotPage {
 /// State lines name what they are about: `favourite.track`, `progress.book`.
 fn wire_kind(kind: &str, record: &Value) -> String {
     match kind {
-        "favourite" | "rating" | "progress" => format!("{kind}.{}", record.get("kind").and_then(Value::as_str).unwrap_or("")),
+        "favourite" | "rating" | "feedback" | "progress" => format!("{kind}.{}", record.get("kind").and_then(Value::as_str).unwrap_or("")),
         other => other.to_string(),
     }
 }
@@ -471,7 +490,7 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
             let last_id = if records.is_empty() { None } else { Some(Uuid::max()) };
             Ok(SnapshotPage { records, last_id })
         }
-        "favourite" | "rating" | "progress" | "bookmark" => {
+        "favourite" | "rating" | "feedback" | "progress" | "bookmark" => {
             // A listener's own state is small: all of it in one page.
             if after != Uuid::nil() {
                 return Ok(SnapshotPage { records: Vec::new(), last_id: None });
@@ -480,6 +499,7 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
             let kinds: &[Kind] = match kind {
                 "favourite" => &[Kind::Track, Kind::Album, Kind::Contributor, Kind::Book],
                 "rating" => &[Kind::Track, Kind::Album, Kind::Contributor],
+                "feedback" => &[Kind::Track],
                 _ => &[Kind::Track, Kind::Book, Kind::Episode],
             };
             for k in kinds {
@@ -491,6 +511,10 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
                             id
                         }).collect(),
                         "rating" => user_state::list_ratings(pool, viewer, *k, after_at, BATCH).await?.into_iter().map(|(id, _, at)| {
+                            after_at = Some((at, id));
+                            id
+                        }).collect(),
+                        "feedback" => user_state::list_feedback(pool, viewer, None, after_at, BATCH).await?.into_iter().map(|(id, _, at)| {
                             after_at = Some((at, id));
                             id
                         }).collect(),
@@ -553,6 +577,7 @@ async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uu
         let kinds: &[Kind] = match kind {
             "favourite" => &[Kind::Track, Kind::Album, Kind::Contributor, Kind::Book],
             "rating" => &[Kind::Track, Kind::Album, Kind::Contributor],
+            "feedback" => &[Kind::Track],
             _ => &[Kind::Track, Kind::Book, Kind::Episode],
         };
         for k in kinds {
@@ -565,6 +590,10 @@ async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uu
                         id
                     }).collect(),
                     "rating" => user_state::list_ratings(pool, viewer, *k, after_at, ID_BATCH).await?.into_iter().map(|(id, _, at)| {
+                        after_at = Some((at, id));
+                        id
+                    }).collect(),
+                    "feedback" => user_state::list_feedback(pool, viewer, None, after_at, ID_BATCH).await?.into_iter().map(|(id, _, at)| {
                         after_at = Some((at, id));
                         id
                     }).collect(),
@@ -613,6 +642,10 @@ mod tests {
         assert_eq!(code(parse_kinds(Some("progress.book"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
         assert_eq!(code(parse_kinds(Some("recording"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
         assert!(parse_kinds(Some("recording"), CHANGE_KINDS, true).is_ok());
+        // Playlists and a listener's feedback (phase 6).
+        assert!(parse_kinds(Some("playlist,smart_playlist,feedback,feedback.track"), CHANGE_KINDS, true).is_ok());
+        assert!(parse_kinds(Some("playlist,smart_playlist,feedback"), SNAPSHOT_KINDS, false).is_ok());
+        assert_eq!(code(parse_kinds(Some("feedback.book"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
     }
 
     #[test]
@@ -625,10 +658,10 @@ mod tests {
 
     #[test]
     fn small_kinds_are_sent_whole() {
-        for k in ["member", "favourite", "rating", "progress", "bookmark"] {
+        for k in ["member", "favourite", "rating", "feedback", "progress", "bookmark"] {
             assert!(is_whole(k), "{k}");
         }
-        for k in ["track", "book", "episode", "album", "contributor"] {
+        for k in ["track", "book", "episode", "album", "contributor", "playlist", "smart_playlist"] {
             assert!(!is_whole(k), "{k}");
         }
     }
@@ -637,5 +670,6 @@ mod tests {
     fn state_lines_name_their_kind() {
         assert_eq!(wire_kind("favourite", &json!({"kind": "track"})), "favourite.track");
         assert_eq!(wire_kind("member", &json!({"user_id": "x"})), "member");
+        assert_eq!(wire_kind("feedback", &json!({"kind": "track"})), "feedback.track");
     }
 }
