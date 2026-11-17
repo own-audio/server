@@ -1165,7 +1165,49 @@ paid work is exercised up to `quote`/`estimate` only, plus one real job on canar
 credit; the access/isolation walkers read `openapi-v2-hosted.json` when given
 (`--openapi-v2`). CHANGELOG in `audio2`.
 
-### Phase 14 — release (S)
+### Phase 14 — release (S) — done 2026-11-17, release 1.0.4 (tag by Kornel)
+
+Done, v2 revision 15, `stable`: `V2_STATUS = "stable"`, `openapi-v2.json` version `2.15`, the
+wording in CLAUDE.md, API_COMPATIBILITY.md (§2, §4, §5, §11), `api-v2-plan.md`,
+`api-v2-first.md` (its "Still on v1" list is now the table of what replaces each call the iPhone
+apps made), the gaps plan (all ticked; per-member policies under "Later") and the coverage doc.
+CI runs `check-v2-coverage.py --strict`. `check-api-contract.py` needed no change: the status was
+never part of the revision, so `2.15-draft` → `2.15` is no contract change. Core 1.0.4 cut
+(everything but the tag); `audio2` regenerated `openapi-v2-hosted.json` against it, its pin
+moves when the tag exists. What the plan said, with these differences:
+
+- **A security check first.** Phase 13's multi-household run had family B's admin get `204`
+  from `PUT /api/v1/family/members/{user_id}` on family A's member. It wrote nothing (every
+  update in it is scoped to the caller's household; the walker sent an empty body, so nothing
+  ran); it answers `401` now, as for a body that changes something. The v2 `PATCH` checked the
+  member first already (`404`). The idempotent `DELETE /music/tracks/{id}/star` and `/feedback`
+  touch only the caller's own rows and answer `204` for any id; `isolation` allows them and
+  checks that family A's member, star and feedback are unchanged after B's calls, real write
+  bodies on v1 and v2 included.
+- **Conformance on many households**: `Ctx.make_member` joins an account to a household admin's
+  household through an invitation on a server with several (`entities`, `v2_admin`,
+  `v2_podcasts`, `v2_sync`). The album merge by a plain member is `403` again; on the hosted run
+  the "member" had been the admin of a household of their own, so the self-merge's `400` came
+  first. That `400` is right (rule 3 is about ids: a body that is wrong whatever exists says
+  nothing about anyone's albums). `filesync` and `gpodder` skip their feed checks with the
+  reason when the server cannot fetch from the suite's machine (`Ctx.feed_unreachable`).
+- **PostgreSQL 16**: the hosted run used `postgres:16.14-alpine` (production's 16.14): core
+  migrations to 0133 and hosted 0001–0008 apply, and the translation trigger fills the change
+  feed. The core stacks ran on 16.14 too (`POSTGRES_MAJOR=16.14`).
+- **`--v2-coverage-strict` stays off in CI.** Newly covered: `PATCH /family`, `POST
+  /family/join`, `DELETE /me/sessions`, `GET`/`DELETE /library/quarantine`, `PUT
+  /albums/{id}/release-group`, `POST /albums/{id}/merge`, `PUT /podcasts/{id}/credits`. What
+  still never answers `2xx` (12 to 19 operations on the local stack, as MusicBrainz answers or
+  not; 31 on S3) needs something the stack does not have or reaches only sometimes: identify
+  runs, groups and proposals, a track's identity, the organizer's `organize/releases` and
+  `apply-release` and `GET /recordings/{id}` (a MusicBrainz source that answers; a recording
+  exists only after an identify), book identity when Open Library does not answer, the podcast
+  directory's catalogue (`modules.podcast_discovery`, the metadata service), and on the S3
+  stack, which has no library fixtures, also edit undo, `PATCH /tracks` and `/api/v2/media` (S3
+  links go to the store). The full list is in each run's `--report` (`v2_operations`). Stubs for
+  MusicBrainz, a book source and the directory are the way to make it strict; not done here.
+- **No `Deprecation`/`Sunset` on v1** (question 8): the documents say v1 gets them only once
+  our apps have moved.
 
 - `scripts/check-v2-coverage.py --strict` in CI: no `missing`, no `partly`.
 - `V2_STATUS = "stable"`, `openapi-v2.json` without `-draft`, the wording in CLAUDE.md,

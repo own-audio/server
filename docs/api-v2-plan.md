@@ -9,11 +9,12 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
    OpenAPI document, `docs/api/openapi-v2.json`. Handlers reuse the `db` layer and the domain
    code; they do not call v1 handlers. v1 stays unchanged until our apps have moved, then goes
    (DESIGN §4).
-2. **Draft until every v1 function is in it.** v2 is the main API now and our apps ship on it,
-   so the additive rule applies as it does to v1: the revision (`V2_REVISION`,
-   `2.<revision>-draft` in `openapi-v2.json`) goes up with each addition, and
-   `scripts/check-api-contract.py` checks it. It becomes stable at the release that completes
-   `api-v2-completion-plan.md` (Kornel, 2026-11-17).
+2. **Draft until every v1 function is in it — stable since 1.0.4.** v2 was `draft` until the
+   release that completed `api-v2-completion-plan.md` (Kornel, 2026-11-17), additive only all
+   the same because our apps shipped on it. It is `stable` from 1.0.4: the revision
+   (`V2_REVISION`, `2.<revision>` in `openapi-v2.json`, `2.<revision>-draft` before) goes up
+   with each addition, and `scripts/check-api-contract.py` checks it. v1 stays, unchanged and
+   without deprecation headers, until our apps have moved (decision 1).
 3. **Problem details for every error** (RFC 9457, `application/problem+json`): `type`, `title`,
    `status`, a stable `code`, `detail`, and `errors[]` for fields. One middleware on `/api/v2`
    turns every error answer into that shape — the handlers' own, the extractors' rejections
@@ -62,3 +63,6 @@ index when that stops being enough.
 
 The hosted edition's routes (billing, narration, translation) follow in `audio2` once V2 is in.
 Then step 4: own.audio Music on v2, the book and podcast apps, the console; v1 removed after.
+
+Status 2026-11-17: every v1 function is in v2 (`api-v2-completion-plan.md`, phases 0–14, v2
+revision 15), the hosted edition's routes included; v2 is stable from release 1.0.4.

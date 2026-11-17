@@ -6,10 +6,10 @@ comment saying so. v1 stays served, unchanged, until our apps have moved; then i
 (`api-v2-plan.md`, decision 1).
 
 What v2 is for and the rules every v2 endpoint follows: `api-v2-rules.md`.
-The contract: `docs/api/openapi-v2.json`. v2 becomes stable at the release that completes
-`api-v2-completion-plan.md`; until then it says `draft`, but it is additive only already (the
-apps ship on it), and a client checks the revision in `GET /.well-known/own-audio` → `api[]`
-before relying on something added later. The decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
+The contract: `docs/api/openapi-v2.json`. v2 is **stable since server 1.0.4**, the release that
+completed `api-v2-completion-plan.md` (it said `draft` before, additive only all the same); a
+client checks the revision in `GET /.well-known/own-audio` → `api[]` before relying on
+something added later (revision 15 at 1.0.4). The decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
 The working client to copy from is `OwnAudioKit` in `music-ios`, `book-ios` and `podcast-ios`
 (`Packages/OwnAudioKit/Sources/OwnAudioKit/`): music, books and podcasts on v2.
 
@@ -72,20 +72,28 @@ These shapes are part of the contract (gaps plan §0) and stay as they are:
 - `403 insufficient_scope` (a personal access token without the operation's `x-scope`),
   `403 demo_read_only`, `403 email_unverified`, `403 forbidden` (a role the operation needs).
 
-## Still on v1 (check `openapi-v2.json` before relying on this list)
+## Still on v1: nothing the apps need
 
-Pictures are not among them any more: `Family.image` and `Member.image` are signed
+Since 1.0.4 every v1 function is in v2 or recorded as not carried over
+(`api-v1-v2-coverage.md`): per-member media policies, item grants and audience, sharing a playlist
+with chosen members, and the payment provider's webhook stay on v1. Pictures are signed
 `/images/{id}` links like every other `image` (catalog art never expires, people's pictures after
 one to two weeks), and every signed media link points at `/api/v2/media`.
 
-As of 2026-11-17 the iPhone apps call v1 only for: artwork uploads, deleting the account
-(`DELETE /api/v1/users/me`; v2 has `DELETE /me` since revision 3, which asks for the password
-of an account that has one), stats and their visibility, and podcast discovery and directory
-search (`/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search`; v2 has
-`/podcasts/directory/*` since revision 4). Other v1-only areas: trash,
-push devices, family join links, jobs, setup and admin, v1 multipart uploads. When v2 gains one
-of these, move the call over. The full list of what the clients still miss, and the order
-to close it in: `api-v2-gaps-plan.md`.
+The v1 calls the iPhone apps still made on 2026-11-17, and what replaces each:
+
+| v1 | v2 |
+|---|---|
+| Artwork uploads (v1 multipart) | `POST /uploads`, then `PUT /tracks/{id}/image`, `/books/{id}/image`, `/playlists/{id}/image`, `/contributors/{id}/image`, `/me/image`, `/family/image`, `/family/members/{user_id}/image` (or the image as the body) |
+| `DELETE /api/v1/users/me` | `DELETE /me` (revision 3; asks for the password of an account that has one) |
+| Statistics and who sees them | `GET /me/stats`, `GET /family/stats`; `stats_visible_to_admin` in `PATCH /me/settings`, and on a managed member in `PATCH /family/members/{user_id}` |
+| `/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search` | `GET /podcasts/directory`, `/podcasts/directory/categories`, `/search`, `/similar`, `/preview` (revision 4) |
+
+The other areas that were v1-only are in v2 too: the trash (`/trash`), push devices
+(`/me/push-tokens`), joining a household (`POST /family/join`, `/family/join/preview`), jobs and
+administration (`/admin/*`), setup (`POST /setup`), uploads (`POST /uploads`). Moving a client's
+calls over is the clients' work now, each in its own plan; v1 gets no `Deprecation` or `Sunset`
+headers until they have moved (`API_COMPATIBILITY.md` §5).
 
 Not part of this rule: the OpenSubsonic API at `/rest` and gPodder sync at `/api/2`. They serve
 third-party players and keep their own versioning.

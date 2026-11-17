@@ -28,9 +28,11 @@ Three numbers exist. Do not confuse them.
    incompatible redesign. A new major is served **side by side** with the old
    one for at least 12 months, and the old one keeps receiving security fixes.
    `/api/v2` is served beside v1 (`api-v2-plan.md`) and is the main API since
-   2026-11-17: clients use it first (`api-v2-first.md`). It becomes stable at the
-   release that completes `api-v2-completion-plan.md`. v1 stays served for the
-   clients built on it and gets no new features.
+   2026-11-17: clients use it first (`api-v2-first.md`). It is **stable since
+   1.0.4**, the release that completed `api-v2-completion-plan.md`: every v1
+   function is in it or recorded as not carried over. v1 stays served, unchanged,
+   for the clients built on it and gets no new features; it is not deprecated
+   yet (§5).
 2. **Contract revision** — an integer in `GET /api/v1/server` (`api.revision`),
    incremented every time the v1 contract gains something: a new endpoint, a
    new field, a new enum value, a new `features` key. It never goes down and is
@@ -181,13 +183,13 @@ hard-coded "the hosted server has billing").
 
 ## 4. Rules for changing v1 and v2 (additive only)
 
-The rules below hold for `/api/v1` and for `/api/v2`. v2 is marked `draft` until the
-release that completes `api-v2-completion-plan.md`, when it becomes stable; the iPhone apps
-ship on it already, so it is additive only now. v2's revision is `V2_REVISION`
-(`backend/src/v2/discovery.rs`), reported in `GET /.well-known/own-audio` → `api[]` and as
-`info.version` of `docs/api/openapi-v2.json` (`2.<revision>-draft`, `2.<revision>` once
-stable); it goes up by one with every addition, and `scripts/check-api-contract.py` checks
-both documents against the last release.
+The rules below hold for `/api/v1` and for `/api/v2`. v2 is stable since 1.0.4 (status
+`stable` in `GET /.well-known/own-audio` → `api[]`); it was `draft` before, and additive only
+from its revision 1 because the iPhone apps shipped on it. v2's revision is `V2_REVISION`
+(`backend/src/v2/discovery.rs`), reported in discovery and as `info.version` of
+`docs/api/openapi-v2.json` (`2.<revision>`; `2.<revision>-draft` before 1.0.4); it goes up by
+one with every addition, and `scripts/check-api-contract.py` checks both documents against the
+last release.
 
 Within either version, a change is allowed only if a client built against any
 earlier revision keeps working without being touched.
@@ -251,6 +253,10 @@ An endpoint or field being retired:
 
 Native app stores can take weeks to roll a client out, and users do not update
 promptly. Six months is the minimum, not the target.
+
+v1 as a whole is not deprecated yet: no `deprecations` entries and no `Deprecation` or
+`Sunset` headers until our own apps have moved to v2 (decided 2026-11-17, completion plan
+question 8). Then v1 goes through this process like any endpoint.
 
 One exception so far: YouTube channels as feeds were removed outright in revision 17
 (1.0.0-beta.24). The feature had never worked in a released image, so nothing could
@@ -406,7 +412,7 @@ document disagree, fix whichever is wrong in the same commit.
 
 ## 11. What v2 changed from v1
 
-v2 is built (`api-v2-plan.md`) and becomes stable at the release that completes
+v2 is built (`api-v2-plan.md`) and stable since 1.0.4, the release that completed
 `api-v2-completion-plan.md`. These were the changes v1 could not make (§4), and v2 makes them:
 
 1. `404` instead of `401` for a missing item in `/family/*`, `/users/*`,

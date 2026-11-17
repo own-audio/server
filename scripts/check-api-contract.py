@@ -3,8 +3,8 @@
 """Compare docs/api/openapi.json and openapi-v2.json with the ones at the last release tag.
 
 Within /api/v1 and /api/v2 changes are additive only (docs/API_COMPATIBILITY.md §4). v2 is
-still marked draft (`2.<revision>-draft`) until the release that completes
-docs/api-v2-completion-plan.md, but the iPhone apps ship on it, so it is checked the same way:
+stable since 1.0.4 (`2.<revision>`; before, `2.<revision>-draft`, checked the same way because
+the iPhone apps shipped on it):
 - an operation that existed at the tag must still exist;
 - if the document changed at all, info.version (<major>.<revision>) must be higher.
 
@@ -29,7 +29,8 @@ def operations(doc):
 
 
 def revision(doc):
-    # `2.1-draft` counts as 2.1: the status is not part of the revision.
+    # `2.1-draft` counts as 2.1: the status is not part of the revision, so dropping `-draft`
+    # alone is not a change of contract.
     return tuple(int(x) for x in doc["info"]["version"].split("-")[0].split("."))
 
 

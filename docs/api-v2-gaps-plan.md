@@ -1,6 +1,7 @@
 # /api/v2 gaps — what the clients still need from the server
 
-Written 2026-11-17 from the clients' migration plans (`API_V2_PLAN.md` in `audio2-mac`,
+Done 2026-11-17: every line below is ticked, with v2 revision 15 (release 1.0.4, v2 stable);
+what stays on v1 by decision is under "Later". Written 2026-11-17 from the clients' migration plans (`API_V2_PLAN.md` in `audio2-mac`,
 `audio2-tvos`, `audio2-win`, `audio2-sync`, `audio2-android-book`, `audio2-android-music`,
 `audio2-android-podcast`). Each line is a v1 call some client makes that has no v2 counterpart
 yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
@@ -12,8 +13,8 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 - [x] **v2 is the main API and counts its revisions** (Kornel, 2026-11-17): revision 1,
       additive only from now on; discovery's v2 revision goes up with each line below so a
-      client can check for it. It stays `draft` until the release that completes
-      `api-v2-completion-plan.md`, then becomes stable. (M T W S A)
+      client can check for it. It was `draft` until the release that completed
+      `api-v2-completion-plan.md`, and is stable since 1.0.4 (revision 15). (M T W S A)
 - [x] **Stable images** (v2 revision 2): catalog art is linked for good; people's pictures keep
       a weekly expiry. Was: `image` links are signed and expire in 1–2 weeks; `/sync/changes`
       doesn't resend unchanged records, so links kept in a cache, a widget or the car go dead.
@@ -113,8 +114,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       credit and licence (`image-info`) (v2 revisions 7–8: `PUT`/`DELETE
       /contributors/{id}/image`, the lookup after a `DELETE`, `Contributor.image_credit`). (audit)
 - [x] A sentence to a smart-playlist rule (v2 revision 8: `POST /smart-playlists/intent`). (audit)
-- [ ] The disc-number back-fill for old uploads (`tracks/discs`): not carried over as a route;
-      a server job with completion plan phase 12. (audit)
+- [x] The disc-number back-fill for old uploads (`tracks/discs`): not carried over as a route;
+      the server's `disc_backfill` job since v2 revision 14, its progress in
+      `GET /admin/jobs`. (audit)
 
 ## 5. Books
 
@@ -149,7 +151,6 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       `POST /family/invites/{id}/regenerate`, `PUT`/`DELETE /family/image` and
       `/family/members/{id}/image`, `GET`/`POST /family/reports`, `PATCH /family/reports/{id}`;
       kind `family` and `MemberRecord.blocked` in the change feed). (M W Ab)
-- [ ] Per-member policies, grants and audience (v1 by decision so far). (W Ab)
 - [x] Notifications inbox; push devices (v2 revision 10: `GET /me/notifications`,
       `POST /me/notifications/ack` with `ids` or `up_to`, kind `notification` in the change
       feed; `GET`/`POST /me/push-tokens`, `DELETE /me/push-tokens/{id}`, `modules.push`).
@@ -188,6 +189,14 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] Hosted billing, narration and translation: v2 bodies (v2 revision 15, additively: minor
       units with `currency`, milliseconds, `limit`/`cursor` on the growing lists, `x-permission`
       in `audio2`'s `openapi-v2-hosted.json`; narration and translation jobs on `/events`). (W A)
+
+## Later
+
+Not in v2 by decision (`api-v1-v2-coverage.md`, not carried over); a phase of its own if a
+client really needs it:
+
+- [ ] Per-member policies, grants and audience, and sharing a playlist with chosen members
+      (completion plan questions 1 and 2: the per-member access model stays on v1). (W Ab)
 
 ## Order
 

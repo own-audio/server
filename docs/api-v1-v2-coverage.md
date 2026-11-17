@@ -23,11 +23,11 @@ prefixes.
 grants stay on v1, and with them sharing a playlist with chosen members), a route no client calls
 (the Stripe webhook), or a one-off back-fill that becomes a server job (disc numbers). The hosted routes are
 covered since completion plan phase 13: their bodies follow the rules additively (see that section).
-What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
+Nothing is missing or partly covered: v2 is stable since release 1.0.4 (v2 revision 15).
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 13, v2
-revision 15). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
-lists what is still open.
+Kept current as functions move (last for `api-v2-completion-plan.md` phase 14, v2 revision 15).
+`scripts/check-v2-coverage.py --strict` checks this table against both OpenAPI documents in CI
+and fails on any row that is missing or partly covered.
 
 
 ## Auth and account

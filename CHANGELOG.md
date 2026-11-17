@@ -7,8 +7,21 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-17
+
+Contract revision 26. API v2 revision 15, **stable**.
+
+Every `/api/v1` function is in `/api/v2` (`docs/api-v2-completion-plan.md`, phases 0–14), or
+recorded in `docs/api-v1-v2-coverage.md` as not carried over with its reason. v1 is served
+unchanged for the apps built on it, without deprecation headers until they have moved.
+
 ### Changed
 
+- `/api/v2` is stable: `GET /.well-known/own-audio` → `api[]` says `status: "stable"` for v2,
+  and `openapi-v2.json` is version `2.15` (was `2.15-draft`). Nothing else in the contract
+  changes with it; it stays additive only, as it has been since revision 1.
+- CI runs `scripts/check-v2-coverage.py --strict`: a v1 operation without a v2 counterpart or a
+  reason fails the build.
 - `/api/v2` counts its revisions: discovery reports revision 1 (`openapi-v2.json` version
   `2.1-draft`, was `2.0-draft`), up by one with every addition. It stays `draft` until the
   release that completes `docs/api-v2-completion-plan.md`, when it becomes stable; the apps
