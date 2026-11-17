@@ -173,7 +173,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 6 | Music remainder and playlists in sync — **done** | 17 | M | M W Am |
 | 7 | Household remainder — **done** | 18 | L | M W Ab |
 | 8 | Listening settings, queue, notifications, push — **done** | 11 | M | M T W A |
-| 9 | Statistics | 5 | S | M W A |
+| 9 | Statistics — **done** | 5 | S | M W A |
 | 10 | Search across media, list filters | 2 | S | T W |
 | 11 | File sync remainder | 11 | L | S M W |
 | 12 | Instance admin, setup, jobs, library folders | 18 | L | W, console |
@@ -856,7 +856,47 @@ Tests: two devices: one writes the queue, the other gets it from `/sync/changes`
 event; a stale `If-Match` is `412`; settings round-trip in ms; notifications page and ack
 `up_to`; push token visible only to its owner.
 
-### Phase 9 — statistics (S)
+### Phase 9 — statistics (S) — done 2026-11-17
+
+Done, v2 revision 11: every operation in the table below; the 5 rows covered, and the gaps
+plan's §7 stats line ticked. Migration 0131 (no index). Handler tests (no token is `401`) and
+unit tests for the range's checks, the buckets and a play's words; the conformance suite
+`v2_stats` covers what v1's `stats` suite proves. What the plan said, with these differences:
+
+- Read from the plays (`listening_sessions`, what `POST /me/plays` and v1 record), as v1 does,
+  not from the rollup: `listening_daily` counts UTC days and lags up to an hour, so it could
+  neither put a play on the listener's own day nor count one just sent. Measured on 2,100,000
+  plays (`CAPACITY.md`): a year grouped by month 27 ms for a listener with a million plays.
+- `GET /me/stats` takes `from`, `to` (RFC 3339; 30 days up to now by default, at most ten years),
+  `group` (`day`, `week` from Monday, `month`), `kind` (`track`, `book`, `episode`) and v1's
+  `tz_offset_minutes`; answers `listened_ms`, `plays`, `by_kind`, `buckets` (each with its
+  `by_kind`; empty ones left out), `top` (the ten most listened in the range, not per bucket —
+  ten items per day of a year would be thousands of rows nobody shows), `streak_days`,
+  `finished_books`. Problems `invalid_range`, `invalid_group`, `unsupported_kind`,
+  `invalid_tz`. Kinds are what was played: an episode by itself, where v1's tops name the show.
+- `GET /me/plays` answers `PlayRecord` — the shape `POST /me/plays` takes, with `id` the play's
+  own and `item_id` the thing played, `source` (`reported` or `derived`) — cursor-paged newest
+  first, without titles (v1 looked one up per row). The page query names its bound on
+  `started_at` so a deep page is a seek (69 ms → 0.07 ms five years back; no new index).
+- **One name for one switch** (decided the safer way, rule 1): v1 has one stored value,
+  `family_members.stats_visibility` (`private`/`family_admin`), set by the member or, for an
+  account they manage, by an admin. The plan named it twice (`stats_visible_to_family` in
+  `/me/settings`, `stats_visible_to_admin` on the member); v2 uses `stats_visible_to_admin` in
+  both places, because that is what it means — the admins see the figures, not the household.
+- **`GET /family/stats` stays `family_admin`** (decided the safer way; the plan said `member`):
+  everyone who shares today agreed to show their figures to the household's admins only (v1's
+  `family_admin`), so opening the list to every member would widen that consent without asking.
+  The admin and those who share are listed (`{user_id, listened_ms, plays, by_kind}`; names
+  from `GET /family/members`); a member who does not share is absent, where v1 listed them with
+  `hidden`. Same `from`, `to`, `kind`.
+- `stats_visible_to_admin` in `PATCH /family/members/{id}` keeps v1's rule — an account with a
+  restriction (a `deny_all` policy) or oneself, else `403 member_not_restricted`, checked before
+  anything changes. The public demo account may not change it (`403`), though it may patch its
+  other settings.
+- The change feed: the visibility is part of the `settings` record, logged by a trigger on
+  `family_members` (migration 0131) so an admin's change reaches the managed account's devices.
+  Plays and statistics are not cached records: no new kind.
+
 
 v1 ops: `GET /stats/me`, `GET /stats/me/history`, `PUT /stats/me/visibility`, `GET /stats/family`,
 `PUT /stats/family/members/{user_id}/visibility`.

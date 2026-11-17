@@ -236,6 +236,9 @@ pub struct Settings {
     pub audiobook: AudiobookSettings,
     /// The equaliser curves saved, one per device kind; a kind without one plays flat.
     pub eq: Vec<EqCurve>,
+    /// The household's admins may see the caller's listening statistics (`GET /family/stats`).
+    /// Off until the listener turns it on; an admin may turn it on for an account they manage.
+    pub stats_visible_to_admin: bool,
     pub updated_at: DateTime<Utc>,
 }
 
@@ -276,6 +279,7 @@ pub struct SettingsPatch {
     pub audiobook: Option<AudiobookPatch>,
     /// One device kind's curve; the caller's own device kind when it names none.
     pub eq: Option<EqPatch>,
+    pub stats_visible_to_admin: Option<bool>,
 }
 
 #[derive(Deserialize, ToSchema, Default)]
@@ -377,7 +381,7 @@ fn curve(e: EqSettings) -> EqCurve {
     }
 }
 
-fn settings_of(s: UserSettings, eq: Vec<EqSettings>) -> Settings {
+fn settings_of(s: UserSettings, eq: Vec<EqSettings>, stats_visible_to_admin: bool) -> Settings {
     let updated_at = eq.iter().map(|e| e.updated_at).fold(s.updated_at, DateTime::max);
     Settings {
         playback: PlaybackSettings {
@@ -391,19 +395,21 @@ fn settings_of(s: UserSettings, eq: Vec<EqSettings>) -> Settings {
             skip_forward_ms: i64::from(s.ab_skip_forward_secs) * 1000,
         },
         eq: eq.into_iter().map(curve).collect(),
+        stats_visible_to_admin,
         updated_at,
     }
 }
 
-pub(crate) async fn settings(state: &AppState, user_id: Uuid) -> Result<Settings, Problem> {
+pub(crate) async fn settings(state: &AppState, family_id: Uuid, user_id: Uuid) -> Result<Settings, Problem> {
     let s = db::playback::get_or_create_settings(state.db(), user_id).await?;
     let eq = db::playback::eq_curves(state.db(), user_id).await?;
-    Ok(settings_of(s, eq))
+    let shared = db::stats::stats_visibility(state.db(), family_id, user_id).await?.as_deref() == Some("family_admin");
+    Ok(settings_of(s, eq, shared))
 }
 
 /// The settings as the change feed and the snapshot carry them.
-pub(crate) async fn settings_record(state: &AppState, user_id: Uuid) -> Result<Value, Problem> {
-    serde_json::to_value(settings(state, user_id).await?).map_err(|e| Problem::internal(anyhow::anyhow!(e)))
+pub(crate) async fn settings_record(state: &AppState, family_id: Uuid, user_id: Uuid) -> Result<Value, Problem> {
+    serde_json::to_value(settings(state, family_id, user_id).await?).map_err(|e| Problem::internal(anyhow::anyhow!(e)))
 }
 
 /// The caller's player settings: speeds, skip steps, the equaliser of each device kind.
@@ -411,7 +417,7 @@ pub(crate) async fn settings_record(state: &AppState, user_id: Uuid) -> Result<V
     extensions(("x-permission" = json!("user"))),
     responses((status = 200, body = Settings)))]
 pub async fn get_settings(family: FamilyContext, State(state): State<AppState>) -> Result<Json<Settings>, Problem> {
-    Ok(Json(settings(&state, family.user_id).await?))
+    Ok(Json(settings(&state, family.family_id, family.user_id).await?))
 }
 
 /// Change some settings; what the patch leaves out stays. Out-of-range values are refused,
@@ -419,7 +425,8 @@ pub async fn get_settings(family: FamilyContext, State(state): State<AppState>) 
 #[utoipa::path(patch, path = "/me/settings", tag = "listening", security(("bearer" = [])),
     extensions(("x-permission" = json!("user")), ("x-scope" = json!("playback"))),
     request_body = SettingsPatch,
-    responses((status = 200, body = Settings), (status = 400, description = "`invalid_body`: a value out of range, an unknown device kind, not six bands", body = crate::v2::problem::ProblemBody)))]
+    responses((status = 200, body = Settings), (status = 400, description = "`invalid_body`: a value out of range, an unknown device kind, not six bands", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "The demo account changing who sees its statistics", body = crate::v2::problem::ProblemBody)))]
 pub async fn patch_settings(
     auth: AuthUser,
     family: FamilyContext,
@@ -428,6 +435,10 @@ pub async fn patch_settings(
 ) -> Result<Json<Settings>, Problem> {
     check_settings(&body)?;
     let pool = state.db();
+    // Who may see one's listening is the listener's own choice, not the public demo's.
+    if body.stats_visible_to_admin.is_some() && crate::demo::is_read_only_user(&state, family.user_id).await {
+        return Err(Problem::forbidden().detail("the demo account is read-only"));
+    }
     if body.playback.is_some() || body.audiobook.is_some() {
         let now = db::playback::get_or_create_settings(pool, family.user_id).await?;
         let pb = body.playback.unwrap_or_default();
@@ -474,7 +485,10 @@ pub async fn patch_settings(
         )
         .await?;
     }
-    Ok(Json(settings(&state, family.user_id).await?))
+    if let Some(shared) = body.stats_visible_to_admin {
+        db::stats::set_stats_visibility(pool, family.family_id, family.user_id, if shared { "family_admin" } else { "private" }).await?;
+    }
+    Ok(Json(settings(&state, family.family_id, family.user_id).await?))
 }
 
 // ── Notifications ────────────────────────────────────────────────────────────
@@ -776,6 +790,7 @@ mod tests {
             playback: Some(PlaybackPatch { speed: Some(1.5), skip_intro_ms: Some(30_000), skip_outro_ms: None }),
             audiobook: Some(AudiobookPatch { speed: Some(0.5), skip_back_ms: Some(10_000), skip_forward_ms: Some(120_000) }),
             eq: Some(EqPatch { device_kind: Some("tvos".into()), bands_db: Some(vec![0.0, 1.0, -12.0, 12.0, 3.5, 0.0]), ..Default::default() }),
+            stats_visible_to_admin: Some(true),
         };
         assert!(check_settings(&ok).is_ok());
         let bad = |p: SettingsPatch| check_settings(&p).unwrap_err().code().to_string();

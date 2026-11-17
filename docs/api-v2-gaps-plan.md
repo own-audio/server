@@ -147,7 +147,8 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       `POST /me/notifications/ack` with `ids` or `up_to`, kind `notification` in the change
       feed; `GET`/`POST /me/push-tokens`, `DELETE /me/push-tokens/{id}`, `modules.push`).
       (M W A)
-- [ ] Stats. (M W A)
+- [x] Stats (v2 revision 11: `GET /me/stats`, `GET /me/plays`, `GET /family/stats`,
+      `stats_visible_to_admin` in `/me/settings` and `PATCH /family/members/{id}`). (M W A)
 - [x] Trash with batches, restore, purge (v2 revision 6: `POST`/`GET`/`DELETE /trash`,
       `POST /trash/batches/{batch}/restore`, `POST /trash/{kind}/{id}/restore`,
       `DELETE /trash/{kind}/{id}`). (S M)

@@ -203,6 +203,10 @@ pub struct MemberPatch {
     /// `true` stops the account: it cannot sign in, and every device signed in as it is signed
     /// out at once. `false` lets it sign in again. Their library and membership stay as they are.
     pub blocked: Option<bool>,
+    /// Whether the household's admins see the member's listening statistics. An admin may set it
+    /// only for an account they manage (one with a restriction, as on v1) or for themselves;
+    /// everyone else decides it in their own `/me/settings`.
+    pub stats_visible_to_admin: Option<bool>,
 }
 
 /// Change a member's role, age bracket, rights or label, or block them.
@@ -212,7 +216,7 @@ pub struct MemberPatch {
     request_body = MemberPatch,
     responses((status = 204, description = "Changed"),
         (status = 400, description = "`cannot_block_self`; an age bracket, role or right that is not one, or one's own rights", body = crate::v2::problem::ProblemBody),
-        (status = 403, description = "`cannot_block_instance_admin`: the server's administrators are not blocked from a household", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "`cannot_block_instance_admin`: the server's administrators are not blocked from a household; `member_not_restricted`: an adult decides who sees their statistics", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "Not a member", body = crate::v2::problem::ProblemBody)))]
 pub async fn patch_member(
     FamilyAdmin(family_ctx): FamilyAdmin,
@@ -233,6 +237,13 @@ pub async fn patch_member(
                 .detail("an administrator of this server cannot be blocked from a household"));
         }
     }
+    if body.stats_visible_to_admin.is_some()
+        && user_id != family_ctx.user_id
+        && !db::stats::is_restricted_member(state.db(), family_ctx.family_id, user_id).await?
+    {
+        return Err(Problem::new(StatusCode::FORBIDDEN, "member_not_restricted")
+            .detail("only an account you manage: a member decides who sees their statistics"));
+    }
     let changes_member = role.is_some() || body.age_bracket.is_some() || body.can_upload.is_some() || body.can_generate.is_some() || body.label.is_some();
     if changes_member {
         let request = families::UpdateMemberRequest {
@@ -248,6 +259,9 @@ pub async fn patch_member(
         Some(true) => families::block(&state, user_id).await?,
         Some(false) => db::users::set_active(state.db(), user_id, true).await?,
         None => {}
+    }
+    if let Some(shared) = body.stats_visible_to_admin {
+        db::stats::set_stats_visibility(state.db(), family_ctx.family_id, user_id, if shared { "family_admin" } else { "private" }).await?;
     }
     if let Some(blocked) = body.blocked {
         crate::auth::audit::record(&state, &meta, Some(user_id), Some(family_ctx.user_id), "family.member_changed", serde_json::json!({ "blocked": blocked })).await;

@@ -207,7 +207,7 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
         }
         "settings" => {
             if ids.contains(&family.user_id) {
-                out.push((family.user_id, crate::v2::listening::settings_record(state, family.user_id).await?));
+                out.push((family.user_id, crate::v2::listening::settings_record(state, family.family_id, family.user_id).await?));
             }
         }
         "notification" => out.extend(crate::v2::listening::notification_records(state, family.user_id, ids).await?),

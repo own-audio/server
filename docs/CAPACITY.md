@@ -322,6 +322,27 @@ was the fixture's one long statement on a busy stack, not the triggers. One trac
 the upload path — takes 2.9 ms (median; 6 ms p95, 14 ms at most) per `INSERT` on 355,000 tracks,
 each in an album of its own.
 
+## Measured: plays history and statistics on v2 (2026-11-17)
+
+Phase 9 of `api-v2-completion-plan.md`. The history and the statistics grow with time, not the
+catalog: 2,100,000 plays in `listening_sessions` on the compose stack's PostgreSQL 16 — one
+listener with 1,000,000 over ten years (a play every five minutes), eleven with 100,000 each —
+`EXPLAIN ANALYZE` against the heavy listener:
+
+| Query | Plan | Time |
+|---|---|---|
+| `GET /me/plays`, first page of 100 | index scan `(user_id, started_at)`, incremental sort for the id | 0.08 ms |
+| …a page five years back, as first written (`(started_at, id) < (…)` only) | the same scan, the row comparison a filter over 500,000 rows | 69 ms |
+| …with `started_at <= $2` beside it (as shipped), generic plan | the bound is an index condition | 0.07 ms |
+| `GET /me/stats`, 30 days (8,200 plays) | bitmap scan of the same index | 1.1 ms |
+| …a year grouped by month (100,000 plays) | bitmap scan, sort | 27 ms |
+| …the year's top ten | bitmap scan, hash aggregate, top-N | 26 ms |
+
+No index added: `(user_id, started_at DESC)` from 0020 serves all of it once the page query
+names its bound on `started_at`. A statistic costs the plays in its range, never the catalog;
+a year of a heavy listener is under 30 ms. The hourly rollup (`listening_daily`) was not used:
+it counts UTC days and lags by up to an hour, and the question is the listener's own days now.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

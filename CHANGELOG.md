@@ -304,6 +304,18 @@ semver. Each release states the **API contract revision** it serves
 - Handler tests for every phase-8 route without a token and for discovery's `push`; unit tests
   for the queue's words and checks, `If-Match`, the settings' ranges, notification items and
   push tokens. Conformance: the `v2_listening` suite; `v2_walk` walks push devices.
+- `GET /api/v2/me/stats` — a listener's listening over a range (`from`, `to`), in buckets of a
+  day, week or month in their own time (`tz_offset_minutes`), per kind (`kind=`), with the ten
+  most listened items, the streak and the books finished; milliseconds. `GET /api/v2/me/plays`
+  — the plays recorded, newest first, cursor-paged. v2 revision 11.
+- `GET /api/v2/family/stats` — the household's admins see their own figures and those of every
+  member who shares them; the others are absent. `stats_visible_to_admin` in
+  `/api/v2/me/settings` (the listener's choice, in the change feed with the settings, migration
+  0131) and in `PATCH /api/v2/family/members/{user_id}` (an admin, only for an account they
+  manage: `403 member_not_restricted`). v2 revision 11.
+- Handler tests for the statistics routes without a token; unit tests for the range, the
+  buckets and a play's words. Conformance: the `v2_stats` suite. `CAPACITY.md`: the history and
+  the statistics on 2,100,000 plays.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

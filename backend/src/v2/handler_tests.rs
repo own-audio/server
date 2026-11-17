@@ -545,3 +545,13 @@ async fn discovery_says_the_server_sends_no_push() {
     let axum::Json(d) = crate::v2::discovery::well_known(axum::extract::State(state)).await;
     assert_eq!(d.modules.get("push"), Some(&Value::Bool(false)));
 }
+
+#[tokio::test]
+async fn statistics_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    for (method, path) in [("GET", "/api/v2/me/stats"), ("GET", "/api/v2/me/plays"), ("GET", "/api/v2/family/stats")] {
+        let (s, p) = send(&app, method, path, json!({}), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}

@@ -32,6 +32,7 @@ pub mod shelves;
 pub mod smart;
 pub mod spoken;
 pub mod state;
+pub mod stats;
 pub mod sync;
 pub mod tracks;
 pub mod trash;
@@ -171,7 +172,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(state::put_feedback, state::delete_feedback))
         .routes(routes!(state::list_progress))
         .routes(routes!(state::get_progress, state::put_progress, state::delete_progress))
-        .routes(routes!(state::post_plays))
+        .routes(routes!(state::post_plays, stats::my_plays))
         .routes(routes!(state::list_bookmarks, state::create_bookmark))
         .routes(routes!(state::patch_bookmark, state::delete_bookmark))
         .routes(routes!(state::push))
@@ -181,6 +182,8 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(listening::ack_notifications))
         .routes(routes!(listening::list_push_tokens, listening::register_push_token))
         .routes(routes!(listening::delete_push_token))
+        .routes(routes!(stats::my_stats))
+        .routes(routes!(stats::family_stats))
         .routes(routes!(sync::changes))
         .routes(routes!(sync::snapshot))
         .routes(routes!(media::playback_info))

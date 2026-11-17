@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 269 |
+| covered | 274 |
 | partly covered | 3 |
-| missing | 34 |
+| missing | 29 |
 | not carried over | 10 |
 | **total** | **316** |
 
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 8, v2
-revision 10). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 9, v2
+revision 11). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -315,11 +315,11 @@ lists what is still open.
 | `PUT /playback/settings/audiobook-defaults` | `PATCH /me/settings` | covered | `audiobook: {speed, skip_back_ms, skip_forward_ms}`; out of range is `400`, not clamped. |
 | `GET /playback/settings/eq` | `GET /me/settings` | covered | `eq`: every device kind's saved curve, `bands_db` as six numbers. |
 | `PUT /playback/settings/eq` | `PATCH /me/settings` | covered | `eq: {device_kind?, enabled?, preamp_db?, bands_db?, preset_name?}`; the caller's device kind when none is named. |
-| `GET /stats/me` | — | missing | `GET /me/played` gives tops, not totals over a range. |
-| `GET /stats/me/history` | — | missing |  |
-| `PUT /stats/me/visibility` | — | missing |  |
-| `GET /stats/family` | — | missing |  |
-| `PUT /stats/family/members/{user_id}/visibility` | — | missing |  |
+| `GET /stats/me` | `GET /me/stats` | covered | `from`/`to` instead of `range`, `group` (day, week, month), `kind=`; ms; the most listened item by episode, not by show. Read from the plays, as v1. |
+| `GET /stats/me/history` | `GET /me/plays` | covered | Cursor-paged (v1: offset); the plays `POST /me/plays` records, in its shape, without titles (records come from sync). |
+| `PUT /stats/me/visibility` | `PATCH /me/settings` | covered | `stats_visible_to_admin` (v1's `family_admin`); in the change feed with the settings. |
+| `GET /stats/family` | `GET /family/stats` | covered | Household admins, as v1; members who do not share are absent rather than `hidden`. |
+| `PUT /stats/family/members/{user_id}/visibility` | `PATCH /family/members/{id}` | covered | `stats_visible_to_admin`, for a managed account or oneself (`403 member_not_restricted`), as v1. |
 | `GET /media` | `GET /media` | covered | Phase 0: the server's signed links point at `/api/v2/media`; v1's route takes the same links. `/stream` sends a file the server keeps itself without redirecting there. |
 | `PUT /media` | `PUT /media` | covered | Phase 0: the upload target for local storage. |
 

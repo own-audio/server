@@ -474,3 +474,154 @@ pub async fn streaming_totals(
     .map(|(s1, n1, l1, s7, n7, l7, s30, n30, l30)| ((s1, n1, l1), (s7, n7, l7), (s30, n30, l30)))
     .context("db: streaming totals")
 }
+
+// ── /api/v2: ranges, groups, the history page ─────────────────────────────
+
+/// Totals per media kind for plays that started in `[from, to)`; `kinds` keeps only those.
+pub async fn totals_between(
+    pool: &PgPool,
+    user_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    kinds: Option<&[String]>,
+) -> anyhow::Result<Vec<KindTotal>> {
+    sqlx::query_as::<_, KindTotal>(
+        "SELECT media_kind,
+                COALESCE(SUM(seconds_listened), 0)::bigint AS seconds_listened,
+                COUNT(*)::bigint AS session_count
+           FROM listening_sessions
+          WHERE user_id = $1 AND started_at >= $2 AND started_at < $3
+            AND ($4::text[] IS NULL OR media_kind = ANY($4))
+          GROUP BY media_kind
+          ORDER BY media_kind",
+    )
+    .bind(user_id)
+    .bind(from)
+    .bind(to)
+    .bind(kinds)
+    .fetch_all(pool)
+    .await
+    .context("db: listening totals between")
+}
+
+/// (bucket's first day, media kind, seconds, plays) per `group` (`day`, `week`, `month`) in the
+/// listener's local time, in bucket order.
+#[allow(clippy::too_many_arguments)]
+pub async fn totals_grouped(
+    pool: &PgPool,
+    user_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    kinds: Option<&[String]>,
+    group: &str,
+    tz_offset_minutes: i32,
+) -> anyhow::Result<Vec<(NaiveDate, String, i64, i64)>> {
+    sqlx::query_as(
+        "SELECT date_trunc($5, (started_at AT TIME ZONE 'UTC') + make_interval(mins => $6))::date AS bucket,
+                media_kind,
+                COALESCE(SUM(seconds_listened), 0)::bigint,
+                COUNT(*)::bigint
+           FROM listening_sessions
+          WHERE user_id = $1 AND started_at >= $2 AND started_at < $3
+            AND ($4::text[] IS NULL OR media_kind = ANY($4))
+          GROUP BY bucket, media_kind
+          ORDER BY bucket, media_kind",
+    )
+    .bind(user_id)
+    .bind(from)
+    .bind(to)
+    .bind(kinds)
+    .bind(group)
+    .bind(tz_offset_minutes)
+    .fetch_all(pool)
+    .await
+    .context("db: listening totals grouped")
+}
+
+/// The items listened to longest in `[from, to)`; an episode by itself, not its show.
+pub async fn top_between(
+    pool: &PgPool,
+    user_id: Uuid,
+    from: DateTime<Utc>,
+    to: DateTime<Utc>,
+    kinds: Option<&[String]>,
+    limit: i64,
+) -> anyhow::Result<Vec<ItemTotal>> {
+    sqlx::query_as::<_, ItemTotal>(
+        "SELECT media_kind,
+                CASE WHEN media_kind = 'podcast' THEN COALESCE(part_id, item_id) ELSE item_id END AS item_id,
+                SUM(seconds_listened)::bigint AS seconds_listened,
+                COUNT(*)::bigint AS session_count
+           FROM listening_sessions
+          WHERE user_id = $1 AND started_at >= $2 AND started_at < $3
+            AND ($4::text[] IS NULL OR media_kind = ANY($4))
+          GROUP BY 1, 2
+          ORDER BY seconds_listened DESC, 2
+          LIMIT $5",
+    )
+    .bind(user_id)
+    .bind(from)
+    .bind(to)
+    .bind(kinds)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .context("db: top items between")
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct PlayRow {
+    pub id: Uuid,
+    pub media_kind: String,
+    pub item_id: Uuid,
+    pub part_id: Option<Uuid>,
+    pub started_at: DateTime<Utc>,
+    pub ended_at: DateTime<Utc>,
+    pub seconds_listened: i32,
+    pub playback_speed: Option<f64>,
+    pub device_kind: String,
+    pub source: String,
+    pub client_session_id: Option<String>,
+    pub ended_reason: Option<String>,
+}
+
+/// One page of a listener's plays, newest first, after `(started_at, id)`. The bare
+/// `started_at <=` makes the page a seek on `(user_id, started_at)` at any depth (CAPACITY.md);
+/// the row comparison only breaks ties.
+pub async fn plays_page(pool: &PgPool, user_id: Uuid, after: Option<(DateTime<Utc>, Uuid)>, limit: i64) -> anyhow::Result<Vec<PlayRow>> {
+    const COLS: &str = "id, media_kind, item_id, part_id, started_at, ended_at, seconds_listened, playback_speed, \
+                        device_kind, source, client_session_id, ended_reason";
+    let first = format!("SELECT {COLS} FROM listening_sessions WHERE user_id = $1 ORDER BY started_at DESC, id DESC LIMIT $2");
+    let next = format!(
+        "SELECT {COLS} FROM listening_sessions
+          WHERE user_id = $1 AND started_at <= $2 AND (started_at, id) < ($2, $3)
+          ORDER BY started_at DESC, id DESC LIMIT $4"
+    );
+    let query = match after {
+        None => sqlx::query_as::<_, PlayRow>(&first)
+        .bind(user_id)
+        .bind(limit),
+        Some((at, id)) => sqlx::query_as::<_, PlayRow>(&next)
+        .bind(user_id)
+        .bind(at)
+        .bind(id)
+        .bind(limit),
+    };
+    query.fetch_all(pool).await.context("db: plays page")
+}
+
+
+/// The members whose figures a household admin may see: the admin, and everyone who shares
+/// them with the admins (`stats_visibility = 'family_admin'`), in join order.
+pub async fn sharing_members(pool: &PgPool, family_id: Uuid, admin_id: Uuid) -> anyhow::Result<Vec<Uuid>> {
+    sqlx::query_scalar(
+        "SELECT user_id FROM family_members
+          WHERE family_id = $1 AND (user_id = $2 OR stats_visibility = 'family_admin')
+          ORDER BY joined_at, user_id",
+    )
+    .bind(family_id)
+    .bind(admin_id)
+    .fetch_all(pool)
+    .await
+    .context("db: members sharing statistics")
+}
