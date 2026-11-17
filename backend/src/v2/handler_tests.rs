@@ -448,3 +448,72 @@ async fn track_playlist_and_feedback_routes_need_a_signed_in_member() {
         assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
     }
 }
+
+#[tokio::test]
+async fn household_routes_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("PUT", "/api/v2/family/image".to_string()),
+        ("DELETE", "/api/v2/family/image".to_string()),
+        ("POST", "/api/v2/family/members".to_string()),
+        ("PATCH", format!("/api/v2/family/members/{id}")),
+        ("DELETE", format!("/api/v2/family/members/{id}")),
+        ("PUT", format!("/api/v2/family/members/{id}/image")),
+        ("DELETE", format!("/api/v2/family/members/{id}/image")),
+        ("POST", format!("/api/v2/family/invites/{id}/regenerate")),
+        ("GET", "/api/v2/family/settings".to_string()),
+        ("PATCH", "/api/v2/family/settings".to_string()),
+        ("GET", "/api/v2/family/reports".to_string()),
+        ("POST", "/api/v2/family/reports".to_string()),
+        ("PATCH", format!("/api/v2/family/reports/{id}")),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "blocked": true, "resolved": true, "upload_id": "x" }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
+#[tokio::test]
+async fn claiming_checks_the_password_before_the_code() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let (s, p) = send(&app, "POST", "/api/v2/auth/claim", json!({ "code": "whatever", "password": "short" }), false).await;
+    assert_eq!((s, p["code"].as_str()), (StatusCode::BAD_REQUEST, Some("weak_password")));
+    assert_eq!(p["errors"][0]["field"], "/password");
+    let (s, _) = send(&app, "POST", "/api/v2/auth/claim", json!({ "password": GOOD }), false).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "no code: refused before anything else");
+    let (s, _) = send(&app, "POST", "/api/v2/family/join/preview", json!({}), false).await;
+    assert_eq!(s, StatusCode::UNPROCESSABLE_ENTITY, "no code: refused before anything else");
+}
+
+#[tokio::test]
+async fn a_code_costs_a_device_code_to_look_up_and_a_sign_in_to_claim() {
+    let state = state(json!({})).await;
+    for (path, body, bucket) in [
+        ("/api/v2/family/join/preview", json!({}), "device"),
+        ("/api/v2/auth/claim", json!({ "code": "x", "password": "short" }), "login"),
+    ] {
+        let mut limits = Limiters::disabled();
+        let limiter = crate::http::rate_limit::Limiter::per_minute(2, false);
+        if bucket == "device" {
+            limits.device = limiter;
+        } else {
+            limits.login = limiter;
+        }
+        let app = app(&state, &limits);
+        for _ in 0..2 {
+            let (s, _) = send(&app, "POST", path, body.clone(), false).await;
+            assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "{path} limited too early");
+        }
+        let (s, p) = send(&app, "POST", path, body.clone(), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")), "{path}");
+        if bucket == "login" {
+            let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": "password" }), false).await;
+            assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "claiming and signing in share the bucket");
+        } else {
+            let (s, _) = send(&app, "POST", "/api/v2/auth/device", json!({}), false).await;
+            assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "a join code and a device code share the bucket");
+        }
+    }
+}

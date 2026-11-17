@@ -239,6 +239,41 @@ semver. Each release states the **API contract revision** it serves
 - Handler tests for every phase-6 route without a token; unit tests for lyrics as timed lines,
   the intent's checks and the new kinds. Conformance: the `v2_music` suite; `v2_walk` walks
   feedback, lyrics and the new image routes.
+- `PUT`/`DELETE /api/v2/family/image` (the household's photo, household admins) and
+  `PUT`/`DELETE /api/v2/family/members/{user_id}/image` (a member's picture, by themselves or a
+  household admin): `{upload_id}` or the image itself, at most 5 MB, as `/me/image`. v2
+  revision 9.
+- `blocked` in `PATCH /api/v2/family/members/{user_id}`: blocking signs the member out of every
+  device at once and refuses their sign-in; `false` lets them in again. Not oneself (`400
+  cannot_block_self`), not a server administrator (`403 cannot_block_instance_admin`). v2
+  revision 9.
+- `DELETE /api/v2/family/members/{user_id}` lets a member leave the household themselves, as
+  v1 does; the last admin stays while others are in it (`409 last_admin`), and on a server with
+  one household nobody leaves it (`409 one_household`). v2 revision 9.
+- `POST /api/v2/family/members` makes an account for someone without a mailbox (a child, a
+  grandparent) with its age bracket and rights, and answers the member and its `claim`
+  invitation; `Idempotency-Key` as on every create. `POST /api/v2/family/invites/{id}/regenerate`
+  gives an invitation a new code (`409 invite_used` when it is spent). `Invite` gains
+  `member_user_id`. v2 revision 9.
+- `POST /api/v2/family/join/preview` (`{code}`, without signing in, the device-code rate limit)
+  — the household, its photo, the inviter and, for a claim code, the account; a used or expired
+  code is `410 invite_used` / `invite_expired`. `POST /api/v2/auth/claim` (`{code, password}`,
+  the sign-in rate limit) sets a claimed account's first password and answers `Me`; signing in
+  is `POST /auth/token`. v2 revision 9.
+- `GET`/`PATCH /api/v2/family/settings` — library audio analysis and the book source in one
+  resource; members read, household admins change. v2 revision 9.
+- `GET /api/v2/family/reports` (household admins; `state=open|resolved|all`, cursor-paged),
+  `POST /api/v2/family/reports` (any member, on what they can see) and
+  `PATCH /api/v2/family/reports/{id}` (`{resolved, note?}`: close with a note, or open again).
+  Migration 0129 adds the note and an index for every state. v2 revision 9.
+- Kind `family` in `/api/v2/sync/snapshot` and `/sync/changes`: the household as `GET /family`
+  answers it, when its name or photo changes, and for one member when their own role or rights
+  do. `MemberRecord` gains `blocked`, and blocking or letting someone in again reaches the change
+  feed. Migration 0129. v2 revision 9.
+- Handler tests for every phase-7 route without a token, the claim's checks before the database
+  and the rate-limit buckets of the preview and the claim; unit tests for leaving and removing
+  (the last admin, one household, unclaimed accounts) and the reports' words. Conformance: the
+  `v2_household` suite.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
@@ -252,6 +287,8 @@ semver. Each release states the **API contract revision** it serves
   until a v1 client asked; it now looks again in the background (an artist's photo for someone
   credited on music, an author's for someone only on books), and what it finds reaches the
   change feed with its `image_credit`.
+- `PATCH` and `DELETE /api/v2/family/members/{user_id}` answered `401` for someone not in the
+  household, which a client takes for a signed-out session; they answer `404`, as documented.
 - `conformance/tools/scale_catalog.py` adds a second batch of tracks after the first
   (the object keys of a second run collided with the first's).
 - `Book.series` named every series a book is in, another member's private one included; it

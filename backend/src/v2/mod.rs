@@ -26,6 +26,7 @@ pub mod page;
 pub mod playlists;
 pub mod podcasts;
 pub mod problem;
+pub mod reports;
 pub mod shelves;
 pub mod smart;
 pub mod spoken;
@@ -181,12 +182,27 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(map(routes!(media::media), |m| m.layer(axum::extract::DefaultBodyLimit::disable())))
         .routes(routes!(images::image))
         .routes(routes!(household::get_family, household::patch_family))
-        .routes(routes!(household::list_members))
+        // People's pictures may come as the body itself, as on `/me/image`.
+        .routes(map(routes!(household::put_family_image, household::delete_family_image), |m| {
+            m.layer(axum::extract::DefaultBodyLimit::max(6 * 1024 * 1024))
+        }))
+        .routes(routes!(household::list_members, household::create_member))
         .routes(routes!(household::patch_member, household::remove_member))
+        .routes(map(routes!(household::put_member_image, household::delete_member_image), |m| {
+            m.layer(axum::extract::DefaultBodyLimit::max(6 * 1024 * 1024))
+        }))
         .routes(routes!(household::list_invites, household::create_invite))
         .routes(routes!(household::delete_invite))
+        .routes(routes!(household::regenerate_invite))
         .routes(routes!(household::join))
+        // A code is a credential: looking one up costs what a device code does, claiming an
+        // account what a sign-in does.
+        .routes(map(routes!(household::join_preview), |m| limits.device.apply(m)))
+        .routes(map(routes!(household::claim), |m| limits.login.apply(m)))
         .routes(routes!(household::storage))
+        .routes(routes!(household::get_settings, household::patch_settings))
+        .routes(routes!(reports::list_reports, reports::create_report))
+        .routes(routes!(reports::patch_report))
         .routes(routes!(household::set_track_visibility))
         .routes(routes!(household::set_book_visibility))
         .routes(routes!(household::set_podcast_visibility))

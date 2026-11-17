@@ -37,7 +37,7 @@ pub(crate) fn unavailable(feature: &str, detail: &str) -> Problem {
 }
 
 /// The password rule (`auth::password`) as a problem on `field`.
-fn check_password(value: &str, field: &str) -> Result<(), Problem> {
+pub(crate) fn check_password(value: &str, field: &str) -> Result<(), Problem> {
     password::check(value).map_err(|e| {
         let detail = match e {
             AuthError::BadRequest(m) => m,
@@ -525,6 +525,24 @@ pub struct ImageBytes(Vec<u8>);
         (status = 413, description = "`too_large`: over 5 MB", body = crate::v2::problem::ProblemBody),
         (status = 415, description = "`unsupported_media_type`: neither JSON nor an image", body = crate::v2::problem::ProblemBody)))]
 pub async fn put_image(family: FamilyContext, State(state): State<AppState>, headers: HeaderMap, body: Bytes) -> Result<Json<Me>, Problem> {
+    match picture(&state, &family, &headers, body).await? {
+        Picture::Stored(object) => db::users::set_avatar(state.db(), family.user_id, Some(object)).await?,
+        Picture::Bytes { bytes, content_type, ext } => crate::users::store_avatar(&state, family.user_id, bytes, &content_type, ext).await?,
+    }
+    Ok(Json(me::build(&state, &family).await?))
+}
+
+/// A person's or a household's picture, as a request brought it.
+pub(crate) enum Picture {
+    /// An upload of the caller's, registered.
+    Stored(Uuid),
+    /// The image itself, to store.
+    Bytes { bytes: Bytes, content_type: String, ext: &'static str },
+}
+
+/// The body of a `PUT …/image` for a picture of people: `{upload_id}` as JSON, or the image itself
+/// (at most 5 MB either way).
+pub(crate) async fn picture(state: &AppState, family: &FamilyContext, headers: &HeaderMap, body: Bytes) -> Result<Picture, Problem> {
     let content_type = headers
         .get(header::CONTENT_TYPE)
         .and_then(|v| v.to_str().ok())
@@ -533,7 +551,7 @@ pub async fn put_image(family: FamilyContext, State(state): State<AppState>, hea
     let too_large = || Problem::new(StatusCode::PAYLOAD_TOO_LARGE, "too_large").detail("a picture is at most 5 MB");
     if content_type == "application/json" {
         let request: ImageRequest = serde_json::from_slice(&body).map_err(|e| Problem::bad_request("invalid_body", e.to_string()))?;
-        let adopted = crate::uploads::adopt(&state, &family, request.upload_id.trim()).await.map_err(|e| match e {
+        let adopted = crate::uploads::adopt(state, family, request.upload_id.trim()).await.map_err(|e| match e {
             AuthError::NotFound => Problem::not_found(),
             AuthError::BadRequest(m) => Problem::bad_request("invalid_upload", m).field("/upload_id", "invalid", ""),
             other => other.into(),
@@ -544,7 +562,7 @@ pub async fn put_image(family: FamilyContext, State(state): State<AppState>, hea
         if adopted.size_bytes > crate::users::MAX_AVATAR_BYTES as i64 {
             return Err(too_large());
         }
-        db::users::set_avatar(state.db(), family.user_id, Some(adopted.media_object_id)).await?;
+        Ok(Picture::Stored(adopted.media_object_id))
     } else if content_type.starts_with("image/") {
         if body.is_empty() {
             return Err(Problem::bad_request("not_an_image", "the body is empty"));
@@ -553,12 +571,11 @@ pub async fn put_image(family: FamilyContext, State(state): State<AppState>, hea
             return Err(too_large());
         }
         let ext = image_extension(&content_type);
-        crate::users::store_avatar(&state, family.user_id, body, &content_type, ext).await?;
+        Ok(Picture::Bytes { bytes: body, content_type, ext })
     } else {
-        return Err(Problem::new(StatusCode::UNSUPPORTED_MEDIA_TYPE, "unsupported_media_type")
-            .detail("send `{\"upload_id\": …}` as JSON, or the image itself"));
+        Err(Problem::new(StatusCode::UNSUPPORTED_MEDIA_TYPE, "unsupported_media_type")
+            .detail("send `{\"upload_id\": …}` as JSON, or the image itself"))
     }
-    Ok(Json(me::build(&state, &family).await?))
 }
 
 fn image_extension(content_type: &str) -> &'static str {

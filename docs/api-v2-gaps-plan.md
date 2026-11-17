@@ -46,9 +46,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 2. Account and sign-in
 
-- [x] Register with an invite (v2 revision 3: `POST /auth/register` with `invite_code`). Join
-      links and a join preview before sign-in move with the household (completion plan phase 7).
-      (W Ab Am Ap)
+- [x] Register with an invite (v2 revision 3: `POST /auth/register` with `invite_code`). The
+      join preview before sign-in (`POST /family/join/preview`) and claiming an account an admin
+      made (`POST /auth/claim`) came with the household (v2 revision 9). (W Ab Am Ap)
 - [x] `PATCH /me` (display name, `discovery_languages`, `recommendations_enabled`); profile picture
       (`PUT`/`DELETE /me/image`) (v2 revision 3). Skip intervals belong to the listening settings
       (phase 8). (M W A T)
@@ -133,8 +133,12 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 7. Household and the rest
 
-- [ ] Block/unblock, provisioned members and claim codes, invite regenerate, member and family
-      pictures, content reports. (M W Ab)
+- [x] Block/unblock, provisioned members and claim codes, invite regenerate, member and family
+      pictures, content reports (v2 revision 9: `blocked` in `PATCH /family/members/{id}`,
+      `POST /family/members`, `POST /family/join/preview`, `POST /auth/claim`,
+      `POST /family/invites/{id}/regenerate`, `PUT`/`DELETE /family/image` and
+      `/family/members/{id}/image`, `GET`/`POST /family/reports`, `PATCH /family/reports/{id}`;
+      kind `family` and `MemberRecord.blocked` in the change feed). (M W Ab)
 - [ ] Per-member policies, grants and audience (v1 by decision so far). (W Ab)
 - [ ] Stats; notifications inbox; push devices. (M W A)
 - [x] Trash with batches, restore, purge (v2 revision 6: `POST`/`GET`/`DELETE /trash`,
@@ -145,9 +149,10 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [ ] Instance admin, the rest: families (list, detail, trash, lock, unlock, delete), server
       stats, create a user, revoke a user's sessions, finish setup; hosted: grant credit.
       (audit)
-- [ ] A member leaving the household themselves: v2's `DELETE /family/members/{id}` is for
-      admins only. (audit)
-- [ ] Family settings: audio analysis, book source. (audit)
+- [x] A member leaving the household themselves: `DELETE /family/members/{id}` on oneself
+      (v2 revision 9; `409 last_admin`, `409 one_household`). (audit)
+- [x] Family settings: audio analysis, book source (v2 revision 9: `GET`/`PATCH
+      /family/settings`). (audit)
 - [ ] Library folders and their scan. (audit)
 - [ ] Moving items to their default folder paths (`/sync/paths/organise`); a companion image
       as cover (`use-as-cover`). (audit)

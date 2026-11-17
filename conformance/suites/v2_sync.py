@@ -429,8 +429,8 @@ def members(ctx: Ctx, owner: str, owner_id: str, kid: str, kid_id: str) -> None:
     people = {l["id"]: l["record"] for l in _lines(raw) if l.get("type") == "record"}
     check("the snapshot names the household's people", owner_id in people and kid_id in people
           and people[owner_id]["display_name"] == f"owner {sfx}" and people[owner_id]["left_at"] is None, str(people.get(owner_id)))
-    check("a member record is the user id, names, picture and left_at",
-          set(people.get(kid_id, {})) == {"user_id", "display_name", "label", "image", "left_at"}, str(people.get(kid_id)))
+    check("a member record is the user id, names, picture, left_at and blocked (phase 7)",
+          set(people.get(kid_id, {})) == {"user_id", "display_name", "label", "image", "left_at", "blocked"}, str(people.get(kid_id)))
 
     st, _h, raw = ctx.request("GET", "/api/v2/sync/changes?kinds=member", kid)
     cursor = json.loads(raw)["cursor"]

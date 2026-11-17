@@ -80,7 +80,7 @@ pub async fn for_identify(state: &AppState, family: &FamilyContext) -> Result<(B
     Ok((source, key))
 }
 
-async fn status(state: &AppState, family: &FamilyContext) -> Result<BookSourceResponse, AuthError> {
+pub(crate) async fn status(state: &AppState, family: &FamilyContext) -> Result<BookSourceResponse, AuthError> {
     let server_google_key = server_key(state).is_some();
     if !state.hooks().book_source_choice() {
         return Ok(BookSourceResponse { configurable: false, source: BookSource::Google, google_key_set: false, server_google_key });
@@ -123,11 +123,40 @@ pub async fn set_book_source(
     Json(body): Json<SetBookSourceRequest>,
 ) -> Result<Json<BookSourceResponse>, AuthError> {
     family.require_family_admin()?;
+    match choose(&state, &family, body.source, body.google_books_api_key).await? {
+        Ok(answer) => Ok(Json(answer)),
+        Err(Refusal::NotOffered) => Err(AuthError::Forbidden),
+        Err(Refusal::NotAKey) => Err(AuthError::BadRequest("that is not a Google API key".to_string())),
+        Err(Refusal::KeyNeeded) => Err(AuthError::BadRequest(
+            "Google Books needs an API key: without one it turns this server away".to_string(),
+        )),
+    }
+}
+
+/// Why a household's choice of book source was not kept.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Refusal {
+    /// This server does not let households choose (`features.book_source_choice`).
+    NotOffered,
+    /// The key cannot be a Google API key.
+    NotAKey,
+    /// Google, with no key of the household's or the server's.
+    KeyNeeded,
+}
+
+/// Keeps a household's book source and its Google key (`Some(None)` removes the key, `None`
+/// keeps it). The caller has checked that it is a household admin. Shared by both versions.
+pub(crate) async fn choose(
+    state: &AppState,
+    family: &FamilyContext,
+    source: BookSource,
+    google_key: Option<Option<String>>,
+) -> Result<Result<BookSourceResponse, Refusal>, AuthError> {
     if !state.hooks().book_source_choice() {
-        return Err(AuthError::Forbidden);
+        return Ok(Err(Refusal::NotOffered));
     }
 
-    let key = match &body.google_books_api_key {
+    let key = match &google_key {
         None => None,
         Some(None) => Some(None),
         Some(Some(key)) => {
@@ -135,14 +164,14 @@ pub async fn set_book_source(
             if key.is_empty() {
                 Some(None)
             } else if key.len() > MAX_KEY_LEN || !key.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
-                return Err(AuthError::BadRequest("that is not a Google API key".to_string()));
+                return Ok(Err(Refusal::NotAKey));
             } else {
-                Some(Some(cipher(&state).seal(key)))
+                Some(Some(cipher(state).seal(key)))
             }
         }
     };
 
-    if body.source == BookSource::Google {
+    if source == BookSource::Google {
         let family_key = match &key {
             Some(new) => new.is_some(),
             None => db::families::book_source(state.db(), family.family_id)
@@ -151,21 +180,19 @@ pub async fn set_book_source(
                 .1
                 .is_some(),
         };
-        if !family_key && server_key(&state).is_none() {
-            return Err(AuthError::BadRequest(
-                "Google Books needs an API key: without one it turns this server away".to_string(),
-            ));
+        if !family_key && server_key(state).is_none() {
+            return Ok(Err(Refusal::KeyNeeded));
         }
     }
 
     db::families::set_book_source(
         state.db(),
         family.family_id,
-        body.source.as_str(),
+        source.as_str(),
         key.as_ref().map(|k| k.as_deref()),
     )
     .await
     .map_err(AuthError::Internal)?;
 
-    status(&state, &family).await.map(Json)
+    status(state, family).await.map(Ok)
 }

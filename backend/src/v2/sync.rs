@@ -12,7 +12,8 @@
 //!
 //! Records are the shapes of the rest of v2 (`Track`, `Album`, …); a listener's
 //! state comes as `favourite.<kind>`, `rating.<kind>`, `progress.<kind>` and
-//! `bookmark`, with the record of `GET /me/…`; the household's people as
+//! `bookmark`, with the record of `GET /me/…`; the household itself as `family`
+//! (`GET /family`'s record, with the reader's own membership) and its people as
 //! `member` (`MemberRecord`), those who left included.
 //!
 //! Both take `kinds=` so a client reads only what it keeps, and the snapshot
@@ -41,14 +42,14 @@ use uuid::Uuid;
 
 /// The kinds a snapshot can hold, in the order it sends them.
 pub const SNAPSHOT_KINDS: &[&str] = &[
-    "member", "contributor", "release_group", "album", "genre", "track", "playlist", "smart_playlist", "book", "series", "collection", "podcast",
+    "member", "family", "contributor", "release_group", "album", "genre", "track", "playlist", "smart_playlist", "book", "series", "collection", "podcast",
     "episode", "favourite", "rating", "feedback", "progress", "bookmark",
 ];
 
 /// The kinds of the change feed: the snapshot's, and recordings (a track's
 /// `recording_id`; `GET /recordings/{id}`).
 pub const CHANGE_KINDS: &[&str] = &[
-    "member", "contributor", "release_group", "album", "genre", "recording", "track", "playlist", "smart_playlist", "book", "series", "collection",
+    "member", "family", "contributor", "release_group", "album", "genre", "recording", "track", "playlist", "smart_playlist", "book", "series", "collection",
     "podcast", "episode", "favourite", "rating", "feedback", "progress", "bookmark",
 ];
 
@@ -97,6 +98,11 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
     let viewer = family.viewer();
     let mut out = Vec::new();
     match kind {
+        "family" => {
+            if ids.contains(&family.family_id) {
+                out.push((family.family_id, json_of(household(state, family).await?)?));
+            }
+        }
         "member" => {
             for row in crate::db::families::member_records(pool, family.family_id, Some(ids)).await? {
                 let m = crate::v2::household::member_record(state, row);
@@ -255,7 +261,7 @@ pub struct ChangesQuery {
     pub cursor: Option<String>,
     /// Log rows to read, 1 to 1000; 500 when absent.
     pub limit: Option<i64>,
-    /// Comma-separated kinds to read, every kind when absent: `member`, `contributor`,
+    /// Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,
     /// `book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
     /// `progress`, `bookmark`, or one kind of state (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
@@ -342,7 +348,7 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
 #[derive(Deserialize, IntoParams)]
 #[into_params(parameter_in = Query)]
 pub struct SnapshotQuery {
-    /// Comma-separated kinds; all of them when absent: `member`, `contributor`,
+    /// Comma-separated kinds; all of them when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,
     /// `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
     /// `progress`, `bookmark`.
@@ -454,7 +460,13 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
 }
 
 fn is_whole(kind: &str) -> bool {
-    kind == "member" || STATE_KINDS.contains(&kind)
+    kind == "family" || kind == "member" || STATE_KINDS.contains(&kind)
+}
+
+/// The household as `GET /family` answers it to this reader.
+async fn household(state: &AppState, family: &FamilyContext) -> Result<crate::v2::household::Family, Problem> {
+    let Json(f) = crate::families::get_family(family.clone(), State(state.clone())).await?;
+    Ok(crate::v2::household::family(state, f))
 }
 
 struct SnapshotPage {
@@ -475,6 +487,12 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
     let pool = state.db();
     let viewer = family.viewer();
     match kind {
+        "family" => {
+            if after != Uuid::nil() {
+                return Ok(SnapshotPage { records: Vec::new(), last_id: None });
+            }
+            Ok(SnapshotPage { records: vec![(family.family_id, json_of(household(state, family).await?)?)], last_id: Some(Uuid::max()) })
+        }
         "member" => {
             if after != Uuid::nil() {
                 return Ok(SnapshotPage { records: Vec::new(), last_id: None });
@@ -571,7 +589,9 @@ async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uu
         return Ok(IdPage { ids: Vec::new(), last_id: None });
     }
     let mut ids: Vec<(String, Uuid)> = Vec::new();
-    if kind == "member" {
+    if kind == "family" {
+        ids.push(("family".to_string(), family.family_id));
+    } else if kind == "member" {
         ids = crate::db::families::member_records(pool, family.family_id, None).await?.into_iter().map(|m| ("member".to_string(), m.user_id)).collect();
     } else {
         let kinds: &[Kind] = match kind {
@@ -654,11 +674,13 @@ mod tests {
             assert!(CHANGE_KINDS.contains(k), "{k}");
         }
         assert_eq!(SNAPSHOT_KINDS[0], "member", "owners' names come before what they own");
+        assert_eq!(SNAPSHOT_KINDS[1], "family", "the household itself (phase 7) before its library");
+        assert!(parse_kinds(Some("family"), CHANGE_KINDS, true).is_ok());
     }
 
     #[test]
     fn small_kinds_are_sent_whole() {
-        for k in ["member", "favourite", "rating", "feedback", "progress", "bookmark"] {
+        for k in ["member", "family", "favourite", "rating", "feedback", "progress", "bookmark"] {
             assert!(is_whole(k), "{k}");
         }
         for k in ["track", "book", "episode", "album", "contributor", "playlist", "smart_playlist"] {

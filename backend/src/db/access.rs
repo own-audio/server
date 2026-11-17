@@ -565,6 +565,88 @@ pub struct ContentReport {
     pub resolved_at: Option<DateTime<Utc>>,
 }
 
+/// A report as v2 answers it: who closed it and what they said, too.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ReportRow {
+    pub id: Uuid,
+    pub reporter_user_id: Option<Uuid>,
+    pub media_kind: String,
+    pub item_id: Uuid,
+    pub reason: String,
+    pub note: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
+    pub resolved_by: Option<Uuid>,
+    pub resolution_note: Option<String>,
+}
+
+const REPORT_COLUMNS: &str =
+    "id, reporter_user_id, media_kind, item_id, reason, note, created_at, resolved_at, resolved_by, resolution_note";
+
+/// A household's reports, newest first, after a `(created_at, id)` cursor: open ones
+/// (`resolved` = `Some(false)`), closed ones (`Some(true)`) or all.
+pub async fn page_reports(
+    pool: &PgPool,
+    family_id: Uuid,
+    resolved: Option<bool>,
+    after: Option<(DateTime<Utc>, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<ReportRow>> {
+    sqlx::query_as::<_, ReportRow>(&format!(
+        "SELECT {REPORT_COLUMNS} FROM content_reports
+          WHERE family_id = $1
+            AND ($2::bool IS NULL OR (resolved_at IS NOT NULL) = $2)
+            AND ($3::timestamptz IS NULL OR (created_at, id) < ($3, $4))
+          ORDER BY created_at DESC, id DESC
+          LIMIT $5",
+    ))
+    .bind(family_id)
+    .bind(resolved)
+    .bind(after.map(|a| a.0))
+    .bind(after.map(|a| a.1))
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .context("db: page content reports")
+}
+
+pub async fn find_report(pool: &PgPool, family_id: Uuid, id: Uuid) -> anyhow::Result<Option<ReportRow>> {
+    sqlx::query_as::<_, ReportRow>(&format!("SELECT {REPORT_COLUMNS} FROM content_reports WHERE id = $1 AND family_id = $2"))
+        .bind(id)
+        .bind(family_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: find content report")
+}
+
+/// Closes a report with an optional note, or opens it again. A report already in that state
+/// keeps when and by whom it was closed; a new note replaces the old one.
+pub async fn set_report_resolved(
+    pool: &PgPool,
+    family_id: Uuid,
+    id: Uuid,
+    resolved: bool,
+    by: Uuid,
+    note: Option<&str>,
+) -> anyhow::Result<Option<ReportRow>> {
+    sqlx::query_as::<_, ReportRow>(&format!(
+        "UPDATE content_reports
+            SET resolved_at = CASE WHEN $3 THEN COALESCE(resolved_at, now()) END,
+                resolved_by = CASE WHEN $3 THEN COALESCE(resolved_by, $4) END,
+                resolution_note = CASE WHEN $3 THEN COALESCE($5, resolution_note) END
+          WHERE id = $1 AND family_id = $2
+          RETURNING {REPORT_COLUMNS}",
+    ))
+    .bind(id)
+    .bind(family_id)
+    .bind(resolved)
+    .bind(by)
+    .bind(note)
+    .fetch_optional(pool)
+    .await
+    .context("db: resolve content report")
+}
+
 pub async fn insert_report(
     pool: &PgPool,
     family_id: Uuid,

@@ -171,7 +171,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 4 | Deletion and trash — **done** | 7 | M | M W Am, S |
 | 5 | Books: editing, files, series, collections, tags, authors, images — **done** | 34 | L | W Ab M |
 | 6 | Music remainder and playlists in sync — **done** | 17 | M | M W Am |
-| 7 | Household remainder | 18 | L | M W Ab |
+| 7 | Household remainder — **done** | 18 | L | M W Ab |
 | 8 | Listening settings, queue, notifications, push | 11 | M | M T W A |
 | 9 | Statistics | 5 | S | M W A |
 | 10 | Search across media, list filters | 2 | S | T W |
@@ -703,7 +703,60 @@ Tests: feedback round-trip and in sync; a playlist edit arrives in `/sync/change
 playlist is a tombstone; duplicates find the suite's two copies of one track; lyrics write then
 read; rescan reads new tags (SQL-backed fixture).
 
-### Phase 7 — household remainder (L)
+### Phase 7 — household remainder (L) — done 2026-11-17
+
+Done, v2 revision 9: every operation in the table below; the 18 rows covered, and the gaps plan's
+§2 join line and §7 household, leaving and settings lines ticked. Migration 0129. Handler tests
+(no token is `401` on every new route; the claim checks the password before the database; the
+preview shares the device-code bucket, the claim the sign-in bucket) and unit tests for leaving
+and removing (the last admin, one household, unclaimed accounts) and the reports' words; the
+conformance suite `v2_household` covers behaviour. v1's rules are shared, not copied: block,
+leaving or removing (`families::leave_or_remove`, its decision a pure `removal_step`),
+provisioning, regenerating, looking up a code, claiming, switching analysis, choosing a book
+source and storing the household's photo are functions both versions call; v1's answers are
+unchanged and its `join` and `families` suites pass. What the plan said, with these differences:
+
+- `POST /family/members` answers `{member, invite}` — the `Invite` shape the household already
+  has (rule 1), whose `code` and `expires_at` are the claim code and its expiry — rather than
+  `{member, claim_code, claim_expires_at}`. It takes `login_email` (required, as v1: what the
+  person signs in with), `display_name`, `label`, `age_bracket`, `can_upload`, `can_generate`; a
+  child given uploads is `400`, a taken login `409 email_taken`. `Invite` gains `member_user_id`.
+- `POST /auth/claim` takes `{code, password}` and answers `Me` (`201`). No `email?`: the login is
+  the one the admin chose and the preview shows; letting the claimant change it would need the new
+  address proven first (decided the safer way; additive later if a client asks).
+- `POST /family/join/preview`: unknown `404`; used `410 invite_used`, expired
+  `410 invite_expired` (v1 answers `200` with a `status`); `kind` is `invite` or `claim`;
+  `family: {name, image}`. The claim answers the same codes (`not_a_claim_code` for a join code).
+- Blocking also refuses a server administrator (`403 cannot_block_instance_admin`), new on v2 and
+  decided the safer way: on a one-household server a household admin could otherwise lock the
+  operator out. Blocking oneself is `400 cannot_block_self`, as v1. Unblocked accounts sign in
+  again; blocked ones are signed out at once (`401` on `/sync/changes`, refresh refused).
+- `DELETE /family/members/{id}` is `x-permission: member` (self, or an admin for anyone), its
+  `x-scope` kept `family:admin` so personal access tokens keep the scope they had. On a server
+  with one household nobody leaves it (`409 one_household`, as v1), so leaving is checked only
+  where there are several; the last admin is checked on one household by briefly making the
+  suite's admin a member again.
+- Pictures take `{upload_id}` or the image itself (5 MB), as `/me/image`, and answer `Family` /
+  `Member`; a member sets their own, an admin anyone's.
+- Settings: `{audio_analysis, book_source}` are v1's two records; `PATCH` takes
+  `{audio_analysis?: {enabled}, book_source?: {source?, google_books_api_key?}}`, the book source
+  first so a refusal changes nothing; a server that offers no choice is `501 feature_unavailable`
+  (`book_source_choice`; v1 `403`), a bad key `400 invalid_key`, Google without one
+  `400 key_required`.
+- Reports: `POST` takes `{kind, item_id, reason, note?}` (`item_id`, as bookmarks; kinds
+  `track`, `book`, `podcast`) and only what the reporter can see (`404`; v1 took any id); `GET`
+  has `state=open|resolved|all`, open by default; `PATCH {resolved, note?}` also opens a report
+  again. Migration 0129 adds `resolution_note` and an index of every report by household and
+  time (open ones keep 0057's). The demo account may not report (its allow-list is unchanged).
+- The change feed: a new kind `family`, the record `GET /family` answers (with the reader's
+  `me`), logged when the household's name or photo changes and, for that member only, when their
+  role or rights do; in the default snapshot right after `member` (clients skip kinds they do not
+  know, phase 6). `MemberRecord` gains `blocked`, logged when an account is blocked or let in.
+- Fixed on the way: `PATCH` and `DELETE /family/members/{id}` answered `401` (v1's "not found")
+  for someone not in the household; `404` now, as documented.
+- Step 0 (before the phase): bulk track inserts are linear, no trigger at fault; the phase-6
+  minutes were not reproduced (`CAPACITY.md`).
+
 
 v1 ops: `POST`/`DELETE /family/avatar`, content reports (3), `POST /family/invites/{id}/regenerate`,
 `POST /family/members/provision`, member avatar (2), block/unblock, family settings (4),

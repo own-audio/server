@@ -402,36 +402,49 @@ async fn upload_family_avatar(
     }
 
     let ext = family_avatar_extension(&file_name).unwrap_or("jpg");
+    store_avatar(&state, family.family_id, bytes, &content_type, ext).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Stores a picture as the household's photo and points the household at it. Shared by v1's
+/// multipart upload and v2's `PUT /family/image`.
+pub(crate) async fn store_avatar(
+    state: &AppState,
+    family_id: Uuid,
+    bytes: axum::body::Bytes,
+    content_type: &str,
+    ext: &str,
+) -> Result<(), AuthError> {
     // Deliberately *outside* the `f/{family_id}/…` prefix (`storage::family_key`) despite this
     // being family-owned content: every object under that prefix must also be registered in
     // `db::storage_usage`'s per-kind `*_REFS` lists or it reads as orphaned/unsized — not worth wiring
     // a small profile photo into that actively-changing accounting for.
     // A new object per photo, as for a user's own picture (`users::upload_avatar`).
-    let object_key = format!("fam/{}/avatar-{}.{ext}", family.family_id, Uuid::new_v4());
+    let object_key = format!("fam/{family_id}/avatar-{}.{ext}", Uuid::new_v4());
     let size_bytes = bytes.len() as i64;
 
     let mut tx = state.db().begin().await.map_err(|e| AuthError::Internal(e.into()))?;
     state
         .storage()
-        .put(&object_key, bytes, &content_type)
+        .put(&object_key, bytes, content_type)
         .await
         .map_err(AuthError::Internal)?;
     let media_id = db::media::upsert_object(
         &mut *tx,
         state.storage().bucket(),
         &object_key,
-        &content_type,
+        content_type,
         Some(size_bytes),
     )
     .await
     .map_err(AuthError::Internal)?;
 
-    db::families::set_avatar(&mut *tx, family.family_id, Some(media_id))
+    db::families::set_avatar(&mut *tx, family_id, Some(media_id))
         .await
         .map_err(AuthError::Internal)?;
 
     tx.commit().await.map_err(|e| AuthError::Internal(e.into()))?;
-    Ok(StatusCode::NO_CONTENT)
+    Ok(())
 }
 
 /// DELETE /api/v1/family/avatar — remove the family photo (family_admin only). Stored object is
@@ -519,17 +532,26 @@ async fn set_audio_analysis(
     // A family-wide switch that spends real work on shared content: admins
     // only, like every other family-level setting.
     family.require_family_admin()?;
+    switch_audio_analysis(&state, &family, body.enabled).await.map(Json)
+}
 
+/// Turns the household's library analysis on (queueing what is unmeasured) or off (keeping
+/// what was measured). The caller has checked that it is a household admin.
+pub(crate) async fn switch_audio_analysis(
+    state: &AppState,
+    family: &FamilyContext,
+    enabled: bool,
+) -> Result<AudioAnalysisResponse, AuthError> {
     db::music::set_audio_analysis_optin(
         state.db(),
         family.family_id,
-        body.enabled,
+        enabled,
         family.user_id,
     )
     .await
     .map_err(AuthError::Internal)?;
 
-    if body.enabled {
+    if enabled {
         let queued = db::music::enqueue_family_analysis(
             state.db(),
             family.family_id,
@@ -541,7 +563,7 @@ async fn set_audio_analysis(
         tracing::info!(family_id = %family.family_id, queued, "library analysis requested");
     }
 
-    audio_analysis_status(&state, &family).await.map(Json)
+    audio_analysis_status(state, family).await
 }
 
 /// One batch of the library per request. The worker's periodic sweep continues
@@ -549,7 +571,7 @@ async fn set_audio_analysis(
 /// needs the next tick.
 const ANALYSIS_ENQUEUE_BATCH: i64 = 500;
 
-async fn audio_analysis_status(
+pub(crate) async fn audio_analysis_status(
     state: &AppState,
     family: &FamilyContext,
 ) -> Result<AudioAnalysisResponse, AuthError> {
@@ -687,7 +709,7 @@ async fn resolve_content_report(
 /// and what the member is today. Pure: the child invariant is the compliance
 /// rule (see docs/family-permissions-plan.md), so it is worth testing without
 /// standing up a database.
-fn resolve_member_permissions(
+pub(crate) fn resolve_member_permissions(
     requested_bracket: Option<&str>,
     requested_upload: Option<bool>,
     requested_generate: Option<bool>,
@@ -843,6 +865,73 @@ pub(crate) async fn remove_member(
     meta: crate::auth::audit::RequestMeta,
     Path(user_id): Path<Uuid>,
 ) -> Result<StatusCode, AuthError> {
+    match leave_or_remove(&family, &state, &meta, user_id).await? {
+        Removal::Done => Ok(StatusCode::NO_CONTENT),
+        Removal::LastAdmin => Err(AuthError::BadRequest(
+            "promote another family admin before removing the last one".into(),
+        )),
+        Removal::OneFamily => Err(AuthError::Conflict(
+            "this server has one family: block the member or delete the account instead".into(),
+        )),
+    }
+}
+
+/// What taking someone out of the household came to, when it was not done.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Removal {
+    Done,
+    /// They are its last admin, and others are left.
+    LastAdmin,
+    /// Leaving would found a second household on a server that has one.
+    OneFamily,
+}
+
+/// What taking a member out of a household does, before anything is touched.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum RemovalStep {
+    Refuse(Removal),
+    /// The sole member leaving a household of one: they are where leaving would put them.
+    Nothing,
+    /// A provisioned account nobody claimed: it has no sign-in and nothing of its own to keep,
+    /// so it goes, rather than being re-homed into a household it will never sign in to. Its
+    /// claim invitation goes with it (ON DELETE CASCADE).
+    Delete,
+    /// Into a household of their own, their library with them.
+    Move,
+}
+
+pub(crate) fn removal_step(
+    target_is_admin: bool,
+    admins: i64,
+    members: usize,
+    removing_self: bool,
+    target_pending: bool,
+    one_family: bool,
+) -> RemovalStep {
+    // Never leave a household with nobody who can manage it.
+    if target_is_admin && admins <= 1 && members > 1 {
+        return RemovalStep::Refuse(Removal::LastAdmin);
+    }
+    if members == 1 {
+        return RemovalStep::Nothing;
+    }
+    let unclaimed = target_pending && !removing_self;
+    // Leaving would found a second family, which this install does not have. A pending
+    // account is still deleted; anyone else is blocked or deleted by an admin instead.
+    if one_family && !unclaimed {
+        return RemovalStep::Refuse(Removal::OneFamily);
+    }
+    if unclaimed { RemovalStep::Delete } else { RemovalStep::Move }
+}
+
+/// Removes a member, or lets the caller leave: the rules both API versions share. Someone else
+/// needs a household admin (`Forbidden`); someone not in the household is `NotFound`.
+pub(crate) async fn leave_or_remove(
+    family: &FamilyContext,
+    state: &AppState,
+    meta: &crate::auth::audit::RequestMeta,
+    user_id: Uuid,
+) -> Result<Removal, AuthError> {
     let removing_self = user_id == family.user_id;
     if !removing_self {
         family.require_family_admin()?;
@@ -857,43 +946,35 @@ pub(crate) async fn remove_member(
         .find(|m| m.user_id == user_id)
         .ok_or(AuthError::NotFound)?;
 
-    if target.role == "family_admin" {
-        let admins = db::families::count_admins(state.db(), family.family_id)
+    let admins = if target.role == "family_admin" {
+        db::families::count_admins(state.db(), family.family_id)
             .await
-            .map_err(AuthError::Internal)?;
-        if admins <= 1 && members.len() > 1 {
-            return Err(AuthError::BadRequest(
-                "promote another family admin before removing the last one".into(),
-            ));
+            .map_err(AuthError::Internal)?
+    } else {
+        0
+    };
+    let step = removal_step(
+        target.role == "family_admin",
+        admins,
+        members.len(),
+        removing_self,
+        target.pending,
+        state.hooks().one_family(),
+    );
+    match step {
+        RemovalStep::Refuse(why) => return Ok(why),
+        RemovalStep::Nothing => {
+            crate::auth::audit::record(state, meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
+            return Ok(Removal::Done);
         }
-    }
-
-    // Sole member leaving their own family is a no-op: they are already a
-    // family of one, and the family would be deleted out from under them.
-    if members.len() == 1 {
-        crate::auth::audit::record(&state, &meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
-        return Ok(StatusCode::NO_CONTENT);
-    }
-
-    // Leaving would found a second family, which this install does not have.
-    // A pending account is still deleted below; anyone else is blocked or
-    // deleted by an admin instead.
-    if state.hooks().one_family() && !(target.pending && !removing_self) {
-        return Err(AuthError::Conflict(
-            "this server has one family: block the member or delete the account instead".into(),
-        ));
-    }
-
-    // A provisioned account nobody ever claimed has no auth identity and
-    // nothing of its own to preserve — delete it outright instead of
-    // re-homing a phantom account into a personal family it will never sign
-    // into. Its pending claim invite goes with it (ON DELETE CASCADE).
-    if target.pending && !removing_self {
-        db::users::delete_user(state.db(), user_id)
-            .await
-            .map_err(AuthError::Internal)?;
-        crate::auth::audit::record(&state, &meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
-        return Ok(StatusCode::NO_CONTENT);
+        RemovalStep::Delete => {
+            db::users::delete_user(state.db(), user_id)
+                .await
+                .map_err(AuthError::Internal)?;
+            crate::auth::audit::record(state, meta, Some(user_id), Some(family.user_id), "family.member_removed", serde_json::json!({})).await;
+            return Ok(Removal::Done);
+        }
+        RemovalStep::Move => {}
     }
 
     // Content follows its owner: anything they shared with this family goes
@@ -906,7 +987,7 @@ pub(crate) async fn remove_member(
         .await
         .map_err(AuthError::Internal)?;
 
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Removal::Done)
 }
 
 /// POST /api/v1/family/members/{user_id}/block — deactivate a fellow member's account
@@ -931,6 +1012,13 @@ async fn block_member(
         return Err(AuthError::BadRequest("you cannot block your own account".into()));
     }
 
+    block(&state, user_id).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Stops an account: no new sign-in, and every session and refresh token it has is revoked, so
+/// a device already signed in is cut off too. Shared by v1's block and v2's `blocked`.
+pub(crate) async fn block(state: &AppState, user_id: Uuid) -> Result<(), AuthError> {
     db::users::set_active(state.db(), user_id, false)
         .await
         .map_err(AuthError::Internal)?;
@@ -940,8 +1028,7 @@ async fn block_member(
     db::refresh_tokens::revoke_all_for_user(state.db(), user_id, None)
         .await
         .map_err(AuthError::Internal)?;
-
-    Ok(StatusCode::NO_CONTENT)
+    Ok(())
 }
 
 /// POST /api/v1/family/members/{user_id}/unblock — reactivate a member's account
@@ -1104,7 +1191,26 @@ async fn provision_member(
         ));
     }
 
-    let user = db::users::insert(state.db(), state.at_rest(), &login_email, &display_name, "user")
+    let (member, invite) = provision(&state, &family, &display_name, &login_email, body.display_label.as_deref()).await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(ProvisionMemberResponse {
+            member: member_to_response(member),
+            invite: invite_to_response(&state, invite),
+        }),
+    ))
+}
+
+/// Makes a pending account in the household with its claim code, for a name and a login the
+/// caller has checked. Shared by both API versions.
+pub(crate) async fn provision(
+    state: &AppState,
+    family: &FamilyContext,
+    display_name: &str,
+    login_email: &str,
+    label: Option<&str>,
+) -> Result<(db::families::FamilyMember, db::families::FamilyInvite), AuthError> {
+    let user = db::users::insert(state.db(), state.at_rest(), login_email, display_name, "user")
         .await
         .map_err(AuthError::Internal)?;
 
@@ -1112,9 +1218,9 @@ async fn provision_member(
         .await
         .map_err(AuthError::Internal)?;
     // A login the family admin made up: nothing to mail, nothing to prove.
-    crate::auth::verification::born(&state, &user, family.family_id, true).await?;
+    crate::auth::verification::born(state, &user, family.family_id, true).await?;
 
-    if let Some(label) = body.display_label.as_deref().map(str::trim).filter(|v| !v.is_empty()) {
+    if let Some(label) = label.map(str::trim).filter(|v| !v.is_empty()) {
         db::families::set_display_label(state.db(), family.family_id, user.id, Some(label))
             .await
             .map_err(AuthError::Internal)?;
@@ -1145,13 +1251,7 @@ async fn provision_member(
         .find(|m| m.user_id == user.id)
         .ok_or(AuthError::NotFound)?;
 
-    Ok((
-        StatusCode::CREATED,
-        Json(ProvisionMemberResponse {
-            member: member_to_response(member),
-            invite: invite_to_response(&state, invite),
-        }),
-    ))
+    Ok((member, invite))
 }
 
 /// GET /api/v1/family/invites — pending invites (family_admin only).
@@ -1286,7 +1386,19 @@ async fn regenerate_invite(
     Path(id): Path<Uuid>,
 ) -> Result<Json<InviteResponse>, AuthError> {
     family.require_family_admin()?;
+    let invite = regenerate(&state, &family, id)
+        .await?
+        .ok_or_else(|| AuthError::BadRequest("invite has already been used".into()))?;
+    Ok(Json(invite_to_response(&state, invite)))
+}
 
+/// A fresh code and expiry for an invitation (`NotFound` when it is not the household's),
+/// mailed again when it is an `email` one; `None` when every use is spent.
+pub(crate) async fn regenerate(
+    state: &AppState,
+    family: &FamilyContext,
+    id: Uuid,
+) -> Result<Option<db::families::FamilyInvite>, AuthError> {
     let existing = db::families::find_invite_by_id(state.db(), id, family.family_id)
         .await
         .map_err(AuthError::Internal)?
@@ -1306,14 +1418,12 @@ async fn regenerate_invite(
         chrono::Utc::now() + chrono::Duration::days(ttl_days),
     )
     .await
-    .map_err(AuthError::Internal)?
-    .ok_or_else(|| AuthError::BadRequest("invite has already been used".into()))?;
+    .map_err(AuthError::Internal)?;
 
-    if invite.kind == "email" {
-        send_invite_mail_best_effort(&state, &family, &invite).await;
+    if let Some(invite) = invite.as_ref().filter(|i| i.kind == "email") {
+        send_invite_mail_best_effort(state, family, invite).await;
     }
-
-    Ok(Json(invite_to_response(&state, invite)))
+    Ok(invite)
 }
 
 /// POST /api/v1/family/invites/accept — join the inviting family.
@@ -1830,14 +1940,6 @@ async fn join_preview(
     State(state): State<AppState>,
     Path(code): Path<String>,
 ) -> Result<Json<JoinPreviewResponse>, AuthError> {
-    // ItemNotFound (not NotFound): an unknown code is a plain 404, not the
-    // account-lookup 401 `NotFound` means elsewhere in this module — this
-    // endpoint has no signed-in caller to protect from enumeration.
-    let invite = db::families::find_invite_by_code(state.db(), code.trim())
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::ItemNotFound)?;
-
     let dead = |status| {
         Json(JoinPreviewResponse {
             status,
@@ -1851,12 +1953,59 @@ async fn join_preview(
             claim: None,
         })
     };
+    // ItemNotFound (not NotFound): an unknown code is a plain 404, not the
+    // account-lookup 401 `NotFound` means elsewhere in this module — this
+    // endpoint has no signed-in caller to protect from enumeration.
+    let valid = match look_up_code(&state, &code).await? {
+        Code::Unknown => return Err(AuthError::ItemNotFound),
+        Code::Exhausted => return Ok(dead("exhausted")),
+        Code::Expired => return Ok(dead("expired")),
+        Code::Valid(valid) => valid,
+    };
+    let ValidCode { invite, family, member_count, inviter_name, claim } = *valid;
+    Ok(Json(JoinPreviewResponse {
+        status: "valid",
+        kind: Some(invite.kind.clone()),
+        family_name: Some(family.name),
+        inviter_name,
+        role: Some(invite.role.clone()),
+        member_count: Some(member_count),
+        expires_at: Some(invite.expires_at.to_rfc3339()),
+        uses_left: Some(invite.max_uses - invite.use_count),
+        claim,
+    }))
+}
 
+/// What a join or claim code is. Dead codes say only that they are dead (decision D6): the
+/// household and the inviter are told to holders of a valid code alone.
+pub(crate) enum Code {
+    Unknown,
+    Exhausted,
+    Expired,
+    Valid(Box<ValidCode>),
+}
+
+pub(crate) struct ValidCode {
+    pub invite: db::families::FamilyInvite,
+    pub family: db::families::Family,
+    pub member_count: i64,
+    pub inviter_name: Option<String>,
+    /// A claim code: the account it signs the claimant in as.
+    pub claim: Option<ClaimPreview>,
+}
+
+pub(crate) async fn look_up_code(state: &AppState, code: &str) -> Result<Code, AuthError> {
+    let Some(invite) = db::families::find_invite_by_code(state.db(), code.trim())
+        .await
+        .map_err(AuthError::Internal)?
+    else {
+        return Ok(Code::Unknown);
+    };
     if invite.exhausted() {
-        return Ok(dead("exhausted"));
+        return Ok(Code::Exhausted);
     }
     if invite.expired() {
-        return Ok(dead("expired"));
+        return Ok(Code::Expired);
     }
 
     let family = db::families::find(state.db(), invite.family_id)
@@ -1888,17 +2037,7 @@ async fn join_preview(
         None
     };
 
-    Ok(Json(JoinPreviewResponse {
-        status: "valid",
-        kind: Some(invite.kind.clone()),
-        family_name: Some(family.name),
-        inviter_name,
-        role: Some(invite.role.clone()),
-        member_count: Some(members.len() as i64),
-        expires_at: Some(invite.expires_at.to_rfc3339()),
-        uses_left: Some(invite.max_uses - invite.use_count),
-        claim,
-    }))
+    Ok(Code::Valid(Box::new(ValidCode { invite, family, member_count: members.len() as i64, inviter_name, claim })))
 }
 
 /// POST /api/v1/join/{code}/claim — set a password on a pre-provisioned
@@ -1915,25 +2054,66 @@ async fn claim_provisioned_account(
 ) -> Result<(StatusCode, Json<crate::auth::LoginResponse>), AuthError> {
     crate::auth::password::check(&body.password)?;
 
-    let invite = db::families::find_invite_by_code(state.db(), code.trim())
+    let user = match claim_account(&state, &code, &body.password).await? {
+        Ok(user) => user,
+        Err(refusal) => {
+            return Err(AuthError::BadRequest(
+                match refusal {
+                    ClaimRefusal::Unknown => "invite code is not valid",
+                    ClaimRefusal::NotAClaim => "this code is not an account-claim code",
+                    ClaimRefusal::Used => "this invite has already been claimed",
+                    ClaimRefusal::Expired => "this invite has expired — ask a family admin for a new one",
+                    ClaimRefusal::AlreadyClaimed => "this account has already been claimed",
+                }
+                .into(),
+            ));
+        }
+    };
+
+    let issued = crate::auth::issue_tokens(
+        &state,
+        &user,
+        body.device_name.as_deref(),
+        body.device_kind.as_deref(),
+        None,
+    )
+    .await?;
+
+    Ok((StatusCode::CREATED, Json(crate::auth::login_response(issued, user))))
+}
+
+/// Why a claim code did not give its account a password.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum ClaimRefusal {
+    Unknown,
+    NotAClaim,
+    Used,
+    Expired,
+    AlreadyClaimed,
+}
+
+/// Sets the first password of the provisioned account a claim code names (the password has been
+/// checked against the rules). Possession of the code is the sole credential, as for every
+/// other invite kind.
+pub(crate) async fn claim_account(
+    state: &AppState,
+    code: &str,
+    password: &str,
+) -> Result<Result<crate::users::models::User, ClaimRefusal>, AuthError> {
+    let Some(invite) = db::families::find_invite_by_code(state.db(), code.trim())
         .await
         .map_err(AuthError::Internal)?
-        .ok_or_else(|| AuthError::BadRequest("invite code is not valid".into()))?;
-
+    else {
+        return Ok(Err(ClaimRefusal::Unknown));
+    };
     if invite.kind != "claim" {
-        return Err(AuthError::BadRequest(
-            "this code is not an account-claim code".into(),
-        ));
+        return Ok(Err(ClaimRefusal::NotAClaim));
     }
     if invite.exhausted() {
-        return Err(AuthError::BadRequest(
-            "this invite has already been claimed".into(),
-        ));
+        return Ok(Err(ClaimRefusal::Used));
     }
     if invite.expired() {
-        return Err(AuthError::BadRequest(
-            "this invite has expired — ask a family admin for a new one".into(),
-        ));
+        return Ok(Err(ClaimRefusal::Expired));
     }
 
     let claim_user_id = invite
@@ -1949,14 +2129,12 @@ async fn claim_provisioned_account(
         .map_err(AuthError::Internal)?
         .is_some()
     {
-        return Err(AuthError::BadRequest(
-            "this account has already been claimed".into(),
-        ));
+        return Ok(Err(ClaimRefusal::AlreadyClaimed));
     }
 
     let salt = SaltString::generate(&mut OsRng);
     let password_hash = Argon2::default()
-        .hash_password(body.password.as_bytes(), &salt)
+        .hash_password(password.as_bytes(), &salt)
         .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
         .to_string();
 
@@ -1972,17 +2150,7 @@ async fn claim_provisioned_account(
         // a concurrent race is a shrug, not a failure to report to the user.
         tracing::warn!(invite_id = %invite.id, "claim invite marker lost a race after identity was created");
     }
-
-    let issued = crate::auth::issue_tokens(
-        &state,
-        &user,
-        body.device_name.as_deref(),
-        body.device_kind.as_deref(),
-        None,
-    )
-    .await?;
-
-    Ok((StatusCode::CREATED, Json(crate::auth::login_response(issued, user))))
+    Ok(Ok(user))
 }
 
 // ── Shared helpers ────────────────────────────────────────────────────────
@@ -2066,7 +2234,7 @@ fn member_to_response(m: db::families::FamilyMember) -> MemberResponse {
     }
 }
 
-fn invite_to_response(state: &AppState, i: db::families::FamilyInvite) -> InviteResponse {
+pub(crate) fn invite_to_response(state: &AppState, i: db::families::FamilyInvite) -> InviteResponse {
     InviteResponse {
         id: i.id.to_string(),
         kind: i.kind.clone(),
@@ -2217,5 +2385,30 @@ mod tests {
         assert_eq!(bracket, "teen");
         assert!(upload);
         assert!(!generate);
+    }
+
+    // ── leaving and removing ──
+
+    #[test]
+    fn the_last_admin_stays_while_others_are_left() {
+        assert_eq!(removal_step(true, 1, 3, true, false, false), RemovalStep::Refuse(Removal::LastAdmin), "leaving");
+        assert_eq!(removal_step(true, 1, 2, false, false, false), RemovalStep::Refuse(Removal::LastAdmin), "removed");
+        assert_eq!(removal_step(true, 1, 2, true, false, true), RemovalStep::Refuse(Removal::LastAdmin), "on one household too, first");
+        assert_eq!(removal_step(true, 2, 3, true, false, false), RemovalStep::Move, "another admin is left");
+        assert_eq!(removal_step(true, 1, 1, true, false, false), RemovalStep::Nothing, "alone: already their own household");
+    }
+
+    #[test]
+    fn a_member_leaves_into_a_household_of_their_own() {
+        assert_eq!(removal_step(false, 0, 3, true, false, false), RemovalStep::Move);
+        assert_eq!(removal_step(false, 0, 3, false, false, false), RemovalStep::Move, "removed by an admin");
+    }
+
+    #[test]
+    fn nobody_leaves_the_one_household_but_an_unclaimed_account_goes() {
+        assert_eq!(removal_step(false, 0, 3, true, false, true), RemovalStep::Refuse(Removal::OneFamily));
+        assert_eq!(removal_step(false, 0, 3, false, false, true), RemovalStep::Refuse(Removal::OneFamily));
+        assert_eq!(removal_step(false, 0, 3, false, true, true), RemovalStep::Delete);
+        assert_eq!(removal_step(false, 0, 3, false, true, false), RemovalStep::Delete);
     }
 }

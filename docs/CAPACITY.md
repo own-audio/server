@@ -295,6 +295,33 @@ Migration 0128 adds `music_playlist_tracks (track_id)`: the playlists that hold 
 key read, for the new trigger and for the cascade when a track is purged, which scanned every
 playlist entry before.
 
+## Measured: inserting tracks in bulk (2026-11-17)
+
+Before v2 phase 7, to see whether the change-log triggers of 0109–0128 make a bulk insert of
+tracks grow faster than linearly (phase 6 saw one 50,000-track `INSERT` run past six minutes).
+The scale tool's own statement (`INSERT … SELECT` of N tracks with their objects), on a
+throwaway PostgreSQL 17 with every migration through 0128, Apple-silicon Mac:
+
+| Tracks in one statement | Time | Per track |
+|---|---|---|
+| 2,000 | 1.4 s | 0.70 ms |
+| 5,000 | 3.4 s | 0.68 ms |
+| 10,000 | 6.7 s | 0.67 ms |
+| 20,000 | 14.5 s | 0.73 ms |
+| 50,000 | 39.8 s | 0.80 ms |
+
+Onto a growing catalog, 50,000 at a time: 37 s onto 55,000 tracks, then 26–29 s each onto
+105,000, 155,000, 205,000, 255,000 and (after `ANALYZE`) 305,000; 5,000 onto 355,000 in 2.3 s.
+The change log takes four rows a track (the track, its album, recording and release group). On
+the compose stack (PostgreSQL 16, the server running) `scale_catalog.py` added 50,000 tracks and
+1,000 books in 54 s, and another 50,000 in 61 s.
+
+So no trigger is at fault and nothing was changed: the cost per track stays flat with the size
+of the statement and of the catalog. Phase 6's six minutes came back in none of these runs; it
+was the fixture's one long statement on a busy stack, not the triggers. One track at a time —
+the upload path — takes 2.9 ms (median; 6 ms p95, 14 ms at most) per `INSERT` on 355,000 tracks,
+each in an album of its own.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

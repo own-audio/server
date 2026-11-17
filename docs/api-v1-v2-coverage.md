@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 240 |
-| partly covered | 4 |
-| missing | 62 |
+| covered | 258 |
+| partly covered | 3 |
+| missing | 45 |
 | not carried over | 10 |
 | **total** | **316** |
 
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 6, v2
-revision 8). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 7, v2
+revision 9). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -100,11 +100,11 @@ lists what is still open.
 | `GET /family` | `GET /family`, `GET /family/members` | covered |  |
 | `PUT /family` | `PATCH /family` | covered |  |
 | `GET /family/avatar` | `Family.image` → `GET /images/{id}` | covered | A signed link since phase 0; until then `Family.image` was this v1 route. |
-| `POST /family/avatar` | — | missing |  |
-| `DELETE /family/avatar` | — | missing |  |
-| `GET /family/content-reports` | — | missing |  |
-| `POST /family/content-reports` | — | missing |  |
-| `POST /family/content-reports/{id}/resolve` | — | missing |  |
+| `POST /family/avatar` | `PUT /family/image` | covered | `{upload_id}` or the image itself, as `/me/image`; answers `Family`. |
+| `DELETE /family/avatar` | `DELETE /family/image` | covered |  |
+| `GET /family/content-reports` | `GET /family/reports` | covered | Cursor-paged; `state=open` (the default), `resolved` or `all` (v1: open ones only); v2 kinds `track`, `book`, `podcast`; who closed it and their note. |
+| `POST /family/content-reports` | `POST /family/reports` | covered | `{kind, item_id, reason, note?}`, answers the report; only what the reporter can see (v1 took any id). |
+| `POST /family/content-reports/{id}/resolve` | `PATCH /family/reports/{id}` | covered | `{resolved, note?}`: closes with a note, or opens again. |
 | `GET /family/content/{kind}/{item_id}/audience` | — | not carried over | Per-member policies and grants stay on v1 (api-v2-plan.md). |
 | `PUT /family/content/{kind}/{item_id}/audience` | — | not carried over | Same decision. |
 | `POST /family/content/{kind}/{item_id}/request-access` | — | not carried over | Belongs to the same per-member access model. |
@@ -112,25 +112,25 @@ lists what is still open.
 | `POST /family/invites` | `POST /family/invites` | covered |  |
 | `POST /family/invites/accept` | `POST /family/join` | covered |  |
 | `DELETE /family/invites/{id}` | `DELETE /family/invites/{id}` | covered |  |
-| `POST /family/invites/{id}/regenerate` | — | missing |  |
+| `POST /family/invites/{id}/regenerate` | `POST /family/invites/{id}/regenerate` | covered | `409 invite_used` when spent (v1: `400`). |
 | `GET /family/members` | `GET /family/members` | covered |  |
-| `POST /family/members/provision` | — | missing | Accounts for a kid or a grandparent, with a claim code. |
+| `POST /family/members/provision` | `POST /family/members` | covered | Accounts for a kid or a grandparent: also the age bracket and rights; answers the member and its `claim` `Invite`. |
 | `PUT /family/members/{user_id}` | `PATCH /family/members/{user_id}` | covered | Role, age bracket, rights, label. |
-| `DELETE /family/members/{user_id}` | `DELETE /family/members/{user_id}` | partly | Admins only on v2: a member cannot leave the household themselves. |
+| `DELETE /family/members/{user_id}` | `DELETE /family/members/{user_id}` | covered | A member leaves themselves, as v1 (since phase 7); `409 last_admin`, `409 one_household`. |
 | `GET /family/members/{user_id}/access` | — | not carried over | Per-member policies. |
-| `POST /family/members/{user_id}/avatar` | — | missing |  |
-| `DELETE /family/members/{user_id}/avatar` | — | missing |  |
-| `POST /family/members/{user_id}/block` | — | missing |  |
-| `POST /family/members/{user_id}/unblock` | — | missing |  |
+| `POST /family/members/{user_id}/avatar` | `PUT /family/members/{user_id}/image` | covered | The member themselves too, not only an admin; answers `Member`. |
+| `DELETE /family/members/{user_id}/avatar` | `DELETE /family/members/{user_id}/image` | covered | The member themselves too. |
+| `POST /family/members/{user_id}/block` | `PATCH /family/members/{user_id}` | covered | `{blocked: true}`; not a server administrator (`403 cannot_block_instance_admin`). `MemberRecord.blocked` in the change feed. |
+| `POST /family/members/{user_id}/unblock` | `PATCH /family/members/{user_id}` | covered | `{blocked: false}`. |
 | `PUT /family/members/{user_id}/grants` | — | not carried over | Item grants stay on v1 (api-v2-plan.md). |
 | `PUT /family/members/{user_id}/policy` | — | not carried over | Per-member media policies stay on v1. |
-| `GET /family/settings/audio-analysis` | — | missing |  |
-| `PUT /family/settings/audio-analysis` | — | missing |  |
-| `GET /family/settings/book-source` | — | missing |  |
-| `PUT /family/settings/book-source` | — | missing |  |
+| `GET /family/settings/audio-analysis` | `GET /family/settings` | covered | One resource for the household's settings: `audio_analysis`. |
+| `PUT /family/settings/audio-analysis` | `PATCH /family/settings` | covered | `{audio_analysis: {enabled}}`. |
+| `GET /family/settings/book-source` | `GET /family/settings` | covered | `book_source`. |
+| `PUT /family/settings/book-source` | `PATCH /family/settings` | covered | `{book_source: {source?, google_books_api_key?}}`; a server that offers no choice answers `501 feature_unavailable` (v1: `403`). |
 | `GET /family/storage` | `GET /family/storage` | covered |  |
-| `GET /join/{code}` | — | missing | The preview before sign-in. |
-| `POST /join/{code}/claim` | — | missing | Claiming a provisioned account. |
+| `GET /join/{code}` | `POST /family/join/preview` | covered | The code in the body (rule 6); a used or expired code is `410` (v1: `200` with a status). |
+| `POST /join/{code}/claim` | `POST /auth/claim` | covered | `{code, password}` → `Me`; signing in is `POST /auth/token` (v1 answered a session). |
 
 ## Audiobooks
 
