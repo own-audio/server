@@ -7,8 +7,15 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.4-beta.2] - 2026-11-17
+
+Contract revision 28. API v2 revision 17, **stable**. A beta, like beta.1: test it before you
+rely on it.
+
 ### Added
 
+- A `beta` image tag: each beta moves it (`latest` and `1.0` stay on the last stable), and the
+  *retag image* workflow moves it by hand.
 - A human check on the email confirmation page: a console built with `VITE_TURNSTILE_SITEKEY`
   shows Cloudflare Turnstile before confirming, and sends its token as the optional `human_check`
   on `POST /api/v1/auth/email/verify` and `POST /api/v2/auth/email-verification`. The address is
@@ -16,16 +23,6 @@ semver. Each release states the **API contract revision** it serves
   caller's address to the edition, which may grant less without a passed check (the hosted
   edition's welcome credit). The console's Content-Security-Policy allows
   `challenges.cloudflare.com`. Contract revision 28, v2 revision 17.
-
-## [1.0.4-beta.2] - 2026-11-17
-
-Contract revision 27. API v2 revision 16, **stable**. A beta, like beta.1: test it before you
-rely on it.
-
-### Added
-
-- A `beta` image tag: each beta moves it (`latest` and `1.0` stay on the last stable), and the
-  *retag image* workflow moves it by hand.
 
 ### Changed
 
