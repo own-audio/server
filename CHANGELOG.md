@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- `frontend/e2e/release-smoke.mjs` — a release check of the console in a headless browser against a
+  fresh server: setup, music, podcasts, an audiobook, a family invite by mail, the trash, settings
+  and sign-out, with every console error and 4xx/5xx reported. `release-smoke-hosted.mjs` does
+  the hosted-only pages (sign-up, credit, narration and translation up to their price).
+
 ### Fixed
 
 - The console fetches the music library again when it opens a copy saved on the device less
