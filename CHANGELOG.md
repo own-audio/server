@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.4-beta.3] - 2026-11-17
+
+Contract revision 28. API v2 revision 17, **stable**. A beta, like beta.2: test it before you
+rely on it.
+
 ### Fixed
 
 - Deleting several items at once from a console on another origin (app.own.audio talking to
