@@ -27,6 +27,7 @@ import { QuickLinksWidget } from "./QuickLinksWidget";
 import { ListeningChart } from "../stats/ListeningChart";
 import type { AudioBook, ContinueItem, MusicTrack } from "../../api/types";
 import { cn } from "../../lib/cn";
+import { isLongRunway } from "../../lib/runway";
 import { useT, type MessageKey, type PlainKey } from "../../i18n";
 
 function Section({ title, action, children }: { title: string; action?: ReactNode; children: ReactNode }) {
@@ -508,7 +509,9 @@ function StorageWidget() {
           </div>
           <div className="rounded-card border border-border px-4 py-3">
             <p className="text-xs uppercase tracking-wide text-muted">{t("home.storage.daysLeft")}</p>
-            <p className="mt-1 text-xl font-semibold tabular-nums">{credit.days_remaining ?? "—"}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">
+              {isLongRunway(credit.days_remaining) ? t("billing.moreThanTenYears") : (credit.days_remaining ?? "—")}
+            </p>
           </div>
           <Link to="/billing" className="text-sm text-muted hover:text-foreground sm:col-span-3">
             {t("common.action.seeMore")}

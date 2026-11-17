@@ -24,6 +24,9 @@ semver. Each release states the **API contract revision** it serves
   (a surname), as every invite says "the {name} family".
 - The console's Trash page says restoring charges the storage only on a server with billing
   (`features.billing`).
+- Storage & credit, the home page's storage card, the top-up thanks and the top-up notification
+  say "More than 10 years" instead of a runway of a million days and a run-out date in the
+  year 6590 (a small library on a server with billing).
 
 ## [1.0.4] - 2026-11-17
 

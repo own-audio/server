@@ -12,6 +12,7 @@ import { Button, Dialog, DialogContent, Input, Pill, Skeleton, toast } from "../
 import { apiErrorMessage } from "../../lib/apiError";
 import { cn } from "../../lib/cn";
 import { recentTopup } from "../../lib/topup";
+import { isLongRunway } from "../../lib/runway";
 import { useT, type PlainKey } from "../../i18n";
 
 const KINDS: { key: "audiobooks_bytes" | "podcasts_bytes" | "music_bytes" | "other_bytes"; label: PlainKey; bar: string; icon: React.ReactNode }[] = [
@@ -168,7 +169,9 @@ function TopUpReturn({ data, refetch }: { data: Billing; refetch: () => unknown 
         {topup ? (
           <div className="space-y-2 text-sm">
             <p>{t("billing.thanks.added", { amount: formatMicro(topup.amount_micro, currency), balance: formatMicro(data.balance_micro, currency) })}</p>
-            {data.runs_out_on && (
+            {isLongRunway(data.days_remaining) ? (
+              <p>{t("billing.thanks.long")}</p>
+            ) : data.runs_out_on && (
               <p>{t("billing.thanks.until", { date: new Date(data.runs_out_on).toLocaleDateString(locale, { dateStyle: "long" }) })}</p>
             )}
           </div>
@@ -223,8 +226,10 @@ export default function BillingPage() {
         </div>
         <div className="rounded-card border border-border px-4 py-3">
           <p className="text-xs uppercase tracking-wide text-muted">{t("billing.daysLeft")}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{data.days_remaining ?? "—"}</p>
-          {data.runs_out_on && (
+          <p className="mt-1 text-2xl font-semibold tabular-nums">
+            {isLongRunway(data.days_remaining) ? t("billing.moreThanTenYears") : (data.days_remaining ?? "—")}
+          </p>
+          {data.runs_out_on && !isLongRunway(data.days_remaining) && (
             <p className="mt-0.5 text-xs text-muted">{t("billing.runsOut", { date: new Date(data.runs_out_on).toLocaleDateString(locale) })}</p>
           )}
         </div>

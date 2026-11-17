@@ -14,6 +14,7 @@ import { timeAgo } from "../../lib/format";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
+import { isLongRunway } from "../../lib/runway";
 
 /**
  * The notification inbox.
@@ -33,11 +34,13 @@ const POLL_MS = 120_000;
 /** A confirmed credit top-up (hosted servers): said in the user's language from `data`. */
 function creditTopupText(n: Notification, t: ReturnType<typeof useT>["t"], locale: string): { title: string; body: string } | null {
   if (n.kind !== "credit_topup" || !n.data) return null;
-  const { amount_micro, balance_micro, until } = n.data as Record<string, unknown>;
+  const { amount_micro, balance_micro, until, days_remaining } = n.data as Record<string, unknown>;
   if (typeof amount_micro !== "number" || typeof balance_micro !== "number") return null;
   const amount = formatMicro(amount_micro, "USD");
   const balance = formatMicro(balance_micro, "USD");
-  const body = typeof until === "string"
+  const body = typeof days_remaining === "number" && isLongRunway(days_remaining)
+    ? t("shell.notifications.creditTopup.long", { amount, balance })
+    : typeof until === "string"
     ? t("shell.notifications.creditTopup.until", { amount, balance, date: new Date(until).toLocaleDateString(locale, { dateStyle: "long" }) })
     : t("shell.notifications.creditTopup.body", { amount, balance });
   return { title: t("shell.notifications.creditTopup.title"), body };
