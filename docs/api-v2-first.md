@@ -81,7 +81,8 @@ one to two weeks), and every signed media link points at `/api/v2/media`.
 As of 2026-11-17 the iPhone apps call v1 only for: artwork uploads, deleting the account
 (`DELETE /api/v1/users/me`; v2 has `DELETE /me` since revision 3, which asks for the password
 of an account that has one), stats and their visibility, and podcast discovery and directory
-search (`/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search`). Other v1-only areas: trash,
+search (`/api/v1/podcasts/discover/*`, `/api/v1/podcasts/search`; v2 has
+`/podcasts/directory/*` since revision 4). Other v1-only areas: trash,
 push devices, family join links, jobs, setup and admin, v1 multipart uploads. When v2 gains one
 of these, move the call over. The full list of what the clients still miss, and the order
 to close it in: `api-v2-gaps-plan.md`.

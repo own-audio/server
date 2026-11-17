@@ -27,8 +27,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 1. Blocking — a client phase can't finish without it
 
-- [ ] **Podcast feeds:** follow (`podcasts/subscribe`), unfollow, refresh. `POST /podcasts`
-      only creates uploaded shows. (M T W Ap)
+- [x] **Podcast feeds** (v2 revision 4): follow (`POST /podcasts` with `feed_url`), unfollow
+      (`DELETE /podcasts/{id}`), refresh (`POST /podcasts/{id}/refresh`, `POST /podcasts/refresh`).
+      (M T W Ap)
 - [ ] **File sync records:** `path` on track, book, episode; `relative_path` and `sha256` on
       book files; `sha256` on tracks and episodes; also in the create answers. (S, so M W)
 - [ ] **Change log triggers** for `sync_paths` (renames) and `content_grants`. (S)
@@ -63,14 +64,17 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 3. Podcasts
 
-- [ ] Directory: search, categories, browse, similar, preview of a show not followed. (M T Ap)
-- [ ] Unplayed counts. (M T)
-- [ ] Keep an episode on the server / drop the server's copy / store-all / auto-store. (M Ap)
+- [x] Directory (v2 revision 4): `/podcasts/directory/search`, `…/categories`,
+      `/podcasts/directory?category=`, `…/similar`, `…/preview`. (M T Ap)
+- [x] Unplayed counts (v2 revision 4: `GET /me/podcasts/unplayed`). (M T)
+- [x] Keep an episode on the server / drop the server's copy / store-all / auto-store (v2
+      revision 4: `PUT`/`DELETE /episodes/{id}/stored`, `POST /podcasts/{id}/store`,
+      `PATCH /podcasts/{id}`). (M Ap)
 - [ ] Episodes, books and podcasts in `/search` (music only today). (T W)
 - [ ] Translations as a v2 kind for `playback-info` and progress. (Ap)
-- [ ] Transcripts as text: v1 fetched the publisher's transcript and parsed it into timed
-      lines; v2 gives `transcript_url` only. (audit)
-- [ ] Storing a show's and its episodes' art (`sync-images`). (audit)
+- [x] Transcripts as text (v2 revision 4: `GET /episodes/{id}/transcript`, timed segments with
+      speakers). (audit)
+- [x] Storing a show's and its episodes' art (v2 revision 4: part of the refresh). (audit)
 
 ## 4. Music
 

@@ -32,7 +32,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// `501 feature_unavailable`: this server cannot do it as configured (discovery says so).
-fn unavailable(feature: &str, detail: &str) -> Problem {
+pub(crate) fn unavailable(feature: &str, detail: &str) -> Problem {
     Problem::new(StatusCode::NOT_IMPLEMENTED, "feature_unavailable").detail(detail).with("feature", feature)
 }
 

@@ -23,6 +23,7 @@ pub mod media;
 pub mod music;
 pub mod page;
 pub mod playlists;
+pub mod podcasts;
 pub mod problem;
 pub mod smart;
 pub mod spoken;
@@ -108,10 +109,23 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(smart::freeze_smart))
         .routes(routes!(spoken::list_books, uploads::create_book))
         .routes(routes!(spoken::get_book))
-        .routes(routes!(spoken::list_podcasts, uploads::create_podcast))
-        .routes(routes!(spoken::get_podcast))
+        .routes(routes!(spoken::list_podcasts))
+        // Following fetches a feed: v1's outbound bucket, as on its subscribe.
+        .routes(map(routes!(uploads::create_podcast), |m| limits.outbound.apply(m)))
+        .routes(routes!(spoken::get_podcast, podcasts::patch_podcast, podcasts::unfollow))
+        .routes(map(routes!(podcasts::refresh), |m| limits.outbound.apply(m)))
+        .routes(map(routes!(podcasts::refresh_all), |m| limits.outbound.apply(m)))
+        .routes(routes!(podcasts::store))
+        .routes(routes!(podcasts::unplayed))
+        .routes(map(routes!(podcasts::directory_search), |m| limits.search.apply(m)))
+        .routes(map(routes!(podcasts::directory_categories), |m| limits.search.apply(m)))
+        .routes(map(routes!(podcasts::directory_browse), |m| limits.search.apply(m)))
+        .routes(map(routes!(podcasts::directory_similar), |m| limits.search.apply(m)))
+        .routes(map(routes!(podcasts::directory_preview), |m| limits.outbound.apply(m)))
         .routes(routes!(spoken::list_episodes, uploads::create_episode))
         .routes(routes!(spoken::get_episode))
+        .routes(routes!(podcasts::put_stored, podcasts::delete_stored))
+        .routes(routes!(podcasts::transcript))
         .routes(routes!(edit::set_track_credits))
         .routes(routes!(edit::set_book_credits))
         .routes(routes!(edit::set_podcast_credits))

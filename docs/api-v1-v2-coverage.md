@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 166 |
-| partly covered | 13 |
-| missing | 130 |
+| covered | 182 |
+| partly covered | 12 |
+| missing | 115 |
 | not carried over | 7 |
 | **total** | **316** |
 
@@ -24,8 +24,8 @@ grants stay on v1) or a route no client calls (the Stripe webhook). The hosted r
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 1, v2
-revision 3). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 2, v2
+revision 4). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -201,23 +201,23 @@ lists what is still open.
 | `GET /podcasts/{id}/image` | `Podcast.image` | covered |  |
 | `GET /podcasts/{id}/episodes/{ep_id}/image` | `Episode.image` | covered |  |
 | `GET /podcasts/{id}/episodes/{ep_id}/stream` | `POST /playback-info` | covered | Stored copy or the publisher's file. |
-| `GET /podcasts/{id}/episodes/{ep_id}/transcript` | `Episode.transcript_url` | partly | A link to the publisher's file or the stored one; the server no longer fetches and parses it into timed lines. |
+| `GET /podcasts/{id}/episodes/{ep_id}/transcript` | `GET /episodes/{id}/transcript` | covered | The server reads the publisher's file (or the uploaded one) into timed lines, now with the speaker where the file names one; `Episode.transcript_url` still links the file itself. A missing one is `404 no_transcript`. |
 | `PUT /podcasts/{id}/visibility` | `PUT /podcasts/{id}/visibility` | covered |  |
-| `POST /podcasts/subscribe` | — | missing | `POST /podcasts` only makes uploaded shows. |
-| `DELETE /podcasts/{id}` | — | missing | Unfollow. |
-| `POST /podcasts/{id}/refresh` | — | missing |  |
-| `GET /podcasts/unplayed-counts` | — | missing |  |
-| `PUT /podcasts/{id}/auto-store` | — | missing |  |
-| `POST /podcasts/{id}/store-all` | — | missing |  |
-| `POST /podcasts/{id}/episodes/{ep_id}/download` | — | missing | Keep an episode on the server. |
-| `DELETE /podcasts/{id}/episodes/{ep_id}/download` | — | missing |  |
-| `POST /podcasts/{id}/sync-images` | — | missing | Store the show's and episodes' art; low impact. |
-| `POST /podcasts/search` | — | missing |  |
-| `GET /podcasts/discover/browse` | — | missing |  |
-| `GET /podcasts/discover/categories` | — | missing |  |
-| `GET /podcasts/discover/preview` | — | missing |  |
-| `GET /podcasts/discover/similar` | — | missing |  |
-| `GET /podcasts/{id}/similar` | — | missing |  |
+| `POST /podcasts/subscribe` | `POST /podcasts` | covered | `{feed_url, visibility?}`; a show the caller has already (or sees shared) answers `200` without fetching; `Idempotency-Key`. Any member, as on v1; an uploaded show still needs `can_upload`. |
+| `DELETE /podcasts/{id}` | `DELETE /podcasts/{id}` | covered | Unfollow; the episodes' removals reach the change feed with the show's. The owner, or a household admin for a shared show (v1: the owner). An uploaded show answers `409` until the trash moves (phase 4). |
+| `POST /podcasts/{id}/refresh` | `POST /podcasts/{id}/refresh` | covered | Queued (`202`), the art stored on the way; new episodes arrive through `/sync/changes`. `POST /podcasts/refresh` refreshes every show. |
+| `GET /podcasts/unplayed-counts` | `GET /me/podcasts/unplayed` | covered | Paged by podcast id, every visible show once (zero included); one grouped query per page. |
+| `PUT /podcasts/{id}/auto-store` | `PATCH /podcasts/{id}` | covered | `{auto_store}`; `Podcast.auto_store` tells. |
+| `POST /podcasts/{id}/store-all` | `POST /podcasts/{id}/store` | covered | `{latest?, preview?}`; `202` queued, `200` for a preview. |
+| `POST /podcasts/{id}/episodes/{ep_id}/download` | `PUT /episodes/{id}/stored` | covered | Queued (`202`); `Episode.stored` turns true in the change feed. v1 fetched it during the request. |
+| `DELETE /podcasts/{id}/episodes/{ep_id}/download` | `DELETE /episodes/{id}/stored` | covered | Into the trash, as v1. |
+| `POST /podcasts/{id}/sync-images` | `POST /podcasts/{id}/refresh` | covered | Part of the refresh. |
+| `POST /podcasts/search` | `GET /podcasts/directory/search` | covered | A `GET` with `q`; results carry `podcast_id` when the caller has the show. `501` when `modules.podcast_search` is off, `502` when the directory does not answer (v1: `500`). |
+| `GET /podcasts/discover/browse` | `GET /podcasts/directory` | covered | `category=`; cursor-paged instead of `offset`. |
+| `GET /podcasts/discover/categories` | `GET /podcasts/directory/categories` | covered | One page. |
+| `GET /podcasts/discover/preview` | `GET /podcasts/directory/preview` | covered | Adds the show itself and each episode's file and art; milliseconds. |
+| `GET /podcasts/discover/similar` | `GET /podcasts/directory/similar` | covered | `feed_url=`. |
+| `GET /podcasts/{id}/similar` | `GET /podcasts/directory/similar` | covered | `podcast_id=`; one route for both. |
 
 ## Music
 

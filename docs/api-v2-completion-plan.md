@@ -87,7 +87,8 @@ Each phase is one to five commits on `main`, each commit complete on its own:
    not the catalog, and the iPhone apps read them, so changing them would not be additive. The
    plan keeps bounded lists (members, invites, sessions, tokens, push devices, library folders,
    settings) as arrays and pages everything that grows with the catalog, the history or time.
-   Proposal: reword rule 4 to say exactly that. Question 3.
+   Decided (Kornel, 2026-11-17): rule 4 reworded in phase 2 — lists that grow with the catalog
+   are paged, lists bounded by the household may be arrays.
 2. **Rule 11, "a handler test".** The repo has no database-backed Rust tests: `cargo test` runs
    in CI without PostgreSQL, and behaviour is proved by the conformance suite. §4.1 defines what a
    handler test is here. Kornel (2026-11-17): handler tests may use a real PostgreSQL
@@ -165,7 +166,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 |---|---|---|---|---|
 | 0 | Groundwork: v2 media path, people's pictures, image links, test tools — **done** | 2 | M | everything; v1 removal |
 | 1 | Account and sign-in — **done** | 23 | L | W Ab Am Ap M |
-| 2 | Podcast feeds and directory | 16 | L | M T W Ap |
+| 2 | Podcast feeds and directory — **done** | 16 | L | M T W Ap |
 | 3 | Sync essentials and continue listening | 3 | M | S (so M W), A, T |
 | 4 | Deletion and trash | 7 | M | M W Am, S |
 | 5 | Books: editing, files, series, collections, tags, authors, images | 34 | L | W Ab M |
@@ -308,7 +309,56 @@ against a stub provider in a unit test (no real Google in CI).
 CHANGELOG: one line per group (sign-up, password, e-mail verification, two-factor, profile,
 Subsonic key, grants, discovery fields).
 
-### Phase 2 — podcast feeds and directory (L)
+### Phase 2 — podcast feeds and directory (L) — done 2026-11-17
+
+Done, v2 revision 4: every operation in the table below and `POST /podcasts/refresh`; the 16 rows
+covered. Handler tests through the v2 router (signed-in only, v1's outbound bucket on follow,
+refresh and preview) and against a stub catalogue (languages one at a time, the browse offset);
+unit tests for feed addresses, feed errors, the preview's order and the transcript's speakers.
+The conformance suite `v2_podcasts` follows a feed it serves itself
+(`conformance/compose.feeds.yml` lets a stack fetch it), and walks every write to the change
+feed. Rule 4 is reworded (§1.4 item 1). What the plan said, with these differences:
+
+- No `modules.podcast_directory`: the directory follows the two modules servers already report
+  (rule 1) — `podcast_search` for search (the catalogue, or Apple's public search without it,
+  as v1), `podcast_discovery` for categories, browse and similar. Off is `501
+  feature_unavailable`; a directory that does not answer is `502 directory_unavailable` (v1:
+  `500`). The preview needs neither: it reads the feed itself.
+- Directory answers are `Page`s. Search, categories and similar are one page (no `cursor`: the
+  directory answers its best, and categories are its fixed taxonomy); browse is cursor-paged,
+  the catalogue's offset inside the cursor. `limit` 1–100 (25), similar 1–50 (20). Results carry
+  `podcast_id` when the caller has the show; browse and similar leave those out, as v1.
+- `POST /podcasts` is `x-permission: member` (was `can_upload`): following is any member's, as
+  on v1; an uploaded show still needs `can_upload`, checked in the handler and by `v2_podcasts`
+  (no longer by `v2_walk`'s `can_upload` sweep). Errors: `invalid_feed_url` (also an address the
+  outbound guard refuses), `youtube_not_supported`, `feed_unreadable` (`422`; v1 answered `500`).
+- `PATCH /podcasts/{id}` and `POST …/store` also need `can_upload`, and `PUT /episodes/{id}/stored`
+  is `can_upload` (v1's rules). `DELETE /episodes/{id}/stored` is `owner` (the owner or a
+  household admin, v1's rule), not `member`.
+- Refresh and keeping an episode are queued (`202`) where v1 fetched during the request:
+  `feed_refresh` (deduplicated; with the art when asked through v2) and `episode_download` (asked
+  by name it stores even an episode whose copy was dropped before, as v1's download). The job
+  worker is woken by these, so the work starts at once instead of at the next idle poll.
+  `POST /podcasts/refresh` refreshes every visible show (Subsonic's `refreshPodcasts` did; v1's
+  REST had nothing). An uploaded show answers `409 uploaded_podcast` to refresh, auto-store and
+  store (v1: `204`, no-op, on refresh).
+- Unfollowing writes each episode's removal to the change log in the same transaction: the
+  cascade could not (the show is gone before its episodes). `Podcast` gains `source` and
+  `auto_store`.
+- `GET /me/podcasts/unplayed` lists every visible show once, zero included, paged by id. No
+  migration: the existing indexes serve it (12 ms for a page of 101 shows over 100,200 episodes,
+  `CAPACITY.md`).
+- The transcript answers `{format: segments|text, segments, text?}` with `speaker` from WebVTT
+  voices and Podcast Index JSON; `404 no_transcript`, `422 transcript_too_large`, `502
+  transcript_unavailable`. v1's route is unchanged.
+- CI: the conformance job adds `compose.feeds.yml` (the suite's feeds, so follow and refresh
+  run there; if the runner cannot reach them the feed checks skip, never fail) and
+  `compose.mail.yml` (a mailpit catcher: `POST /auth/password-reset` answers `202`, nothing is
+  sent). `--compose-dir .` stays out: on the one-household stack the `trash` and `filesync`
+  suites fail with it (they assume an outsider in another household: `POST /family/invites` →
+  `403`, a shortcut to an outsider's member → `201`), so the mailed links' checks
+  (`…/password-reset/confirm`, `POST /auth/email-verification`) still wait — phase 14, or
+  whichever phase makes those two suites one-household-aware.
 
 v1 ops: `POST /podcasts/subscribe`, `DELETE /podcasts/{id}`, `POST …/refresh`,
 `GET /podcasts/unplayed-counts`, `PUT …/auto-store`, `POST …/store-all`,
@@ -664,17 +714,14 @@ a line in `CAPACITY.md`.
 
 ## 5. Open questions for Kornel
 
-1. Per-member policies, grants and audience: still v1-only? The gaps plan says Windows and
-   Android Books want them.
+1. ~~Per-member policies, grants and audience~~ — answered: they stay on v1.
 2. Not carried over as proposed: the disc-number back-fill becomes a job; and is sharing a
    playlist with chosen members part of the per-member model (stays on v1) or does it move?
-3. Rule 4: keep bounded household lists (members, invites, sessions, tokens) as arrays, and
-   reword the rule to "everything that grows with the catalog, history or time"?
+3. ~~Rule 4~~ — answered: household-bounded lists may stay arrays; reworded in phase 2.
 4. ~~Handler tests~~ — answered: `#[sqlx::test]` may be used; PostgreSQL joins the CI test job
    with the first phase that needs it (§1.4 item 2).
-5. Hosted bodies: the shipped apps read today's bodies under `/api/v2`. Additive fixes only, with
-   known deviations documented, or new v2-shaped paths with the old ones kept as aliases?
+5. ~~Hosted bodies~~ — answered: additive changes only, deviations documented.
 6. ~~The "v2 stable" edits~~ — answered: `draft` until phase 14, revision counter and contract
    check now (§1.4 item 7).
 7. ~~Permanent links for catalog art~~ — answered: yes, people's pictures keep a short expiry.
-8. At the release, start v1's deprecation (six months minimum), or only when the apps have moved?
+8. ~~v1's deprecation~~ — answered: only once the apps have moved, not at the release.

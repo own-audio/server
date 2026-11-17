@@ -1,0 +1,11 @@
+# Lets the server fetch what the conformance suites serve from the test machine (the feeds and
+# files of `filesync`, `gpodder` and `v2_podcasts`): the name host.docker.internal on Linux too
+# (Docker Desktop has it already), and private addresses, which the outbound guard refuses
+# otherwise. For a test stack only.
+#   docker compose -f docker-compose.yml -f conformance/compose.feeds.yml up -d
+services:
+  server:
+    environment:
+      SERVER__OUTBOUND__ALLOW_PRIVATE: "true"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

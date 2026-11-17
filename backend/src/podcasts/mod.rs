@@ -294,30 +294,7 @@ async fn search_podcasts(
 
     let languages = discovery_languages(&state, family.user_id, body.language.as_deref()).await?;
 
-    let mirror = crate::metadata::mirror::MetadataMirror::new(config);
-    let mut entries = mirror
-        .podcast_search(query, language_param(&languages).as_deref(), 25)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    // A catalogue that predates 2026-08-31 takes one language, not a list: it reads `cs,en` as
-    // one language nobody publishes in and answers nothing at all — which on a client looks
-    // exactly like a broken search, and did (a listener with four languages set got an empty
-    // screen for every query). Asking one language at a time is what such a catalogue can
-    // answer. Only on the empty path, so a new catalogue never pays for it; delete this once
-    // every deployment this talks to understands lists.
-    if entries.is_empty() && languages.len() > 1 {
-        let mut per_language = Vec::new();
-        for language in &languages {
-            per_language.push(
-                mirror
-                    .podcast_search(query, Some(language.as_str()), 25)
-                    .await
-                    .map_err(AuthError::Internal)?,
-            );
-        }
-        entries = interleave_by_language(per_language, 25);
-    }
+    let entries = search_catalogue(config, query, &languages, 25).await.map_err(AuthError::Internal)?;
 
     let results = entries
         .into_iter()
@@ -339,6 +316,53 @@ async fn search_podcasts(
     Ok(Json(results))
 }
 
+/// The catalogue's search in the listener's languages.
+pub(crate) async fn search_catalogue(
+    config: &crate::app::config::MetadataConfig,
+    query: &str,
+    languages: &[String],
+    limit: usize,
+) -> anyhow::Result<Vec<crate::metadata::PodcastCatalogEntry>> {
+    let mirror = crate::metadata::mirror::MetadataMirror::new(config);
+    let mut entries = mirror.podcast_search(query, language_param(languages).as_deref(), limit).await?;
+
+    // A catalogue that predates 2026-08-31 takes one language, not a list: it reads `cs,en` as
+    // one language nobody publishes in and answers nothing at all — which on a client looks
+    // exactly like a broken search, and did (a listener with four languages set got an empty
+    // screen for every query). Asking one language at a time is what such a catalogue can
+    // answer. Only on the empty path, so a new catalogue never pays for it; delete this once
+    // every deployment this talks to understands lists.
+    if entries.is_empty() && languages.len() > 1 {
+        let mut per_language = Vec::new();
+        for language in languages {
+            per_language.push(mirror.podcast_search(query, Some(language.as_str()), limit).await?);
+        }
+        entries = interleave_by_language(per_language, limit);
+    }
+    Ok(entries)
+}
+
+/// The best shows in one category, in the listener's languages; same fallback as
+/// [`search_catalogue`], for the same catalogue.
+pub(crate) async fn browse_catalogue(
+    config: &crate::app::config::MetadataConfig,
+    category: &str,
+    languages: &[String],
+    limit: usize,
+    offset: u32,
+) -> anyhow::Result<Vec<crate::metadata::PodcastCatalogEntry>> {
+    let mirror = crate::metadata::mirror::MetadataMirror::new(config);
+    let mut candidates = mirror.podcast_browse(category, language_param(languages).as_deref(), limit, offset).await?;
+    if candidates.is_empty() && languages.len() > 1 {
+        let mut per_language = Vec::new();
+        for language in languages {
+            per_language.push(mirror.podcast_browse(category, Some(language.as_str()), limit, offset).await?);
+        }
+        candidates = interleave_by_language(per_language, limit);
+    }
+    Ok(candidates)
+}
+
 /// Which languages this caller's discovery answers in.
 ///
 /// The user's own list (migration 0063) unless the request names one, which a
@@ -350,7 +374,7 @@ async fn search_podcasts(
 /// in the household's own backend.** The catalogue is told which languages to
 /// answer in and never which user wanted them — the same split as filtering
 /// out already-subscribed feeds; see docs/podcast-recommendations-plan.md §0.
-async fn discovery_languages(
+pub(crate) async fn discovery_languages(
     state: &AppState,
     user_id: Uuid,
     requested: Option<&str>,
@@ -368,7 +392,7 @@ async fn discovery_languages(
 
 /// The catalogue takes them as one comma-separated `language` parameter;
 /// `None` there means no filter at all.
-fn language_param(languages: &[String]) -> Option<String> {
+pub(crate) fn language_param(languages: &[String]) -> Option<String> {
     (!languages.is_empty()).then(|| languages.join(","))
 }
 
@@ -602,7 +626,7 @@ async fn discover_preview_episodes(
 ///
 /// Sorted here rather than trusted: most feeds are newest-first, enough are not,
 /// and an undated item sorts last instead of pretending to be current.
-fn newest_episodes(channel: &rss::Channel, limit: usize) -> Vec<PreviewEpisode> {
+pub(crate) fn newest_episodes(channel: &rss::Channel, limit: usize) -> Vec<PreviewEpisode> {
     let mut episodes: Vec<PreviewEpisode> = channel
         .items
         .iter()
@@ -681,30 +705,9 @@ async fn discover_browse(
     let config = metadata_config(&state)?;
     let languages = discovery_languages(&state, family.user_id, query.language.as_deref()).await?;
 
-    let mirror = crate::metadata::mirror::MetadataMirror::new(config);
-    let mut candidates = mirror
-        .podcast_browse(
-            query.category.trim(),
-            language_param(&languages).as_deref(),
-            25,
-            query.offset,
-        )
+    let candidates = browse_catalogue(config, query.category.trim(), &languages, 25, query.offset)
         .await
         .map_err(AuthError::Internal)?;
-
-    // Same one-language-at-a-time fallback as `search_podcasts`, and for the same catalogue.
-    if candidates.is_empty() && languages.len() > 1 {
-        let mut per_language = Vec::new();
-        for language in &languages {
-            per_language.push(
-                mirror
-                    .podcast_browse(query.category.trim(), Some(language.as_str()), 25, query.offset)
-                    .await
-                    .map_err(AuthError::Internal)?,
-            );
-        }
-        candidates = interleave_by_language(per_language, 25);
-    }
 
     let known = db::podcasts::subscribed_catalog_ids(state.db(), family.viewer())
         .await
@@ -1237,7 +1240,7 @@ const YOUTUBE_RETIRED: &str = "YouTube channels are no longer refreshed: this se
 
 /// Storing from the publisher means nothing for a feed the server does not fetch: an
 /// uploaded podcast (its episodes are stored already) or a retired YouTube feed.
-fn not_fetched(source_type: &str) -> Option<AuthError> {
+pub(crate) fn not_fetched(source_type: &str) -> Option<AuthError> {
     match source_type {
         "youtube" => Some(AuthError::Conflict("youtube_not_supported".into())),
         "upload" => Some(AuthError::Conflict("uploaded_podcast".into())),
@@ -1246,7 +1249,7 @@ fn not_fetched(source_type: &str) -> Option<AuthError> {
 }
 
 /// youtube.com, its subdomains, and youtu.be — refused on subscribe.
-fn is_youtube_address(input: &str) -> bool {
+pub(crate) fn is_youtube_address(input: &str) -> bool {
     url::Url::parse(input.trim())
         .ok()
         .and_then(|u| u.host_str().map(str::to_ascii_lowercase))
@@ -1396,34 +1399,44 @@ async fn store_all(
     if let Some(refusal) = not_fetched(&feed.source_type) {
         return Err(refusal);
     }
-    let latest = body.latest.filter(|n| *n > 0);
+    let (episodes, estimated_bytes) =
+        store_back_catalogue(state.db(), id, body.latest, body.preview).await.map_err(AuthError::Internal)?;
+    Ok(Json(StoreAllResponse { episodes, estimated_bytes }))
+}
+
+/// Queues an `episode_download` for each episode of a show not stored yet (the newest
+/// `latest` of them, or all), or with `preview` only counts them. Answers how many, and
+/// roughly how many bytes from their durations at 128 kbit/s (feeds rarely state sizes).
+pub(crate) async fn store_back_catalogue(
+    pool: &sqlx::PgPool,
+    id: Uuid,
+    latest: Option<i64>,
+    preview: bool,
+) -> anyhow::Result<(i64, i64)> {
+    let latest = latest.filter(|n| *n > 0);
     let (episodes, seconds): (i64, Option<i64>) = sqlx::query_as(&format!(
         "SELECT count(*), sum(COALESCE(duration_secs, 1800))::bigint FROM podcast_episodes WHERE {UNSTORED}"
     ))
     .bind(id)
     .bind(latest)
-    .fetch_one(state.db())
-    .await
-    .map_err(|e| AuthError::Internal(e.into()))?;
+    .fetch_one(pool)
+    .await?;
     let estimated_bytes = seconds.unwrap_or(0) * 16_000;
-    if body.preview {
-        return Ok(Json(StoreAllResponse { episodes, estimated_bytes }));
+    if preview {
+        return Ok((episodes, estimated_bytes));
     }
     let queued: Vec<Uuid> = sqlx::query_scalar(&format!(
         "UPDATE podcast_episodes SET auto_stored_at = now() WHERE {UNSTORED} RETURNING id"
     ))
     .bind(id)
     .bind(latest)
-    .fetch_all(state.db())
-    .await
-    .map_err(|e| AuthError::Internal(e.into()))?;
+    .fetch_all(pool)
+    .await?;
     for episode_id in &queued {
         let payload = serde_json::json!({ "episode_id": episode_id.to_string() });
-        db::jobs::enqueue(state.db(), "episode_download", Some(&payload), None)
-            .await
-            .map_err(AuthError::Internal)?;
+        db::jobs::enqueue(pool, "episode_download", Some(&payload), None).await?;
     }
-    Ok(Json(StoreAllResponse { episodes: queued.len() as i64, estimated_bytes }))
+    Ok((queued.len() as i64, estimated_bytes))
 }
 
 /// Queue `episode_download` for the new episodes of an auto-store show — those
@@ -1602,7 +1615,7 @@ fn extract_transcript(item: &rss::Item) -> Option<(String, String)> {
 }
 
 /// Parse "HH:MM:SS" or "MM:SS" or plain seconds into `i32`.
-fn parse_duration(s: &str) -> Option<i32> {
+pub(crate) fn parse_duration(s: &str) -> Option<i32> {
     let parts: Vec<&str> = s.split(':').collect();
     match parts.len() {
         1 => parts[0].parse().ok(),
@@ -2053,7 +2066,35 @@ async fn sync_images(
         .ok_or(AuthError::ItemNotFound)?;
 
     let channel = fetch_rss(&feed.feed_url, &state.config().auth.session_secret).await?;
+    store_channel_art(pool, state.storage(), id, &channel).await.map_err(AuthError::Internal)?;
 
+    // Return the updated feed so the frontend can refresh state immediately
+    let fresh = db::podcasts::find_feed(pool, id, family.viewer())
+        .await
+        .map_err(AuthError::Internal)?
+        .ok_or(AuthError::ItemNotFound)?;
+
+    Ok(Json(feed_to_response(fresh, family.user_id)))
+}
+
+/// Fetches a feed and stores the show's and its episodes' art on this server (what v1's
+/// `sync-images` does; v2's refresh asks for it through the `feed_refresh` job).
+pub async fn store_feed_art(pool: &sqlx::PgPool, storage: &ObjectStore, id: Uuid) -> anyhow::Result<()> {
+    let feed_url: Option<(String, String)> = sqlx::query_as("SELECT feed_url, source_type FROM podcast_feeds WHERE id = $1")
+        .bind(id)
+        .fetch_optional(pool)
+        .await?;
+    let Some((feed_url, source_type)) = feed_url else { return Ok(()) };
+    if source_type != "rss" {
+        return Ok(());
+    }
+    let channel = fetch_rss_url(&feed_url).await?;
+    store_channel_art(pool, storage, id, &channel).await
+}
+
+/// Stores the channel's art and every episode's, deduplicated by address. Already-stored
+/// images are skipped, so it is safe to run again.
+async fn store_channel_art(pool: &sqlx::PgPool, storage: &ObjectStore, id: Uuid, channel: &rss::Channel) -> anyhow::Result<()> {
     // ── Channel artwork ──────────────────────────────────────────────────
     let channel_image_url: Option<String> = channel
         .itunes_ext()
@@ -2062,7 +2103,7 @@ async fn sync_images(
         .or_else(|| channel.image().map(|i| i.url().to_string()));
 
     let channel_image_object_id: Option<Uuid> = if let Some(ref url) = channel_image_url {
-        store_image_from_url(pool, state.storage(), url).await.ok()
+        store_image_from_url(pool, storage, url).await.ok()
     } else {
         None
     };
@@ -2079,7 +2120,7 @@ async fn sync_images(
         .bind(channel_image_object_id)
         .execute(pool)
         .await
-        .map_err(|e| AuthError::Internal(e.into()))?;
+        ?;
     }
 
     // ── Episode artwork ──────────────────────────────────────────────────
@@ -2094,7 +2135,7 @@ async fn sync_images(
             .map(str::to_string);
 
         let ep_image_object_id: Option<Uuid> = if let Some(ref url) = ep_image_url {
-            store_image_from_url(pool, state.storage(), url).await.ok()
+            store_image_from_url(pool, storage, url).await.ok()
         } else {
             None
         };
@@ -2112,17 +2153,10 @@ async fn sync_images(
             .bind(ep_image_object_id)
             .execute(pool)
             .await
-            .map_err(|e| AuthError::Internal(e.into()))?;
+            ?;
         }
     }
-
-    // Return the updated feed so the frontend can refresh state immediately
-    let fresh = db::podcasts::find_feed(pool, id, family.viewer())
-        .await
-        .map_err(AuthError::Internal)?
-        .ok_or(AuthError::ItemNotFound)?;
-
-    Ok(Json(feed_to_response(fresh, family.user_id)))
+    Ok(())
 }
 
 /// GET /api/v1/podcasts/{id}/image

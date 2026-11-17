@@ -197,6 +197,16 @@ The fall-off was the file-sync path claim (`filesync/paths.rs`): one OR with a
 into an index range, so every new item read every path its owner had (40 ms
 a file at 44,000 files). It is three index lookups now (0.14 ms).
 
+## Measured: unplayed episodes per show (2026-11-17)
+
+`GET /api/v2/me/podcasts/unplayed` (v2 phase 2) counts, for one page of shows, the episodes the
+listener has not finished: the page's ids first, then one `GROUP BY` over their episodes and the
+listener's progress. On a synthetic household of 300 shows and 100,200 episodes, 30,000 of them
+with progress, a page of 101 shows (a third of all episodes) took **12 ms** (`EXPLAIN ANALYZE`,
+hash joins over the episodes; a smaller share of the catalog uses `podcast_episodes (feed_id)`).
+The existing indexes serve it — the episodes' `feed_id`, the progress key `(user_id,
+episode_id)` — so no migration was added.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

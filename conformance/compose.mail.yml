@@ -1,0 +1,16 @@
+# A mail catcher, so the routes that mail a link (`v2_account`: password reset, address
+# confirmation) answer as on a server with mail, and nothing leaves the stack. For a test
+# stack only; the suites read the links' tokens from the database (`--compose-dir`).
+#   docker compose -f docker-compose.yml -f conformance/compose.mail.yml up -d
+services:
+  mailpit:
+    image: axllent/mailpit:v1.29
+  server:
+    depends_on:
+      mailpit:
+        condition: service_started
+    environment:
+      MAIL__SMTP_HOST: mailpit
+      MAIL__SMTP_PORT: "1025"
+      MAIL__SMTP_SECURITY: none
+      MAIL__FROM_ADDRESS: conformance@example.com

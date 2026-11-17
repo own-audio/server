@@ -36,7 +36,7 @@ Until then v1 is served unchanged for the apps built on it and gets no new featu
 | Sign-in | separate routes per method | one OAuth 2.0 token endpoint, `POST /auth/token`, with grants: password, refresh, device code (RFC 8628), provider id token, two-factor |
 | Ids | some names as ids (artists, albums) | a stable, opaque UUID for every entity; renaming keeps the id |
 | Errors | `{error: "..."}` in several shapes | RFC 9457 problem details everywhere, with a stable `code` |
-| Lists | often the whole list | cursor-paged: `limit` (≤ 500), `cursor`, `{items, next}` |
+| Lists | often the whole list | cursor-paged where they grow with the catalog: `limit` (≤ 500), `cursor`, `{items, next}` |
 | Records | names copied into every record | normalized: ids and credits, `include=` embeds referenced records once |
 | Time | seconds and milliseconds mixed | milliseconds; RFC 3339 UTC timestamps |
 | Progress | one model per medium | one model: `me/progress/{kind}/{id}`, last position per device |
@@ -54,8 +54,10 @@ Until then v1 is served unchanged for the apps built on it and gets no new featu
    `instance_admin`, `can_upload`, `can_generate`, `owner`). A route without one fails a test.
 3. **Errors are problem details** with a stable `code`. `404` means missing *or not visible to
    you*, never "forbidden".
-4. **Every list is cursor-paged** and answered in SQL with an index. No `fetch_all` over a
-   catalog table; no list that grows with the catalog without paging.
+4. **Every list that can grow with the catalog is cursor-paged** (with the catalog, a history or
+   time) and answered in SQL with an index; no `fetch_all` over a catalog table. Lists bounded by
+   the household (members, invites, sessions, tokens, push devices, library folders, settings)
+   may be arrays. (Kornel, 2026-11-17.)
 5. **Ids are UUIDs, times are milliseconds, keys are `snake_case`,** timestamps RFC 3339 UTC.
 6. **Credentials only in headers and bodies.** Media and images go through signed links.
 7. **Changes reach the change feed.** Anything a client caches writes to the change log, so

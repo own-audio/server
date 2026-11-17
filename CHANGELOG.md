@@ -31,6 +31,11 @@ semver. Each release states the **API contract revision** it serves
   old one, so an image link always shows the picture it was made for; the replaced one is
   removed by the storage sweep.
 
+- The job worker starts a refresh or a download a request queued at once, rather than at its
+  next idle poll (up to 30 s later).
+- `docs/api-v2-rules.md` rule 4: lists that grow with the catalog are cursor-paged; lists
+  bounded by the household may stay arrays.
+
 - Console wording follows `i18n/GLOSSARY.md` and matches the apps: American English throughout
   (catalog, favorites, canceled, recognize); Czech "obálka" for a cover, never "obal"; the
   permanent-delete dialogs say "Smazat" in their text as in their titles. The glossary records
@@ -78,6 +83,37 @@ semver. Each release states the **API contract revision** it serves
   member's (or household's) ids on every operation, problem details on every refusal, and
   every cursor-paged list in each of its orders, two at a time against one page. After a run,
   `run.py` lists the v2 operations that never answered 2xx (`--v2-coverage-strict` to fail).
+- `POST /api/v2/podcasts` follows a feed (`{feed_url, visibility?}`): fetched at once, a show
+  the caller has already answers `200`, `Idempotency-Key` as on every create; any member may
+  follow (an uploaded show still needs the right to add to the library). `DELETE
+  /api/v2/podcasts/{id}` unfollows (the owner, or a household admin for a shared show), and the
+  change feed sends the removal of the show and of each of its episodes. Problem codes
+  `invalid_feed_url`, `youtube_not_supported`, `feed_unreadable`, `uploaded_podcast`. v2
+  revision 4.
+- `POST /api/v2/podcasts/{id}/refresh` (and `POST /api/v2/podcasts/refresh` for every show) —
+  queued, `202`; the show's and episodes' art is stored on the way (v1's `sync-images`), and new
+  episodes arrive through `/sync/changes`. v2 revision 4.
+- `PATCH /api/v2/podcasts/{id}` (`auto_store`), `POST /api/v2/podcasts/{id}/store` (the back
+  catalogue, or the newest `latest`; `preview` counts), `PUT`/`DELETE
+  /api/v2/episodes/{id}/stored` (keep one episode on the server, queued; or drop the server's
+  copy into the trash). `Podcast` gains `source` and `auto_store`. v2 revision 4.
+- `GET /api/v2/me/podcasts/unplayed` — how many episodes of each show the caller has not
+  finished, cursor-paged, one grouped query per page. v2 revision 4.
+- `GET /api/v2/episodes/{id}/transcript` — the publisher's (or the uploaded) transcript read by
+  the server into timed segments, with the speaker where WebVTT voices or Podcast Index JSON
+  name one; `404 no_transcript`. v2 revision 4.
+- The podcast directory on v2: `GET /api/v2/podcasts/directory/search`, `…/categories`,
+  `GET /api/v2/podcasts/directory?category=` (cursor-paged), `…/similar?podcast_id=|feed_url=`
+  (one route for v1's two), `…/preview?feed_url=` (the show and its newest episodes with their
+  files, nothing stored). In the caller's discovery languages; what the caller has carries its
+  `podcast_id`. A server without the catalogue or the search answers `501
+  feature_unavailable` (`modules.podcast_discovery`, `modules.podcast_search`), a directory
+  that does not answer `502 directory_unavailable`. v2 revision 4.
+- Conformance: the `v2_podcasts` suite (follow, unfollow, refresh, storing, unplayed,
+  transcripts, the directory, their change-feed entries) against a feed it serves itself;
+  `conformance/compose.feeds.yml` lets a test stack fetch it (and `filesync`'s and `gpodder`'s)
+  on Linux, `conformance/compose.mail.yml` gives a test stack a mail catcher; CI's conformance
+  job uses both.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

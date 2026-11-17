@@ -204,7 +204,11 @@ const TRANSCRIPT_TYPES: &[&str] = &["text/vtt", "application/srt", "text/srt", "
 
 #[derive(Deserialize, ToSchema)]
 pub struct NewPodcast {
-    pub title: String,
+    /// Follow this feed. The feed gives the title, hosts and the rest, so only `visibility`
+    /// is read beside it. Without it, the request makes a show whose episodes its owner uploads.
+    pub feed_url: Option<String>,
+    /// Required for an uploaded show.
+    pub title: Option<String>,
     /// The host or hosts, `;` or ` & ` between several.
     pub author: Option<String>,
     pub description: Option<String>,
@@ -216,17 +220,24 @@ pub struct NewPodcast {
     pub guid: Option<String>,
 }
 
-/// A podcast whose episodes its owner uploads. Never fetched from anywhere.
+/// Follows a feed (`feed_url`): fetched now, its episodes in the library at once, refreshed
+/// by the server from then on. Any member may follow. Or, without `feed_url`, makes a podcast
+/// whose episodes its owner uploads, never fetched from anywhere; that needs the right to add
+/// to the library. Send an `Idempotency-Key` to retry safely.
 #[utoipa::path(post, path = "/podcasts", tag = "library", security(("bearer" = [])),
-    extensions(("x-permission" = json!("can_upload"))),
+    extensions(("x-permission" = json!("member"))),
     request_body = NewPodcast,
     responses((status = 201, body = spoken::Podcast),
-        (status = 200, description = "A show with this guid exists: that show", body = spoken::Podcast),
-        (status = 400, description = "No title, a bad visibility, or a cover that is not an image", body = crate::v2::problem::ProblemBody),
-        (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody)))]
+        (status = 200, description = "Followed already (the caller's, or shared with them), or an uploaded show with this guid exists: that show", body = spoken::Podcast),
+        (status = 400, description = "`invalid_feed_url` (also an address this server will not fetch), `youtube_not_supported`, `invalid_title`, `invalid_visibility`, `not_an_image`", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "An uploaded show by someone not allowed to add to the library", body = crate::v2::problem::ProblemBody),
+        (status = 422, description = "`feed_unreadable`: the feed could not be fetched or is not a feed", body = crate::v2::problem::ProblemBody)))]
 pub async fn create_podcast(family: FamilyContext, State(state): State<AppState>, Json(body): Json<NewPodcast>) -> Result<(StatusCode, Json<spoken::Podcast>), Problem> {
+    if let Some(feed_url) = body.feed_url.as_deref() {
+        return crate::v2::podcasts::follow(&state, &family, feed_url, body.visibility.as_deref()).await;
+    }
     family.require_can_upload()?;
-    let title = body.title.trim();
+    let title = body.title.as_deref().unwrap_or_default().trim();
     if title.is_empty() {
         return Err(Problem::bad_request("invalid_title", "title is required").field("/title", "required", ""));
     }

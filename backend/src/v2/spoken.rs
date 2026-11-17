@@ -95,6 +95,11 @@ pub struct Podcast {
     pub last_refreshed_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// `rss`: followed, fetched from `feed_url`; `upload`: its owner uploads the episodes.
+    /// (`youtube`: followed before this server stopped fetching YouTube; kept, never fetched.)
+    pub source: String,
+    /// The server stores each new episode by itself (`PATCH /podcasts/{id}`).
+    pub auto_store: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -231,6 +236,8 @@ pub(crate) fn podcast(state: &AppState, row: catalog::PodcastRow, credits: Vec<C
         last_refreshed_at: row.last_refreshed_at,
         created_at: row.created_at,
         updated_at: row.updated_at,
+        source: row.source,
+        auto_store: row.auto_store,
     }
 }
 

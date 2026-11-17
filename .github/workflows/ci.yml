@@ -134,7 +134,9 @@ jobs:
           # A second address of the server; the suite asks on it and checks the links follow.
           echo 'OTHER_URLS=http://127.0.0.1:8080' >> .env
           echo 'OTHER_URLS=http://127.0.0.1:8080' >> "$GITHUB_ENV"
-          files="-f docker-compose.yml"
+          # The suite's served feeds (v2_podcasts) reachable from the server, and a mail
+          # catcher so the routes that mail answer as on a server with mail.
+          files="-f docker-compose.yml -f conformance/compose.feeds.yml -f conformance/compose.mail.yml"
           if [ "${{ matrix.storage }}" = s3 ]; then
             printf 'STORAGE_KIND=s3\nCOMPOSE_PROFILES=s3\nS3_SECRET_KEY=ci-secret-key-0000\nS3_PUBLIC_ENDPOINT=http://localhost:9000\n' >> .env
             # A media proxy the server only signs links for; the suite checks the links.
@@ -157,7 +159,7 @@ jobs:
       # never carries a password or a bearer token.
       - name: No secrets in the server log
         run: |
-          files="-f docker-compose.yml"
+          files="-f docker-compose.yml -f conformance/compose.feeds.yml -f conformance/compose.mail.yml"
           [ "${{ matrix.storage }}" = s3 ] || files="$files -f conformance/compose.library.yml"
           if docker compose $files logs server 2>&1 | grep -E "CiAdmin123|FamilyTest123|Bearer [A-Za-z0-9._-]{20,}|refresh_token\"?:\s*\"[A-Za-z0-9]{20,}"; then
             echo "a secret made it into the server log"; exit 1
@@ -166,7 +168,7 @@ jobs:
       # server must work on what came back.
       - name: Backup and restore
         run: |
-          files="-f docker-compose.yml"
+          files="-f docker-compose.yml -f conformance/compose.feeds.yml -f conformance/compose.mail.yml"
           [ "${{ matrix.storage }}" = s3 ] || files="$files -f conformance/compose.library.yml"
           docker compose $files exec -T backup sh /db-backup.sh now
           dump=$(ls backups/daily/*.dump | tail -1)

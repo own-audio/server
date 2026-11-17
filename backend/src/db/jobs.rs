@@ -345,3 +345,41 @@ pub async fn enqueue_due_feed_refreshes(
     Ok(rows_affected)
 }
 
+
+/// One `feed_refresh` for this feed, unless one is already waiting or running
+/// (`jobs_feed_refresh_inflight_idx`); with `images`, the refresh also stores the show's and
+/// episodes' art, and a waiting refresh is told to. True when a job was added or changed.
+pub async fn enqueue_feed_refresh(pool: &PgPool, feed_id: Uuid, images: bool) -> anyhow::Result<bool> {
+    let result = sqlx::query(
+        "INSERT INTO jobs (job_type, payload, scheduled_at) VALUES ('feed_refresh', $1, CURRENT_TIMESTAMP)
+         ON CONFLICT (job_type, (payload ->> 'feed_id'))
+             WHERE job_type = 'feed_refresh' AND status IN ('pending', 'running')
+         DO UPDATE SET payload = jobs.payload || EXCLUDED.payload
+             WHERE jobs.status = 'pending' AND $2",
+    )
+    .bind(serde_json::json!({ "feed_id": feed_id.to_string(), "images": images }))
+    .bind(images)
+    .execute(pool)
+    .await
+    .context("db: enqueue feed refresh")?;
+    Ok(result.rows_affected() > 0)
+}
+
+/// A job of `job_type` whose payload's `key` is `value`, unless one is already waiting or
+/// running for it. True when a job was added.
+pub async fn enqueue_once(pool: &PgPool, job_type: &str, key: &str, value: &str, payload: &Value) -> anyhow::Result<bool> {
+    let result = sqlx::query(
+        "INSERT INTO jobs (job_type, payload, scheduled_at)
+         SELECT $1, $4, CURRENT_TIMESTAMP
+          WHERE NOT EXISTS (SELECT 1 FROM jobs
+                             WHERE job_type = $1 AND payload ->> $2 = $3 AND status IN ('pending', 'running'))",
+    )
+    .bind(job_type)
+    .bind(key)
+    .bind(value)
+    .bind(payload)
+    .execute(pool)
+    .await
+    .context("db: enqueue job once")?;
+    Ok(result.rows_affected() > 0)
+}

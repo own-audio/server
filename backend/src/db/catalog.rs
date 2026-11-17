@@ -695,11 +695,15 @@ pub struct PodcastRow {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub sort_key: String,
+    /// `rss`, `upload`, or `youtube` (followed before that was removed; never fetched).
+    pub source: String,
+    pub auto_store: bool,
 }
 
 const PODCAST_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.feed_url, t.description, t.link, t.language,
     t.podcast_guid, t.categories, t.image_object_id, t.image_url,
-    t.last_refreshed_at, t.created_at, t.updated_at, lower(t.title) AS sort_key";
+    t.last_refreshed_at, t.created_at, t.updated_at, lower(t.title) AS sort_key,
+    t.source_type AS source, t.auto_store_since IS NOT NULL AS auto_store";
 
 pub async fn list_podcasts(
     pool: &PgPool,

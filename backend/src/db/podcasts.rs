@@ -490,3 +490,102 @@ pub async fn insert_uploaded_episode(pool: &PgPool, ep: NewUploadedEpisode<'_>) 
     .await
     .context("db: insert uploaded episode")
 }
+
+// ── /api/v2 (docs/api-v2-completion-plan.md, phase 2) ────────────────────
+
+/// The visible feed with this exact address, if any: following it again answers that one.
+pub async fn visible_feed_by_url(pool: &PgPool, viewer: Viewer, feed_url: &str) -> anyhow::Result<Option<Uuid>> {
+    let sql = format!("SELECT t.id FROM podcast_feeds t WHERE t.feed_url = $5 AND {VISIBLE} ORDER BY (t.user_id = $1) DESC, t.id LIMIT 1");
+    bind_viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
+        .bind(feed_url)
+        .fetch_optional(pool)
+        .await
+        .context("db: visible feed by url")
+}
+
+/// Which of these addresses the viewer already follows (or sees shared), as podcast ids.
+pub async fn visible_feeds_by_urls(
+    pool: &PgPool,
+    viewer: Viewer,
+    urls: &[String],
+) -> anyhow::Result<std::collections::HashMap<String, Uuid>> {
+    if urls.is_empty() {
+        return Ok(Default::default());
+    }
+    let sql = format!(
+        "SELECT DISTINCT ON (t.feed_url) t.feed_url, t.id FROM podcast_feeds t
+          WHERE t.feed_url = ANY($5) AND {VISIBLE}
+          ORDER BY t.feed_url, (t.user_id = $1) DESC, t.id"
+    );
+    let rows = bind_viewer!(sqlx::query_as::<_, (String, Uuid)>(&sql), viewer)
+        .bind(urls)
+        .fetch_all(pool)
+        .await
+        .context("db: visible feeds by url")?;
+    Ok(rows.into_iter().collect())
+}
+
+/// One page of the visible podcasts, in id order, each with how many of its episodes the
+/// viewer has not finished. One grouped query for the page, not one count per show
+/// (completion plan, optimisation 11): the page's ids come first, then a single
+/// `GROUP BY` over their episodes and the viewer's progress (primary key `(user_id, episode_id)`,
+/// episodes by `feed_id`).
+pub async fn unplayed_page(pool: &PgPool, viewer: Viewer, after: Option<Uuid>, limit: i64) -> anyhow::Result<Vec<(Uuid, i64)>> {
+    let sql = format!(
+        "WITH page AS (
+             SELECT t.id FROM podcast_feeds t
+              WHERE {VISIBLE} AND ($5::uuid IS NULL OR t.id > $5)
+              ORDER BY t.id LIMIT $6)
+         SELECT p.id, count(e.id) FILTER (WHERE pp.completed IS NOT TRUE)
+           FROM page p
+           LEFT JOIN podcast_episodes e ON e.feed_id = p.id
+           LEFT JOIN podcast_progress pp ON pp.user_id = $1 AND pp.episode_id = e.id
+          GROUP BY p.id ORDER BY p.id"
+    );
+    bind_viewer!(sqlx::query_as::<_, (Uuid, i64)>(&sql), viewer)
+        .bind(after)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: unplayed episodes per podcast")
+}
+
+/// Stops following a feed: the feed and its episodes go, each episode written to the change
+/// log as removed in the same transaction. The cascade alone would not: by the time an
+/// episode row is deleted its feed is gone, and the log could not tell whose it was.
+pub async fn unfollow(pool: &PgPool, id: Uuid) -> anyhow::Result<bool> {
+    let mut tx = pool.begin().await.context("db: begin unfollow")?;
+    sqlx::query(
+        "SELECT change_log('episode', e.id, music_owner_family(f.user_id), NULL)
+           FROM podcast_episodes e JOIN podcast_feeds f ON f.id = e.feed_id
+          WHERE f.id = $1",
+    )
+    .bind(id)
+    .execute(&mut *tx)
+    .await
+    .context("db: log removed episodes")?;
+    let gone = sqlx::query("DELETE FROM podcast_feeds WHERE id = $1")
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .context("db: delete podcast feed")?
+        .rows_affected()
+        > 0;
+    tx.commit().await.context("db: commit unfollow")?;
+    Ok(gone)
+}
+
+/// Turns storing new episodes by itself on (from now) or off.
+pub async fn set_auto_store(pool: &PgPool, id: Uuid, on: bool) -> anyhow::Result<()> {
+    sqlx::query(
+        "UPDATE podcast_feeds
+            SET auto_store_since = CASE WHEN $2 THEN COALESCE(auto_store_since, now()) END
+          WHERE id = $1",
+    )
+    .bind(id)
+    .bind(on)
+    .execute(pool)
+    .await
+    .context("db: set auto-store")?;
+    Ok(())
+}

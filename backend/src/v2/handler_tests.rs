@@ -196,3 +196,105 @@ async fn discovery_without_a_database_still_answers() {
     assert_eq!((d["auth"]["password_reset"].as_bool(), d["auth"]["email_verification"].as_bool()), (Some(false), Some(false)));
     assert!(d.get("demo").is_none());
 }
+
+// ── Phase 2: podcasts and the directory ─────────────────────────────────────
+
+#[tokio::test]
+async fn podcast_routes_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("POST", "/api/v2/podcasts".to_string()),
+        ("DELETE", format!("/api/v2/podcasts/{id}")),
+        ("PATCH", format!("/api/v2/podcasts/{id}")),
+        ("POST", format!("/api/v2/podcasts/{id}/refresh")),
+        ("POST", "/api/v2/podcasts/refresh".to_string()),
+        ("POST", format!("/api/v2/podcasts/{id}/store")),
+        ("PUT", format!("/api/v2/episodes/{id}/stored")),
+        ("DELETE", format!("/api/v2/episodes/{id}/stored")),
+        ("GET", format!("/api/v2/episodes/{id}/transcript")),
+        ("GET", "/api/v2/me/podcasts/unplayed".to_string()),
+        ("GET", "/api/v2/podcasts/directory/search?q=news".to_string()),
+        ("GET", "/api/v2/podcasts/directory/categories".to_string()),
+        ("GET", "/api/v2/podcasts/directory?category=news".to_string()),
+        ("GET", "/api/v2/podcasts/directory/similar?feed_url=https://example.com/f".to_string()),
+        ("GET", "/api/v2/podcasts/directory/preview?feed_url=https://example.com/f".to_string()),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "feed_url": "https://example.com/f" }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
+/// A stand-in for the metadata service's catalogue: an old one that reads a list of
+/// languages as one language nobody publishes in, so answers only one language at a time.
+async fn stub_catalogue() -> String {
+    use axum::extract::Query;
+    use axum::routing::get;
+    use std::collections::HashMap;
+    let entry = |id: i64, lang: &str| json!({ "id": id, "url": format!("https://example.com/{id}"), "title": format!("Show {id}"),
+        "language": lang, "episode_count": 3, "categories": ["news"] });
+    let by_language = move |q: HashMap<String, String>| -> Vec<Value> {
+        match q.get("language").map(String::as_str) {
+            Some("cs") => vec![entry(1, "cs"), entry(2, "cs")],
+            Some("en") => vec![entry(3, "en"), entry(2, "cs")],
+            Some(_) => vec![],
+            None => vec![entry(9, "de")],
+        }
+    };
+    let router = axum::Router::new()
+        .route("/v1/podcasts/search", get(move |Query(q): Query<HashMap<String, String>>| async move { axum::Json(by_language(q)) }))
+        .route("/v1/podcasts/browse", get(move |Query(q): Query<HashMap<String, String>>| async move {
+            let offset: usize = q.get("offset").and_then(|o| o.parse().ok()).unwrap_or(0);
+            axum::Json(by_language(q).into_iter().skip(offset).collect::<Vec<_>>())
+        }))
+        .route("/v1/podcasts/categories", get(|| async { axum::Json(json!([{ "category": "news", "feed_count": 10, "active_count": 4 }])) }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    format!("http://{address}")
+}
+
+#[tokio::test]
+async fn the_directory_asks_the_catalogue_in_the_listeners_languages() {
+    let base_url = stub_catalogue().await;
+    let config = crate::app::config::MetadataConfig { base_url, api_key: "k".into() };
+    let languages = vec!["cs".to_string(), "en".to_string()];
+    // Asked for `cs,en`, the old catalogue answers nothing; one language at a time, merged
+    // round-robin and each show once.
+    let found = crate::podcasts::search_catalogue(&config, "news", &languages, 25).await.unwrap();
+    assert_eq!(found.iter().map(|e| e.id).collect::<Vec<_>>(), vec![1, 3, 2]);
+    let shows: Vec<crate::v2::podcasts::DirectoryShow> = found.into_iter().map(Into::into).collect();
+    assert_eq!((shows[0].feed_url.as_str(), shows[0].episode_count, shows[0].podcast_id), ("https://example.com/1", Some(3), None));
+    // No languages: no filter at all.
+    let all = crate::podcasts::search_catalogue(&config, "news", &[], 25).await.unwrap();
+    assert_eq!(all.iter().map(|e| e.id).collect::<Vec<_>>(), vec![9]);
+    let browsed = crate::podcasts::browse_catalogue(&config, "news", &["cs".to_string()], 25, 1).await.unwrap();
+    assert_eq!(browsed.iter().map(|e| e.id).collect::<Vec<_>>(), vec![2], "the offset is the cursor's");
+    let categories = crate::metadata::mirror::MetadataMirror::new(&config).podcast_categories().await.unwrap();
+    assert_eq!((categories[0].category.as_str(), categories[0].active_count), ("news", 4));
+}
+
+#[tokio::test]
+async fn following_refreshing_and_previewing_share_v1s_outbound_bucket() {
+    let state = state(json!({})).await;
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("POST", "/api/v2/podcasts".to_string()),
+        ("POST", format!("/api/v2/podcasts/{id}/refresh")),
+        ("POST", "/api/v2/podcasts/refresh".to_string()),
+        ("GET", "/api/v2/podcasts/directory/preview?feed_url=https://example.com/f".to_string()),
+    ] {
+        let mut limits = Limiters::disabled();
+        limits.outbound = crate::http::rate_limit::Limiter::per_minute(2, false);
+        let app = app(&state, &limits);
+        for _ in 0..2 {
+            let (s, _) = send(&app, method, &path, json!({}), false).await;
+            assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "{path} limited too early");
+        }
+        let (s, p) = send(&app, method, &path, json!({}), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")), "{method} {path}");
+        let (s, _) = send(&app, "GET", "/api/v2/podcasts", json!({}), false).await;
+        assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "reading the list is not in the bucket");
+    }
+}

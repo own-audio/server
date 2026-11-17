@@ -19,6 +19,15 @@ use tracing::{debug, error, info, warn};
 /// How often the worker polls for new jobs when the queue was empty (seconds).
 const POLL_INTERVAL_SECS: u64 = 30;
 
+/// Rung by a request that queued work someone is waiting for (a refresh, an episode to
+/// store), so it starts now rather than at the next idle poll. In a process that runs no
+/// worker nobody listens, and the job waits for the worker's own poll as before.
+static WAKE: tokio::sync::Notify = tokio::sync::Notify::const_new();
+
+pub fn wake() {
+    WAKE.notify_one();
+}
+
 /// How long to wait before looking again when the last pass *did* find work.
 ///
 /// The poll interval is a fine idle cadence and a terrible drain rate: with one
@@ -163,12 +172,15 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
     let slots = Arc::new(Semaphore::new(max_concurrent));
 
     loop {
-        tokio::time::sleep(Duration::from_secs(if claimed_last_pass {
+        let idle = Duration::from_secs(if claimed_last_pass {
             BUSY_POLL_INTERVAL_SECS
         } else {
             POLL_INTERVAL_SECS
-        }))
-        .await;
+        });
+        tokio::select! {
+            _ = tokio::time::sleep(idle) => {}
+            _ = WAKE.notified() => {}
+        }
 
         // 1. Enqueue feed_refresh jobs for feeds due for a refresh
         match db::jobs::enqueue_due_feed_refreshes(&pool, FEED_REFRESH_INTERVAL_SECS).await {
@@ -533,7 +545,7 @@ async fn execute_job(
         return handler.run(pool, storage, job).await;
     }
     match job.job_type.as_str() {
-        "feed_refresh" => execute_feed_refresh(pool, job).await,
+        "feed_refresh" => execute_feed_refresh(pool, storage, job).await,
         "stats_rollup" => execute_stats_rollup(pool, job).await,
         "media_checksum" => execute_media_checksum(pool, storage, job).await,
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
@@ -1133,7 +1145,10 @@ async fn execute_episode_download(
         .bind(episode_id)
         .fetch_one(pool)
         .await?;
-    if episode.audio_object_id.is_some() || trashed {
+    // Asked for by name (`PUT /api/v2/episodes/{id}/stored`): stored even after an earlier copy
+    // was deleted, as v1's download does.
+    let asked = job.payload.as_ref().and_then(|p| p.get("asked")).and_then(|v| v.as_bool()) == Some(true);
+    if episode.audio_object_id.is_some() || (trashed && !asked) {
         return Ok(());
     }
     let Some(feed) = sqlx::query_as::<_, crate::podcasts::models::PodcastFeed>(&format!(
@@ -1248,7 +1263,7 @@ async fn execute_podcast_catalog_sync(
     Ok(())
 }
 
-async fn execute_feed_refresh(pool: &PgPool, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
+async fn execute_feed_refresh(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::models::Job) -> anyhow::Result<()> {
     let feed_id_str = job
         .payload
         .as_ref()
@@ -1260,6 +1275,12 @@ async fn execute_feed_refresh(pool: &PgPool, job: &crate::jobs::models::Job) -> 
 
     // Refresh the feed from its RSS source
     podcasts::refresh_feed_job(pool, feed_id).await?;
+    // Asked for by `POST /api/v2/podcasts/{id}/refresh`: the art too, on this server.
+    if job.payload.as_ref().and_then(|p| p.get("images")).and_then(|v| v.as_bool()) == Some(true) {
+        if let Err(e) = podcasts::store_feed_art(pool, storage, feed_id).await {
+            warn!(%feed_id, "could not store the show's art: {e:#}");
+        }
+    }
 
     debug!(%feed_id, "feed refresh complete");
     Ok(())

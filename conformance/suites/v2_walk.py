@@ -65,8 +65,9 @@ BODIES = {
 }
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
-# and an identify run's proposals need a run.
-NOT_PAGED = {"/api/v2/sync/changes", "/api/v2/sync/snapshot", "/api/v2/identify/runs/{id}/proposals"}
+# an identify run's proposals need a run, and a directory category's shows come from the
+# metadata service's catalogue, not from this server (suite v2_podcasts).
+NOT_PAGED = {"/api/v2/sync/changes", "/api/v2/sync/snapshot", "/api/v2/identify/runs/{id}/proposals", "/api/v2/podcasts/directory"}
 
 
 def _ops(doc: dict) -> list[tuple[str, str, dict]]:
