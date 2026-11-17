@@ -27,8 +27,10 @@ Three numbers exist. Do not confuse them.
 1. **API major version** — the path prefix, `/api/v1`. It changes only for an
    incompatible redesign. A new major is served **side by side** with the old
    one for at least 12 months, and the old one keeps receiving security fixes.
-   `/api/v2` is served beside v1 (`api-v2-plan.md`), and clients use it first
-   (`api-v2-first.md`).
+   `/api/v2` is served beside v1 (`api-v2-plan.md`) and is the main API since
+   2026-11-17: clients use it first (`api-v2-first.md`). It becomes stable at the
+   release that completes `api-v2-completion-plan.md`. v1 stays served for the
+   clients built on it and gets no new features.
 2. **Contract revision** — an integer in `GET /api/v1/server` (`api.revision`),
    incremented every time the v1 contract gains something: a new endpoint, a
    new field, a new enum value, a new `features` key. It never goes down and is
@@ -177,9 +179,17 @@ hard-coded "the hosted server has billing").
 
 ---
 
-## 4. Rules for changing v1 (additive only)
+## 4. Rules for changing v1 and v2 (additive only)
 
-Within `/api/v1`, a change is allowed only if a client built against any
+The rules below hold for `/api/v1` and for `/api/v2`. v2 is marked `draft` until the
+release that completes `api-v2-completion-plan.md`, when it becomes stable; the iPhone apps
+ship on it already, so it is additive only now. v2's revision is `V2_REVISION`
+(`backend/src/v2/discovery.rs`), reported in `GET /.well-known/own-audio` → `api[]` and as
+`info.version` of `docs/api/openapi-v2.json` (`2.<revision>-draft`, `2.<revision>` once
+stable); it goes up by one with every addition, and `scripts/check-api-contract.py` checks
+both documents against the last release.
+
+Within either version, a change is allowed only if a client built against any
 earlier revision keeps working without being touched.
 
 Allowed, with a revision bump:
@@ -393,9 +403,10 @@ document disagree, fix whichever is wrong in the same commit.
 
 ---
 
-## 11. For `/api/v2`, not before
+## 11. What v2 changed from v1
 
-Changes v1 cannot make (§4), collected so a v2 is one deliberate step:
+v2 is built (`api-v2-plan.md`) and becomes stable at the release that completes
+`api-v2-completion-plan.md`. These were the changes v1 could not make (§4), and v2 makes them:
 
 1. `404` instead of `401` for a missing item in `/family/*`, `/users/*`,
    jobs, uploads and statistics (§7).

@@ -6969,13 +6969,13 @@
     }
   },
   "info": {
-    "description": "The own.audio API (own-audio/api design/DESIGN.md). Draft until our apps ship on it: it may change in any way until then.",
+    "description": "The own.audio API (own-audio/api design/DESIGN.md). Draft until the release that completes docs/api-v2-completion-plan.md, when it becomes stable; apps already ship on it, so changes are additive only and the revision goes up with each (docs/API_COMPATIBILITY.md).",
     "license": {
       "identifier": "AGPL-3.0-or-later",
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.0-draft"
+    "version": "2.1-draft"
   },
   "openapi": "3.1.0",
   "paths": {

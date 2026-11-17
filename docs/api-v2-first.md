@@ -5,8 +5,11 @@ to `/api/v2`.** `/api/v1` is used only where v2 has nothing yet, and then on pur
 comment saying so. v1 stays served, unchanged, until our apps have moved; then it goes
 (`api-v2-plan.md`, decision 1).
 
-The contract: `docs/api/openapi-v2.json` (still `2.0-draft` — it may change until the first app
-ships on it), the decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
+What v2 is for and the rules every v2 endpoint follows: `api-v2-rules.md`.
+The contract: `docs/api/openapi-v2.json`. v2 becomes stable at the release that completes
+`api-v2-completion-plan.md`; until then it says `draft`, but it is additive only already (the
+apps ship on it), and a client checks the revision in `GET /.well-known/own-audio` → `api[]`
+before relying on something added later. The decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
 The working client to copy from is `OwnAudioKit` in `music-ios`, `book-ios` and `podcast-ios`
 (`Packages/OwnAudioKit/Sources/OwnAudioKit/`): music, books and podcasts on v2.
 

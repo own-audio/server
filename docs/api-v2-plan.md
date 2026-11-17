@@ -9,9 +9,11 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
    OpenAPI document, `docs/api/openapi-v2.json`. Handlers reuse the `db` layer and the domain
    code; they do not call v1 handlers. v1 stays unchanged until our apps have moved, then goes
    (DESIGN §4).
-2. **Draft until our apps ship on it.** Until then v2 may change in any way; its document says
-   `2.0-draft` and the contract check (`scripts/check-api-contract.py`) leaves it alone. When
-   the first app ships, it becomes `2.0` and the additive rule applies as it does to v1.
+2. **Draft until every v1 function is in it.** v2 is the main API now and our apps ship on it,
+   so the additive rule applies as it does to v1: the revision (`V2_REVISION`,
+   `2.<revision>-draft` in `openapi-v2.json`) goes up with each addition, and
+   `scripts/check-api-contract.py` checks it. It becomes stable at the release that completes
+   `api-v2-completion-plan.md` (Kornel, 2026-11-17).
 3. **Problem details for every error** (RFC 9457, `application/problem+json`): `type`, `title`,
    `status`, a stable `code`, `detail`, and `errors[]` for fields. One middleware on `/api/v2`
    turns every error answer into that shape — the handlers' own, the extractors' rejections

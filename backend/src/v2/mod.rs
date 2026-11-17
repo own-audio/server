@@ -213,7 +213,7 @@ impl Modify for Security {
 #[openapi(
     info(
         title = "own.audio API v2",
-        description = "The own.audio API (own-audio/api design/DESIGN.md). Draft until our apps ship on it: it may change in any way until then.",
+        description = "The own.audio API (own-audio/api design/DESIGN.md). Draft until the release that completes docs/api-v2-completion-plan.md, when it becomes stable; apps already ship on it, so changes are additive only and the revision goes up with each (docs/API_COMPATIBILITY.md).",
         license(name = "AGPL-3.0-or-later", identifier = "AGPL-3.0-or-later"),
     ),
     servers((url = "/", description = "This server")),
@@ -232,7 +232,10 @@ pub fn document() -> utoipa::openapi::OpenApi {
         .routes(routes!(discovery::well_known))
         .nest("/api/v2", router(&limits))
         .split_for_parts();
-    api.info.version = format!("2.{}-{}", discovery::V2_REVISION, discovery::V2_STATUS);
+    api.info.version = match discovery::V2_STATUS {
+        "stable" => format!("2.{}", discovery::V2_REVISION),
+        status => format!("2.{}-{status}", discovery::V2_REVISION),
+    };
     let problem = || {
         ContentBuilder::new().schema(Some(RefOr::Ref(Ref::from_schema_name("ProblemBody")))).build()
     };

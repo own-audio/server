@@ -69,8 +69,11 @@ What is shared, and how:
 Clients cannot see this source. Nine of them, on four platforms, run months-old
 builds against today's server — and against two editions of it.
 
-1. **Within `/api/v1`, change only additively.** New endpoint, new optional
-   field, new `features` key, new enum value where the contract says unknown
+1. **Within `/api/v1` and `/api/v2`, change only additively.** v2 is the main API; it is
+   marked `draft` until the release that completes `docs/api-v2-completion-plan.md`, when it
+   becomes stable, but the iPhone apps ship on it, so the additive rule holds now. Its revision
+   is `V2_REVISION` (`backend/src/v2/discovery.rs`), up by one with every addition.
+   New endpoint, new optional field, new `features` key, new enum value where the contract says unknown
    values are tolerated. Never remove, rename, retype, or change a status
    code a client handles. The full rules, the deprecation process (six
    months minimum) and the "contract revision" number are in

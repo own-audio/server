@@ -9,6 +9,12 @@ semver. Each release states the **API contract revision** it serves
 
 ### Changed
 
+- `/api/v2` counts its revisions: discovery reports revision 1 (`openapi-v2.json` version
+  `2.1-draft`, was `2.0-draft`), up by one with every addition. It stays `draft` until the
+  release that completes `docs/api-v2-completion-plan.md`, when it becomes stable; the apps
+  already ship on it, so v2 changes are additive only and `scripts/check-api-contract.py`
+  checks v2 as well as v1.
+
 - Console wording follows `i18n/GLOSSARY.md` and matches the apps: American English throughout
   (catalog, favorites, canceled, recognize); Czech "obálka" for a cover, never "obal"; the
   permanent-delete dialogs say "Smazat" in their text as in their titles. The glossary records

@@ -12,8 +12,11 @@ use serde::Serialize;
 use serde_json::{Map, Value};
 use utoipa::ToSchema;
 
-/// The v2 contract's revision; `status` stays `draft` until our apps ship on it.
-pub const V2_REVISION: u32 = 0;
+/// The v2 contract's revision: up by one with every addition, so a client can check for it.
+/// Counted from 2026-11-17 (revision 1). The iPhone apps already ship on v2, so changes are
+/// additive only even while the status says `draft`.
+pub const V2_REVISION: u32 = 1;
+/// `stable` at the release that completes docs/api-v2-completion-plan.md (its phase 14).
 pub const V2_STATUS: &str = "draft";
 
 #[derive(Serialize, ToSchema)]
