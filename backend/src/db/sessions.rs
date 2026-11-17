@@ -42,9 +42,9 @@ pub async fn insert_with_chain(
     .context("db: insert session")
 }
 
-/// True when the session row exists and has been revoked. A missing row is
-/// treated as *not* revoked for compatibility with tokens whose best-effort
-/// session insert failed before this check existed.
+/// True when the session was revoked, or has no row. Every access token gets
+/// its row when it is made (`auth::issue_tokens` fails otherwise), and rows go
+/// only with their account, so a token without one outlived a deleted account.
 pub async fn is_revoked(pool: &PgPool, id: Uuid) -> anyhow::Result<bool> {
     let revoked_at: Option<Option<DateTime<Utc>>> =
         sqlx::query_scalar("SELECT revoked_at FROM sessions WHERE id = $1")
@@ -53,7 +53,9 @@ pub async fn is_revoked(pool: &PgPool, id: Uuid) -> anyhow::Result<bool> {
             .await
             .context("db: check session revocation")?;
 
-    Ok(matches!(revoked_at, Some(Some(_))))
+    // No row: every access token is recorded when it is made, so one without a row belonged to
+    // an account that was deleted (the rows go with it). It stops working at once.
+    Ok(!matches!(revoked_at, Some(None)))
 }
 
 pub async fn find(pool: &PgPool, id: Uuid) -> anyhow::Result<Option<Session>> {

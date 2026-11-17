@@ -53,6 +53,13 @@ semver. Each release states the **API contract revision** it serves
 - Console: `credit_topup` notifications (hosted servers) in the user's language, from their
   `data`.
 
+### Security
+
+- An access token of a deleted account stops working at once (`401`), on v1 and v2: the
+  session check now treats a token without its session row as revoked. Before, it passed the
+  check until it expired and the request failed further on (`500` on routes that read the
+  household).
+
 ## [1.0.3] - 2026-11-08
 
 Contract revision 26.
