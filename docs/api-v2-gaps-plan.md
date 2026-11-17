@@ -84,7 +84,10 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 ## 4. Music
 
 - [ ] Track feedback (dislike/ban) — or fold it into ratings. (M T W)
-- [ ] Delete a track (and a book, a podcast). (M W Am)
+- [x] Delete a track and a book (v2 revision 6: `DELETE /tracks/{id}`, `DELETE /books/{id}`,
+      several at once with `POST /trash`). (M W Am)
+- [ ] Delete an uploaded podcast: needs a show kind in the trash (completion plan phase 11);
+      a followed show is unfollowed with `DELETE /podcasts/{id}` since revision 4. (M W Am)
 - [ ] Lyrics write; file tags and rescan; the duplicates list; album identify. (M W Am)
 - [ ] Cover uploads: track, playlist, artist picture. (M W Am)
 - [ ] Playlists in `/sync/changes` (not blocking: read when shown). (M W Am)
@@ -118,8 +121,10 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       pictures, content reports. (M W Ab)
 - [ ] Per-member policies, grants and audience (v1 by decision so far). (W Ab)
 - [ ] Stats; notifications inbox; push devices. (M W A)
-- [ ] Trash with batches, restore, purge, holdings; shortcuts (album shortcuts by `album_id`).
-      (S M)
+- [x] Trash with batches, restore, purge (v2 revision 6: `POST`/`GET`/`DELETE /trash`,
+      `POST /trash/batches/{batch}/restore`, `POST /trash/{kind}/{id}/restore`,
+      `DELETE /trash/{kind}/{id}`). (S M)
+- [ ] Holdings; shortcuts (album shortcuts by `album_id`) — completion plan phase 11. (S M)
 - [ ] Instance admin: users, jobs. (W)
 - [ ] Instance admin, the rest: families (list, detail, trash, lock, unlock, delete), server
       stats, create a user, revoke a user's sessions, finish setup; hosted: grant credit.

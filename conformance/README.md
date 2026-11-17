@@ -54,6 +54,7 @@ uploads, file sync and Subsonic on, everything else off.
 | `v2` | `/api/v2`: discovery, problem details, sign-in grants, the catalogue, user state, sync, playback and the media route, images and pictures, the household, uploads, playlists | — |
 | `v2_account` | `/api/v2` account and sign-in: sign-up, password change and reset, address confirmation, security events, two-factor, profile and picture, Subsonic key, deleting the account, token exchange, the code grant's checks, discovery's sign-in fields; that a server without mail says so | the mailed links' checks need `--compose-dir` |
 | `v2_podcasts` | `/api/v2` podcast feeds and the directory: follow (idempotent, once per household), unfollow, refresh, auto-store, the back catalogue and single episodes kept on the server, unplayed counts and their paging, transcripts as timed lines, the directory's routes (or `501` where the catalogue is off), the change-feed entries of each | the feed part needs a loopback `--base-url` and a stack that may fetch from this machine (`-f conformance/compose.feeds.yml`); skipped otherwise |
+| `v2_trash` | `/api/v2` deletion and the trash: delete a track or a book, batches with a result per item, `Idempotency-Key`, restore one or a batch (v1 batches too), purge, empty, who may (owner, household admin, another member, another household), paging, problem shapes, the change feed's removals and returns | the purge's object check needs `--compose-dir`; another household's ids need a server with several |
 | `v2_walk` | `/api/v2` walked from `docs/api/openapi-v2.json`: the permission matrix, another member's (or household's) ids, problem shapes, paging without loss in every order | — |
 | `library` | read-only library folders: scan, tags, books as folders in natural order, streaming from a folder, removing hides | a server with folders configured: `tools/make_library_fixtures.sh /tmp/oa-library` and `-f conformance/compose.library.yml`; skipped otherwise |
 
@@ -63,7 +64,9 @@ A module in `suites/` with `NAME`, a docstring whose first line is the
 summary, optionally `REQUIRES = {"db"}` or `{"local"}`, and `run(ctx)`.
 Everything goes through `Ctx` in `core.py`: `call`, `check`, `skip`,
 `make_user` (cleans up after itself), `upload_track`, `presign_upload`,
-`sql`, `on_cleanup`. Raise `Skip` to stop a suite cleanly; any
+`sql`, `on_cleanup`. A song the suite keeps using should carry `Ctx.tone()` (real
+audio): the server's fingerprint job quarantines `Ctx.audio()`'s random bytes,
+which hides them from every list part-way through a run. Raise `Skip` to stop a suite cleanly; any
 `AssertionError` (including `ApiError` from an unexpected status) aborts the
 suite as a failure and still runs its cleanups.
 

@@ -112,7 +112,9 @@ pub(crate) async fn follow(state: &AppState, family: &FamilyContext, feed_url: &
 
 /// Stops following a show: the show and its episodes leave the library (and the change feed
 /// sends their removal). Its owner, or a household admin for a show shared with the household.
-/// An uploaded show is not followed; deleting one comes with the trash in v2.
+/// An uploaded show is not followed and answers `409`: the trash holds no shows yet
+/// (docs/api-v2-completion-plan.md, phase 11); its episodes' stored copies can go to the trash
+/// one by one or as a batch (`POST /trash`, kind `episode`).
 #[utoipa::path(delete, path = "/podcasts/{id}", tag = "library", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)),

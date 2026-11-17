@@ -45,6 +45,9 @@ BASELINE_FEATURES: dict[str, Any] = {
 }
 
 
+_TONE: list[bytes] = []
+
+
 class ApiError(AssertionError):
     def __init__(self, method: str, path: str, status: int, body: bytes, expect: Iterable[int]) -> None:
         self.method, self.path, self.status, self.body = method, path, status, body
@@ -296,6 +299,20 @@ class Ctx:
         """Bytes that pass as an MP3 upload: an ID3 header and random padding."""
         return b"ID3" + uuid.uuid4().bytes * size_blocks
 
+    @staticmethod
+    def tone() -> bytes:
+        """Four seconds of a tone as WAV: real audio. The server's fingerprint job sets songs
+        that do not decode (`audio()`'s random bytes) aside in quarantine, which hides them
+        from every list; a suite that keeps using its songs for a while uploads this."""
+        if not _TONE:
+            import math
+            import struct
+            rate, frames = 8000, 32000
+            pcm = b"".join(struct.pack("<h", int(8000 * math.sin(2 * math.pi * 440 * i / rate))) for i in range(frames))
+            _TONE.append(b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
+                         + b"data" + struct.pack("<I", len(pcm)) + pcm)
+        return _TONE[0]
+
     def make_user(
         self, label: str, password: str, prefix: str | None = None, role: str = "user",
         display_name: str | None = None,
@@ -330,6 +347,7 @@ class Ctx:
     def upload_track(
         self, token: str, title: str, artist: str | None = "Test Artist", album: str | None = "Test Album",
         visibility: str = "private", genre: str | None = None, content: bytes | None = None,
+        content_type: str | None = None,
     ) -> Any:
         """Multipart track upload. Pass artist=None / album=None to omit the field and test the server's defaults."""
         fields: dict[str, Any] = {"title": title, "visibility": visibility}
@@ -339,7 +357,7 @@ class Ctx:
             fields["album"] = album
         if genre:
             fields["genre"] = genre
-        fields["file"] = (f"{uuid.uuid4().hex}.mp3", content or self.audio())
+        fields["file"] = (f"{uuid.uuid4().hex}.mp3", content or self.audio(), *([content_type] if content_type else []))
         return self.call("POST", "/api/v1/music/tracks/upload", token, multipart=fields)
 
     def presign_upload(self, token: str, kind: str, filename: str, content: bytes | None = None) -> str:

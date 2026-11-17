@@ -37,7 +37,9 @@ def upload(ctx: Ctx, tok: str, title: str, visibility: str = "family", artist: s
     # checks below rely on the server filling in "Unknown Album".
     return ctx.call("POST", "/api/v1/music/tracks/upload", tok, multipart={
         "title": title, "artist": artist, "visibility": visibility,
-        "file": (f"{uuid.uuid4().hex}.mp3", ctx.audio())})
+        # A real tone in the file: random bytes would be quarantined by the fingerprint job
+        # in the middle of the suite, and leave every list.
+        "file": (f"{uuid.uuid4().hex}.mp3", ctx.tone(), "audio/wav")})
 
 
 def pull(ctx: Ctx, tok: str, cursor: str | None = None, limit: int = 500):
@@ -104,7 +106,7 @@ def run(ctx: Ctx) -> None:
     check, call, sql, log = ctx.check, ctx.call, ctx.sql, ctx.log
 
     def presigned(tok, kind, filename, content=None):
-        return ctx.presign_upload(tok, kind, filename, content)
+        return ctx.presign_upload(tok, kind, filename, content or (ctx.tone() if kind == "music_track" else None))
 
     owner_id, owner_email, owner_tok = ctx.make_family_admin("owner", PW)
     adult_id, adult_email, adult_tok = ctx.make_user("adult", PW)

@@ -47,7 +47,7 @@ fn batch_from(headers: &HeaderMap) -> Uuid {
 
 /// Owner, or a family admin for something shared with their family. The same
 /// rule decides who may trash, restore and purge.
-fn may_manage(viewer: Viewer, owner_id: Uuid, item_family: Option<Uuid>) -> bool {
+pub(crate) fn may_manage(viewer: Viewer, owner_id: Uuid, item_family: Option<Uuid>) -> bool {
     owner_id == viewer.user_id || (viewer.is_family_admin && item_family == Some(viewer.family_id))
 }
 
@@ -59,6 +59,19 @@ pub async fn move_to_trash(
     state: &AppState,
     viewer: Viewer,
     headers: Option<&HeaderMap>,
+    kind: Kind,
+    id: Uuid,
+) -> Result<(), AuthError> {
+    let batch = headers.map(batch_from).unwrap_or_else(Uuid::new_v4);
+    move_to_trash_in(state, viewer, batch, kind, id).await
+}
+
+/// [`move_to_trash`] into a batch the caller chose: v2's `POST /trash` puts
+/// everything one request deletes in one batch.
+pub async fn move_to_trash_in(
+    state: &AppState,
+    viewer: Viewer,
+    batch: Uuid,
     kind: Kind,
     id: Uuid,
 ) -> Result<(), AuthError> {
@@ -78,7 +91,6 @@ pub async fn move_to_trash(
         return Err(if visible { AuthError::Forbidden } else { AuthError::ItemNotFound });
     }
 
-    let batch = headers.map(batch_from).unwrap_or_else(Uuid::new_v4);
     if !db::trash::move_to_trash(pool, kind, id, viewer.user_id, batch)
         .await
         .map_err(AuthError::Internal)?
@@ -212,7 +224,7 @@ struct TrashItemResponse {
 
 /// What restoring this item now would cost — the edition's call (`Hooks`);
 /// nothing in the open-source edition.
-async fn restore_quote(state: &AppState, size_bytes: i64, trashed_at: DateTime<Utc>) -> Result<i64, AuthError> {
+pub(crate) async fn restore_quote(state: &AppState, size_bytes: i64, trashed_at: DateTime<Utc>) -> Result<i64, AuthError> {
     let days = db::trash::days_in_trash(trashed_at, Utc::now());
     state
         .hooks()
@@ -282,7 +294,7 @@ struct RestoreResponse {
 
 /// Restore one trashed item the caller may manage, charging its days in the
 /// trash to the owner's family. `None` when it was not in the trash any more.
-async fn restore_item(
+pub(crate) async fn restore_item(
     state: &AppState,
     family: &FamilyContext,
     item: &Trashed,
@@ -340,7 +352,7 @@ fn parse_kind(kind: &str) -> Result<Kind, AuthError> {
 
 /// A trashed item the caller may manage — anything else is 404, including
 /// someone else's trash: it is not visible to them.
-async fn managed_trashed(state: &AppState, family: &FamilyContext, kind: Kind, id: Uuid) -> Result<Trashed, AuthError> {
+pub(crate) async fn managed_trashed(state: &AppState, family: &FamilyContext, kind: Kind, id: Uuid) -> Result<Trashed, AuthError> {
     let item = db::trash::find_trashed(state.db(), kind, id)
         .await
         .map_err(AuthError::Internal)?

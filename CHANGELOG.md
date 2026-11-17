@@ -154,6 +154,24 @@ semver. Each release states the **API contract revision** it serves
   grant and a deletion; `kinds=` paging without loss; the ids-only snapshot against the full one;
   member records through a rename and an account deletion; continue listening. `filesync` runs
   on a server with one household, skipping its outsider checks there.
+- `DELETE /api/v2/tracks/{id}` and `DELETE /api/v2/books/{id}` — into the 30-day trash (the
+  owner, or a household admin for what is shared, as v1); the change feed sends the removal,
+  with the album when it was the album's only song. v2 revision 6.
+- `POST /api/v2/trash` — delete up to `limits.batch_max` (500) tracks, books, playlists,
+  episodes' stored copies and companion files as one restorable batch, each item answering on
+  its own (`ok`, `duplicate`, `not_found`, `forbidden`, `invalid_kind`); `Idempotency-Key`
+  answers a retry with the first answer. v2 revision 6.
+- The trash on v2: `GET /api/v2/trash` (cursor-paged, newest first; `scope=family` for a
+  household admin; what a restore would charge), `POST /api/v2/trash/{kind}/{id}/restore`,
+  `POST /api/v2/trash/batches/{batch}/restore` (a v1 `X-Trash-Batch` batch too),
+  `DELETE /api/v2/trash/{kind}/{id}` (delete one for good) and `DELETE /api/v2/trash` (empty it,
+  page by page). Restores reach the change feed as the item again. v2 revision 6.
+- Conformance: the `v2_trash` suite (delete, batches, restore, purge with its stored object,
+  who may, idempotency, paging, problem shapes, the change feed). The `trash` suite runs on a
+  server with one household, so a full run with `--compose-dir` passes there; CI's conformance
+  job now runs with it, so the SQL-backed suites (`trash`, `filesync`) and checks run in CI.
+  `filesync` and `v2_walk` upload a real tone (`Ctx.tone()`) for their songs: the fingerprint
+  job quarantined their random bytes part-way through the suite, depending on timing.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 185 |
+| covered | 192 |
 | partly covered | 10 |
-| missing | 114 |
+| missing | 107 |
 | not carried over | 7 |
 | **total** | **316** |
 
@@ -24,8 +24,8 @@ grants stay on v1) or a route no client calls (the Stripe webhook). The hosted r
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 3, v2
-revision 5). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 4, v2
+revision 6). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -141,7 +141,7 @@ lists what is still open.
 | `POST /audiobooks/upload` | `POST /uploads` + `POST /books` | covered | No multipart on v2, by design. |
 | `GET /audiobooks/{id}` | `GET /books/{id}` | covered |  |
 | `PUT /audiobooks/{id}` | `PUT /books/{id}/credits` | partly | Author and narrator through credits; title and description cannot be edited. |
-| `DELETE /audiobooks/{id}` | — | missing |  |
+| `DELETE /audiobooks/{id}` | `DELETE /books/{id}` | covered | Into the 30-day trash, a batch of its own; several things at once through `POST /trash`. |
 | `GET /audiobooks/{id}/chapters` | `GET /books/{id}` | covered | Chapters are in the book. |
 | `GET /audiobooks/{id}/cover` | `Book.image` → `GET /images/{id}` | covered |  |
 | `GET /audiobooks/{id}/files` | `GET /books/{id}` | covered | Files are in the book. |
@@ -204,7 +204,7 @@ lists what is still open.
 | `GET /podcasts/{id}/episodes/{ep_id}/transcript` | `GET /episodes/{id}/transcript` | covered | The server reads the publisher's file (or the uploaded one) into timed lines, now with the speaker where the file names one; `Episode.transcript_url` still links the file itself. A missing one is `404 no_transcript`. |
 | `PUT /podcasts/{id}/visibility` | `PUT /podcasts/{id}/visibility` | covered |  |
 | `POST /podcasts/subscribe` | `POST /podcasts` | covered | `{feed_url, visibility?}`; a show the caller has already (or sees shared) answers `200` without fetching; `Idempotency-Key`. Any member, as on v1; an uploaded show still needs `can_upload`. |
-| `DELETE /podcasts/{id}` | `DELETE /podcasts/{id}` | covered | Unfollow; the episodes' removals reach the change feed with the show's. The owner, or a household admin for a shared show (v1: the owner). An uploaded show answers `409` until the trash moves (phase 4). |
+| `DELETE /podcasts/{id}` | `DELETE /podcasts/{id}` | covered | Unfollow; the episodes' removals reach the change feed with the show's. The owner, or a household admin for a shared show (v1: the owner). An uploaded show answers `409` until the trash holds shows (completion plan phase 11). |
 | `POST /podcasts/{id}/refresh` | `POST /podcasts/{id}/refresh` | covered | Queued (`202`), the art stored on the way; new episodes arrive through `/sync/changes`. `POST /podcasts/refresh` refreshes every show. |
 | `GET /podcasts/unplayed-counts` | `GET /me/podcasts/unplayed` | covered | Paged by podcast id, every visible show once (zero included); one grouped query per page. |
 | `PUT /podcasts/{id}/auto-store` | `PATCH /podcasts/{id}` | covered | `{auto_store}`; `Podcast.auto_store` tells. |
@@ -247,7 +247,7 @@ lists what is still open.
 | `POST /music/tracks/discs` | — | missing | Back-fills disc numbers of old uploads; could be a server job instead. |
 | `GET /music/tracks/{id}` | `GET /tracks/{id}` | covered |  |
 | `PUT /music/tracks/{id}` | `PATCH /tracks` | covered | One song or many, as a batch in the edit history. |
-| `DELETE /music/tracks/{id}` | — | missing |  |
+| `DELETE /music/tracks/{id}` | `DELETE /tracks/{id}` | covered | As a book. v1's `X-Trash-Batch` header is not taken: one `POST /trash` is one batch. |
 | `GET /music/tracks/{id}/chapters` | `GET /tracks/{id}` | covered | Chapters are in the track answer. |
 | `GET /music/tracks/{id}/cover` | `Track.image` | covered |  |
 | `POST /music/tracks/{id}/upload-cover` | — | missing |  |
@@ -352,11 +352,11 @@ lists what is still open.
 |---|---|---|---|
 | `POST /uploads/presign` | `POST /uploads` | covered | The size is now required. |
 | `POST /uploads/complete` | `POST /tracks`, `/books`, `/podcasts/{id}/episodes` | covered | The create call names the `upload_id`. |
-| `GET /trash` | — | missing |  |
-| `POST /trash/batches/{batch}/restore` | — | missing |  |
-| `POST /trash/empty` | — | missing |  |
-| `DELETE /trash/{kind}/{id}` | — | missing |  |
-| `POST /trash/{kind}/{id}/restore` | — | missing |  |
+| `GET /trash` | `GET /trash` | covered | Cursor-paged, newest first (v1: the whole trash); v2 kinds (`track`, `book`, `playlist`, `episode`, `file`); `deleted_at`, `deleted_by`, `owner_id` instead of v1's people objects; `scope=family` for a household admin. |
+| `POST /trash/batches/{batch}/restore` | `POST /trash/batches/{batch}/restore` | covered | One result per item and the charge. A v1 `X-Trash-Batch` batch restores too. |
+| `POST /trash/empty` | `DELETE /trash` | covered | `{purged}`; walks the trash page by page instead of reading it whole. |
+| `DELETE /trash/{kind}/{id}` | `DELETE /trash/{kind}/{id}` | covered | v2 kinds; `400 invalid_kind`. |
+| `POST /trash/{kind}/{id}/restore` | `POST /trash/{kind}/{id}/restore` | covered | `204` (v1 answers the charge; the list quotes it beforehand). |
 | `GET /jobs` | — | missing | Instance admin. |
 | `GET /jobs/{id}` | — | missing |  |
 

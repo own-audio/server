@@ -270,6 +270,42 @@ pub async fn list(pool: &PgPool, scope: Scope) -> anyhow::Result<Vec<Trashed>> {
         .context("db: list trash")
 }
 
+/// A page of the trash, newest first, after `after` (`trashed_at`, kind, id),
+/// as `/api/v2/trash` and its emptying walk it. Only trashed rows are read,
+/// through each table's partial `trashed_at` index (migration 0077).
+pub async fn page(
+    pool: &PgPool,
+    scope: Scope,
+    after: Option<(DateTime<Utc>, String, Uuid)>,
+    limit: i64,
+) -> anyhow::Result<Vec<Trashed>> {
+    let (filter, id) = match scope {
+        Scope::Owner(u) => ("t.owner_id = $1", u),
+        Scope::Family(f) => ("t.family_id = $1", f),
+    };
+    let (at, kind, item) = match after {
+        Some((at, kind, item)) => (Some(at), Some(kind), Some(item)),
+        None => (None, None, None),
+    };
+    let sql = format!(
+        "SELECT {TRASHED_COLS} FROM ({}) t
+          WHERE {filter}
+            AND ($2::timestamptz IS NULL OR (t.trashed_at, t.kind, t.id) < ($2, $3::text, $4::uuid))
+          ORDER BY t.trashed_at DESC, t.kind DESC, t.id DESC
+          LIMIT $5",
+        trashed_union()
+    );
+    sqlx::query_as::<_, Trashed>(&sql)
+        .bind(id)
+        .bind(at)
+        .bind(kind)
+        .bind(item)
+        .bind(limit)
+        .fetch_all(pool)
+        .await
+        .context("db: page of the trash")
+}
+
 /// Everything deleted together in one batch.
 pub async fn list_batch(pool: &PgPool, batch: Uuid) -> anyhow::Result<Vec<Trashed>> {
     let sql = format!(

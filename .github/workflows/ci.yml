@@ -154,7 +154,9 @@ jobs:
         run: |
           curl -fs -X POST http://localhost:8080/api/v1/setup/complete -H 'Content-Type: application/json' \
             -d '{"email":"admin@example.com","password":"CiAdmin123!-long","display_name":"CI"}'
-      - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!-long' --report conformance-report.json
+      # --compose-dir: the SQL-backed suites and checks (trash, filesync, the mailed links) read
+      # the stack's database through `docker compose exec`.
+      - run: python3 conformance/run.py --base-url http://localhost:8080 --admin-email admin@example.com --admin-password 'CiAdmin123!-long' --compose-dir . --database ownaudio --database-user ownaudio --report conformance-report.json
       # Security hardening plan §9: the server's log of a whole conformance run
       # never carries a password or a bearer token.
       - name: No secrets in the server log

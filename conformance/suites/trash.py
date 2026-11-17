@@ -3,7 +3,9 @@
 
 Builds a family (owner = family admin, adult = member), deletes, lists,
 restores, purges and checks permissions over the real API. Backdates items
-and inspects stored objects through SQL, so it needs --compose-dir.
+and inspects stored objects through SQL, so it needs --compose-dir. On a server
+with one household both are in it already (the owner promoted to its admin), so
+no invitation is sent there.
 """
 from __future__ import annotations
 
@@ -46,14 +48,18 @@ def upload(ctx: Ctx, tok, title, visibility="family"):
 def run(ctx: Ctx) -> None:
     call, sql, check, sfx, admin_tok = ctx.call, ctx.sql, ctx.check, ctx.sfx, ctx.admin_token
 
-    owner_id, owner_email, owner_tok = ctx.make_user("owner", PW)
+    owner_id, owner_email, owner_tok = ctx.make_family_admin("owner", PW)
     adult_id, adult_email, adult_tok = ctx.make_user("adult", PW)
     created = [owner_id, adult_id]
 
     try:
-        inv = call("POST", "/api/v1/family/invites", owner_tok, {"email": adult_email, "role": "member"})
-        call("POST", "/api/v1/family/invites/accept", adult_tok, {"code": inv["code"]})
-        check("family has 2 members", len(call("GET", "/api/v1/family", owner_tok)["members"]) == 2)
+        members = lambda: {m["user_id"] for m in call("GET", "/api/v1/family", owner_tok)["members"]}  # noqa: E731
+        if ctx.feature("one_family"):
+            check("owner and member are in the one household", {owner_id, adult_id} <= members())
+        else:
+            inv = call("POST", "/api/v1/family/invites", owner_tok, {"email": adult_email, "role": "member"})
+            call("POST", "/api/v1/family/invites/accept", adult_tok, {"code": inv["code"]})
+            check("family has 2 members", members() == {owner_id, adult_id})
 
         # ── Delete moves to the trash ────────────────────────────────────────
         ctx.log("\n[delete → trash]")

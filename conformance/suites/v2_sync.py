@@ -8,9 +8,7 @@ a deletion and listening.
 from __future__ import annotations
 
 import json
-import math
 import re
-import struct
 import urllib.parse
 
 from core import Ctx
@@ -109,18 +107,10 @@ def _same_as_snapshot(ctx: Ctx, copy: Copy, label: str) -> None:
               f"missing {missing[:4]}, extra {extra[:4]}, differ {[(k, mine[k], theirs[k]) for k in differ[:1]]}"[:600])
 
 
-_TONE: list[bytes] = []
-
-
 def _tone() -> bytes:
-    """Four seconds of a tone as WAV: real audio, so the fingerprint job does not set the
-    suite's songs aside (quarantine) in the middle of the run, as it does random bytes."""
-    if not _TONE:
-        rate, frames = 8000, 32000
-        pcm = b"".join(struct.pack("<h", int(8000 * math.sin(2 * math.pi * 440 * i / rate))) for i in range(frames))
-        _TONE.append(b"RIFF" + struct.pack("<I", 36 + len(pcm)) + b"WAVEfmt " + struct.pack("<IHHIIHH", 16, 1, 1, rate, rate * 2, 2, 16)
-                     + b"data" + struct.pack("<I", len(pcm)) + pcm)
-    return _TONE[0]
+    """Real audio, so the fingerprint job does not set the suite's songs aside (quarantine) in
+    the middle of the run, as it does random bytes."""
+    return Ctx.tone()
 
 
 def _upload(ctx: Ctx, token: str, kind: str, name: str) -> str:

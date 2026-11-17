@@ -168,7 +168,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 1 | Account and sign-in — **done** | 23 | L | W Ab Am Ap M |
 | 2 | Podcast feeds and directory — **done** | 16 | L | M T W Ap |
 | 3 | Sync essentials and continue listening — **done** | 3 | M | S (so M W), A, T |
-| 4 | Deletion and trash | 7 | M | M W Am, S |
+| 4 | Deletion and trash — **done** | 7 | M | M W Am, S |
 | 5 | Books: editing, files, series, collections, tags, authors, images | 34 | L | W Ab M |
 | 6 | Music remainder and playlists in sync | 17 | M | M W Am |
 | 7 | Household remainder | 18 | L | M W Ab |
@@ -431,7 +431,7 @@ owner and for another member). What the plan said, with these differences:
   once, as tracks do.
 - `filesync` runs on a one-household server (its outsider checks skip there); with
   `--compose-dir` it passes. `trash` still fails there and waits for phase 4, so CI keeps
-  running without `--compose-dir` until then.
+  running without `--compose-dir` until then (done in phase 4).
 
 
 v1 ops (partly/missing): `GET /library/continue`, `GET /sync/tree`, `GET /sync/tree/ids`. Plus
@@ -453,7 +453,59 @@ lists the same ids as the full one; a rename through v1's file sync arrives as o
 member who leaves still resolves as owner; `include=items` embeds each record once and only
 visible ones; paging without loss on the multi-kind progress list.
 
-### Phase 4 — deletion and trash (M)
+### Phase 4 — deletion and trash (M) — done 2026-11-17
+
+Done, v2 revision 6: every operation in the table below; the 7 rows covered, and the gaps plan's
+lines for deleting a track and a book and for the trash ticked. No migration. Handler tests (no
+token is `401` on every route) and unit tests for the kinds and the request's checks; the
+conformance suite `v2_trash` covers behaviour. What the plan said, with these differences:
+
+- The trash's kinds are v2's words: `track`, `book`, `playlist`, `episode` (the server's stored
+  copy of an episode, as `DELETE /episodes/{id}/stored`; the episode stays listed) and `file` (a
+  companion file of the own.audio folder, the kind phase 11 gives them in sync). An unknown kind
+  is `400 invalid_kind`.
+- `POST /trash` answers `200 {batch, items}` with one `ItemResult` per item in order:
+  `client_id` is the item's id, `status` `ok`, `duplicate` (named twice), `not_found`,
+  `forbidden` or `invalid_kind` — the single delete's rule per item. No items is `400
+  invalid_body`, more than `batch_max` (500) `400 too_many`. `Idempotency-Key` is the v2
+  middleware's, as on every write: a retry answers the first answer, the same batch.
+- `DELETE /tracks/{id}`, `DELETE /books/{id}` are each a batch of their own; v1's
+  `X-Trash-Batch` header is not read on v2 (one `POST /trash` is one batch). A batch deleted
+  through v1 restores through v2.
+- `GET /trash` names who and when as `owner_id`, `deleted_by` (member ids), `deleted_at`,
+  `purge_at`, and adds `size_bytes` and `restore_charge_micro` (the edition's quote, `0` here;
+  the hosted edition charges a restore). It also takes `scope=family`, a household admin's view
+  of everything shared, as v1; `invalid_scope` otherwise. Cursor-paged by `(deleted_at, kind,
+  id)`, newest first.
+- `POST /trash/batches/{batch}/restore` answers `{batch, items: [ItemResult], charged_micro}`
+  rather than a bare array, so it can grow; `404` when nothing in the batch is the caller's to
+  restore. `POST /trash/{kind}/{id}/restore` answers `204` as planned (v1 answers the charge;
+  the list quotes it beforehand).
+- `DELETE /trash` takes `scope` too and answers `{purged}`; it walks the trash 200 rows at a
+  time instead of reading it whole as v1 does.
+- The change feed needed nothing new: the triggers on `music_tracks_all` and
+  `audiobook_books_all` (0109, 0126) log a deletion, a restore and a purge, with what the item
+  makes visible — `v2_trash` checks that a song that was its album's only one takes the album
+  with it and brings it back. Playlists and companion files reach the feed in phases 6 and 11,
+  as planned.
+- An uploaded podcast still answers `409 uploaded_podcast` to `DELETE /podcasts/{id}`: the trash
+  holds no shows (v1 deletes an uploaded show outright, its objects left for the storage sweep,
+  which is not something to copy). Its episodes' stored copies go to the trash one by one or as
+  a batch. A show kind in the trash moves to phase 11.
+- `trash` (v1) runs on a one-household server: the owner is promoted to the household's admin
+  and no invitation is sent. A full run with `--compose-dir` passes on the compose stack, so CI's
+  conformance job now runs with `--compose-dir .`: `trash` and `filesync` run in CI, and so do
+  the mailed links' checks of phase 1 (`…/password-reset/confirm`,
+  `POST /auth/email-verification`) against the mail catcher.
+- Measured on 605,000 tracks with 5,000 of them in the trash (`CAPACITY.md`): no index added —
+  each table's partial `trashed_at` index (0077) keeps every trash query to the trashed rows
+  (first page 56 ms, a middle page 9.5 ms, a batch 0.7 ms). The cost grows with the trash, not
+  the catalog; the index that would make a page stop after 100 rows is written down there for
+  when a trash grows to tens of thousands.
+- `filesync` and `v2_walk` upload a real tone for their songs now: with `trash` and `v2_trash`
+  running before them, the fingerprint job reached their random bytes part-way through and
+  quarantined them (the same reason `v2_sync` already used one). `Ctx.tone()` in
+  `conformance/core.py`; suites that keep a song around for a while should use it.
 
 v1 ops: `DELETE /audiobooks/{id}`, `DELETE /music/tracks/{id}`, `GET /trash`,
 `POST /trash/batches/{batch}/restore`, `POST /trash/empty`, `DELETE /trash/{kind}/{id}`,
@@ -626,6 +678,7 @@ v1 ops: `POST /sync/paths/organise`, `GET`/`PUT /sync/holdings`, `GET`/`POST /sy
 | `PUT /files/{id}/visibility` | `owner` | As other kinds. |
 | `POST /playback-info` | `member` | Kind `file`, `direct` only: the download link (one signed-link mechanism, rule 1). |
 | `PUT /{resource}/image` | owner | `{file_id}` — "use as cover". |
+| `DELETE /podcasts/{id}` (an uploaded show) | `owner` | Into the trash with its episodes (phase 4 left it at `409 uploaded_podcast`): a `podcast` trash kind over a `podcast_feeds_all` table behind a view, as books and tracks (migration), listed and restored by `/trash`, purged with its episodes' objects. |
 
 Tests: the v1 `filesync` suite's checks on v2 (loopback RSS feed, SQL-backed): companion files
 create/visibility/delete in sync, download through `playback-info`, holdings round-trip,

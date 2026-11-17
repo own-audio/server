@@ -226,6 +226,26 @@ async fn podcast_routes_need_a_signed_in_member() {
     }
 }
 
+#[tokio::test]
+async fn deleting_and_the_trash_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("DELETE", format!("/api/v2/tracks/{id}")),
+        ("DELETE", format!("/api/v2/books/{id}")),
+        ("POST", "/api/v2/trash".to_string()),
+        ("GET", "/api/v2/trash".to_string()),
+        ("DELETE", "/api/v2/trash".to_string()),
+        ("POST", format!("/api/v2/trash/batches/{id}/restore")),
+        ("POST", format!("/api/v2/trash/track/{id}/restore")),
+        ("DELETE", format!("/api/v2/trash/book/{id}")),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "items": [{ "kind": "track", "id": id }] }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
 /// A stand-in for the metadata service's catalogue: an old one that reads a list of
 /// languages as one language nobody publishes in, so answers only one language at a time.
 async fn stub_catalogue() -> String {

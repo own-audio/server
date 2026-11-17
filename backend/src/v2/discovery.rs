@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 /// The v2 contract's revision: up by one with every addition, so a client can check for it.
 /// Counted from 2026-11-17 (revision 1). The iPhone apps already ship on v2, so changes are
 /// additive only even while the status says `draft`.
-pub const V2_REVISION: u32 = 5;
+pub const V2_REVISION: u32 = 6;
 /// `stable` at the release that completes docs/api-v2-completion-plan.md (its phase 14).
 pub const V2_STATUS: &str = "draft";
 
@@ -116,7 +116,7 @@ pub struct Limits {
     pub list_limit_max: i64,
     /// The largest single file `POST /uploads` takes.
     pub upload_max_bytes: i64,
-    /// Plays, offline changes: the most in one request.
+    /// Plays, offline changes, things deleted at once: the most in one request.
     pub batch_max: usize,
     /// How long an `Idempotency-Key` is remembered.
     pub idempotency_hours: i32,
@@ -189,7 +189,7 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             list_limit_default: DEFAULT_LIMIT,
             list_limit_max: MAX_LIMIT,
             upload_max_bytes: crate::uploads::MAX_UPLOAD_BYTES,
-            batch_max: 500,
+            batch_max: crate::v2::trash::BATCH_MAX,
             idempotency_hours: crate::v2::idempotency::RETENTION_HOURS,
             change_log_days: crate::db::changes::RETENTION_DAYS,
         },

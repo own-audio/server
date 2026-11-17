@@ -2311,7 +2311,7 @@
       "Limits": {
         "properties": {
           "batch_max": {
-            "description": "Plays, offline changes: the most in one request.",
+            "description": "Plays, offline changes, things deleted at once: the most in one request.",
             "minimum": 0,
             "type": "integer"
           },
@@ -5279,6 +5279,102 @@
         ],
         "type": "object"
       },
+      "Page_TrashItem": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "batch": {
+                  "description": "Deleted together with the other items of this batch.",
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "deleted_at": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "deleted_by": {
+                  "description": "Who deleted it, when that account still exists.",
+                  "format": "uuid",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "description": "`track`, `book`, `playlist`, `episode` or `file`.",
+                  "type": "string"
+                },
+                "owner_id": {
+                  "description": "Whose it is: a `member` record.",
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "purge_at": {
+                  "description": "When the server deletes it for good, 30 days on.",
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "restore_charge_micro": {
+                  "description": "What restoring it now would charge, in millionths of the household's credit currency,\nso a client can say so before the restore. Always 0 where restoring is free (an\nopen-source server).",
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "size_bytes": {
+                  "description": "What it keeps in storage.",
+                  "format": "int64",
+                  "type": "integer"
+                },
+                "title": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "title",
+                "owner_id",
+                "deleted_at",
+                "purge_at",
+                "size_bytes",
+                "restore_charge_micro"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "Page_Unplayed": {
         "description": "One page of a list.",
         "properties": {
@@ -7943,6 +8039,164 @@
         ],
         "type": "object"
       },
+      "TrashBatch": {
+        "properties": {
+          "batch": {
+            "description": "What restores all of it at once: `POST /trash/batches/{batch}/restore`.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "items": {
+            "description": "One per item, in order: `client_id` is the item's id; `status` is `ok`, `duplicate`\n(named twice in the request), or `not_found`, `forbidden`, `invalid_kind`.",
+            "items": {
+              "$ref": "#/components/schemas/ItemResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "batch",
+          "items"
+        ],
+        "type": "object"
+      },
+      "TrashEmptied": {
+        "properties": {
+          "purged": {
+            "description": "How many items were deleted for good.",
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "purged"
+        ],
+        "type": "object"
+      },
+      "TrashItem": {
+        "properties": {
+          "batch": {
+            "description": "Deleted together with the other items of this batch.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "deleted_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "deleted_by": {
+            "description": "Who deleted it, when that account still exists.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track`, `book`, `playlist`, `episode` or `file`.",
+            "type": "string"
+          },
+          "owner_id": {
+            "description": "Whose it is: a `member` record.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "purge_at": {
+            "description": "When the server deletes it for good, 30 days on.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "restore_charge_micro": {
+            "description": "What restoring it now would charge, in millionths of the household's credit currency,\nso a client can say so before the restore. Always 0 where restoring is free (an\nopen-source server).",
+            "format": "int64",
+            "type": "integer"
+          },
+          "size_bytes": {
+            "description": "What it keeps in storage.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "title",
+          "owner_id",
+          "deleted_at",
+          "purge_at",
+          "size_bytes",
+          "restore_charge_micro"
+        ],
+        "type": "object"
+      },
+      "TrashRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track`, `book`, `playlist`, `episode` (the server's stored copy of the episode; the\nepisode stays listed) or `file` (a companion file of the own.audio folder).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "TrashRequest": {
+        "properties": {
+          "items": {
+            "description": "Up to `limits.batch_max` (500).",
+            "items": {
+              "$ref": "#/components/schemas/TrashRef"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "TrashRestored": {
+        "properties": {
+          "batch": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "charged_micro": {
+            "description": "What the restore charged, in millionths of the household's credit currency; 0 where\nrestoring is free.",
+            "format": "int64",
+            "type": "integer"
+          },
+          "items": {
+            "description": "One per item of the batch the caller may restore: `client_id` is the item's id, `status`\n`ok` (or `not_found` when it left the trash meanwhile).",
+            "items": {
+              "$ref": "#/components/schemas/ItemResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "batch",
+          "items",
+          "charged_micro"
+        ],
+        "type": "object"
+      },
       "TwoFactor": {
         "properties": {
           "enabled": {
@@ -8125,7 +8379,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.5-draft"
+    "version": "2.6-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -9613,6 +9867,76 @@
       }
     },
     "/api/v2/books/{id}": {
+      "delete": {
+        "operationId": "library_delete_book",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "In the trash"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Visible, but neither its owner nor, for a shared one, a household admin"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, not visible, or already in the trash"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes a book with its files: into the trash for 30 days, as a track",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
       "get": {
         "operationId": "catalog_get_book",
         "parameters": [
@@ -18104,7 +18428,7 @@
     },
     "/api/v2/podcasts/{id}": {
       "delete": {
-        "description": "Stops following a show: the show and its episodes leave the library (and the change feed\nsends their removal). Its owner, or a household admin for a show shared with the household.\nAn uploaded show is not followed; deleting one comes with the trash in v2.",
+        "description": "Stops following a show: the show and its episodes leave the library (and the change feed\nsends their removal). Its owner, or a household admin for a show shared with the household.\nAn uploaded show is not followed and answers `409`: the trash holds no shows yet\n(docs/api-v2-completion-plan.md, phase 11); its episodes' stored copies can go to the trash\none by one or as a batch (`POST /trash`, kind `episode`).",
         "operationId": "library_unfollow",
         "parameters": [
           {
@@ -20657,6 +20981,77 @@
       }
     },
     "/api/v2/tracks/{id}": {
+      "delete": {
+        "description": "Deletes a track: into the trash for 30 days, restorable until then; it leaves every list,\nand the change feed sends its removal. Its owner may, and a household admin for one shared\nwith the household. A household admin deleting someone else's track is told to its owner.",
+        "operationId": "library_delete_track",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "In the trash"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Visible, but neither its owner nor, for a shared one, a household admin"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, not visible, or already in the trash"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes a track: into the trash for 30 days, restorable until then; it leaves every list, and the change feed sends its removal",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
       "get": {
         "operationId": "catalog_get_track",
         "parameters": [
@@ -21371,6 +21766,489 @@
           "household"
         ],
         "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/trash": {
+      "delete": {
+        "operationId": "library_empty_trash",
+        "parameters": [
+          {
+            "description": "`mine` (the default) or `family` (everything shared with the household, for a household\nadmin), as in `GET /trash`.",
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashEmptied"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_scope`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`scope=family` without being a household admin"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Empties the trash: everything in it the caller owns (`scope=mine`), or everything shared with the household (`scope=family`, a household admin), deleted for good now",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      },
+      "get": {
+        "operationId": "library_list_trash",
+        "parameters": [
+          {
+            "description": "`mine` (the default): what the caller owns, whoever deleted it. `family`: everything\nshared with the household, for a household admin.",
+            "in": "query",
+            "name": "scope",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_TrashItem"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_scope`, `invalid_limit` or `invalid_cursor`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`scope=family` without being a household admin"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What is in the trash, newest first: the caller's own things (`scope=mine`), or everything shared with the household (`scope=family`, a household admin's view)",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "post": {
+        "description": "Deletes several things as one batch: each into the trash for 30 days, all restorable at\nonce with the batch. Each item answers on its own, by the rule of a single delete (its\nowner, or a household admin for what is shared). Send an `Idempotency-Key` to retry safely:\na retry answers the first answer, the same batch.",
+        "operationId": "library_trash_many",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TrashRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashBatch"
+                }
+              }
+            },
+            "description": "One result per item, in order"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body` (no items) or `too_many`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`idempotency_key_reused`: the key came with another request"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes several things as one batch: each into the trash for 30 days, all restorable at once with the batch",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/trash/batches/{batch}/restore": {
+      "post": {
+        "description": "Restores everything deleted in one batch that the caller may restore (their own, and what\nis shared with the household for a household admin). Each comes back as it was, and the\nchange feed sends it again.",
+        "operationId": "library_restore_batch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashRestored"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Nothing in the batch the caller may restore"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restores everything deleted in one batch that the caller may restore (their own, and what is shared with the household for a household admin)",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/trash/{kind}/{id}": {
+      "delete": {
+        "description": "Deletes one item of the trash for good, now, with what it keeps in storage. Its owner, or a\nhousehold admin for something that was shared with the household.",
+        "operationId": "library_purge_one",
+        "parameters": [
+          {
+            "description": "`track`, `book`, `playlist`, `episode` or `file`",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted for good"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not in the trash, or not the caller's to delete"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Deletes one item of the trash for good, now, with what it keeps in storage",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/trash/{kind}/{id}/restore": {
+      "post": {
+        "operationId": "library_restore_one",
+        "parameters": [
+          {
+            "description": "`track`, `book`, `playlist`, `episode` or `file`",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Restored"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not in the trash, or not the caller's to restore"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restores one item, as it was; the change feed sends it again",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
         "x-scope": "library:write"
       }
     },

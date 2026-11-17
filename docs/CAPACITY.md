@@ -231,6 +231,26 @@ one statement took 44 s without the new "what the track makes visible" trigger a
 60,000 in 44 s, before this phase): batches of tens of thousands, as the scan already does, keep
 it linear (55,000 a batch, 40 s each, up to 610,000).
 
+## Measured: the trash on v2 (2026-11-17)
+
+v2 phase 4 (`api-v2-completion-plan.md`), `EXPLAIN ANALYZE` on PostgreSQL 16 with its default
+settings (Apple-silicon Mac): 605,000 generated tracks and 1,000 books, 5,000 of the tracks in
+the trash (spread over 30 days, in batches of 20).
+
+| Query | Time |
+|---|---|
+| `GET /api/v2/trash`, first page of 100, the owner's (`scope=mine`) or the household's (`scope=family`) | 56 ms |
+| The same, a page from the middle (cursor at item 2,500) | 9.5 ms |
+| A batch's items (`POST /trash/batches/{batch}/restore`) | 0.7 ms |
+
+No migration: each table's partial `trashed_at` index (0077) keeps every trash query to the
+trashed rows, so the catalog's size does not enter. What grows is the trash itself: a page
+reads every trashed row newer than its cursor, with its size and names, and sorts the top 100
+(the order's tie-breakers `kind, id` are not in the index). A trash of 50,000 items would make
+the first page about half a second; the fix then is `(trashed_at DESC, id DESC) WHERE trashed_at
+IS NOT NULL` per table, so each branch is read in order and the page stops after 100 rows.
+`DELETE /api/v2/trash` walks the same pages 200 rows at a time.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

@@ -29,6 +29,7 @@ pub mod smart;
 pub mod spoken;
 pub mod state;
 pub mod sync;
+pub mod trash;
 pub mod uploads;
 
 #[cfg(test)]
@@ -90,7 +91,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(music::get_recording))
         .routes(routes!(music::list_genres))
         .routes(routes!(music::list_tracks, uploads::create_track))
-        .routes(routes!(music::get_track))
+        .routes(routes!(music::get_track, trash::delete_track))
         .routes(routes!(edit::set_track_chapters))
         .routes(routes!(discover::random_tracks))
         .routes(routes!(discover::lyrics))
@@ -108,7 +109,7 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(smart::resolve_smart))
         .routes(routes!(smart::freeze_smart))
         .routes(routes!(spoken::list_books, uploads::create_book))
-        .routes(routes!(spoken::get_book))
+        .routes(routes!(spoken::get_book, trash::delete_book))
         .routes(routes!(spoken::list_podcasts))
         // Following fetches a feed: v1's outbound bucket, as on its subscribe.
         .routes(map(routes!(uploads::create_podcast), |m| limits.outbound.apply(m)))
@@ -188,6 +189,10 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(identify::reject))
         .routes(routes!(identify::get_group))
         .routes(routes!(identify::choose_edition))
+        .routes(routes!(trash::list_trash, trash::trash_many, trash::empty_trash))
+        .routes(routes!(trash::restore_batch))
+        .routes(routes!(trash::restore_one))
+        .routes(routes!(trash::purge_one))
         .routes(routes!(library::list_quarantine))
         .routes(routes!(library::release_quarantine))
         .routes(map(routes!(identify::search_group), |m| limits.outbound.apply(m)))

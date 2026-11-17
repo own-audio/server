@@ -194,7 +194,8 @@ def _upload(ctx: Ctx, token: str, kind: str, name: str) -> str:
 def fixtures(ctx: Ctx, token: str, user_id: str, visibility: str = "private") -> dict[str, str]:
     """One of each kind a person owns, kept private or shared with the household."""
     sfx = f"{ctx.sfx}-{visibility}"
-    track = ctx.upload_track(token, f"Walk Song {sfx}", artist=f"Walk Band {sfx}", album=f"Walk Album {sfx}", visibility=visibility)
+    track = ctx.upload_track(token, f"Walk Song {sfx}", artist=f"Walk Band {sfx}", album=f"Walk Album {sfx}", visibility=visibility,
+                            content=ctx.tone(), content_type="audio/wav")
     book = ctx.call("POST", "/api/v2/books", token, {
         "title": f"Walk Book {sfx}", "author": f"Walk Writer {sfx}", "visibility": visibility,
         "files": [{"upload_id": _upload(ctx, token, "book_file", f"w-{sfx}.mp3"), "relative_path": "01.mp3"}]}, expect=(201,))
@@ -265,7 +266,8 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
     for i in range(5):
         # Two of each title, so an order by title has ties to break.
         tracks.append(ctx.upload_track(tok, f"Page Song {sfx} {i // 2}", artist=f"Page Band {sfx} {i % 3}",
-                                       album=f"Page Album {sfx} {i % 2}", genre=f"pagegenre{sfx}{i % 3}"))
+                                       album=f"Page Album {sfx} {i % 2}", genre=f"pagegenre{sfx}{i % 3}",
+                                       content=ctx.tone(), content_type="audio/wav"))
     tids = [t["id"] for t in tracks]
     for i in range(3):
         ctx.call("POST", "/api/v2/books", tok, {"title": f"Page Book {sfx} {i // 2}", "author": f"Page Writer {sfx} {i}",
