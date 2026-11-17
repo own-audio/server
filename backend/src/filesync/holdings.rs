@@ -164,6 +164,24 @@ pub async fn held_by(pool: &PgPool, user_id: Uuid, chain_id: Uuid) -> anyhow::Re
     .context("db: holdings of device")
 }
 
+/// A page of what this device has reported, by kind and id after `after`.
+pub async fn held_page(pool: &PgPool, user_id: Uuid, chain_id: Uuid, after: Option<(String, Uuid)>, limit: i64) -> anyhow::Result<Vec<Holding>> {
+    let (kind, id) = after.unzip();
+    sqlx::query_as::<_, Holding>(
+        "SELECT kind, item_id AS id, since FROM device_holdings
+          WHERE user_id = $1 AND chain_id = $2 AND ($3::text IS NULL OR (kind, item_id) > ($3, $4))
+          ORDER BY kind, item_id LIMIT $5",
+    )
+    .bind(user_id)
+    .bind(chain_id)
+    .bind(kind)
+    .bind(id)
+    .bind(limit)
+    .fetch_all(pool)
+    .await
+    .context("db: a page of a device's holdings")
+}
+
 /// A purged item is held nowhere.
 pub async fn forget_item(pool: &PgPool, kind: &str, id: Uuid) -> anyhow::Result<()> {
     sqlx::query("DELETE FROM device_holdings WHERE kind = $1 AND item_id = $2")

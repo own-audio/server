@@ -112,21 +112,21 @@ pub(crate) async fn follow(state: &AppState, family: &FamilyContext, feed_url: &
 
 /// Stops following a show: the show and its episodes leave the library (and the change feed
 /// sends their removal). Its owner, or a household admin for a show shared with the household.
-/// An uploaded show is not followed and answers `409`: the trash holds no shows yet
-/// (docs/api-v2-completion-plan.md, phase 11); its episodes' stored copies can go to the trash
-/// one by one or as a batch (`POST /trash`, kind `episode`).
+/// An uploaded show, which nobody follows, goes to the trash with its episodes for 30 days
+/// instead (kind `podcast` in `/trash`), restorable until then.
 #[utoipa::path(delete, path = "/podcasts/{id}", tag = "library", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)),
-    responses((status = 204, description = "Unfollowed"),
+    responses((status = 204, description = "Unfollowed, or an uploaded show in the trash"),
         (status = 403, description = "Visible, but neither the owner's nor shared with an admin caller", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody),
-        (status = 409, description = "`uploaded_podcast`: an uploaded show, not a followed feed", body = crate::v2::problem::ProblemBody)))]
+        (status = 409, description = "`uploaded_podcast`: answered by servers before v2 revision 13, which kept no shows in the trash", body = crate::v2::problem::ProblemBody)))]
 pub async fn unfollow(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
     let row = visible(&state, &family, id).await?;
     may_manage(&family, &row)?;
     if row.source == "upload" {
-        return Err(uploaded());
+        crate::trash::move_to_trash_in(&state, family.viewer(), Uuid::new_v4(), crate::db::trash::Kind::Podcast, id).await?;
+        return Ok(StatusCode::NO_CONTENT);
     }
     if !db::podcasts::unfollow(state.db(), id).await? {
         return Err(Problem::not_found());

@@ -227,11 +227,12 @@ def uploaded_rules(ctx: Ctx, owner: str, member: str) -> None:
           _problem(ctx.request("PATCH", f"/api/v2/podcasts/{show['id']}", owner, {"auto_store": True}), 409, "uploaded_podcast"))
     check("storing an uploaded show's back catalogue: 409 uploaded_podcast",
           _problem(ctx.request("POST", f"/api/v2/podcasts/{show['id']}/store", owner, {}), 409, "uploaded_podcast"))
-    check("unfollowing an uploaded show: 409 uploaded_podcast (it is deleted, not unfollowed)",
-          _problem(ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", owner), 409, "uploaded_podcast"))
     check("another member may not unfollow a show shared with them: 403",
           _problem(ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", member), 403))
     check("…nor change it: 403", _problem(ctx.request("PATCH", f"/api/v2/podcasts/{show['id']}", member, {"auto_store": True}), 403))
+    # Since revision 13 an uploaded show is deleted into the trash, not unfollowed (suite v2_folder).
+    check("deleting an uploaded show: 204, into the trash (revision 13; 409 uploaded_podcast before)",
+          ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", owner)[0] == 204)
     for body, code, label in [
         ({"feed_url": "not an address"}, "invalid_feed_url", "not an address"),
         ({"feed_url": "ftp://example.com/feed"}, "invalid_feed_url", "not http"),

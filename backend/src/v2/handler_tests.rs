@@ -555,3 +555,27 @@ async fn statistics_need_a_signed_in_member() {
         assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
     }
 }
+
+#[tokio::test]
+async fn the_folder_and_its_files_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("POST", "/api/v2/files".to_string()),
+        ("GET", format!("/api/v2/files/{id}")),
+        ("DELETE", format!("/api/v2/files/{id}")),
+        ("PUT", format!("/api/v2/files/{id}/visibility")),
+        ("GET", "/api/v2/sync/shortcuts".to_string()),
+        ("POST", "/api/v2/sync/shortcuts".to_string()),
+        ("DELETE", format!("/api/v2/sync/shortcuts/{id}")),
+        ("GET", "/api/v2/me/holdings".to_string()),
+        ("PUT", "/api/v2/me/holdings".to_string()),
+        ("GET", format!("/api/v2/me/holdings/track/{id}")),
+        ("POST", "/api/v2/library/organise".to_string()),
+    ] {
+        let body = json!({ "upload_id": "x", "path": "Music/a/b.jpg", "visibility": "family", "media": "music", "kind": "track", "dry_run": true });
+        let (s, p) = send(&app, method, &path, body, false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}

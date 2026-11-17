@@ -44,15 +44,19 @@ use uuid::Uuid;
 /// The kinds a snapshot can hold, in the order it sends them.
 pub const SNAPSHOT_KINDS: &[&str] = &[
     "member", "family", "contributor", "release_group", "album", "genre", "track", "playlist", "smart_playlist", "book", "series", "collection", "podcast",
-    "episode", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings",
+    "episode", "file", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings", "shortcut",
 ];
+
+/// The own.audio folder's kinds (phase 11): a snapshot sends them only when `kinds=` names
+/// them, so a player that keeps no folder takes no companion files.
+const FOLDER_KINDS: &[&str] = &["file", "shortcut"];
 
 /// The kinds of the change feed: the snapshot's, and recordings (a track's
 /// `recording_id`; `GET /recordings/{id}`) and notifications (`GET /me/notifications` lists
 /// them; the feed tells of new ones and of those read).
 pub const CHANGE_KINDS: &[&str] = &[
     "member", "family", "contributor", "release_group", "album", "genre", "recording", "track", "playlist", "smart_playlist", "book", "series", "collection",
-    "podcast", "episode", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings", "notification",
+    "podcast", "episode", "file", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings", "notification", "shortcut",
 ];
 
 /// A listener's own state, small enough to send in one go.
@@ -211,6 +215,18 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
             }
         }
         "notification" => out.extend(crate::v2::listening::notification_records(state, family.user_id, ids).await?),
+        "file" => {
+            for row in crate::db::files::files_by_ids(pool, viewer, ids).await? {
+                let f = crate::v2::files::file(row);
+                out.push((f.id, json_of(f)?));
+            }
+        }
+        "shortcut" => {
+            for row in crate::filesync::shortcuts::rows(pool, family.user_id, Some(ids)).await? {
+                let s = crate::v2::folder::shortcut(row);
+                out.push((s.id, json_of(s)?));
+            }
+        }
         other => {
             let Some((state_kind, of)) = other.split_once('.') else { return Ok(out) };
             let Some(k) = Kind::parse(of) else { return Ok(out) };
@@ -276,8 +292,8 @@ pub struct ChangesQuery {
     pub limit: Option<i64>,
     /// Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,
-    /// `book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
-    /// `progress`, `bookmark`, `queue`, `settings`, `notification`, or one kind of state
+    /// `book`, `series`, `collection`, `podcast`, `episode`, `file`, `favourite`, `rating`, `feedback`,
+    /// `progress`, `bookmark`, `queue`, `settings`, `notification`, `shortcut`, or one kind of state
     /// (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
     /// passing the same list with the cursor. A `reset` always comes through.
     pub kinds: Option<String>,
@@ -285,9 +301,9 @@ pub struct ChangesQuery {
 
 #[derive(Serialize, ToSchema)]
 pub struct Change {
-    /// `track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`,
+    /// `track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`, `file`,
     /// `favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,
-    /// `notification`. A client skips kinds it does not know.
+    /// `notification`, `shortcut`. A client skips kinds it does not know.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -365,7 +381,8 @@ pub struct SnapshotQuery {
     /// Comma-separated kinds; all of them when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,
     /// `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
-    /// `progress`, `bookmark`, `queue`, `settings`. Notifications are not in it: read
+    /// `progress`, `bookmark`, `queue`, `settings`; and, only when named here, the own.audio
+    /// folder's `file` (companion files) and `shortcut`. Notifications are not in it: read
     /// `GET /me/notifications`, then the change feed.
     pub kinds: Option<String>,
     /// `ids`: each line names a record (`{"type":"id","kind","id"}`) without it, for a client
@@ -387,7 +404,7 @@ pub struct SnapshotQuery {
         (status = 400, description = "`invalid_kind`, `invalid_fields`, `invalid_cursor`, `invalid_after`", body = crate::v2::problem::ProblemBody)))]
 pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State<AppState>, Query(q): Query<SnapshotQuery>) -> Result<Response, Problem> {
     let kinds: Vec<String> = match parse_kinds(q.kinds.as_deref(), SNAPSHOT_KINDS, false)? {
-        None => SNAPSHOT_KINDS.iter().map(|k| k.to_string()).collect(),
+        None => SNAPSHOT_KINDS.iter().filter(|k| !FOLDER_KINDS.contains(k)).map(|k| k.to_string()).collect(),
         // Always in the snapshot's own order, so `after` means the same thing.
         Some(wanted) => SNAPSHOT_KINDS.iter().filter(|k| wanted.iter().any(|w| w == *k)).map(|k| k.to_string()).collect(),
     };
@@ -475,7 +492,7 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
 }
 
 fn is_whole(kind: &str) -> bool {
-    kind == "family" || kind == "member" || kind == "queue" || kind == "settings" || STATE_KINDS.contains(&kind)
+    kind == "family" || kind == "member" || kind == "queue" || kind == "settings" || kind == "shortcut" || STATE_KINDS.contains(&kind)
 }
 
 /// The household as `GET /family` answers it to this reader.
@@ -518,6 +535,22 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
                 .map(|row| {
                     let m = crate::v2::household::member_record(state, row);
                     Ok((m.user_id, json_of(m)?))
+                })
+                .collect::<Result<Vec<_>, Problem>>()?;
+            let last_id = if records.is_empty() { None } else { Some(Uuid::max()) };
+            Ok(SnapshotPage { records, last_id })
+        }
+        "shortcut" => {
+            // A listener's own, bounded by the household: all in one page.
+            if after != Uuid::nil() {
+                return Ok(SnapshotPage { records: Vec::new(), last_id: None });
+            }
+            let records = crate::filesync::shortcuts::rows(pool, family.user_id, None)
+                .await?
+                .into_iter()
+                .map(|row| {
+                    let s = crate::v2::folder::shortcut(row);
+                    Ok((s.id, json_of(s)?))
                 })
                 .collect::<Result<Vec<_>, Problem>>()?;
             let last_id = if records.is_empty() { None } else { Some(Uuid::max()) };
@@ -618,6 +651,8 @@ async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uu
         ids = crate::db::families::member_records(pool, family.family_id, None).await?.into_iter().map(|m| ("member".to_string(), m.user_id)).collect();
     } else if kind == "queue" || kind == "settings" {
         ids.push((kind.to_string(), family.user_id));
+    } else if kind == "shortcut" {
+        ids = crate::filesync::shortcuts::rows(pool, family.user_id, None).await?.into_iter().map(|s| ("shortcut".to_string(), s.id)).collect();
     } else {
         let kinds: &[Kind] = match kind {
             "favourite" => &[Kind::Track, Kind::Album, Kind::Contributor, Kind::Book],
@@ -695,6 +730,12 @@ mod tests {
         assert!(parse_kinds(Some("queue,settings,notification"), CHANGE_KINDS, true).is_ok());
         assert!(parse_kinds(Some("queue,settings"), SNAPSHOT_KINDS, false).is_ok());
         assert_eq!(code(parse_kinds(Some("notification"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
+        // The own.audio folder (phase 11).
+        assert!(parse_kinds(Some("file,shortcut"), CHANGE_KINDS, true).is_ok());
+        assert!(parse_kinds(Some("file,shortcut"), SNAPSHOT_KINDS, false).is_ok());
+        for k in FOLDER_KINDS {
+            assert!(SNAPSHOT_KINDS.contains(k), "{k} is asked for by name");
+        }
     }
 
     #[test]
@@ -709,10 +750,10 @@ mod tests {
 
     #[test]
     fn small_kinds_are_sent_whole() {
-        for k in ["member", "family", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings"] {
+        for k in ["member", "family", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings", "shortcut"] {
             assert!(is_whole(k), "{k}");
         }
-        for k in ["track", "book", "episode", "album", "contributor", "playlist", "smart_playlist"] {
+        for k in ["track", "book", "episode", "album", "contributor", "playlist", "smart_playlist", "file"] {
             assert!(!is_whole(k), "{k}");
         }
     }

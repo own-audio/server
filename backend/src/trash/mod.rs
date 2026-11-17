@@ -169,7 +169,7 @@ fn path_kind(kind: Kind) -> Option<crate::filesync::paths::Kind> {
         Kind::MusicTrack => Some(P::MusicTrack),
         Kind::PodcastEpisode => Some(P::PodcastEpisode),
         Kind::CompanionFile => Some(P::CompanionFile),
-        Kind::Playlist => None,
+        Kind::Playlist | Kind::Podcast => None,
     }
 }
 
@@ -277,7 +277,8 @@ async fn list_trash(
     let scope = scope_from(&family, &q)?;
     let items = db::trash::list(state.db(), scope).await.map_err(AuthError::Internal)?;
     let mut out = Vec::with_capacity(items.len());
-    for t in items {
+    // A show goes to the trash only through /api/v2, whose words v1's clients do not know.
+    for t in items.into_iter().filter(|t| t.kind() != Kind::Podcast) {
         out.push(to_response(&state, t).await?);
     }
     Ok(Json(out))
@@ -345,7 +346,7 @@ pub(crate) async fn restore_item(
 }
 
 fn parse_kind(kind: &str) -> Result<Kind, AuthError> {
-    Kind::parse(kind).ok_or_else(|| {
+    Kind::parse(kind).filter(|k| *k != Kind::Podcast).ok_or_else(|| {
         AuthError::BadRequest("kind must be 'audiobook', 'music_track', 'playlist' or 'podcast_episode'".into())
     })
 }

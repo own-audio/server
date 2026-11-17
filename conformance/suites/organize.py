@@ -161,19 +161,29 @@ def releases_and_artists(ctx, songs):
     ctx.check("…as identify in the history",
               hist and all(e["source"] == "identify" for e in hist)
               and any(e["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"] for e in hist), str(hist)[:300])
+    # The album the release put the song on, which the identify may have changed too.
+    identified = ctx.call("GET", f"/api/v2/tracks/{ids[0]}", ctx.admin_token)
     back = ctx.call("POST", f"/api/v2/edits/batches/{applied['batch_id']}/undo", ctx.admin_token)
     now = next(s for s in ctx.call("GET", "/api/v2/organize/tracks?limit=500", ctx.admin_token)["items"] if s["id"] == ids[0])
-    # How many edits the undo reverts depends on timing: the identify's own, plus the release's
-    # cover when it was fetched (in the background, since revision 15) before the undo. What
-    # must hold is that it reverted at least one, that each one it reverted is in the batch and
-    # about this song, and that the song is back as it was.
+    # What the undo reverts depends on the release and on timing: the identify's changes to the
+    # song, and to its album and artists when the release says more about them than they knew,
+    # plus the release's cover when it was fetched (in the background, since revision 15) before
+    # the undo. `items` counts the items it put back, not the edits. What must hold: at least
+    # one, as many as the distinct items of the batch's reverted edits, each of them this song,
+    # its album (before or during the identify) or someone credited on them.
     in_batch = ctx.call("GET", f"/api/v2/edits?batch_id={applied['batch_id']}&limit=500", ctx.admin_token).get("items", [])
     reverted = [e for e in in_batch if e.get("undone_at")]
+    albums = {songs[0].get("album_id"), now.get("album_id"), identified.get("album_id")} - {None}
+    people = {c["contributor_id"] for c in ctx.call("GET", f"/api/v2/tracks/{ids[0]}", ctx.admin_token).get("credits", [])}
+    people |= {c["contributor_id"] for c in identified.get("credits", [])}
+    for album_id in albums:
+        people |= {c["contributor_id"] for c in ctx.call("GET", f"/api/v2/albums/{album_id}", ctx.admin_token, expect=(200, 404)).get("credits", [])}
+    mine = {("track", ids[0])} | {("album", a) for a in albums} | {("contributor", p) for p in people}
     ctx.check("and undone, the song is as it was, unidentified",
-              (back.get("items") or 0) >= 1 and back.get("items") == len(reverted)
-              and all(e["item_kind"] == "track" and e["item_id"] == ids[0] for e in reverted)
+              (back.get("items") or 0) >= 1 and back.get("items") == len({(e["item_kind"], e["item_id"]) for e in reverted})
+              and all((e["item_kind"], e["item_id"]) in mine for e in reverted)
               and now["title"] == songs[0]["title"] and now["musicbrainz_recording_id"] is None and now["identity"] is None,
-              str((back, [(e["item_kind"], e["item_id"] == ids[0], bool(e.get("undone_at"))) for e in in_batch],
+              str((back, [(e["item_kind"], (e["item_kind"], e["item_id"]) in mine, bool(e.get("undone_at"))) for e in in_batch],
                    now["title"], now["identity"])))
 
     artists = ctx.call("GET", "/api/v2/contributors?limit=50", ctx.admin_token).get("items", [])

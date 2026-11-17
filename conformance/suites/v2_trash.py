@@ -149,7 +149,7 @@ def problems(ctx: Ctx, s: Suite, owner: str, member: str) -> None:
     check("restoring an unknown kind is 400 invalid_kind",
           _problem(ctx.request("POST", f"/api/v2/trash/music_track/{rid}/restore", owner), 400, "invalid_kind"))
     check("purging an unknown kind is 400 invalid_kind",
-          _problem(ctx.request("DELETE", f"/api/v2/trash/podcast/{rid}", owner), 400, "invalid_kind"))
+          _problem(ctx.request("DELETE", f"/api/v2/trash/show/{rid}", owner), 400, "invalid_kind"))
     check("restoring what is not in the trash is 404",
           _problem(ctx.request("POST", f"/api/v2/trash/track/{rid}/restore", owner), 404, "not_found"))
     check("purging what is not in the trash is 404",
@@ -340,8 +340,10 @@ def episodes_and_playlists(ctx: Ctx, s: Suite, owner: str) -> None:
     check("restored, the episode is stored again and the playlist back",
           ctx.call("GET", f"/api/v2/episodes/{ep['id']}", owner)["stored"] is True
           and ctx.call("GET", f"/api/v2/playlists/{pl['id']}", owner)["id"] == pl["id"])
-    check("an uploaded show itself is not deleted yet: 409 uploaded_podcast",
-          _problem(ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", owner), 409, "uploaded_podcast"))
+    # Since revision 13 an uploaded show goes to the trash with its episodes (suite v2_folder).
+    check("an uploaded show goes to the trash too (revision 13; 409 uploaded_podcast before)",
+          ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", owner)[0] == 204
+          and any(t["id"] == show["id"] and t["kind"] == "podcast" for t in s.trash(owner)))
 
 
 def purge(ctx: Ctx, s: Suite, owner: str, member: str) -> None:

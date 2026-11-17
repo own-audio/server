@@ -348,6 +348,23 @@
         ],
         "type": "object"
       },
+      "AttachTo": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`album`, `book` or `track`, of the caller's own.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
       "AudioAnalysisPatch": {
         "properties": {
           "enabled": {
@@ -1268,7 +1285,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`,\n`favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,\n`notification`. A client skips kinds it does not know.",
+            "description": "`track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`, `file`,\n`favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,\n`notification`, `shortcut`. A client skips kinds it does not know.",
             "type": "string"
           },
           "op": {
@@ -2789,6 +2806,79 @@
         ],
         "type": "object"
       },
+      "File": {
+        "properties": {
+          "content_type": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "description": "The last part of `path`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "owner_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "path": {
+            "description": "Where it sits in its owner's own.audio folder (`Music/Artist/Album/cover.jpg`).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sha256": {
+            "description": "Filled in shortly after the upload.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "size_bytes": {
+            "format": "int64",
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "updated_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "used_as": {
+            "description": "Only in `POST /files`'s answer: `cover` when it became a cover, `lyrics` when it became\na track's lyrics.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "visibility": {
+            "description": "`private` or `family`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "owner_id",
+          "visibility",
+          "created_at",
+          "updated_at"
+        ],
+        "type": "object"
+      },
       "FilePatch": {
         "properties": {
           "title": {
@@ -3017,6 +3107,108 @@
         ],
         "type": "object"
       },
+      "Holding": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "since": {
+            "description": "Since when this device keeps it.",
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "since"
+        ],
+        "type": "object"
+      },
+      "HoldingDevice": {
+        "properties": {
+          "current": {
+            "description": "The device asking.",
+            "type": "boolean"
+          },
+          "device_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "device_kind": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "device_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "since": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "device_id",
+          "since",
+          "current"
+        ],
+        "type": "object"
+      },
+      "HoldingRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track`, `book`, `episode` or `file`.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object"
+      },
+      "HoldingsChange": {
+        "properties": {
+          "added": {
+            "description": "…or what it took in…",
+            "items": {
+              "$ref": "#/components/schemas/HoldingRef"
+            },
+            "type": "array"
+          },
+          "items": {
+            "description": "The device's whole set, replacing what it said before…",
+            "items": {
+              "$ref": "#/components/schemas/HoldingRef"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "removed": {
+            "description": "…and let go.",
+            "items": {
+              "$ref": "#/components/schemas/HoldingRef"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
       "IdentityFields": {
         "description": "Each `true` unless sent as `false`.",
         "properties": {
@@ -3103,14 +3295,22 @@
       },
       "ImageUpload": {
         "properties": {
+          "file_id": {
+            "description": "…or a companion image of one's own (`POST /files`): \"use as cover\". One of the two.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "upload_id": {
-            "description": "From `POST /uploads` (kind `book_cover`), an image.",
-            "type": "string"
+            "description": "From `POST /uploads` (kind `book_cover`), an image…",
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
-        "required": [
-          "upload_id"
-        ],
         "type": "object"
       },
       "Included": {
@@ -3992,6 +4192,41 @@
         ],
         "type": "object"
       },
+      "Move": {
+        "properties": {
+          "files": {
+            "description": "How many of the folder's files (covers, booklets) go along.",
+            "minimum": 0,
+            "type": "integer"
+          },
+          "from": {
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "kind": {
+            "description": "`track` or `book`.",
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "id",
+          "title",
+          "from",
+          "to",
+          "files"
+        ],
+        "type": "object"
+      },
       "NewBook": {
         "properties": {
           "author": {
@@ -4222,6 +4457,49 @@
         ],
         "type": "object"
       },
+      "NewFile": {
+        "properties": {
+          "attach_to": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AttachTo",
+                "description": "…or the item it goes with — a book's folder, a track's, an album's (its first track's) —\nand its name there, `relative_path`."
+              }
+            ]
+          },
+          "path": {
+            "description": "Its whole path in the own.audio folder, under `Music/` or `Audiobooks/` (what a sync\nclient sends)…",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relative_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "upload_id": {
+            "description": "From `POST /uploads` (kind `companion`): an image, PDF, `.lrc`, `.cue`, `.txt` or `.nfo`.",
+            "type": "string"
+          },
+          "visibility": {
+            "description": "`private` (default) or `family`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "upload_id"
+        ],
+        "type": "object"
+      },
       "NewMember": {
         "properties": {
           "age_bracket": {
@@ -4391,6 +4669,48 @@
         "required": [
           "name"
         ],
+        "type": "object"
+      },
+      "NewShortcut": {
+        "properties": {
+          "album_id": {
+            "description": "At most one of these three.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "book_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media": {
+            "description": "`music`, `books` or `podcasts`; follows from the album, book or show when one is named.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "member_id": {
+            "description": "Whose; found from the album, book or show when one is named.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "podcast_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "NewTrack": {
@@ -4572,6 +4892,53 @@
         },
         "required": [
           "file_ids"
+        ],
+        "type": "object"
+      },
+      "OrganiseRequest": {
+        "properties": {
+          "dry_run": {
+            "description": "Required, so nothing moves by accident: `true` lists the moves and changes nothing.",
+            "type": "boolean"
+          },
+          "ids": {
+            "description": "Only these; every one of the kind when absent.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "kind": {
+            "description": "`track` or `book`: which of the caller's own items.",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "dry_run"
+        ],
+        "type": "object"
+      },
+      "Organised": {
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "moves": {
+            "description": "By the place they go to. A dry run lists exactly the moves the same request without it\nmakes (it runs them and rolls back), suffixes for clashes included.",
+            "items": {
+              "$ref": "#/components/schemas/Move"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "dry_run",
+          "moves"
         ],
         "type": "object"
       },
@@ -6041,6 +6408,58 @@
               "required": [
                 "id",
                 "name"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "next": {
+            "description": "The cursor for the next page; absent on the last.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
+      "Page_Holding": {
+        "description": "One page of a list.",
+        "properties": {
+          "included": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/Included",
+                "description": "The records the items refer to, each once, when `include=` asked for them."
+              }
+            ]
+          },
+          "items": {
+            "items": {
+              "properties": {
+                "id": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "since": {
+                  "description": "Since when this device keeps it.",
+                  "format": "date-time",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "kind",
+                "id",
+                "since"
               ],
               "type": "object"
             },
@@ -7922,7 +8341,7 @@
             "type": "string"
           },
           "reasons": {
-            "description": "Why: `client_plays_original`, `over_bitrate_limit`, `format_not_playable`,\n`no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`.",
+            "description": "Why: `client_plays_original`, `over_bitrate_limit`, `format_not_playable`,\n`no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`, `companion_file`.",
             "items": {
               "type": "string"
             },
@@ -7962,7 +8381,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `book_file` (one file of a book) or `episode`.",
+            "description": "`track`, `book_file` (one file of a book), `episode` or `file` (a companion file of the\nown.audio folder, to download: always the original).",
             "type": "string"
           },
           "start_ms": {
@@ -10166,6 +10585,64 @@
         ],
         "type": "object"
       },
+      "Shortcut": {
+        "description": "A thing of another member's that the listener's own.audio folder shows under `Family/`:\nall of their music, books or podcasts, or one album, book or show.",
+        "properties": {
+          "album_id": {
+            "description": "One album, book or show; none of the three for all of the member's `media`.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "book_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "label": {
+            "description": "The album's, book's or show's title.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "media": {
+            "description": "`music`, `books` or `podcasts`.",
+            "type": "string"
+          },
+          "member_id": {
+            "description": "Whose (a `member` record).",
+            "format": "uuid",
+            "type": "string"
+          },
+          "podcast_id": {
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "member_id",
+          "media",
+          "created_at"
+        ],
+        "type": "object"
+      },
       "SmartPlaylist": {
         "properties": {
           "created_at": {
@@ -11044,7 +11521,7 @@
             "type": "string"
           },
           "kind": {
-            "description": "`track`, `book`, `playlist`, `episode` (the server's stored copy of the episode; the\nepisode stays listed) or `file` (a companion file of the own.audio folder).",
+            "description": "`track`, `book`, `playlist`, `episode` (the server's stored copy of the episode; the\nepisode stays listed), `file` (a companion file of the own.audio folder) or `podcast` (an\nuploaded show with its episodes; a followed one is unfollowed, not trashed).",
             "type": "string"
           }
         },
@@ -11277,7 +11754,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.12-draft"
+    "version": "2.13-draft"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -18104,6 +18581,335 @@
         "x-scope": "library:read"
       }
     },
+    "/api/v2/files": {
+      "post": {
+        "description": "Keep a file next to the audio: an image, a booklet, lyrics, a cue sheet. Send an\n`Idempotency-Key`: a retry answers the first answer and keeps one file.",
+        "operationId": "library_create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`, `invalid_path` (outside `Music/` and `Audiobooks/`, `..`), `unsupported_type`, `invalid_visibility`, `invalid_upload`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "402": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`storage_refused`: the household has no room for it"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not allowed to add to the library"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No such upload in this household, or `attach_to` is not the caller's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Keep a file next to the audio: an image, a booklet, lyrics, a cue sheet",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "can_upload",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/files/{id}": {
+      "delete": {
+        "description": "Delete a file: into the trash for 30 days (kind `file`), as a track. Its owner, or a\nhousehold admin for one shared with the household.",
+        "operationId": "library_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "In the trash"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "403": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Visible, but neither its owner nor, for a shared one, a household admin"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, not visible, or already in the trash"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a file: into the trash for 30 days (kind `file`), as a track",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      },
+      "get": {
+        "operationId": "library_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Unknown, not visible, or in the trash"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "One file the caller can see",
+        "tags": [
+          "library"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      }
+    },
+    "/api/v2/files/{id}/visibility": {
+      "put": {
+        "description": "Share a file with the household, or keep it to oneself. Its owner.",
+        "operationId": "household_set_visibility",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Visibility"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Visibility"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not the caller's"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Share a file with the household, or keep it to oneself",
+        "tags": [
+          "household"
+        ],
+        "x-permission": "owner",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/genres": {
       "get": {
         "operationId": "catalog_list_genres",
@@ -19695,6 +20501,85 @@
         "x-permission": "public"
       }
     },
+    "/api/v2/library/organise": {
+      "post": {
+        "description": "Move the caller's own tracks to `Music/<Album artist>/<Album>/<NN> - <Title>` and books to\n`Audiobooks/<Author>/<Title>`, with the files beside them; ids stay, the change feed carries\nthe new paths. Only the caller's own items, whatever their role.",
+        "operationId": "sync_organise_paths",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OrganiseRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Organised"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "422": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body`: `dry_run` missing"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Move the caller's own tracks to `Music/<Album artist>/<Album>/<NN> - <Title>` and books to `Audiobooks/<Author>/<Title>`, with the files beside them; ids stay, the change feed carries the new paths",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/library/quarantine": {
       "get": {
         "operationId": "library_list_quarantine",
@@ -20813,6 +21698,216 @@
         ],
         "x-permission": "member",
         "x-scope": "library:write"
+      }
+    },
+    "/api/v2/me/holdings": {
+      "get": {
+        "description": "What the calling device keeps offline, by kind and id, a page at a time. The device is the\nsession's (`device_id` as in progress).",
+        "operationId": "sync_get_holdings",
+        "parameters": [
+          {
+            "description": "How many items, 1 to 500; 100 when absent.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "format": "int64",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "`next` from the previous page; absent for the first.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_Holding"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "What the calling device keeps offline, by kind and id, a page at a time",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "put": {
+        "operationId": "sync_put_holdings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HoldingsChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Saved"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tell the server what this device keeps: the whole set (`items`), or what it took in and let go (`added`, `removed`)",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/me/holdings/{kind}/{id}": {
+      "get": {
+        "operationId": "sync_holding_devices",
+        "parameters": [
+          {
+            "description": "`track`, `book`, `episode` or `file`",
+            "in": "path",
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/HoldingDevice"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_kind`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Which of the caller's signed-in devices keep this item offline",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
       }
     },
     "/api/v2/me/image": {
@@ -25862,7 +26957,7 @@
     },
     "/api/v2/podcasts/{id}": {
       "delete": {
-        "description": "Stops following a show: the show and its episodes leave the library (and the change feed\nsends their removal). Its owner, or a household admin for a show shared with the household.\nAn uploaded show is not followed and answers `409`: the trash holds no shows yet\n(docs/api-v2-completion-plan.md, phase 11); its episodes' stored copies can go to the trash\none by one or as a batch (`POST /trash`, kind `episode`).",
+        "description": "Stops following a show: the show and its episodes leave the library (and the change feed\nsends their removal). Its owner, or a household admin for a show shared with the household.\nAn uploaded show, which nobody follows, goes to the trash with its episodes for 30 days\ninstead (kind `podcast` in `/trash`), restorable until then.",
         "operationId": "library_unfollow",
         "parameters": [
           {
@@ -25877,7 +26972,7 @@
         ],
         "responses": {
           "204": {
-            "description": "Unfollowed"
+            "description": "Unfollowed, or an uploaded show in the trash"
           },
           "401": {
             "content": {
@@ -25917,7 +27012,7 @@
                 }
               }
             },
-            "description": "`uploaded_podcast`: an uploaded show, not a followed feed"
+            "description": "`uploaded_podcast`: answered by servers before v2 revision 13, which kept no shows in the trash"
           },
           "429": {
             "content": {
@@ -28384,7 +29479,7 @@
             }
           },
           {
-            "description": "Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,\n`book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`, `notification`, or one kind of state\n(`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
+            "description": "Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,\n`book`, `series`, `collection`, `podcast`, `episode`, `file`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`, `notification`, `shortcut`, or one kind of state\n(`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep\npassing the same list with the cursor. A `reset` always comes through.",
             "in": "query",
             "name": "kinds",
             "required": false,
@@ -28529,12 +29624,213 @@
         "x-scope": "playback"
       }
     },
+    "/api/v2/sync/shortcuts": {
+      "get": {
+        "description": "The listener's shortcuts, oldest first. Bounded by the household, so not paged.",
+        "operationId": "sync_list_shortcuts",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Shortcut"
+                  },
+                  "type": "array"
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "The listener's shortcuts, oldest first",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:read"
+      },
+      "post": {
+        "description": "Show another member's music, books or podcasts in the listener's folder, or one album, book\nor show of theirs. `201` when new, `200` with the one already there.",
+        "operationId": "sync_add_shortcut",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewShortcut"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Shortcut"
+                }
+              }
+            },
+            "description": "Already there"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Shortcut"
+                }
+              }
+            },
+            "description": "Added"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_body` (one's own, nothing named, two things named), `invalid_media`"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "No such member in the household, or no such album, book or show of theirs the caller can see"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Show another member's music, books or podcasts in the listener's folder, or one album, book or show of theirs",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
+    "/api/v2/sync/shortcuts/{id}": {
+      "delete": {
+        "operationId": "sync_remove_shortcut",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed"
+          },
+          "401": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Missing, invalid or revoked access token"
+          },
+          "404": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Not one of the caller's shortcuts"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Stop showing it in the listener's folder",
+        "tags": [
+          "sync"
+        ],
+        "x-permission": "member",
+        "x-scope": "library:write"
+      }
+    },
     "/api/v2/sync/snapshot": {
       "get": {
         "operationId": "sync_snapshot",
         "parameters": [
           {
-            "description": "Comma-separated kinds; all of them when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,\n`series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`. Notifications are not in it: read\n`GET /me/notifications`, then the change feed.",
+            "description": "Comma-separated kinds; all of them when absent: `member`, `family`, `contributor`,\n`release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,\n`series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,\n`progress`, `bookmark`, `queue`, `settings`; and, only when named here, the own.audio\nfolder's `file` (companion files) and `shortcut`. Notifications are not in it: read\n`GET /me/notifications`, then the change feed.",
             "in": "query",
             "name": "kinds",
             "required": false,

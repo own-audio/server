@@ -214,7 +214,7 @@ pub async fn rescan(family: FamilyContext, State(state): State<AppState>, Path(i
 pub async fn put_image(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<crate::v2::books::ImageUpload>) -> Result<Json<Track>, Problem> {
     owned(&state, &family, id).await?;
     family.require_can_upload()?;
-    let image = crate::v2::books::adopt_image(&state, &family, &body.upload_id).await?;
+    let image = crate::v2::books::image_of(&state, &family, &body).await?;
     db::music::set_track_cover(state.db(), id, family.user_id, Some(image), &db::edits::Edit::new(family.user_id, "manual")).await?;
     Ok(Json(record(&state, &family, id).await?))
 }

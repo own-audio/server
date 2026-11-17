@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 276 |
+| covered | 287 |
 | partly covered | 1 |
-| missing | 29 |
+| missing | 18 |
 | not carried over | 10 |
 | **total** | **316** |
 
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 10, v2
-revision 12). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 11, v2
+revision 13). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -205,7 +205,7 @@ lists what is still open.
 | `GET /podcasts/{id}/episodes/{ep_id}/transcript` | `GET /episodes/{id}/transcript` | covered | The server reads the publisher's file (or the uploaded one) into timed lines, now with the speaker where the file names one; `Episode.transcript_url` still links the file itself. A missing one is `404 no_transcript`. |
 | `PUT /podcasts/{id}/visibility` | `PUT /podcasts/{id}/visibility` | covered |  |
 | `POST /podcasts/subscribe` | `POST /podcasts` | covered | `{feed_url, visibility?}`; a show the caller has already (or sees shared) answers `200` without fetching; `Idempotency-Key`. Any member, as on v1; an uploaded show still needs `can_upload`. |
-| `DELETE /podcasts/{id}` | `DELETE /podcasts/{id}` | covered | Unfollow; the episodes' removals reach the change feed with the show's. The owner, or a household admin for a shared show (v1: the owner). An uploaded show answers `409` until the trash holds shows (completion plan phase 11). |
+| `DELETE /podcasts/{id}` | `DELETE /podcasts/{id}` | covered | Unfollow; the episodes' removals reach the change feed with the show's. The owner, or a household admin for a shared show (v1: the owner). An uploaded show goes to the trash with its episodes (kind `podcast`, since v2 revision 13; `409 uploaded_podcast` before). |
 | `POST /podcasts/{id}/refresh` | `POST /podcasts/{id}/refresh` | covered | Queued (`202`), the art stored on the way; new episodes arrive through `/sync/changes`. `POST /podcasts/refresh` refreshes every show. |
 | `GET /podcasts/unplayed-counts` | `GET /me/podcasts/unplayed` | covered | Paged by podcast id, every visible show once (zero included); one grouped query per page. |
 | `PUT /podcasts/{id}/auto-store` | `PATCH /podcasts/{id}` | covered | `{auto_store}`; `Podcast.auto_store` tells. |
@@ -335,17 +335,17 @@ lists what is still open.
 | `POST /library/folders/scan` | — | missing |  |
 | `GET /sync/tree` | `GET /sync/changes` | covered | With `GET /sync/snapshot`: `path` and `sha256` on tracks, books and episodes, `relative_path` and `sha256` on book files; renames, grants and policy changes in the feed; owners' names as `member` records, people who left included; `kinds=` to read only what the folder shows. Companion files have rows of their own below. |
 | `GET /sync/tree/ids` | `GET /sync/snapshot` | covered | `fields=ids`: `{type: id, kind, id}` lines, every kind (v1: the folder's), about 60 bytes an item. |
-| `POST /sync/paths/organise` | — | missing | Move items to their default folder paths. |
-| `GET /sync/holdings` | — | missing |  |
-| `PUT /sync/holdings` | — | missing |  |
-| `GET /sync/shortcuts` | — | missing |  |
-| `POST /sync/shortcuts` | — | missing |  |
-| `DELETE /sync/shortcuts/{id}` | — | missing |  |
-| `POST /sync/files` | — | missing | Companion files (images, booklets, lyrics, cue sheets). |
-| `DELETE /sync/files/{id}` | — | missing |  |
-| `GET /sync/files/{id}/stream` | — | missing |  |
-| `PUT /sync/files/{id}/visibility` | — | missing |  |
-| `POST /sync/files/{id}/use-as-cover` | — | missing |  |
+| `POST /sync/paths/organise` | `POST /library/organise` | covered | `{kind: track|book, dry_run, ids?}` → `{dry_run, moves}`; `dry_run` is required (v1's `preview` defaulted to moving). The caller's own items, as v1; one transaction, a dry run rolled back, so it lists exactly the moves the same request makes. |
+| `GET /sync/holdings` | `GET /me/holdings`, `GET /me/holdings/{kind}/{id}` | covered | The device's set cursor-paged (it can be a whole catalog); the devices holding one item as their own route. v2's kind words; the device is the session's (`device_id`, as in progress). |
+| `PUT /sync/holdings` | `PUT /me/holdings` | covered | `{items}` or `{added, removed}`, v2's kind words. |
+| `GET /sync/shortcuts` | `GET /sync/shortcuts` | covered | `{member_id, media, album_id?, book_id?, podcast_id?, label}`; an album by its id (v1: release group or names, which v1's clients still get). Kind `shortcut` in the change feed and, when asked for, the snapshot. |
+| `POST /sync/shortcuts` | `POST /sync/shortcuts` | covered | `{member_id?, media?, album_id | book_id | podcast_id}`; `201` new, `200` the one already there. |
+| `DELETE /sync/shortcuts/{id}` | `DELETE /sync/shortcuts/{id}` | covered |  |
+| `POST /sync/files` | `POST /files` | covered | `{upload_id, path}` or `{upload_id, attach_to: {kind, id}, relative_path}` → `File` (kind `file` in the snapshot when asked for, and in the change feed); `Idempotency-Key`; the cover and lyrics rules are v1's. |
+| `DELETE /sync/files/{id}` | `DELETE /files/{id}` | covered | Into the trash (kind `file`); its removal and restore reach the change feed. |
+| `GET /sync/files/{id}/stream` | `POST /playback-info` | covered | Kind `file`: always the original, a signed link (reason `companion_file`). |
+| `PUT /sync/files/{id}/visibility` | `PUT /files/{id}/visibility` | covered | As other kinds. |
+| `POST /sync/files/{id}/use-as-cover` | `PUT /tracks/{id}/image`, `PUT /books/{id}/image` | covered | `{file_id}`: one of the caller's companion images as the cover of that track or book (v1 set it on the folder's book and every track in it at once; v2 names each item). Also on playlists and contributors. |
 
 ## Uploads, trash and jobs
 

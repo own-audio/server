@@ -1062,6 +1062,8 @@ pub async fn visible_ids_after(pool: &PgPool, viewer: Viewer, kind: &str, after:
             "SELECT t.id FROM music_smart_playlists t WHERE (t.user_id = $1 OR t.family_id = $2) AND $3::boolean IS NOT NULL AND t.id > $4".to_string()
         }
         "podcast" => format!("SELECT t.id FROM podcast_feeds t WHERE {} AND t.id > $4", podcasts()),
+        // A companion file is seen through the policy of the folder it is in (`db::files`).
+        "file" => format!("SELECT t.id FROM companion_files t WHERE {} AND t.id > $4", crate::db::files::VISIBLE),
         "episode" => format!(
             "SELECT e.id FROM podcast_episodes e JOIN podcast_feeds t ON t.id = e.feed_id WHERE {} AND e.id > $4",
             podcasts()

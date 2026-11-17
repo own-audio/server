@@ -14,6 +14,8 @@ pub mod discovery;
 pub mod edit;
 pub mod edits;
 pub mod events;
+pub mod files;
+pub mod folder;
 pub mod household;
 pub mod idempotency;
 pub mod images;
@@ -186,6 +188,14 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(stats::family_stats))
         .routes(routes!(sync::changes))
         .routes(routes!(sync::snapshot))
+        .routes(routes!(folder::list_shortcuts, folder::add_shortcut))
+        .routes(routes!(folder::remove_shortcut))
+        .routes(routes!(folder::get_holdings, folder::put_holdings))
+        .routes(routes!(folder::holding_devices))
+        .routes(routes!(folder::organise_paths))
+        .routes(routes!(files::create))
+        .routes(routes!(files::get, files::delete))
+        .routes(routes!(files::set_visibility))
         .routes(routes!(media::playback_info))
         .routes(routes!(media::stream))
         // The signature is the authorisation; uploads stream, so no body limit (as on v1).

@@ -292,6 +292,78 @@ async fn owner_of(pool: &PgPool, viewer: Viewer, body: &NewShortcut) -> anyhow::
     .context("db: album owner")
 }
 
+/// A shortcut as `/api/v2` shows it: an album by the id of the member's album it names.
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct ShortcutRow {
+    pub id: Uuid,
+    pub member_id: Uuid,
+    pub kind: String,
+    pub container_kind: Option<String>,
+    pub container_id: Option<Uuid>,
+    pub album_id: Option<Uuid>,
+    pub label: Option<String>,
+    pub created_at: DateTime<Utc>,
+}
+
+/// The listener's shortcuts, all or these ids, oldest first. An album shortcut — kept, as v1
+/// keeps it, by release group or by name — names the member's album it matches.
+pub async fn rows(pool: &PgPool, user_id: Uuid, ids: Option<&[Uuid]>) -> anyhow::Result<Vec<ShortcutRow>> {
+    let sql = format!(
+        "SELECT s.id, s.member_id, s.kind, s.container_kind, s.container_id,
+                CASE WHEN s.container_kind = 'album' THEN
+                    (SELECT t.album_id FROM music_tracks t
+                      WHERE t.user_id = s.member_id AND t.album_id IS NOT NULL
+                        AND ((s.release_group IS NOT NULL AND t.musicbrainz_release_group_id = s.release_group)
+                             OR (s.release_group IS NULL AND lower(t.album) = lower(s.album)
+                                 AND lower({}) = lower(COALESCE(s.album_artist, 'Unknown Artist'))))
+                      ORDER BY t.created_at, t.id LIMIT 1)
+                END AS album_id,
+                CASE s.container_kind
+                    WHEN 'book' THEN (SELECT b.title FROM audiobook_books b WHERE b.id = s.container_id)
+                    WHEN 'show' THEN (SELECT f.title FROM podcast_feeds f WHERE f.id = s.container_id)
+                    WHEN 'album' THEN COALESCE(s.album,
+                        (SELECT t.album FROM music_tracks t
+                          WHERE t.user_id = s.member_id AND t.musicbrainz_release_group_id = s.release_group LIMIT 1))
+                END AS label,
+                s.created_at
+           FROM sync_shortcuts s
+          WHERE s.user_id = $1 AND ($2::uuid[] IS NULL OR s.id = ANY($2))
+          ORDER BY s.created_at, s.id",
+        crate::db::music::ALBUM_ARTIST_SQL
+    );
+    sqlx::query_as::<_, ShortcutRow>(&sql)
+        .bind(user_id)
+        .bind(ids)
+        .fetch_all(pool)
+        .await
+        .context("db: shortcut rows")
+}
+
+/// `(owner, release group, album artist, album)`: what v1 keeps an album shortcut by.
+pub type AlbumIdentity = (Uuid, Option<String>, Option<String>, Option<String>);
+
+/// What v1 keeps an album shortcut by, for an album of another member's the viewer can see.
+/// The owner is `member` when given; otherwise whoever's track of it came first.
+pub async fn album_identity(pool: &PgPool, viewer: Viewer, album_id: Uuid, member: Option<Uuid>) -> anyhow::Result<Option<AlbumIdentity>> {
+    sqlx::query_as(&format!(
+        "SELECT t.user_id, t.musicbrainz_release_group_id, {}, t.album
+           FROM music_tracks t
+          WHERE t.album_id = $5 AND t.user_id <> $1 AND ($6::uuid IS NULL OR t.user_id = $6) AND {}
+          ORDER BY t.created_at, t.id LIMIT 1",
+        crate::db::music::ALBUM_ARTIST_SQL,
+        access::VISIBLE,
+    ))
+    .bind(viewer.user_id)
+    .bind(viewer.family_id)
+    .bind(viewer.is_family_admin)
+    .bind(access::MUSIC)
+    .bind(album_id)
+    .bind(member)
+    .fetch_optional(pool)
+    .await
+    .context("db: album identity for a shortcut")
+}
+
 pub async fn remove(pool: &PgPool, user_id: Uuid, id: Uuid) -> anyhow::Result<bool> {
     let done = sqlx::query("DELETE FROM sync_shortcuts WHERE id = $1 AND user_id = $2")
         .bind(id)

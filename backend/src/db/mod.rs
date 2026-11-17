@@ -39,6 +39,7 @@ pub mod totp;
 pub mod security_events;
 pub mod entities;
 pub mod edits;
+pub mod files;
 pub mod organize;
 pub mod instance;
 

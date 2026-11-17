@@ -387,7 +387,7 @@ pub async fn put_contributor_image(
 ) -> Result<Json<Contributor>, Problem> {
     family.require_can_upload()?;
     editable_contributor(&state, &family, id).await?;
-    let image = crate::v2::books::adopt_image(&state, &family, &body.upload_id).await?;
+    let image = crate::v2::books::image_of(&state, &family, &body).await?;
     db::music::set_user_artist_image(state.db(), id, image).await?;
     Ok(Json(editable_contributor(&state, &family, id).await?))
 }

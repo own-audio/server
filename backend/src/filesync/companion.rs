@@ -73,7 +73,6 @@ pub async fn create(
     }
     let family_id = access::family_id_for_visibility(body.visibility.as_deref(), family.family_id)
         .map_err(|e| AuthError::BadRequest(e.to_string()))?;
-    let media_kind = if path.starts_with(paths::AUDIOBOOKS) { access::AUDIOBOOK } else { access::MUSIC };
 
     let (size_bytes, content_type) = state
         .storage()
@@ -81,37 +80,60 @@ pub async fn create(
         .await
         .map_err(AuthError::Internal)?
         .ok_or_else(|| AuthError::BadRequest("no object was uploaded under that key".to_string()))?;
-    let pool = state.db();
-    let object_id = crate::db::media::upsert_object(pool, state.storage().bucket(), &body.object_key, &content_type, Some(size_bytes))
+    let object_id = crate::db::media::upsert_object(state.db(), state.storage().bucket(), &body.object_key, &content_type, Some(size_bytes))
         .await
         .map_err(AuthError::Internal)?;
+    let made = register(&state, family.user_id, family_id, object_id, &body.object_key, &path, size_bytes).await?;
+    Ok((
+        StatusCode::CREATED,
+        Json(CompanionResponse { id: made.id, path: made.path, visibility: access::visibility_of(family_id), size_bytes, used_as: made.used_as }),
+    ))
+}
+
+/// A companion file made: its id, the path it got, and what the server used it as.
+pub struct Registered {
+    pub id: Uuid,
+    pub path: String,
+    pub used_as: Option<&'static str>,
+}
+
+/// Keep a stored object as the owner's companion file at `path` (checked by the caller), and
+/// apply the folder's rules: an image may become a cover, a `.lrc` a track's lyrics. v1's
+/// `POST /sync/files` and v2's `POST /files` both end here.
+pub async fn register(
+    state: &AppState,
+    owner: Uuid,
+    family_id: Option<Uuid>,
+    object_id: Uuid,
+    object_key: &str,
+    path: &str,
+    size_bytes: i64,
+) -> Result<Registered, AuthError> {
+    let media_kind = if path.starts_with(paths::AUDIOBOOKS) { access::AUDIOBOOK } else { access::MUSIC };
+    let pool = state.db();
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO companion_files (user_id, family_id, media_kind, object_id) VALUES ($1, $2, $3, $4) RETURNING id",
     )
-    .bind(family.user_id)
+    .bind(owner)
     .bind(family_id)
     .bind(media_kind)
     .bind(object_id)
     .fetch_one(pool)
     .await
     .map_err(|e| AuthError::Internal(e.into()))?;
-    let path = paths::claim(pool, family.user_id, Kind::CompanionFile, id, &path).await.map_err(AuthError::Internal)?;
+    let path = paths::claim(pool, owner, Kind::CompanionFile, id, path).await.map_err(AuthError::Internal)?;
 
     let mut used_as = None;
     if paths::is_image(&path) {
-        if apply_default_cover(pool, family.user_id, paths::parent_dir(&path)).await.map_err(AuthError::Internal)? {
+        if apply_default_cover(pool, owner, paths::parent_dir(&path)).await.map_err(AuthError::Internal)? {
             used_as = Some("cover");
         }
     } else if paths::file_extension(&path) == "lrc"
-        && lyrics_from(&state, family.user_id, &path, &body.object_key, size_bytes).await.map_err(AuthError::Internal)?
+        && lyrics_from(state, owner, &path, object_key, size_bytes).await.map_err(AuthError::Internal)?
     {
         used_as = Some("lyrics");
     }
-
-    Ok((
-        StatusCode::CREATED,
-        Json(CompanionResponse { id, path, visibility: access::visibility_of(family_id), size_bytes, used_as }),
-    ))
+    Ok(Registered { id, path, used_as })
 }
 
 /// A companion file the caller may see: `(owner, family_id, object key)`.

@@ -451,8 +451,10 @@ pub async fn put_identity(
 
 #[derive(Deserialize, ToSchema)]
 pub struct ImageUpload {
-    /// From `POST /uploads` (kind `book_cover`), an image.
-    pub upload_id: String,
+    /// From `POST /uploads` (kind `book_cover`), an image…
+    pub upload_id: Option<String>,
+    /// …or a companion image of one's own (`POST /files`): "use as cover". One of the two.
+    pub file_id: Option<Uuid>,
 }
 
 /// Put a cover on a book, from an upload. A new picture gets a new link; the old one stops.
@@ -467,11 +469,28 @@ pub struct ImageUpload {
 pub async fn put_image(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ImageUpload>) -> Result<Json<Book>, Problem> {
     owned(&state, &family, id).await?;
     family.require_can_upload()?;
-    let image = adopt_image(&state, &family, &body.upload_id).await?;
+    let image = image_of(&state, &family, &body).await?;
     if let Some(old) = db::shelves::set_book_cover(state.db(), id, Some(image)).await? {
         crate::trash::delete_orphans(state.db(), state.storage(), &[old]).await;
     }
     Ok(Json(answer(&state, &family, id).await?))
+}
+
+/// The picture a `PUT …/image` names: an upload, or one of the caller's companion images.
+pub(crate) async fn image_of(state: &AppState, family: &FamilyContext, body: &ImageUpload) -> Result<Uuid, Problem> {
+    match (body.upload_id.as_deref().map(str::trim).filter(|u| !u.is_empty()), body.file_id) {
+        (Some(upload), None) => adopt_image(state, family, upload).await,
+        (None, Some(file)) => {
+            let (object, path) = db::files::own_file(state.db(), family.user_id, file)
+                .await?
+                .ok_or_else(|| Problem::not_found().detail("no such file of yours"))?;
+            if !crate::filesync::paths::is_image(&path) {
+                return Err(Problem::bad_request("not_an_image", "only an image can be a cover").field("/file_id", "invalid", ""));
+            }
+            Ok(object)
+        }
+        _ => Err(Problem::bad_request("invalid_body", "give `upload_id` or `file_id`, one of the two").field("/upload_id", "required", "")),
+    }
 }
 
 /// An uploaded image of the caller's household, registered.

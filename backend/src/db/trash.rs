@@ -24,11 +24,14 @@ pub enum Kind {
     Playlist,
     PodcastEpisode,
     CompanionFile,
+    /// An uploaded show with its episodes (migration 0132). A followed one is unfollowed, not
+    /// trashed. Only `/api/v2` names this kind; v1's trash routes neither list nor take it.
+    Podcast,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 5] =
-        [Kind::Audiobook, Kind::MusicTrack, Kind::Playlist, Kind::PodcastEpisode, Kind::CompanionFile];
+    pub const ALL: [Kind; 6] =
+        [Kind::Audiobook, Kind::MusicTrack, Kind::Playlist, Kind::PodcastEpisode, Kind::CompanionFile, Kind::Podcast];
 
     pub fn parse(s: &str) -> Option<Self> {
         match s {
@@ -37,6 +40,7 @@ impl Kind {
             "playlist" => Some(Kind::Playlist),
             "podcast_episode" => Some(Kind::PodcastEpisode),
             "companion_file" => Some(Kind::CompanionFile),
+            "podcast" => Some(Kind::Podcast),
             _ => None,
         }
     }
@@ -48,6 +52,7 @@ impl Kind {
             Kind::Playlist => "playlist",
             Kind::PodcastEpisode => "podcast_episode",
             Kind::CompanionFile => "companion_file",
+            Kind::Podcast => "podcast",
         }
     }
 
@@ -58,6 +63,7 @@ impl Kind {
             Kind::Audiobook => Some("audiobook"),
             Kind::MusicTrack => Some("music"),
             Kind::Playlist => Some("playlist"),
+            Kind::Podcast => Some("podcast"),
             Kind::PodcastEpisode | Kind::CompanionFile => None,
         }
     }
@@ -71,7 +77,7 @@ impl Kind {
             // Companion files carry no grants; being shared with the family
             // is what makes them visible.
             Kind::Playlist | Kind::CompanionFile => None,
-            Kind::PodcastEpisode => Some(super::access::PODCAST),
+            Kind::PodcastEpisode | Kind::Podcast => Some(super::access::PODCAST),
         }
     }
 }
@@ -126,6 +132,11 @@ const COMPANION_SIZE: &str = "COALESCE((SELECT m.size_bytes FROM media_objects m
 /// A companion file's title is its file name.
 const COMPANION_TITLE: &str = "COALESCE((SELECT regexp_replace(p.path, '^.*/', '') FROM sync_paths p
                                         WHERE p.kind = 'companion_file' AND p.item_id = x.id), 'File')";
+/// A show's stored episodes (their copies in the trash too) and its art.
+const PODCAST_SIZE: &str = "(COALESCE((SELECT SUM(m.size_bytes) FROM podcast_episodes e
+                                        JOIN media_objects m ON m.id IN (e.audio_object_id, e.trashed_audio_object_id)
+                                       WHERE e.feed_id = x.id), 0)
+                           + COALESCE((SELECT m.size_bytes FROM media_objects m WHERE m.id = x.image_object_id), 0))";
 const EPISODE_SIZE: &str = "COALESCE((SELECT m.size_bytes FROM media_objects m WHERE m.id = x.trashed_audio_object_id), 0)";
 
 /// Every trashed item as one union with the columns of [`Trashed`], for the
@@ -152,7 +163,11 @@ fn trashed_union() -> String {
           WHERE x.trashed_at IS NOT NULL
          UNION ALL
          SELECT 'companion_file', x.id, x.user_id, {co}, x.family_id, {COMPANION_TITLE}, {COMPANION_SIZE}::BIGINT
-           FROM companion_files_all x WHERE x.trashed_at IS NOT NULL",
+           FROM companion_files_all x WHERE x.trashed_at IS NOT NULL
+         UNION ALL
+         SELECT 'podcast', x.id, x.user_id, {so}, x.family_id, x.title, {PODCAST_SIZE}::BIGINT
+           FROM podcast_feeds_all x WHERE x.trashed_at IS NOT NULL",
+        so = owner("x.user_id"),
         bo = owner("x.user_id"),
         to = owner("x.user_id"),
         po = owner("x.user_id"),
@@ -182,6 +197,8 @@ pub async fn find_live(pool: &PgPool, kind: Kind, id: Uuid) -> anyhow::Result<Op
                                   FROM companion_files c
                                   LEFT JOIN sync_paths p ON p.kind = 'companion_file' AND p.item_id = c.id
                                  WHERE c.id = $1",
+        Kind::Podcast => "SELECT user_id AS owner_id, family_id, title, id AS access_id
+                            FROM podcast_feeds WHERE id = $1 AND source_type = 'upload'",
     };
     sqlx::query_as::<_, Target>(sql)
         .bind(id)
@@ -220,6 +237,9 @@ pub async fn move_to_trash(
         Kind::CompanionFile => "UPDATE companion_files_all
                                    SET trashed_at = now(), trashed_by = $2, trash_batch = $3, updated_at = now()
                                  WHERE id = $1 AND trashed_at IS NULL",
+        Kind::Podcast => "UPDATE podcast_feeds_all
+                             SET trashed_at = now(), trashed_by = $2, trash_batch = $3, updated_at = now()
+                           WHERE id = $1 AND trashed_at IS NULL AND source_type = 'upload'",
     };
     let done = sqlx::query(sql)
         .bind(id)
@@ -345,13 +365,27 @@ pub async fn restore(pool: &PgPool, kind: Kind, id: Uuid) -> anyhow::Result<Opti
     let mut tx: Transaction<'_, Postgres> = pool.begin().await.context("db: begin restore")?;
     let mut surplus = Vec::new();
     let restored = match kind {
-        Kind::Audiobook | Kind::MusicTrack | Kind::Playlist | Kind::CompanionFile => {
+        Kind::Audiobook | Kind::MusicTrack | Kind::Playlist | Kind::CompanionFile | Kind::Podcast => {
             let table = match kind {
                 Kind::Audiobook => "audiobook_books_all",
                 Kind::MusicTrack => "music_tracks_all",
                 Kind::CompanionFile => "companion_files_all",
+                Kind::Podcast => "podcast_feeds_all",
                 _ => "music_playlists_all",
             };
+            if kind == Kind::Podcast {
+                // A new show of the same guid made meanwhile keeps it: this one comes back without.
+                sqlx::query(
+                    "UPDATE podcast_feeds_all x SET podcast_guid = NULL
+                      WHERE x.id = $1 AND x.trashed_at IS NOT NULL AND x.podcast_guid IS NOT NULL
+                        AND EXISTS (SELECT 1 FROM podcast_feeds f WHERE f.user_id = x.user_id AND f.podcast_guid = x.podcast_guid
+                                      AND f.source_type = 'upload')",
+                )
+                .bind(id)
+                .execute(&mut *tx)
+                .await
+                .context("db: restore a show's guid")?;
+            }
             let sql = format!(
                 "UPDATE {table}
                     SET trashed_at = NULL, trashed_by = NULL, trash_batch = NULL, updated_at = now(),
@@ -423,6 +457,13 @@ pub async fn purge(pool: &PgPool, kind: Kind, id: Uuid) -> anyhow::Result<Option
         Kind::CompanionFile => sqlx::query_scalar(
             "SELECT object_id FROM companion_files_all WHERE id = $1 AND trashed_at IS NOT NULL",
         ),
+        Kind::Podcast => sqlx::query_scalar(
+            "SELECT image_object_id FROM podcast_feeds_all WHERE id = $1 AND trashed_at IS NOT NULL
+             UNION ALL
+             SELECT unnest(ARRAY[e.audio_object_id, e.trashed_audio_object_id, e.image_object_id, e.transcript_object_id])
+               FROM podcast_episodes e JOIN podcast_feeds_all f ON f.id = e.feed_id
+              WHERE f.id = $1 AND f.trashed_at IS NOT NULL",
+        ),
     }
     .bind(id)
     .fetch_all(&mut *tx)
@@ -434,11 +475,24 @@ pub async fn purge(pool: &PgPool, kind: Kind, id: Uuid) -> anyhow::Result<Option
         Kind::MusicTrack => "DELETE FROM music_tracks_all WHERE id = $1 AND trashed_at IS NOT NULL",
         Kind::Playlist => "DELETE FROM music_playlists_all WHERE id = $1 AND trashed_at IS NOT NULL",
         Kind::CompanionFile => "DELETE FROM companion_files_all WHERE id = $1 AND trashed_at IS NOT NULL",
+        // Its episodes go with it (`ON DELETE CASCADE`).
+        Kind::Podcast => "DELETE FROM podcast_feeds_all WHERE id = $1 AND trashed_at IS NOT NULL",
         Kind::PodcastEpisode => "UPDATE podcast_episodes
                                     SET trashed_audio_object_id = NULL, trashed_at = NULL,
                                         trashed_by = NULL, trash_batch = NULL
                                   WHERE id = $1 AND trashed_at IS NOT NULL",
     };
+    if kind == Kind::Podcast {
+        // The episodes' rows go with the show; nothing keeps them offline any more.
+        sqlx::query(
+            "DELETE FROM device_holdings h USING podcast_episodes e
+              WHERE h.kind = 'podcast_episode' AND h.item_id = e.id AND e.feed_id = $1",
+        )
+        .bind(id)
+        .execute(&mut *tx)
+        .await
+        .context("db: forget a show's holdings")?;
+    }
     let gone = sqlx::query(sql).bind(id).execute(&mut *tx).await.context("db: purge")?.rows_affected() > 0;
     tx.commit().await.context("db: commit purge")?;
     Ok(gone.then(|| objects.into_iter().flatten().collect()))

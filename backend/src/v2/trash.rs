@@ -43,6 +43,7 @@ pub(crate) fn kind_word(kind: Kind) -> &'static str {
         Kind::Playlist => "playlist",
         Kind::PodcastEpisode => "episode",
         Kind::CompanionFile => "file",
+        Kind::Podcast => "podcast",
     }
 }
 
@@ -53,12 +54,13 @@ pub(crate) fn parse_kind(word: &str) -> Option<Kind> {
         "playlist" => Some(Kind::Playlist),
         "episode" => Some(Kind::PodcastEpisode),
         "file" => Some(Kind::CompanionFile),
+        "podcast" => Some(Kind::Podcast),
         _ => None,
     }
 }
 
 fn invalid_kind(word: &str) -> Problem {
-    Problem::bad_request("invalid_kind", "kind is `track`, `book`, `playlist`, `episode` or `file`").field("kind", "invalid", word.to_string())
+    Problem::bad_request("invalid_kind", "kind is `track`, `book`, `playlist`, `episode`, `file` or `podcast`").field("kind", "invalid", word.to_string())
 }
 
 // ── Deleting ────────────────────────────────────────────────────────────────
@@ -95,7 +97,8 @@ pub async fn delete_book(family: FamilyContext, State(state): State<AppState>, P
 #[derive(Deserialize, ToSchema, Debug, Clone)]
 pub struct TrashRef {
     /// `track`, `book`, `playlist`, `episode` (the server's stored copy of the episode; the
-    /// episode stays listed) or `file` (a companion file of the own.audio folder).
+    /// episode stays listed), `file` (a companion file of the own.audio folder) or `podcast` (an
+    /// uploaded show with its episodes; a followed one is unfollowed, not trashed).
     pub kind: String,
     pub id: Uuid,
 }
@@ -387,7 +390,8 @@ mod tests {
             assert_eq!(parse_kind(kind_word(k)), Some(k));
         }
         assert_eq!(parse_kind("music_track"), None, "v1's word is not v2's");
-        assert_eq!(parse_kind("podcast"), None, "a show is not in the trash");
+        assert_eq!(parse_kind("podcast"), Some(Kind::Podcast), "an uploaded show is, since phase 11");
+        assert_eq!(parse_kind("show"), None);
     }
 
     fn r(kind: &str) -> TrashRef {

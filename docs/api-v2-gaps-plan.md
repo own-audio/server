@@ -36,7 +36,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] **Change log triggers** for `sync_paths` (renames) and `content_grants` (v2 revision 5;
       also media policies as a reset for that member, checksums, and what sharing an item
       makes visible: its album, contributors, a show's episodes). (S)
-- [ ] **Companion files** as a sync kind with create, visibility, delete, download. (S)
+- [x] **Companion files** as a sync kind with create, visibility, delete, download (v2 revision 13:
+      `POST /files`, `GET`/`DELETE /files/{id}`, `PUT /files/{id}/visibility`, kind `file` in sync,
+      `POST /playback-info` kind `file`). (S)
 - [x] **`/sync/changes?kinds=`**, and an ids-only snapshot for the reconcile
       (`/sync/snapshot?fields=ids`; v2 revision 5). (S, A)
 - [x] **A `member` record kind** for owner names, including people who left (v2 revision 5).
@@ -88,8 +90,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       /me/feedback/track/{id}`, kind `feedback.track` in sync; kept apart from ratings, as v1). (M T W)
 - [x] Delete a track and a book (v2 revision 6: `DELETE /tracks/{id}`, `DELETE /books/{id}`,
       several at once with `POST /trash`). (M W Am)
-- [ ] Delete an uploaded podcast: needs a show kind in the trash (completion plan phase 11);
-      a followed show is unfollowed with `DELETE /podcasts/{id}` since revision 4. (M W Am)
+- [x] Delete an uploaded podcast (v2 revision 13: `DELETE /podcasts/{id}` puts it in the trash
+      with its episodes, kind `podcast`); a followed show is unfollowed with `DELETE
+      /podcasts/{id}` since revision 4. (M W Am)
 - [x] Lyrics write; file tags and rescan; the duplicates list; album identify (v2 revision 8:
       `PUT /tracks/{id}/lyrics`, `GET /tracks/{id}/file-tags`, `POST /tracks/{id}/rescan`,
       `GET /tracks/duplicates`; album identify is `POST /organize/releases` since revision 1).
@@ -153,7 +156,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] Trash with batches, restore, purge (v2 revision 6: `POST`/`GET`/`DELETE /trash`,
       `POST /trash/batches/{batch}/restore`, `POST /trash/{kind}/{id}/restore`,
       `DELETE /trash/{kind}/{id}`). (S M)
-- [ ] Holdings; shortcuts (album shortcuts by `album_id`) — completion plan phase 11. (S M)
+- [x] Holdings; shortcuts (album shortcuts by `album_id`) (v2 revision 13: `GET`/`PUT
+      /me/holdings`, `GET /me/holdings/{kind}/{id}`, `GET`/`POST /sync/shortcuts`, `DELETE
+      /sync/shortcuts/{id}`, kind `shortcut` in sync). (S M)
 - [ ] Instance admin: users, jobs. (W)
 - [ ] Instance admin, the rest: families (list, detail, trash, lock, unlock, delete), server
       stats, create a user, revoke a user's sessions, finish setup; hosted: grant credit.
@@ -163,8 +168,9 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] Family settings: audio analysis, book source (v2 revision 9: `GET`/`PATCH
       /family/settings`). (audit)
 - [ ] Library folders and their scan. (audit)
-- [ ] Moving items to their default folder paths (`/sync/paths/organise`); a companion image
-      as cover (`use-as-cover`). (audit)
+- [x] Moving items to their default folder paths (`/sync/paths/organise`); a companion image
+      as cover (`use-as-cover`) (v2 revision 13: `POST /library/organise` with `dry_run`;
+      `PUT /tracks/{id}/image` and `PUT /books/{id}/image` with `{file_id}`). (audit)
 - [x] An owner or visibility filter on lists, for a "private" section (v1 `/library/private`;
       v2 revision 12: `owner=me` and `visibility=private|family` on `GET /tracks`, `/albums`,
       `/books`, `/podcasts`). (audit)

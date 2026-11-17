@@ -331,6 +331,35 @@ semver. Each release states the **API contract revision** it serves
   `organize`'s identify undo checks what it reverted (at least one change, each of the song in
   the batch) instead of a count that depended on when the release's cover arrived.
   `CAPACITY.md`: search and the filters on 600,000 tracks.
+- Companion files on `/api/v2`: `POST /api/v2/files` keeps an image, booklet, lyrics or cue
+  sheet from an upload (`POST /uploads` kind `companion`) at its path in the own.audio folder,
+  or next to an album, book or track (`attach_to`, `relative_path`), with v1's cover and lyrics
+  rules and `Idempotency-Key`; `GET`/`DELETE /api/v2/files/{id}` (into the trash, kind `file`),
+  `PUT /api/v2/files/{id}/visibility`; kind `file` in `/sync/changes` and, when `kinds=` names
+  it, in `/sync/snapshot` (not in the default snapshot, so players take none). A move, a share,
+  the trash and a restore of a file reach the change feed (migration 0132). Downloaded through
+  `POST /api/v2/playback-info` with kind `file` (always the original, reason
+  `companion_file`). v2 revision 13.
+- `PUT /api/v2/tracks/{id}/image`, `/books/{id}/image`, `/playlists/{id}/image` and
+  `/contributors/{id}/image` take `{file_id}` instead of `{upload_id}`: one of the caller's
+  companion images as the cover ("use as cover"). v2 revision 13.
+- The own.audio folder on `/api/v2`: `GET`/`POST /api/v2/sync/shortcuts` and `DELETE
+  /api/v2/sync/shortcuts/{id}` (an album by its `album_id`, a book, a show, or a member's whole
+  `media`; kind `shortcut` in the change feed, and in the snapshot when asked for);
+  `GET`/`PUT /api/v2/me/holdings` (a device's offline set, paged) and `GET
+  /api/v2/me/holdings/{kind}/{id}` (the devices that hold an item); `POST /api/v2/library/organise`
+  (`{kind, dry_run, ids?}`: the caller's own tracks or books to their default places, a dry run
+  listing exactly the moves). v2 revision 13.
+- `DELETE /api/v2/podcasts/{id}` puts an uploaded show in the trash with its episodes for 30
+  days (kind `podcast` in `/api/v2/trash`, restored and purged there with its stored files)
+  instead of answering `409 uploaded_podcast`; a followed show is still unfollowed. `podcast_feeds`
+  is now a view over `podcast_feeds_all` that hides the trash, as books and tracks are
+  (migration 0132); v1's trash routes neither list nor take a show. v2 revision 13.
+- Handler tests for the new routes without a token; unit tests for the shortcut's request, the
+  holdings' and trash's words, a file's path. Conformance: the `v2_folder` suite; `v2_podcasts`
+  and `v2_trash` follow the uploaded show into the trash; `organize`'s identify-undo check
+  compares the undo's `items` with the items it put back (the song, and its album and artists
+  when the release changed them), not with the number of edits.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

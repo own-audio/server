@@ -175,7 +175,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 8 | Listening settings, queue, notifications, push — **done** | 11 | M | M T W A |
 | 9 | Statistics — **done** | 5 | S | M W A |
 | 10 | Search across media, list filters — **done** | 2 | S | T W |
-| 11 | File sync remainder | 11 | L | S M W |
+| 11 | File sync remainder — **done** | 11 | L | S M W |
 | 12 | Instance admin, setup, jobs, library folders | 18 | L | W, console |
 | 13 | Hosted edition (`audio2`) | 1 + 23 reworked | L | W A, apps |
 | 14 | Release: stable, docs, strict coverage | — | S | — |
@@ -934,7 +934,8 @@ behaviour. What the plan said, with these differences:
   form to join the albums of the kept tracks (183 ms → 11 ms for a few private albums).
 - `organize`'s identify-undo check counted the reverted edits (1–2), which depended on whether
   the release's cover arrived before the undo; it now checks that each reverted edit is the
-  song's and in the batch, and that the song is back as it was.
+  song's, its album's or a credited contributor's and in the batch (phase 11: `items` counts
+  items, not edits; a release may also change the album and the artists), and that the song is back as it was.
 
 v1 ops (partly): `GET /library/search`, `GET /library/private`.
 
@@ -946,7 +947,56 @@ v1 ops (partly): `GET /library/search`, `GET /library/private`.
 Tests: each type found and only visible ones; the filters page without loss; timings on the
 scale catalog into `CAPACITY.md`.
 
-### Phase 11 — file sync remainder (L)
+### Phase 11 — file sync remainder (L) — done 2026-11-17
+
+Done, v2 revision 13: everything in the table below; the 11 rows covered, and the gaps plan's
+lines for companion files, deleting an uploaded show, holdings and shortcuts, organise and "use
+as cover" ticked. Migration 0132. Handler tests (no token is `401` on every new route) and unit
+tests for the shortcut's request, the holdings', trash's and file's words; the conformance suite
+`v2_folder` covers behaviour. What the plan said, with these differences:
+
+- **`POST /library/organise` is `member`, the caller's own items** (decided the safer way; the
+  plan said `family_admin`): v1 lets anyone organise their own items and nobody anyone else's,
+  and an admin-only route would take that from members without moving anything of theirs.
+  `dry_run` is required — a request that forgets it is `422 invalid_body`, not a move. Answer `{dry_run,
+  moves}`, each move `{kind, id, title, from, to, files}`.
+- **`file` and `shortcut` are in the snapshot only when `kinds=` names them** (decided the safer
+  way): the TV takes the default snapshot and would read every cover and booklet of a big
+  library for nothing; the iPhone apps name their kinds. Both are in the change feed's default,
+  as every kind is (a client skips kinds it does not know).
+- `POST /files` takes `{upload_id, path}` (what a sync client knows) or `{upload_id, attach_to:
+  {kind: album|book|track, id}, relative_path}`; `GET /files/{id}` was added beside it. The
+  record `File`: `id, owner_id, visibility, path, name, content_type, size_bytes, sha256`,
+  `used_as` in the create's answer only. Its upload is checked as other v2 uploads (`adopt`:
+  declared size, room in the household); v1's route is unchanged.
+- Holdings: `GET /me/holdings` pages the device's set (it can be a whole mirrored catalog) and
+  `GET /me/holdings/{kind}/{id}` names the devices holding one item (v1 folded both into one
+  route). The device is the session's `device_id`, as in progress, so a token without a refresh
+  chain has one too.
+- Shortcuts: `{member_id, media: music|books|podcasts, album_id|book_id|podcast_id, label}`. An
+  album shortcut is stored as v1 stores it (release group, else album artist and name, taken
+  from the member's tracks of that album), so v1's sync clients keep matching it, and answered
+  with the `album_id` it matches — v1's shortcuts too. No migration for them beyond the change
+  log trigger. Kind `shortcut` is the listener's own (`user_id`), like the queue.
+- "Use as cover" is `{file_id}` on `PUT /tracks/{id}/image` and `PUT /books/{id}/image` (and on
+  playlists and contributors, which share the body): the cover of that one item. v1's gesture
+  set the folder's book and every track in it at once; on v2 a client names each item.
+  `upload_id` became optional in that body (one of the two is required).
+- The change feed: a companion file is kind `file` through a trigger on `companion_files_all`
+  and its path (0126's path trigger now maps `companion_file`), so a delete, restore and purge
+  through either version reach it — what phase 4 left open.
+- An uploaded show in the trash: `podcast_feeds_all` behind the view, its guid's unique index
+  only over live shows (a new show of the same guid may be made meanwhile; the restored one then
+  comes back without its guid), the show's triggers moved and widened to `trashed_at` (v2 change
+  feed with its episodes, v1's sync tree). Its episodes stay in the rows and are hidden with it;
+  a stored copy trashed on its own is listed again once the show is back. Purging deletes the
+  episodes (cascade) and every stored object of them, and forgets their holdings. **v1's trash
+  routes neither list nor take kind `podcast`** (v1 behaviour unchanged; its clients know five
+  kinds); emptying the trash through v1 and the 30-day purge include it.
+- Not measured on the scale catalog: every new query reads the caller's own rows by an index
+  (holdings by device, shortcuts by user, files by id and owner); the snapshot's walk of files
+  goes through `audio2_can_access` per file, as v1's sync tree does — files are tens of
+  thousands at most, and only clients that ask for them pay it.
 
 v1 ops: `POST /sync/paths/organise`, `GET`/`PUT /sync/holdings`, `GET`/`POST /sync/shortcuts`,
 `DELETE /sync/shortcuts/{id}`, `POST /sync/files`, `DELETE /sync/files/{id}`,

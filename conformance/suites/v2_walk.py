@@ -50,6 +50,7 @@ ID_KINDS = [
     ("/api/v2/me/push-tokens/{id}", "push_token"),
     ("/api/v2/library/quarantine/{track_id}", "track"),
     ("/api/v2/family/members/{user_id}", "member"),
+    ("/api/v2/files/{id}", "file"),
 ]
 
 # A body that would succeed on the caller's own item, so a refusal is about the id, not the body.
@@ -73,6 +74,7 @@ BODIES = {
     ("POST", "/api/v2/tracks"): {"upload_id": str(uuid.uuid4()), "filename": "x.mp3"},
     ("POST", "/api/v2/books"): {"title": "x", "files": []},
     ("POST", "/api/v2/podcasts"): {"title": "x"},
+    ("POST", "/api/v2/files"): {"upload_id": "x", "path": "Music/walk/x.jpg"},
     ("POST", "/api/v2/podcasts/{id}/episodes"): {"upload_id": str(uuid.uuid4()), "guid": "g", "title": "t"},
     ("POST", "/api/v2/series"): {"name": "x"},
     ("POST", "/api/v2/contributors"): {"name": "x"},
@@ -240,9 +242,15 @@ def fixtures(ctx: Ctx, token: str, user_id: str, visibility: str = "private") ->
     collection = ctx.call("POST", "/api/v2/collections", token, {"name": f"Walk Shelf {sfx}", "visibility": visibility,
                                                                  "book_ids": [book["id"]]}, expect=(201,))
     push = ctx.call("POST", "/api/v2/me/push-tokens", token, {"platform": "apns", "token": f"walk-push-{sfx}"}, expect=(201,))
+    picture = ctx.call("POST", "/api/v2/uploads", token, {"kind": "companion", "filename": "walk.jpg", "content_type": "image/jpeg", "size_bytes": 4},
+                       expect=(201,))
+    ctx.put_bytes(picture["url"], b"\xff\xd8wk", picture["headers"]["Content-Type"])
+    file = ctx.call("POST", "/api/v2/files", token, {"upload_id": picture["upload_id"], "attach_to": {"kind": "track", "id": track["id"]},
+                                                     "relative_path": f"walk-{sfx}.jpg", "visibility": visibility}, expect=(201,))
     return {"track": track["id"], "book": book["id"], "podcast": podcast["id"], "episode": episode["id"],
             "playlist": playlist["id"], "smart": smart["id"], "bookmark": bookmark["id"], "member": user_id,
-            "series": series["id"], "collection": collection["id"], "push_token": push["id"]}
+            "series": series["id"], "collection": collection["id"], "push_token": push["id"],
+            "file": file["id"]}
 
 
 def _filled(path: str, ids: dict[str, str]) -> str | None:

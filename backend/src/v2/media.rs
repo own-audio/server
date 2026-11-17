@@ -142,6 +142,7 @@ async fn source(state: &AppState, viewer: Viewer, item: &str) -> Result<Option<S
                 _ => None,
             }
         }
+        "file" => db::files::find_file(pool, viewer, id).await?.map(|f| (Some(f.object_id), None, None)),
         "episode" => db::catalog::find_episode(pool, viewer, id).await?.map(|e| {
             if e.stored {
                 (None, None, e.duration_secs)
@@ -210,7 +211,8 @@ pub struct Capabilities {
 
 #[derive(Deserialize, ToSchema)]
 pub struct PlaybackInfoRequest {
-    /// `track`, `book_file` (one file of a book) or `episode`.
+    /// `track`, `book_file` (one file of a book), `episode` or `file` (a companion file of the
+    /// own.audio folder, to download: always the original).
     pub kind: String,
     pub id: Uuid,
     #[serde(default)]
@@ -252,7 +254,7 @@ pub struct PlaybackInfo {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bitrate_kbps: Option<u32>,
     /// Why: `client_plays_original`, `over_bitrate_limit`, `format_not_playable`,
-    /// `no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`.
+    /// `no_transcode_target`, `transcoder_busy_original_sent`, `publisher_file`, `companion_file`.
     pub reasons: Vec<String>,
     /// The original file, whatever is sent: what it is and how good it is, for a player to show.
     /// Absent for a publisher's file the server does not keep.
@@ -267,8 +269,8 @@ pub struct PlaybackInfo {
     request_body = PlaybackInfoRequest,
     responses((status = 200, body = PlaybackInfo), (status = 404, description = "Unknown, not visible, or not stored", body = crate::v2::problem::ProblemBody)))]
 pub async fn playback_info(family: FamilyContext, State(state): State<AppState>, Json(body): Json<PlaybackInfoRequest>) -> Result<Json<PlaybackInfo>, Problem> {
-    if !["track", "book_file", "episode"].contains(&body.kind.as_str()) {
-        return Err(Problem::bad_request("unsupported_kind", "kind is `track`, `book_file` or `episode`").field("/kind", "invalid", body.kind.clone()));
+    if !["track", "book_file", "episode", "file"].contains(&body.kind.as_str()) {
+        return Err(Problem::bad_request("unsupported_kind", "kind is `track`, `book_file`, `episode` or `file`").field("/kind", "invalid", body.kind.clone()));
     }
     let item = format!("{}:{}", body.kind, body.id);
     let src = source(&state, family.viewer(), &item).await?.ok_or_else(Problem::not_found)?;
@@ -288,6 +290,20 @@ pub async fn playback_info(family: FamilyContext, State(state): State<AppState>,
         }
         Source::Stored { object, size, content_type, duration_secs, .. } => (object, size, content_type, duration_secs),
     };
+    if body.kind == "file" {
+        // Not audio: nothing to decide, the file as it is.
+        let grant = Grant { item, format: "orig".into(), kbps: 0, offset_secs: 0, user: family.user_id, expires };
+        let base = crate::http::origin::base_or(state.config().server.base_url.as_deref().unwrap_or(""));
+        return Ok(Json(PlaybackInfo {
+            decision: "direct".into(),
+            url: grant.url(&base, &state.config().auth.session_secret),
+            expires_at,
+            content_type: Some(content_type),
+            bitrate_kbps: None,
+            reasons: vec!["companion_file".into()],
+            source: None,
+        }));
+    }
     let caps = &body.capabilities;
     let props = db::media::audio_props(state.db(), object).await?.unwrap_or_default();
     // The file's own bitrate where its headers were read; else from size and
@@ -403,7 +419,7 @@ pub async fn stream(State(state): State<AppState>, method: Method, headers: Head
         Source::Remote(url) => return Ok(Redirect::temporary(&url).into_response()),
         Source::Stored { key, .. } => key,
     };
-    if grant.format != "orig" {
+    if grant.format != "orig" && !grant.item.starts_with("file:") {
         let plan = transcode::Plan {
             format: if grant.format == "aac" { transcode::Format::Aac } else { transcode::Format::Mp3 },
             kbps: grant.kbps.clamp(32, 320),

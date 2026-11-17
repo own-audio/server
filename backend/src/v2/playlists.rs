@@ -388,7 +388,7 @@ pub async fn put_image(
     Json(body): Json<crate::v2::books::ImageUpload>,
 ) -> Result<Json<Playlist>, Problem> {
     owned(&state, &family, id).await?;
-    let image = crate::v2::books::adopt_image(&state, &family, &body.upload_id).await?;
+    let image = crate::v2::books::image_of(&state, &family, &body).await?;
     if let Some(old) = catalog::set_playlist_cover(state.db(), id, Some(image)).await? {
         crate::trash::delete_orphans(state.db(), state.storage(), &[old]).await;
     }
