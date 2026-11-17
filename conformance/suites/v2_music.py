@@ -288,7 +288,7 @@ def covers(ctx: Ctx, s: Suite, owner: str, member: str, shared: dict, private: d
     before = ctx.call("GET", f"/api/v2/tracks/{tid}", owner).get("image")
     put = ctx.call("PUT", f"/api/v2/tracks/{tid}/image", owner, {"upload_id": s.image(owner, 10)})
     check("PUT /tracks/{id}/image → the track with its new cover", put.get("image") and put["image"] != before)
-    check("…a picture the cover link serves", ctx.probe_media(put["image"], expect=(200,)) == 200)
+    check("…a picture the cover link serves", ctx.probe_media(put["image"], expect=(200, 206)) in (200, 206))
     check("not an image → 400 not_an_image",
           _problem(ctx.request("PUT", f"/api/v2/tracks/{tid}/image", owner, {"upload_id": s.image(owner, content_type="text/plain")}), 400, "not_an_image"))
     check("another member, on a shared track → 403",

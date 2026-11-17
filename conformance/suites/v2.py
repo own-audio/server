@@ -706,6 +706,9 @@ def playback(ctx: Ctx, problem) -> None:
     elif serves_itself:
         code, _ct, body = fetch(direct.get("url", "") + "&route=proxy", follow=False)
         ctx.check("without a media proxy, route=proxy changes nothing", code == 206 and len(body) > 0 and not routed, f"{code} {routed[:80]}")
+    elif "fallback_url" in v1:
+        ctx.skip("media proxy", "the server has one (its v1 stream answer carries fallback_url); set "
+                 "STORAGE__MEDIA_PROXY_URL and STORAGE__MEDIA_PROXY_SECRET to check its links")
     else:
         ctx.check("without a media proxy, route=proxy changes nothing", bool(routed) and not routed.startswith("https://media"), routed[:120])
         ctx.check("without a media proxy, no fallback_url", "fallback_url" not in v1, str(v1)[:160])

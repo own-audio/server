@@ -10,6 +10,7 @@ stack, canary or production.
 """
 from __future__ import annotations
 
+import io
 import json
 import pathlib
 import subprocess
@@ -25,6 +26,43 @@ from typing import Any, Callable, Iterable
 # Cloudflare fronts the hosted API and answers urllib's default User-Agent
 # with a 403 "error code: 1010" before the request reaches the backend.
 USER_AGENT = "own-audio-conformance/0.1"
+
+# Every request gets it, including the suites' own urlopen calls and openers: urllib fills
+# User-Agent from an opener's addheaders, which default to "Python-urllib/3.x".
+_UA_HEADERS = [("User-Agent", USER_AGENT)]
+_default_opener = urllib.request.build_opener()
+_default_opener.addheaders = _UA_HEADERS
+urllib.request.install_opener(_default_opener)
+_build_opener = urllib.request.build_opener
+
+
+def _build_opener_with_ua(*handlers):
+    opener = _build_opener(*handlers)
+    opener.addheaders = _UA_HEADERS
+    return opener
+
+
+urllib.request.build_opener = _build_opener_with_ua
+
+
+def _open(req: urllib.request.Request, timeout: float, retry_rate_limit: bool = True):
+    """urlopen that waits out a busy server's per-address bucket (429 `rate_limited`), as a client
+    would; a full run against a remote server otherwise trips it. `account_locked` is never retried."""
+    for attempt in range(6):
+        try:
+            return urllib.request.urlopen(req, timeout=timeout)
+        except urllib.error.HTTPError as e:
+            if not retry_rate_limit or e.code != 429 or attempt == 5:
+                raise
+            body = e.read()
+            if b"rate_limited" not in body:
+                raise urllib.error.HTTPError(e.url, e.code, e.msg, e.headers, io.BytesIO(body)) from None
+            try:
+                wait = float(e.headers.get("Retry-After") or json.loads(body).get("retry_after_secs") or 2)
+            except (ValueError, AttributeError):
+                wait = 2
+            time.sleep(min(max(wait, 1), 15))
+    raise AssertionError("unreachable")
 
 # What a server older than contract revision 1 is assumed to offer. Used when
 # GET /api/v1/server answers 404 (see docs/API_COMPATIBILITY.md §3).
@@ -157,7 +195,7 @@ class Ctx:
             hdrs["Content-Type"] = "application/json"
         req = urllib.request.Request(self.url(path), data=data, headers=hdrs, method=method.upper())
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            with _open(req, self.timeout, 429 not in tuple(expect)) as r:
                 status, out = r.status, r.read()
         except urllib.error.HTTPError as e:
             status, out = e.code, e.read()
@@ -189,7 +227,7 @@ class Ctx:
             hdrs.setdefault("Content-Type", "application/json")
         req = urllib.request.Request(self.url(path), data=data, headers=hdrs, method=method.upper())
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as r:
+            with _open(req, self.timeout) as r:
                 self.note(method, path, r.status)
                 return r.status, {k.lower(): v for k, v in r.headers.items()}, r.read()
         except urllib.error.HTTPError as e:

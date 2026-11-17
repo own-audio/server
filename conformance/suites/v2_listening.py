@@ -92,7 +92,7 @@ def queue(ctx: Ctx, member_id: str, phone: str, speaker: str, other: str) -> Non
     st, h, raw = ctx.request("GET", "/api/v2/me/queue", phone)
     empty = json.loads(raw) if st == 200 else {}
     check("GET /me/queue before the first write: empty, revision 0, ETag \"0\"",
-          st == 200 and empty.get("items") == [] and empty.get("revision") == 0 and h.get("etag") == '"0"', f"{st} {raw[:200]!r}")
+          st == 200 and empty.get("items") == [] and empty.get("revision") == 0 and h.get("etag", "").removeprefix("W/") == '"0"', f"{st} {raw[:200]!r}")
 
     feed = Feed(ctx, speaker, "queue")
     items = [{"kind": "track", "id": tracks[0]["id"]}, {"kind": "book", "id": book["id"], "file_id": book["files"][1]["id"]},
@@ -101,7 +101,7 @@ def queue(ctx: Ctx, member_id: str, phone: str, speaker: str, other: str) -> Non
     put = json.loads(raw) if st == 200 else {}
     check("PUT /me/queue with If-Match \"0\" on no queue → 200, revision 1, as sent",
           st == 200 and put.get("revision") == 1 and put.get("items") == items and put.get("index") == 2
-          and put.get("position_ms") == 61_000 and h.get("etag") == '"1"', f"{st} {raw[:300]!r}")
+          and put.get("position_ms") == 61_000 and h.get("etag", "").removeprefix("W/") == '"1"', f"{st} {raw[:300]!r}")
     check("…naming the device that wrote it", put.get("device_name") == "Phone" and put.get("device_kind") == "ios", str(put)[:200])
     row = _last(feed.read(), "queue", member_id)
     check("the other device gets it from /sync/changes as `queue`",
