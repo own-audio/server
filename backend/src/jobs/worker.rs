@@ -418,7 +418,8 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
         let handles_fingerprint = fingerprint_mode != crate::app::config::FingerprintMode::Off
             && job_types
                 .as_ref()
-                .is_none_or(|types| types.iter().any(|t| t == crate::music::fingerprint::JOB_TYPE));
+                .is_none_or(|types| types.iter().any(|t| t == crate::music::fingerprint::JOB_TYPE))
+            && crate::music::fingerprint::available().await;
         ticks_since_fingerprint_sweep += 1;
         if handles_fingerprint
             && ticks_since_fingerprint_sweep >= fingerprint_sweep_every_n_ticks

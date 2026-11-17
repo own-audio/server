@@ -32,6 +32,53 @@ const STUB_SECS: i32 = 2;
 /// decodes to exact zeros, and a player would play two minutes of nothing.
 const SILENCE_DB: f64 = -80.0;
 
+/// Whether this machine's ffmpeg has the Chromaprint muxer, asked once. Images
+/// built from `backend/Dockerfile` have it; a binary run outside the image may
+/// find an ffmpeg without it (Homebrew's, for one), and then every song would
+/// fail the same way — no fingerprints rather than a quarantined library.
+pub async fn available() -> bool {
+    static AVAILABLE: tokio::sync::OnceCell<bool> = tokio::sync::OnceCell::const_new();
+    *AVAILABLE
+        .get_or_init(|| async {
+            let probe = Command::new("ffmpeg")
+                .args(["-hide_banner", "-nostdin", "-muxers"])
+                .stdin(Stdio::null())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .kill_on_drop(true)
+                .output();
+            let found = match tokio::time::timeout(Duration::from_secs(10), probe).await {
+                Ok(Ok(out)) => lists_chromaprint(&out.stdout),
+                _ => false,
+            };
+            if !found {
+                tracing::warn!(
+                    "ffmpeg has no Chromaprint (the `chromaprint` muxer): acoustic fingerprints are off, \
+                     as with FINGERPRINT__MODE=off. The server's image includes it; elsewhere, use an \
+                     ffmpeg built with --enable-chromaprint"
+                );
+            }
+            found
+        })
+        .await
+}
+
+/// Whether `ffmpeg -muxers` lists `chromaprint` (lines like `  E  chromaprint  Chromaprint`).
+fn lists_chromaprint(muxers: &[u8]) -> bool {
+    String::from_utf8_lossy(muxers).lines().any(|l| l.split_whitespace().nth(1) == Some("chromaprint"))
+}
+
+/// Whether ffmpeg failed on its own command line, not on the file: no
+/// Chromaprint muxer, so `-fp_format` is an unknown option or `chromaprint` an
+/// unknown format. Such a failure says nothing about the song.
+fn chromaprint_unavailable(stderr: &[u8]) -> bool {
+    let text = String::from_utf8_lossy(stderr);
+    text.contains("Error splitting the argument list")
+        || text.contains("Unrecognized option 'fp_format'")
+        || text.contains("Unknown format 'chromaprint'")
+        || text.contains("Requested output format 'chromaprint'")
+}
+
 /// Why a song of `duration` seconds is not worth fingerprinting, if it is not.
 fn too_short(duration: Option<i32>) -> Option<String> {
     duration
@@ -126,6 +173,10 @@ pub async fn execute(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::mo
         .and_then(|v| v.as_str())
         .context("missing track_id in payload")?
         .parse()?;
+    if !available().await {
+        // Queued before the probe said no; leave the song unfingerprinted and untouched.
+        return Ok(());
+    }
     let Some(source) = db::fingerprints::source(pool, track_id).await? else {
         // Deleted or trashed since it was queued.
         return Ok(());
@@ -152,6 +203,9 @@ pub async fn execute(pool: &PgPool, storage: &ObjectStore, job: &crate::jobs::mo
     let out = tokio::time::timeout(TIMEOUT, run).await.context("ffmpeg timed out")?.context("could not run ffmpeg")?;
 
     let fingerprint = String::from_utf8_lossy(&out.stdout).trim().to_string();
+    if !out.status.success() && chromaprint_unavailable(&out.stderr) {
+        anyhow::bail!("ffmpeg cannot fingerprint (no Chromaprint): {}", reason(&out.stderr));
+    }
     if out.status.success() && !fingerprint.is_empty() {
         if let Some(why) = decoded_seconds(&out.stderr).and_then(|d| cut_off(source.duration_secs, d)) {
             set_aside(pool, track_id, &why).await;
@@ -224,6 +278,20 @@ mod tests {
         assert!(too_short(Some(240)).is_none());
         // A length nobody could read is tried: ffmpeg finds out.
         assert!(too_short(None).is_none());
+    }
+
+    #[test]
+    fn an_ffmpeg_without_chromaprint_is_not_a_broken_file() {
+        // Homebrew's ffmpeg 8 (no --enable-chromaprint), with the job's arguments:
+        assert!(chromaprint_unavailable(b"Unrecognized option 'fp_format'.\nError splitting the argument list: Option not found\n"));
+        assert!(chromaprint_unavailable(b"[out#0 @ 0x1] Unknown format 'chromaprint'.\n"));
+        assert!(chromaprint_unavailable(b"Requested output format 'chromaprint' is not known.\n"));
+        // A file that does not decode still is one.
+        assert!(!chromaprint_unavailable(b"x.mp3: Invalid data found when processing input\n"));
+        assert!(!chromaprint_unavailable(b"[mp3 @ 0x1] Failed to read frame size: Could not seek to 1151.\n"));
+
+        assert!(lists_chromaprint(b"Formats:\n .E. = Muxing supported\n ---\n  E  caf             Apple CAF\n  E  chromaprint     Chromaprint\n"));
+        assert!(!lists_chromaprint(b"Formats:\n ---\n  E  caf             Apple CAF (Core Audio Format)\n"));
     }
 
     #[test]

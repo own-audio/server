@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- Acoustic fingerprints with an ffmpeg that has no Chromaprint (Homebrew's, for one, when the
+  server runs outside its image): the server says so once in its log and fingerprints nothing,
+  as with `FINGERPRINT__MODE=off`. Every upload was quarantined as "does not decode" and left
+  the library. The image's ffmpeg has Chromaprint; nothing changes there.
+
 ## [1.0.4] - 2026-11-17
 
 Contract revision 26. API v2 revision 15, **stable**.
