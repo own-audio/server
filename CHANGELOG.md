@@ -63,6 +63,10 @@ semver. Each release states the **API contract revision** it serves
   server's one household. `filesync` and `gpodder` skip their feed checks, with the reason, when
   the server cannot fetch a feed from the machine running the suite (a server outside Docker
   does not know `host.docker.internal`).
+- Conformance checks v2 operations no suite answered `2xx` before: `PATCH /api/v2/family`,
+  `POST /api/v2/family/join`, `DELETE /api/v2/me/sessions`, `GET /api/v2/library/quarantine` and
+  `DELETE /api/v2/library/quarantine/{track_id}`, `PUT /api/v2/albums/{id}/release-group`,
+  `POST /api/v2/albums/{id}/merge` and `PUT /api/v2/podcasts/{id}/credits`.
 
 ### Added
 

@@ -230,6 +230,14 @@ def uploaded_rules(ctx: Ctx, owner: str, member: str) -> None:
     check("another member may not unfollow a show shared with them: 403",
           _problem(ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", member), 403))
     check("…nor change it: 403", _problem(ctx.request("PATCH", f"/api/v2/podcasts/{show['id']}", member, {"auto_store": True}), 403))
+    credited = ctx.request("PUT", f"/api/v2/podcasts/{show['id']}/credits", owner,
+                           {"credits": [{"name": f"Show Host {ctx.sfx}", "role": "host"}]})
+    check("PUT /podcasts/{id}/credits: the show's hosts as contributors",
+          credited[0] == 200 and [c.get("role") for c in _json(credited)] == ["host"] and _json(credited)[0].get("contributor_id"),
+          f"{credited[0]} {credited[2][:200]!r}")
+    check("…a role a show has not: 400 invalid_role", _problem(ctx.request(
+        "PUT", f"/api/v2/podcasts/{show['id']}/credits", owner, {"credits": [{"name": "X", "role": "narrator"}]}), 400, "invalid_role"))
+    check("…another member's show: 403", _problem(ctx.request("PUT", f"/api/v2/podcasts/{show['id']}/credits", member, {"credits": []}), 403))
     # Since revision 13 an uploaded show is deleted into the trash, not unfollowed (suite v2_folder).
     check("deleting an uploaded show: 204, into the trash (revision 13; 409 uploaded_podcast before)",
           ctx.request("DELETE", f"/api/v2/podcasts/{show['id']}", owner)[0] == 204)

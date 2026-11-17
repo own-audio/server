@@ -411,6 +411,22 @@ def corrections(ctx: Ctx, problem) -> None:
     if st == 200:
         st, kept = req("POST", f"/api/v2/contributors/{parts[1]['id']}/merge", {"into": parts[0]["id"]})
         ctx.check("a merge answers the one that stays", st == 200 and kept.get("id") == parts[0]["id"])
+    one = ctx.upload_track(tok, f"Edition One {sfx}", artist=f"Merge Band {sfx}", album=f"Merge One {sfx}",
+                           content=ctx.tone(), content_type="audio/wav")
+    two = ctx.upload_track(tok, f"Edition Two {sfx}", artist=f"Merge Band {sfx}", album=f"Merge Two {sfx}",
+                           content=ctx.tone(), content_type="audio/wav")
+    group = req("GET", f"/api/v2/albums/{one['album_id']}")[1].get("release_group_id")
+    st, grouped = req("PUT", f"/api/v2/albums/{two['album_id']}/release-group", {"release_group_id": group})
+    ctx.check("PUT /albums/{id}/release-group: two albums as editions of one release",
+              st == 200 and grouped.get("id") == group and req("GET", f"/api/v2/albums/{two['album_id']}")[1].get("release_group_id") == group,
+              str(grouped)[:160])
+    ctx.check("…an album into itself: 400 invalid_body",
+              problem(ctx.request("POST", f"/api/v2/albums/{two['album_id']}/merge", tok, {"into": two["album_id"]}), 400, "invalid_body"))
+    st, merged = req("POST", f"/api/v2/albums/{two['album_id']}/merge", {"into": one["album_id"]})
+    ctx.check("POST /albums/{id}/merge: the album that stays, with the other's songs; the other is gone",
+              st == 200 and merged.get("id") == one["album_id"]
+              and req("GET", f"/api/v2/tracks/{two['id']}")[1].get("album_id") == one["album_id"]
+              and problem(ctx.request("GET", f"/api/v2/albums/{two['album_id']}", tok), 404), str(merged)[:160])
     _mid, _memail, member = ctx.make_user("v2fix-member", PW)
     ctx.check("merging and splitting are a family admin's", all(
         ctx.request("POST", path, member, body)[0] in (403, 404) for path, body in [

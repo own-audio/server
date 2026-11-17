@@ -67,6 +67,7 @@ def run(ctx: Ctx) -> None:
     figures(ctx)
     jobs(ctx)
     folders(ctx)
+    quarantine(ctx)
     if ctx.db_available:
         second_household(ctx)
         disc_backfill(ctx)
@@ -258,6 +259,33 @@ def households(ctx: Ctx, me: dict) -> None:
     ctx.check("…an unknown one → 404", _problem(ctx.request("DELETE", f"/api/v2/admin/families/{uuid.uuid4()}", admin), 404, "not_found"))
     ctx.check("PATCH an unknown one → 404",
               _problem(ctx.request("PATCH", f"/api/v2/admin/families/{uuid.uuid4()}", admin, {"locked": False}), 404, "not_found"))
+
+
+def quarantine(ctx: Ctx) -> None:
+    admin = ctx.admin_token
+    _mid, _me, member = ctx.make_member("quarantine-member", PW, admin)
+    # Random bytes do not decode: the fingerprint job sets the song aside. Through SQL when the
+    # job is off or slow.
+    track = ctx.upload_track(admin, f"Broken {ctx.sfx}")
+    listed = lambda: [q for q in ctx.call("GET", "/api/v2/library/quarantine", admin)["items"] if q["track_id"] == track["id"]]  # noqa: E731
+    if not ctx.wait_until(lambda: bool(listed()), timeout=30) and ctx.db_available:
+        ctx.sql(f"UPDATE music_tracks_all SET quarantined_at = now(), quarantine_reason = 'not_decoding' WHERE id = '{track['id']}'")
+    held = listed()
+    if not held:
+        ctx.skip("GET /library/quarantine, and letting a track out", "the fingerprint job did not set the song aside and there is no --compose-dir")
+        ctx.call("DELETE", f"/api/v2/tracks/{track['id']}", admin, expect=(200, 202, 204))
+        return
+    ctx.check("GET /library/quarantine → the household's set-aside songs, with file and reason",
+              held[0]["title"] == f"Broken {ctx.sfx}" and held[0]["reason"] and held[0]["file"] and held[0]["since"], str(held[0]))
+    ctx.check("…a member may not see it → 403", _problem(ctx.request("GET", "/api/v2/library/quarantine", member), 403, "forbidden"))
+    ctx.check("…nor let a song out → 403",
+              _problem(ctx.request("DELETE", f"/api/v2/library/quarantine/{track['id']}", member), 403, "forbidden"))
+    ctx.check("DELETE /library/quarantine/{track_id} → 204, the song is back",
+              ctx.status_of("DELETE", f"/api/v2/library/quarantine/{track['id']}", admin) == 204 and not listed()
+              and ctx.status_of("GET", f"/api/v2/tracks/{track['id']}", admin) == 200)
+    ctx.check("…one not in quarantine → 404",
+              _problem(ctx.request("DELETE", f"/api/v2/library/quarantine/{track['id']}", admin), 404, "not_found"))
+    ctx.call("DELETE", f"/api/v2/tracks/{track['id']}", admin, expect=(200, 202, 204))
 
 
 def figures(ctx: Ctx) -> None:

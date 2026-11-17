@@ -104,6 +104,19 @@ def run(ctx: Ctx) -> None:
     exchange(ctx, a)
     code_grant(ctx, a, disco)
     personal_tokens(ctx, a)
+    everywhere(ctx, a)
+
+
+def everywhere(ctx: Ctx, a: Account) -> None:
+    _uid, email, _ = ctx.make_user("v2acc-out", PW)
+    phone = a.sign_in(email, PW, "Phone")
+    laptop = a.sign_in(email, PW, "Laptop")
+    ctx.check("DELETE /me/sessions → 204", ctx.status_of("DELETE", "/api/v2/me/sessions", phone["access_token"]) == 204)
+    ctx.check("…every device is signed out, this one too, and no refresh token renews",
+              all(_problem(ctx.request("GET", "/api/v2/me", t["access_token"]), 401) for t in (phone, laptop))
+              and all(a.oauth_error(a.token({"grant_type": "refresh_token", "refresh_token": t["refresh_token"]}), 400, "invalid_grant")
+                      for t in (phone, laptop)))
+    ctx.check("…and the password signs in again", a.token({"grant_type": "password", "username": email, "password": PW})[0] == 200)
 
 
 def discovery(ctx: Ctx, disco: dict) -> None:

@@ -84,6 +84,28 @@ def run(ctx: Ctx) -> None:
     settings(ctx, admin, member)
     reports(ctx, h, admin, admin_id, member, member_id, outsider)
     snapshot(ctx, member, member_id)
+    naming(ctx, admin, member)
+    joining(ctx, h, admin)
+
+
+def naming(ctx: Ctx, admin: str, member: str) -> None:
+    old = ctx.call("GET", "/api/v2/family", admin)["name"]
+    renamed = ctx.call("PATCH", "/api/v2/family", admin, {"name": f"Renamed {ctx.sfx}"})
+    ctx.check("PATCH /family renames the household → 200 Family, as its members see it",
+              renamed["name"] == f"Renamed {ctx.sfx}" and ctx.call("GET", "/api/v2/family", member)["name"] == f"Renamed {ctx.sfx}")
+    ctx.check("…a member may not → 403", _problem(ctx.request("PATCH", "/api/v2/family", member, {"name": "Mine"}), 403))
+    ctx.call("PATCH", "/api/v2/family", admin, {"name": old})
+
+
+def joining(ctx: Ctx, h: House, admin: str) -> None:
+    home = ctx.call("GET", "/api/v2/family", admin)["id"]
+    uid, email, tok = ctx.make_user("joiner", PW)
+    inv = ctx.call("POST", "/api/v2/family/invites", admin, {"kind": "email", "email": email, "role": "member"}, expect=(201,))
+    st, _h, raw = ctx.request("POST", "/api/v2/family/join", tok, {"code": inv["code"]})
+    joined = json.loads(raw) if st == 200 else {}
+    ctx.check("POST /family/join → 200, the household joined, with them in it",
+              joined.get("id") == home and uid in h.members(admin), f"{st} {raw[:200]!r}")
+    ctx.check("…the code works once", ctx.request("POST", "/api/v2/family/join", tok, {"code": inv["code"]})[0] in (400, 410))
 
 
 def pictures(ctx: Ctx, h: House, admin: str, admin_id: str, member: str, member_id: str, outsider: str | None) -> None:
