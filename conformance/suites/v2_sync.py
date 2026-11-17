@@ -98,8 +98,10 @@ def _same_as_snapshot(ctx: Ctx, copy: Copy, label: str) -> None:
     fresh = Copy(ctx, copy.token, copy.kinds)
     copy.pull()
     fresh.pull()
-    mine = {k: _norm(v) for k, v in copy.records.items()}
-    theirs = {k: _norm(v) for k, v in fresh.records.items()}
+    # Kinds only the change feed carries (the inbox is read from `GET /me/notifications`).
+    feed_only = {"recording", "notification"}
+    mine = {k: _norm(v) for k, v in copy.records.items() if k[0] not in feed_only}
+    theirs = {k: _norm(v) for k, v in fresh.records.items() if k[0] not in feed_only}
     missing = sorted(set(theirs) - set(mine))
     extra = sorted(set(mine) - set(theirs))
     differ = sorted(k for k in set(mine) & set(theirs) if mine[k] != theirs[k])

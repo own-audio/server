@@ -128,8 +128,11 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 6. Listening settings
 
-- [ ] The cross-device queue. (M W Ab Ap)
-- [ ] Playback settings and audiobook defaults; EQ. (M T W A)
+- [x] The cross-device queue (v2 revision 10: `GET`/`PUT /me/queue` with a `revision` and
+      `If-Match`, kind `queue` in the change feed and a `library` event on `/events`).
+      (M W Ab Ap)
+- [x] Playback settings and audiobook defaults; EQ (v2 revision 10: `GET`/`PATCH /me/settings`,
+      milliseconds, every device kind's curve; kind `settings` in the change feed). (M T W A)
 
 ## 7. Household and the rest
 
@@ -140,7 +143,11 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
       `/family/members/{id}/image`, `GET`/`POST /family/reports`, `PATCH /family/reports/{id}`;
       kind `family` and `MemberRecord.blocked` in the change feed). (M W Ab)
 - [ ] Per-member policies, grants and audience (v1 by decision so far). (W Ab)
-- [ ] Stats; notifications inbox; push devices. (M W A)
+- [x] Notifications inbox; push devices (v2 revision 10: `GET /me/notifications`,
+      `POST /me/notifications/ack` with `ids` or `up_to`, kind `notification` in the change
+      feed; `GET`/`POST /me/push-tokens`, `DELETE /me/push-tokens/{id}`, `modules.push`).
+      (M W A)
+- [ ] Stats. (M W A)
 - [x] Trash with batches, restore, purge (v2 revision 6: `POST`/`GET`/`DELETE /trash`,
       `POST /trash/batches/{batch}/restore`, `POST /trash/{kind}/{id}/restore`,
       `DELETE /trash/{kind}/{id}`). (S M)

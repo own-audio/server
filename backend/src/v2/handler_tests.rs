@@ -517,3 +517,31 @@ async fn a_code_costs_a_device_code_to_look_up_and_a_sign_in_to_claim() {
         }
     }
 }
+
+#[tokio::test]
+async fn listening_routes_need_a_signed_in_user() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("GET", "/api/v2/me/queue".to_string()),
+        ("PUT", "/api/v2/me/queue".to_string()),
+        ("GET", "/api/v2/me/settings".to_string()),
+        ("PATCH", "/api/v2/me/settings".to_string()),
+        ("GET", "/api/v2/me/notifications".to_string()),
+        ("POST", "/api/v2/me/notifications/ack".to_string()),
+        ("GET", "/api/v2/me/push-tokens".to_string()),
+        ("POST", "/api/v2/me/push-tokens".to_string()),
+        ("DELETE", format!("/api/v2/me/push-tokens/{id}")),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "items": [], "up_to": id, "platform": "apns", "token": "x" }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
+#[tokio::test]
+async fn discovery_says_the_server_sends_no_push() {
+    let state = state(json!({})).await;
+    let axum::Json(d) = crate::v2::discovery::well_known(axum::extract::State(state)).await;
+    assert_eq!(d.modules.get("push"), Some(&Value::Bool(false)));
+}

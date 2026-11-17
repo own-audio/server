@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 /// The v2 contract's revision: up by one with every addition, so a client can check for it.
 /// Counted from 2026-11-17 (revision 1). The iPhone apps already ship on v2, so changes are
 /// additive only even while the status says `draft`.
-pub const V2_REVISION: u32 = 9;
+pub const V2_REVISION: u32 = 10;
 /// `stable` at the release that completes docs/api-v2-completion-plan.md (its phase 14).
 pub const V2_STATUS: &str = "draft";
 
@@ -183,7 +183,13 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             grants: grants.into_iter().map(str::to_string).collect(),
             clients,
         },
-        modules: features(&state),
+        modules: {
+            let mut modules = features(&state);
+            // Push registration is kept (`/me/push-tokens`) but this server sends none: clients
+            // read the inbox and the change feed.
+            modules.insert("push".into(), Value::Bool(false));
+            modules
+        },
         addresses: addresses(cfg.server.base_url.as_deref(), cfg.server.addresses.as_deref()),
         limits: Limits {
             list_limit_default: DEFAULT_LIMIT,

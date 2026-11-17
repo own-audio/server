@@ -185,11 +185,22 @@ pub struct FeedbackRequest {
         (status = 400, description = "`unsupported_kind`, `invalid_value`", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn put_feedback(family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>, Json(body): Json<FeedbackRequest>) -> Result<StatusCode, Problem> {
-    let k = feedback_kind(&k)?;
-    let value = feedback_value(body.value.trim())?;
-    visible(&state, &family, k, id).await?;
-    db::music::set_track_feedback(state.db(), family.user_id, id, value).await?;
+    apply_feedback(&state, &family, &k, id, Some(&body.value)).await?;
     Ok(StatusCode::NO_CONTENT)
+}
+
+/// Give (`Some(value)`) or take back (`None`) a dislike or a ban.
+async fn apply_feedback(state: &AppState, family: &FamilyContext, k: &str, id: Uuid, value: Option<&str>) -> Result<(), Problem> {
+    let k = feedback_kind(k)?;
+    match value {
+        Some(value) => {
+            let value = feedback_value(value.trim())?;
+            visible(state, family, k, id).await?;
+            db::music::set_track_feedback(state.db(), family.user_id, id, value).await?;
+        }
+        None => db::music::clear_track_feedback(state.db(), family.user_id, id).await?,
+    }
+    Ok(())
 }
 
 /// Take a dislike or a ban back.
@@ -199,8 +210,7 @@ pub async fn put_feedback(family: FamilyContext, State(state): State<AppState>, 
     responses((status = 204, description = "None now (also when there was none)"),
         (status = 400, description = "`unsupported_kind`", body = crate::v2::problem::ProblemBody)))]
 pub async fn delete_feedback(family: FamilyContext, State(state): State<AppState>, Path((k, id)): Path<(String, Uuid)>) -> Result<StatusCode, Problem> {
-    feedback_kind(&k)?;
-    db::music::clear_track_feedback(state.db(), family.user_id, id).await?;
+    apply_feedback(&state, &family, &k, id, None).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -546,18 +556,7 @@ async fn apply_progress(
         let pos = body.position_ms.ok_or_else(|| Problem::bad_request("invalid_body", "position_ms is required").field("/position_ms", "required", "milliseconds"))?;
         (pos.max(0), None)
     };
-    let (device_name, device_kind): (Option<String>, String) = match auth.chain_id {
-        Some(chain) => sqlx::query_as(
-            "SELECT device_name, device_kind FROM refresh_tokens WHERE chain_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1",
-        )
-        .bind(chain)
-        .bind(auth.user_id)
-        .fetch_optional(state.db())
-        .await
-        .map_err(anyhow::Error::from)?
-        .unwrap_or((None, "other".into())),
-        None => (None, "other".into()),
-    };
+    let (device_name, device_kind) = session_device(state, auth).await?;
     user_state::put_device_position(
         state.db(),
         family.user_id,
@@ -573,6 +572,23 @@ async fn apply_progress(
     .await?;
     let (now, applied) = user_state::put_progress(state.db(), family.user_id, k, id, position_ms, body.finished, at, file).await?;
     Ok(ProgressAnswer { progress: progress(k, now), applied })
+}
+
+/// The calling device's name and kind, from the session it signed in with; `other` for a
+/// personal token.
+pub(crate) async fn session_device(state: &AppState, auth: &AuthUser) -> Result<(Option<String>, String), Problem> {
+    Ok(match auth.chain_id {
+        Some(chain) => sqlx::query_as(
+            "SELECT device_name, device_kind FROM refresh_tokens WHERE chain_id = $1 AND user_id = $2 ORDER BY created_at DESC LIMIT 1",
+        )
+        .bind(chain)
+        .bind(auth.user_id)
+        .fetch_optional(state.db())
+        .await
+        .map_err(anyhow::Error::from)?
+        .unwrap_or((None, "other".into())),
+        None => (None, "other".into()),
+    })
 }
 
 /// Save where the caller is. The later position wins; an older one is kept as
@@ -875,7 +891,7 @@ pub async fn delete_bookmark(family: FamilyContext, State(state): State<AppState
 pub struct Change {
     /// The device's id for this change, echoed in its result.
     pub client_id: String,
-    /// `favourite`, `unfavourite`, `rate`, `progress` or `play`.
+    /// `favourite`, `unfavourite`, `rate`, `progress`, `play`, `feedback` or `unfeedback`.
     pub op: String,
     pub kind: String,
     pub id: Uuid,
@@ -883,6 +899,8 @@ pub struct Change {
     pub at: Option<DateTime<Utc>>,
     /// `rate`: 0 to 5.
     pub rating: Option<i16>,
+    /// `feedback`: `dislike` or `ban`, as `PUT /me/feedback/{kind}/{id}`.
+    pub value: Option<String>,
     /// `progress`: as `PUT /me/progress`.
     pub position_ms: Option<i64>,
     pub file_id: Option<Uuid>,
@@ -905,7 +923,7 @@ pub struct PushRequest {
 }
 
 /// What a device changed while offline (DESIGN §8): favourites, ratings,
-/// progress and plays, each applied in order and answered on its own.
+/// progress, plays and track feedback, each applied in order and answered on its own.
 #[utoipa::path(post, path = "/sync/push", tag = "sync", security(("bearer" = [])),
     extensions(("x-permission" = json!("member")), ("x-scope" = json!("playback"))),
     request_body = PushRequest,
@@ -920,7 +938,12 @@ pub async fn push(auth: AuthUser, family: FamilyContext, State(state): State<App
     let mut out = Vec::with_capacity(body.changes.len());
     for c in &body.changes {
         let outcome: Result<&str, Problem> = match c.op.as_str() {
-            "favourite" | "unfavourite" | "rate" if read_only => Err(Problem::forbidden().detail("the demo account is read-only")),
+            "favourite" | "unfavourite" | "rate" | "feedback" | "unfeedback" if read_only => Err(Problem::forbidden().detail("the demo account is read-only")),
+            "feedback" => match c.value.as_deref() {
+                Some(v) => apply_feedback(&state, &family, &c.kind, c.id, Some(v)).await.map(|_| "ok"),
+                None => Err(Problem::bad_request("invalid_body", "feedback needs a value")),
+            },
+            "unfeedback" => apply_feedback(&state, &family, &c.kind, c.id, None).await.map(|_| "ok"),
             "favourite" | "unfavourite" => apply_favourite(&state, &family, &c.kind, c.id, c.op == "favourite").await.map(|_| "ok"),
             "rate" => match c.rating {
                 Some(r) => apply_rating(&state, &family, &c.kind, c.id, r).await.map(|_| "ok"),

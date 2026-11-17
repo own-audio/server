@@ -172,7 +172,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 5 | Books: editing, files, series, collections, tags, authors, images — **done** | 34 | L | W Ab M |
 | 6 | Music remainder and playlists in sync — **done** | 17 | M | M W Am |
 | 7 | Household remainder — **done** | 18 | L | M W Ab |
-| 8 | Listening settings, queue, notifications, push | 11 | M | M T W A |
+| 8 | Listening settings, queue, notifications, push — **done** | 11 | M | M T W A |
 | 9 | Statistics | 5 | S | M W A |
 | 10 | Search across media, list filters | 2 | S | T W |
 | 11 | File sync remainder | 11 | L | S M W |
@@ -213,7 +213,8 @@ done);
 `audiobook_series`, `audiobook_series_books`, `audiobook_collections`,
 `audiobook_collection_books`, `audiobook_tags`, `audiobook_book_tags` (phase 5); `sync_paths`,
 `content_grants`, `family_members` (phase 3, done); `companion_files_all`, `sync_shortcuts`
-(phase 11); `play_queues`, `pending_notifications`, `device_push_tokens` (phase 8).
+(phase 11); `play_queues`, `pending_notifications` (phase 8, done; with `user_settings` and
+`eq_settings`), `device_push_tokens` (phase 8 decided against: see there).
 
 v1 ops: `GET /media`, `PUT /media` (partly).
 
@@ -782,7 +783,61 @@ then sign in, a code used twice refused, an expired code `410`; a blocked member
 sign-in and in `/sync/changes`; leave household; the last admin cannot leave; settings read by a
 member, changed by an admin only; reports visible to admins only.
 
-### Phase 8 — listening settings, queue, notifications, push (M)
+### Phase 8 — listening settings, queue, notifications, push (M) — done 2026-11-17
+
+Done, v2 revision 10: every operation in the table below; the 11 rows covered, and the gaps
+plan's §6 lines and §7's notifications and push devices ticked. Migration 0130. Handler tests (no
+token is `401` on every new route; discovery's `push`) and unit tests for the queue's words and
+checks, `If-Match`, the settings' ranges, a notification's item and push tokens; the conformance
+suite `v2_listening` covers behaviour, and `v2_walk` walks push devices (another member's id is
+`404`). The rows are v1's (`play_queues`, `user_settings`, `eq_settings`,
+`pending_notifications`, `device_push_tokens`), so v1, Subsonic and v2 read and write one queue,
+one set of settings, one inbox. What the plan said, with these differences:
+
+- The queue's items are `{kind: track|book|episode, id, file_id?}` (a book's file to start in);
+  stored in v1's shape, an episode as its show and itself. `device_kind` and `device_name` (the
+  session's, as `DevicePosition`) instead of a `device` object; `updated_at`. The `revision` is a
+  column counted by a trigger over every write — v1's `PUT /playback/queue` and Subsonic's
+  `savePlayQueue` included — and is also the `ETag`. `PUT` with `If-Match` (`"3"`, `3` or
+  `W/"3"`; `"0"` for "there was none") writes only at that revision, in one statement, else
+  `412 revision_mismatch` with `revision` in the problem; `If-Match: *` or none is v1's last
+  write wins. Items must be playable by the caller (`400 invalid_item`; v1 stored any id);
+  more than 1000 is `400 too_many`; the index is clamped into the list, as v1.
+- `GET`/`PATCH /me/settings` is `{playback: {speed, skip_intro_ms, skip_outro_ms}, audiobook:
+  {speed, skip_back_ms, skip_forward_ms}, eq: [EqCurve], updated_at}`: v1's three reads in one
+  record (optimisation 8). Milliseconds are stored to the second (v1's columns). `playback`
+  is writable too (v1 only read it). Out-of-range values are `400 invalid_body` with the field,
+  checked before anything is stored, where v1 clamps. `eq` lists every device kind's saved curve
+  (`bands_db`: six numbers); a patch names a `device_kind` or changes the calling device's.
+- Notifications are cursor-paged newest first and list read ones too (`read_at`);
+  `unread_only=true` is v1's list. `item` names what one is about in v2's words (`track`,
+  `book`, `episode`, `podcast`, `playlist`, `file`) beside v1's `data`. `ack` takes `{ids}` (up to
+  `batch_max`) or `{up_to}` (that one and every older one; `404` if not the caller's) and answers
+  `{acknowledged}`. Notifications never expire (v1 never deleted them either); the index
+  `(user_id, created_at DESC, id DESC)` keeps a page an index read.
+- Push devices answer `{id, platform, device_name, token_suffix, created_at, last_seen_at}`;
+  `POST` is `201`, or `200` for a token already the caller's; a token another account
+  registered moves to the caller, as v1. `DELETE` is by the device's id (v1: by the token). They
+  are not in the change feed: a device knows its own token, and the list is a settings screen
+  read on demand (decided the safer way: logging a moved token would tell its old owner nothing
+  useful). `modules.push` (`false`) is set in discovery only, not in v1's `features`.
+- Change feed: kinds `queue` and `settings`, named by the listener's id and logged for the
+  listener only, in the default snapshot (one record each) and the change feed; `notification`
+  in the change feed only (a snapshot would be the whole inbox: read `GET /me/notifications`).
+  Clients skip kinds they do not know (checked again: OwnAudioKit asks `/sync/changes` without
+  `kinds` and keeps records by kind). `/events` needed nothing: it already wakes on the
+  listener's own log rows.
+- `POST /sync/push` takes `feedback` (with `value`) and `unfeedback` (phase 6 left them out). The
+  queue and the settings are not in it: the queue is replaced whole and has its own
+  `If-Match`, so an offline queue is a `PUT` when the device is back; settings are a patch of
+  one resource, sent when the device is back. The demo account may write its own queue,
+  settings, reads and push devices (v1 allowed the last two too); its `feedback` in a push is
+  refused, as its favourites are.
+- `v2_sync`'s reproduce check leaves out the kinds only the change feed carries (`recording`,
+  `notification`): a copy holds them, a fresh snapshot cannot.
+- Scopes: `PUT /me/queue` and `POST /me/notifications/ack` take `playback`, as progress;
+  `PATCH /me/settings` takes `playback`; push devices take `user:write`.
+
 
 v1 ops: `GET`/`PUT /playback/queue`, `GET /playback/settings`, `PUT …/audiobook-defaults`,
 `GET`/`PUT …/eq`, `GET /devices/notifications`, `POST …/ack`, `POST`/`DELETE /devices/push-token`,

@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 258 |
+| covered | 269 |
 | partly covered | 3 |
-| missing | 45 |
+| missing | 34 |
 | not carried over | 10 |
 | **total** | **316** |
 
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 7, v2
-revision 9). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 8, v2
+revision 10). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -309,12 +309,12 @@ lists what is still open.
 | `DELETE /playback/bookmarks/{id}` | `DELETE /me/bookmarks/{id}` | covered |  |
 | `GET /playback/books/{book_id}/bookmarks` | `GET /me/bookmarks?kind=book&item_id=` | covered |  |
 | `POST /playback/sessions` | `POST /me/plays` | covered | Feeds the same listening statistics. |
-| `GET /playback/queue` | — | missing |  |
-| `PUT /playback/queue` | — | missing |  |
-| `GET /playback/settings` | — | missing |  |
-| `PUT /playback/settings/audiobook-defaults` | — | missing |  |
-| `GET /playback/settings/eq` | — | missing |  |
-| `PUT /playback/settings/eq` | — | missing |  |
+| `GET /playback/queue` | `GET /me/queue` | covered | v2 words (`{kind, id, file_id?}`, `index`, `position_ms`) and a `revision`, also the `ETag`; one queue with v1 and Subsonic. Also in the change feed as `queue`. |
+| `PUT /playback/queue` | `PUT /me/queue` | covered | `If-Match: <revision>` refuses a stale write with `412 revision_mismatch` (v1: last write wins, still the case without it); items must be playable by the caller. |
+| `GET /playback/settings` | `GET /me/settings` | covered | One resource with the audiobook defaults and the equaliser (optimisation 8); milliseconds. Also in the change feed as `settings`. |
+| `PUT /playback/settings/audiobook-defaults` | `PATCH /me/settings` | covered | `audiobook: {speed, skip_back_ms, skip_forward_ms}`; out of range is `400`, not clamped. |
+| `GET /playback/settings/eq` | `GET /me/settings` | covered | `eq`: every device kind's saved curve, `bands_db` as six numbers. |
+| `PUT /playback/settings/eq` | `PATCH /me/settings` | covered | `eq: {device_kind?, enabled?, preamp_db?, bands_db?, preset_name?}`; the caller's device kind when none is named. |
 | `GET /stats/me` | — | missing | `GET /me/played` gives tops, not totals over a range. |
 | `GET /stats/me/history` | — | missing |  |
 | `PUT /stats/me/visibility` | — | missing |  |
@@ -365,11 +365,11 @@ lists what is still open.
 
 | v1 operation | v2 | status | note |
 |---|---|---|---|
-| `GET /devices/notifications` | — | missing | The inbox clients poll. |
-| `POST /devices/notifications/ack` | — | missing |  |
-| `POST /devices/push-token` | — | missing |  |
-| `DELETE /devices/push-token` | — | missing |  |
-| `GET /devices/push-tokens` | — | missing |  |
+| `GET /devices/notifications` | `GET /me/notifications` | covered | Cursor-paged, newest first, read ones too (`unread_only=true` for v1's list); `item` in v2 words. New and read ones reach the change feed as `notification`. |
+| `POST /devices/notifications/ack` | `POST /me/notifications/ack` | covered | `{ids}` as v1, or `{up_to}` for everything up to one. |
+| `POST /devices/push-token` | `POST /me/push-tokens` | covered | Answers the device (`201`, `200` when already the caller's). `modules.push` says whether the server sends any. |
+| `DELETE /devices/push-token` | `DELETE /me/push-tokens/{id}` | covered | By the device's id, not the token. |
+| `GET /devices/push-tokens` | `GET /me/push-tokens` | covered |  |
 
 ## Hosted edition (audio2)
 

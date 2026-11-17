@@ -12,7 +12,8 @@
 //!
 //! Records are the shapes of the rest of v2 (`Track`, `Album`, …); a listener's
 //! state comes as `favourite.<kind>`, `rating.<kind>`, `progress.<kind>` and
-//! `bookmark`, with the record of `GET /me/…`; the household itself as `family`
+//! `bookmark`, with the record of `GET /me/…` (the queue as `queue`, the player's settings as
+//! `settings`, each notification as `notification`); the household itself as `family`
 //! (`GET /family`'s record, with the reader's own membership) and its people as
 //! `member` (`MemberRecord`), those who left included.
 //!
@@ -43,14 +44,15 @@ use uuid::Uuid;
 /// The kinds a snapshot can hold, in the order it sends them.
 pub const SNAPSHOT_KINDS: &[&str] = &[
     "member", "family", "contributor", "release_group", "album", "genre", "track", "playlist", "smart_playlist", "book", "series", "collection", "podcast",
-    "episode", "favourite", "rating", "feedback", "progress", "bookmark",
+    "episode", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings",
 ];
 
 /// The kinds of the change feed: the snapshot's, and recordings (a track's
-/// `recording_id`; `GET /recordings/{id}`).
+/// `recording_id`; `GET /recordings/{id}`) and notifications (`GET /me/notifications` lists
+/// them; the feed tells of new ones and of those read).
 pub const CHANGE_KINDS: &[&str] = &[
     "member", "family", "contributor", "release_group", "album", "genre", "recording", "track", "playlist", "smart_playlist", "book", "series", "collection",
-    "podcast", "episode", "favourite", "rating", "feedback", "progress", "bookmark",
+    "podcast", "episode", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings", "notification",
 ];
 
 /// A listener's own state, small enough to send in one go.
@@ -198,6 +200,17 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
                 }
             }
         }
+        "queue" => {
+            if ids.contains(&family.user_id) {
+                out.push((family.user_id, crate::v2::listening::queue_record(state, family.user_id).await?));
+            }
+        }
+        "settings" => {
+            if ids.contains(&family.user_id) {
+                out.push((family.user_id, crate::v2::listening::settings_record(state, family.user_id).await?));
+            }
+        }
+        "notification" => out.extend(crate::v2::listening::notification_records(state, family.user_id, ids).await?),
         other => {
             let Some((state_kind, of)) = other.split_once('.') else { return Ok(out) };
             let Some(k) = Kind::parse(of) else { return Ok(out) };
@@ -264,7 +277,8 @@ pub struct ChangesQuery {
     /// Comma-separated kinds to read, every kind when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `recording`, `track`, `playlist`, `smart_playlist`,
     /// `book`, `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
-    /// `progress`, `bookmark`, or one kind of state (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
+    /// `progress`, `bookmark`, `queue`, `settings`, `notification`, or one kind of state
+    /// (`progress.episode`, `feedback.track`). Filtered by the server, so the other kinds cost nothing; keep
     /// passing the same list with the cursor. A `reset` always comes through.
     pub kinds: Option<String>,
 }
@@ -272,8 +286,8 @@ pub struct ChangesQuery {
 #[derive(Serialize, ToSchema)]
 pub struct Change {
     /// `track`, `album`, …, `member`, `series`, `collection`, `playlist`, `smart_playlist`,
-    /// `favourite.track`, `feedback.track`, `progress.book`, `bookmark`. A client skips kinds it
-    /// does not know.
+    /// `favourite.track`, `feedback.track`, `progress.book`, `bookmark`, `queue`, `settings`,
+    /// `notification`. A client skips kinds it does not know.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -351,7 +365,8 @@ pub struct SnapshotQuery {
     /// Comma-separated kinds; all of them when absent: `member`, `family`, `contributor`,
     /// `release_group`, `album`, `genre`, `track`, `playlist`, `smart_playlist`, `book`,
     /// `series`, `collection`, `podcast`, `episode`, `favourite`, `rating`, `feedback`,
-    /// `progress`, `bookmark`.
+    /// `progress`, `bookmark`, `queue`, `settings`. Notifications are not in it: read
+    /// `GET /me/notifications`, then the change feed.
     pub kinds: Option<String>,
     /// `ids`: each line names a record (`{"type":"id","kind","id"}`) without it, for a client
     /// that checks what it holds is still there; about 60 bytes a line instead of a record.
@@ -460,7 +475,7 @@ pub async fn snapshot(auth: AuthUser, family: FamilyContext, State(state): State
 }
 
 fn is_whole(kind: &str) -> bool {
-    kind == "family" || kind == "member" || STATE_KINDS.contains(&kind)
+    kind == "family" || kind == "member" || kind == "queue" || kind == "settings" || STATE_KINDS.contains(&kind)
 }
 
 /// The household as `GET /family` answers it to this reader.
@@ -507,6 +522,14 @@ async fn snapshot_page(state: &AppState, family: &FamilyContext, auth: &AuthUser
                 .collect::<Result<Vec<_>, Problem>>()?;
             let last_id = if records.is_empty() { None } else { Some(Uuid::max()) };
             Ok(SnapshotPage { records, last_id })
+        }
+        "queue" | "settings" => {
+            // One record each, named by the listener.
+            if after != Uuid::nil() {
+                return Ok(SnapshotPage { records: Vec::new(), last_id: None });
+            }
+            let records = records(state, family, auth, kind, &[family.user_id]).await?;
+            Ok(SnapshotPage { records, last_id: Some(Uuid::max()) })
         }
         "favourite" | "rating" | "feedback" | "progress" | "bookmark" => {
             // A listener's own state is small: all of it in one page.
@@ -593,6 +616,8 @@ async fn id_page(state: &AppState, family: &FamilyContext, kind: &str, after: Uu
         ids.push(("family".to_string(), family.family_id));
     } else if kind == "member" {
         ids = crate::db::families::member_records(pool, family.family_id, None).await?.into_iter().map(|m| ("member".to_string(), m.user_id)).collect();
+    } else if kind == "queue" || kind == "settings" {
+        ids.push((kind.to_string(), family.user_id));
     } else {
         let kinds: &[Kind] = match kind {
             "favourite" => &[Kind::Track, Kind::Album, Kind::Contributor, Kind::Book],
@@ -666,6 +691,10 @@ mod tests {
         assert!(parse_kinds(Some("playlist,smart_playlist,feedback,feedback.track"), CHANGE_KINDS, true).is_ok());
         assert!(parse_kinds(Some("playlist,smart_playlist,feedback"), SNAPSHOT_KINDS, false).is_ok());
         assert_eq!(code(parse_kinds(Some("feedback.book"), CHANGE_KINDS, true).unwrap_err()), "invalid_kind");
+        // The listener's queue, settings and inbox (phase 8); notifications only in the feed.
+        assert!(parse_kinds(Some("queue,settings,notification"), CHANGE_KINDS, true).is_ok());
+        assert!(parse_kinds(Some("queue,settings"), SNAPSHOT_KINDS, false).is_ok());
+        assert_eq!(code(parse_kinds(Some("notification"), SNAPSHOT_KINDS, false).unwrap_err()), "invalid_kind");
     }
 
     #[test]
@@ -680,7 +709,7 @@ mod tests {
 
     #[test]
     fn small_kinds_are_sent_whole() {
-        for k in ["member", "family", "favourite", "rating", "feedback", "progress", "bookmark"] {
+        for k in ["member", "family", "favourite", "rating", "feedback", "progress", "bookmark", "queue", "settings"] {
             assert!(is_whole(k), "{k}");
         }
         for k in ["track", "book", "episode", "album", "contributor", "playlist", "smart_playlist"] {

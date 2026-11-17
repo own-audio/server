@@ -18,6 +18,7 @@ pub mod household;
 pub mod idempotency;
 pub mod images;
 pub mod library;
+pub mod listening;
 pub mod me;
 pub mod organize;
 pub mod media;
@@ -174,6 +175,12 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(state::list_bookmarks, state::create_bookmark))
         .routes(routes!(state::patch_bookmark, state::delete_bookmark))
         .routes(routes!(state::push))
+        .routes(routes!(listening::get_queue, listening::put_queue))
+        .routes(routes!(listening::get_settings, listening::patch_settings))
+        .routes(routes!(listening::list_notifications))
+        .routes(routes!(listening::ack_notifications))
+        .routes(routes!(listening::list_push_tokens, listening::register_push_token))
+        .routes(routes!(listening::delete_push_token))
         .routes(routes!(sync::changes))
         .routes(routes!(sync::snapshot))
         .routes(routes!(media::playback_info))

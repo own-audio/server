@@ -86,6 +86,12 @@ fn v2_allows(method: &Method, rest: &[&str]) -> bool {
             | (&Method::PUT, ["me", "progress", _, _])
             | (&Method::POST, ["me", "plays"])
             | (&Method::POST, ["sync", "push"])
+            // The listener's own queue, player settings, inbox and push devices.
+            | (&Method::PUT, ["me", "queue"])
+            | (&Method::PATCH, ["me", "settings"])
+            | (&Method::POST, ["me", "notifications", "ack"])
+            | (&Method::POST, ["me", "push-tokens"])
+            | (&Method::DELETE, ["me", "push-tokens", _])
             // Reads sent as POST: what a smart playlist or a rule holds now.
             | (&Method::POST, ["smart-playlists", "resolve"])
             | (&Method::POST, ["smart-playlists", "intent"])
@@ -127,6 +133,11 @@ mod tests {
         assert!(rest_allows(&Method::POST, "/api/v2/smart-playlists/resolve"));
         assert!(rest_allows(&Method::POST, "/api/v2/smart-playlists/0b9c/resolve"));
         assert!(rest_allows(&Method::POST, "/api/v2/smart-playlists/intent"));
+        assert!(rest_allows(&Method::PUT, "/api/v2/me/queue"));
+        assert!(rest_allows(&Method::PATCH, "/api/v2/me/settings"));
+        assert!(rest_allows(&Method::POST, "/api/v2/me/notifications/ack"));
+        assert!(rest_allows(&Method::POST, "/api/v2/me/push-tokens"));
+        assert!(rest_allows(&Method::DELETE, "/api/v2/me/push-tokens/0b9c"));
         assert!(!rest_allows(&Method::PUT, "/api/v2/me/feedback/track/0b9c"));
         assert!(!rest_allows(&Method::PUT, "/api/v2/tracks/0b9c/lyrics"));
         assert!(!rest_allows(&Method::POST, "/api/v2/smart-playlists/0b9c/freeze"));

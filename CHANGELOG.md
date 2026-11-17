@@ -274,6 +274,36 @@ semver. Each release states the **API contract revision** it serves
   and the rate-limit buckets of the preview and the claim; unit tests for leaving and removing
   (the last admin, one household, unclaimed accounts) and the reports' words. Conformance: the
   `v2_household` suite.
+- `GET`/`PUT /api/v2/me/queue` — the cross-device play queue in v2's words (`{kind, id,
+  file_id?}` items, `index`, `position_ms`, the device that wrote it) and a `revision` counted
+  over every write, v1's and Subsonic's included (migration 0130). `PUT` with
+  `If-Match: "<revision>"` refuses a write made against an older queue (`412
+  revision_mismatch`, with the current `revision`); without it the last write wins, as on v1.
+  Items must be playable by the caller (`400 invalid_item`). v2 revision 10.
+- `GET`/`PATCH /api/v2/me/settings` — the player's speed and intro/outro skips, the audiobook
+  speed and skip steps (milliseconds, kept to the second) and each device kind's equaliser in
+  one resource; out-of-range values are refused (`400 invalid_body`) rather than clamped as on
+  v1. v2 revision 10.
+- `GET /api/v2/me/notifications` (newest first, cursor-paged, `unread_only`; `item` names what
+  a notification is about in v2's words, `read_at` when it was read) and
+  `POST /api/v2/me/notifications/ack` (`{ids}` or `{up_to}`: everything up to one). v2
+  revision 10.
+- `GET`/`POST /api/v2/me/push-tokens`, `DELETE /api/v2/me/push-tokens/{id}` — push
+  registration (a token another account registered moves to the caller); `modules.push` in
+  discovery says whether the server sends any (`false` here: clients read the inbox and the
+  change feed). v2 revision 10.
+- Kinds `queue`, `settings` (the listener's, named by their id; in the snapshot too) and
+  `notification` (change feed only) in `/api/v2/sync/changes`, so another device learns of a
+  new queue, changed settings or a new or read notification from the feed and a `library`
+  event on `/events` instead of polling. Migration 0130 adds the triggers and an index of each
+  listener's notifications by time. v2 revision 10.
+- `POST /api/v2/sync/push` takes `feedback` (`value`: `dislike` or `ban`) and `unfeedback`, so
+  a dislike made offline waits for nothing. v2 revision 10.
+- The demo account may write its own queue, settings, notification reads and push devices on
+  v2, as it may on v1.
+- Handler tests for every phase-8 route without a token and for discovery's `push`; unit tests
+  for the queue's words and checks, `If-Match`, the settings' ranges, notification items and
+  push tokens. Conformance: the `v2_listening` suite; `v2_walk` walks push devices.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

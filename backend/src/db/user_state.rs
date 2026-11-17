@@ -92,6 +92,19 @@ pub async fn is_visible(pool: &PgPool, viewer: Viewer, kind: Kind, id: Uuid) -> 
         .context("db: item visible")
 }
 
+/// Which of these items the viewer can see, in one query.
+pub async fn visible_ids(pool: &PgPool, viewer: Viewer, kind: Kind, ids: &[Uuid]) -> anyhow::Result<Vec<Uuid>> {
+    if ids.is_empty() {
+        return Ok(Vec::new());
+    }
+    let sql = format!("SELECT x FROM unnest($4::uuid[]) AS u(x) WHERE {}", visible(kind, "u.x"));
+    viewer!(sqlx::query_scalar::<_, Uuid>(&sql), viewer)
+        .bind(ids)
+        .fetch_all(pool)
+        .await
+        .context("db: items visible")
+}
+
 // ── Favourites ───────────────────────────────────────────────────────────────
 
 /// (table, item column, extra condition) of a favourite kind.

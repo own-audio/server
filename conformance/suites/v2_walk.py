@@ -47,6 +47,7 @@ ID_KINDS = [
     ("/api/v2/me/progress/{kind}/{id}", "track"),
     ("/api/v2/me/ratings/{kind}/{id}", "track"),
     ("/api/v2/me/feedback/{kind}/{id}", "track"),
+    ("/api/v2/me/push-tokens/{id}", "push_token"),
     ("/api/v2/library/quarantine/{track_id}", "track"),
     ("/api/v2/family/members/{user_id}", "member"),
 ]
@@ -81,6 +82,9 @@ BODIES = {
     ("PUT", "/api/v2/tracks/{id}/lyrics"): {"text": "taken"},
     ("PUT", "/api/v2/me/feedback/{kind}/{id}"): {"value": "dislike"},
     ("POST", "/api/v2/smart-playlists/intent"): {"text": "jazz"},
+    ("PUT", "/api/v2/me/queue"): {"items": []},
+    ("POST", "/api/v2/me/notifications/ack"): {"ids": []},
+    ("POST", "/api/v2/me/push-tokens"): {"platform": "fcm", "token": "walk-token"},
 }
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
@@ -235,9 +239,10 @@ def fixtures(ctx: Ctx, token: str, user_id: str, visibility: str = "private") ->
                                                         "books": [{"book_id": book["id"]}]}, expect=(201,))
     collection = ctx.call("POST", "/api/v2/collections", token, {"name": f"Walk Shelf {sfx}", "visibility": visibility,
                                                                  "book_ids": [book["id"]]}, expect=(201,))
+    push = ctx.call("POST", "/api/v2/me/push-tokens", token, {"platform": "apns", "token": f"walk-push-{sfx}"}, expect=(201,))
     return {"track": track["id"], "book": book["id"], "podcast": podcast["id"], "episode": episode["id"],
             "playlist": playlist["id"], "smart": smart["id"], "bookmark": bookmark["id"], "member": user_id,
-            "series": series["id"], "collection": collection["id"]}
+            "series": series["id"], "collection": collection["id"], "push_token": push["id"]}
 
 
 def _filled(path: str, ids: dict[str, str]) -> str | None:
@@ -260,7 +265,7 @@ def someone_elses(ctx: Ctx, w: Walker, ops, ids: dict, token: str, who: str, wha
         status = w.call(method, filled, token, _body(method, path))
         # Taking back one's own favourite or progress is idempotent, whatever the id: it touches
         # nothing of the owner's and tells nothing about the item.
-        if method == "DELETE" and path.startswith("/api/v2/me/") and status == 204:
+        if method == "DELETE" and path.startswith("/api/v2/me/") and not path.startswith("/api/v2/me/push-tokens/") and status == 204:
             continue
         if 200 <= status < 300:
             reached.append(f"{method} {path} → {status}")

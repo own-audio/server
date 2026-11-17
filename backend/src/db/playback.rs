@@ -435,3 +435,46 @@ pub async fn upsert_eq_settings(
     .await
     .context("db: upsert eq settings")
 }
+
+/// Every setting of the player at once (`PATCH /api/v2/me/settings` sends the merged whole).
+#[allow(clippy::too_many_arguments)]
+pub async fn update_settings(
+    pool: &PgPool,
+    user_id: Uuid,
+    playback_speed: f64,
+    skip_intro_secs: i32,
+    skip_outro_secs: i32,
+    ab_skip_forward_secs: i32,
+    ab_skip_backward_secs: i32,
+    ab_playback_speed: f64,
+) -> anyhow::Result<UserSettings> {
+    get_or_create_settings(pool, user_id).await?;
+    sqlx::query_as::<_, UserSettings>(
+        "UPDATE user_settings
+            SET playback_speed = $2, skip_intro_secs = $3, skip_outro_secs = $4,
+                ab_skip_forward_secs = $5, ab_skip_backward_secs = $6, ab_playback_speed = $7,
+                updated_at = CURRENT_TIMESTAMP
+          WHERE user_id = $1
+         RETURNING user_id, playback_speed, skip_intro_secs, skip_outro_secs,
+                   ab_skip_forward_secs, ab_skip_backward_secs, ab_playback_speed, updated_at",
+    )
+    .bind(user_id)
+    .bind(playback_speed)
+    .bind(skip_intro_secs)
+    .bind(skip_outro_secs)
+    .bind(ab_skip_forward_secs)
+    .bind(ab_skip_backward_secs)
+    .bind(ab_playback_speed)
+    .fetch_one(pool)
+    .await
+    .context("db: update settings")
+}
+
+/// The equaliser curves a listener has saved, one per device kind.
+pub async fn eq_curves(pool: &PgPool, user_id: Uuid) -> anyhow::Result<Vec<EqSettings>> {
+    sqlx::query_as::<_, EqSettings>(&format!("SELECT {EQ_COLUMNS} FROM eq_settings WHERE user_id = $1 ORDER BY device_kind"))
+        .bind(user_id)
+        .fetch_all(pool)
+        .await
+        .context("db: eq curves")
+}
