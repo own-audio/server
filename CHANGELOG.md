@@ -7,6 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.4] - 2026-11-18
+
+Contract revision 28. API v2 revision 17, **stable**.
+
+1.0.4-beta.3's code, out of beta: every `/api/v1` function is in `/api/v2`, and v2 is stable
+(additive only from here). v1 is served unchanged for the apps built on it. The changes since
+1.0.3 are in the three betas below; `UPGRADING.md` says what an upgrade does.
+
+### Changed
+
+- The conformance suite runs against a server behind Cloudflare (its own User-Agent, waiting out
+  rate limits, weak ETags, ranged image answers) and against the hosted edition (credit for the
+  run's households, the console's own origin).
+
 ## [1.0.4-beta.3] - 2026-11-17
 
 Contract revision 28. API v2 revision 17, **stable**. A beta, like beta.2: test it before you

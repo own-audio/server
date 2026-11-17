@@ -1,6 +1,6 @@
 # Installing the own.audio server
 
-> Release `1.0.3`. Betas are tagged `beta` too (`SERVER_IMAGE=ghcr.io/own-audio/server:beta` to test one; it may not work). The published image is
+> Release `1.0.4`. Betas are tagged `beta` too (`SERVER_IMAGE=ghcr.io/own-audio/server:beta` to test one; it may not work). The published image is
 > `ghcr.io/own-audio/server` (also `kornelko2/own-audio-server` on Docker
 > Hub), for amd64 and arm64.
 
