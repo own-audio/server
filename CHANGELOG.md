@@ -7,24 +7,6 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-### Added
-
-- `frontend/e2e/release-smoke.mjs` — a release check of the console in a headless browser against a
-  fresh server: setup, music, podcasts, an audiobook, a family invite by mail, the trash, settings
-  and sign-out, with every console error and 4xx/5xx reported. `release-smoke-hosted.mjs` does
-  the hosted-only pages (sign-up, credit, narration and translation up to their price).
-
-### Fixed
-
-- The console fetches the music library again when it opens a copy saved on the device less
-  than 30 seconds earlier; a reload right after a visit showed the old list (songs another
-  family member had just shared were missing).
-- The console's *Translate this episode* asks for a price only once its languages are loaded;
-  before, an English show's first quote went out for English and came back 400.
-- The conformance check of Subsonic bookmarks on episodes passes against an episode under 102 s
-  (a 42 s bookmark there is in the last minute, so deleting it means finished) and against one
-  with no position yet (the 404 was put back as a position).
-
 ## [1.0.4] - 2026-11-17
 
 Contract revision 26. API v2 revision 15, **stable**.
@@ -463,6 +445,10 @@ unchanged for the apps built on it, without deprecation headers until they have 
   webhook can lag the redirect. `?topup=cancelled` says nothing was charged.
 - Console: `credit_topup` notifications (hosted servers) in the user's language, from their
   `data`.
+- `frontend/e2e/release-smoke.mjs` — a release check of the console in a headless browser against a
+  fresh server: setup, music, podcasts, an audiobook, a family invite by mail, the trash, settings
+  and sign-out, with every console error and 4xx/5xx reported. `release-smoke-hosted.mjs` does
+  the hosted-only pages (sign-up, credit, narration and translation up to their price).
 
 ### Fixed
 
@@ -483,6 +469,14 @@ unchanged for the apps built on it, without deprecation headers until they have 
   wrote an entry for the account being deleted. Migration 0126.
 - A member moving from one household to another in one step reached only the household they
   left through the change feed; the change log keeps one row per household now.
+- The console fetches the music library again when it opens a copy saved on the device less
+  than 30 seconds earlier; a reload right after a visit showed the old list (songs another
+  family member had just shared were missing).
+- The console's *Translate this episode* asks for a price only once its languages are loaded;
+  before, an English show's first quote went out for English and came back 400.
+- The conformance check of Subsonic bookmarks on episodes passes against an episode under 102 s
+  (a 42 s bookmark there is in the last minute, so deleting it means finished) and against one
+  with no position yet (the 404 was put back as a position).
 
 ### Security
 
