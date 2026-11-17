@@ -6,10 +6,10 @@ comment saying so. v1 stays served, unchanged, until our apps have moved; then i
 (`api-v2-plan.md`, decision 1).
 
 What v2 is for and the rules every v2 endpoint follows: `api-v2-rules.md`.
-The contract: `docs/api/openapi-v2.json`. v2 is **stable since server 1.0.4**, the release that
+The contract: `docs/api/openapi-v2.json`. v2 is **stable since server 1.0.4-beta.1**, the release that
 completed `api-v2-completion-plan.md` (it said `draft` before, additive only all the same); a
 client checks the revision in `GET /.well-known/own-audio` → `api[]` before relying on
-something added later (revision 15 at 1.0.4). The decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
+something added later (revision 16 at 1.0.4-beta.1). The decisions in `docs/api-v2-plan.md`, the server code in `backend/src/v2/`.
 The working client to copy from is `OwnAudioKit` in `music-ios`, `book-ios` and `podcast-ios`
 (`Packages/OwnAudioKit/Sources/OwnAudioKit/`): music, books and podcasts on v2.
 
@@ -74,7 +74,7 @@ These shapes are part of the contract (gaps plan §0) and stay as they are:
 
 ## Still on v1: nothing the apps need
 
-Since 1.0.4 every v1 function is in v2 or recorded as not carried over
+Since 1.0.4-beta.1 every v1 function is in v2 or recorded as not carried over
 (`api-v1-v2-coverage.md`): per-member media policies, item grants and audience, sharing a playlist
 with chosen members, and the payment provider's webhook stay on v1. Pictures are signed
 `/images/{id}` links like every other `image` (catalog art never expires, people's pictures after

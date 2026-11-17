@@ -1,6 +1,6 @@
 # /api/v2 gaps — what the clients still need from the server
 
-Done 2026-11-17: every line below is ticked, with v2 revision 15 (release 1.0.4, v2 stable);
+Done 2026-11-17: every line below is ticked, with v2 revision 16 (release 1.0.4-beta.1, v2 stable);
 what stays on v1 by decision is under "Later". Written 2026-11-17 from the clients' migration plans (`API_V2_PLAN.md` in `audio2-mac`,
 `audio2-tvos`, `audio2-win`, `audio2-sync`, `audio2-android-book`, `audio2-android-music`,
 `audio2-android-podcast`). Each line is a v1 call some client makes that has no v2 counterpart
@@ -14,7 +14,7 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] **v2 is the main API and counts its revisions** (Kornel, 2026-11-17): revision 1,
       additive only from now on; discovery's v2 revision goes up with each line below so a
       client can check for it. It was `draft` until the release that completed
-      `api-v2-completion-plan.md`, and is stable since 1.0.4 (revision 15). (M T W S A)
+      `api-v2-completion-plan.md`, and is stable since 1.0.4-beta.1 (revision 16). (M T W S A)
 - [x] **Stable images** (v2 revision 2): catalog art is linked for good; people's pictures keep
       a weekly expiry. Was: `image` links are signed and expire in 1–2 weeks; `/sync/changes`
       doesn't resend unchanged records, so links kept in a cache, a widget or the car go dead.

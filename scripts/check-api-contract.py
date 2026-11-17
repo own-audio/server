@@ -3,7 +3,7 @@
 """Compare docs/api/openapi.json and openapi-v2.json with the ones at the last release tag.
 
 Within /api/v1 and /api/v2 changes are additive only (docs/API_COMPATIBILITY.md §4). v2 is
-stable since 1.0.4 (`2.<revision>`; before, `2.<revision>-draft`, checked the same way because
+stable since 1.0.4-beta.1 (`2.<revision>`; before, `2.<revision>-draft`, checked the same way because
 the iPhone apps shipped on it):
 - an operation that existed at the tag must still exist;
 - if the document changed at all, info.version (<major>.<revision>) must be higher.

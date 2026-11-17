@@ -7,30 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
-### Added
+## [1.0.4-beta.1] - 2026-11-17
 
-- `family_name` (optional) in `POST /api/v1/setup/complete` and `POST /api/v2/setup`: the
-  household's name. Contract revision 27, v2 revision 16. The console's setup wizard asks for
-  it, filled in with the admin's surname.
+Contract revision 27. API v2 revision 16, **stable**.
 
-### Fixed
-
-- Acoustic fingerprints with an ffmpeg that has no Chromaprint (Homebrew's, for one, when the
-  server runs outside its image): the server says so once in its log and fingerprints nothing,
-  as with `FINGERPRINT__MODE=off`. Every upload was quarantined as "does not decode" and left
-  the library. The image's ffmpeg has Chromaprint; nothing changes there.
-- The first household is no longer named after its admin's whole name, which made invites read
-  "Jana Novák invited you to Jana Novák": without a `family_name` it is the name's last word
-  (a surname), as every invite says "the {name} family".
-- The console's Trash page says restoring charges the storage only on a server with billing
-  (`features.billing`).
-- Storage & credit, the home page's storage card, the top-up thanks and the top-up notification
-  say "More than 10 years" instead of a runway of a million days and a run-out date in the
-  year 6590 (a small library on a server with billing).
-
-## [1.0.4] - 2026-11-17
-
-Contract revision 26. API v2 revision 15, **stable**.
+**A beta.** Large parts of the server changed (every v1 function moved to `/api/v2`); test it
+before you rely on it, and expect things that do not work yet. It is not `latest`.
 
 Every `/api/v1` function is in `/api/v2` (`docs/api-v2-completion-plan.md`, phases 0–14), or
 recorded in `docs/api-v1-v2-coverage.md` as not carried over with its reason. v1 is served
@@ -470,6 +452,9 @@ unchanged for the apps built on it, without deprecation headers until they have 
   fresh server: setup, music, podcasts, an audiobook, a family invite by mail, the trash, settings
   and sign-out, with every console error and 4xx/5xx reported. `release-smoke-hosted.mjs` does
   the hosted-only pages (sign-up, credit, narration and translation up to their price).
+- `family_name` (optional) in `POST /api/v1/setup/complete` and `POST /api/v2/setup`: the
+  household's name. Contract revision 27, v2 revision 16. The console's setup wizard asks for
+  it, filled in with the admin's surname.
 
 ### Fixed
 
@@ -498,6 +483,18 @@ unchanged for the apps built on it, without deprecation headers until they have 
 - The conformance check of Subsonic bookmarks on episodes passes against an episode under 102 s
   (a 42 s bookmark there is in the last minute, so deleting it means finished) and against one
   with no position yet (the 404 was put back as a position).
+- Acoustic fingerprints with an ffmpeg that has no Chromaprint (Homebrew's, for one, when the
+  server runs outside its image): the server says so once in its log and fingerprints nothing,
+  as with `FINGERPRINT__MODE=off`. Every upload was quarantined as "does not decode" and left
+  the library. The image's ffmpeg has Chromaprint; nothing changes there.
+- The first household is no longer named after its admin's whole name, which made invites read
+  "Jana Novák invited you to Jana Novák": without a `family_name` it is the name's last word
+  (a surname), as every invite says "the {name} family".
+- The console's Trash page says restoring charges the storage only on a server with billing
+  (`features.billing`).
+- Storage & credit, the home page's storage card, the top-up thanks and the top-up notification
+  say "More than 10 years" instead of a runway of a million days and a run-out date in the
+  year 6590 (a small library on a server with billing).
 
 ### Security
 

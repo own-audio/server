@@ -11,7 +11,7 @@ Step 3 of the own.audio API's order of work (`own-audio/api` design/DESIGN.md §
    (DESIGN §4).
 2. **Draft until every v1 function is in it — stable since 1.0.4.** v2 was `draft` until the
    release that completed `api-v2-completion-plan.md` (Kornel, 2026-11-17), additive only all
-   the same because our apps shipped on it. It is `stable` from 1.0.4: the revision
+   the same because our apps shipped on it. It is `stable` from 1.0.4-beta.1: the revision
    (`V2_REVISION`, `2.<revision>` in `openapi-v2.json`, `2.<revision>-draft` before) goes up
    with each addition, and `scripts/check-api-contract.py` checks it. v1 stays, unchanged and
    without deprecation headers, until our apps have moved (decision 1).
