@@ -256,6 +256,21 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
             }
         }
 
+        // 1b''. Disc numbers of tracks uploaded before they were kept (migration 0083): one
+        // pass of a few files at a time, the next as soon as the last is done, until none are
+        // left. Looked for on every tick: the question is one look into an index that is empty
+        // once the back-fill is done, so a database restored from before 0083 starts at once.
+        let handles_discs = job_types
+            .as_ref()
+            .is_none_or(|types| types.iter().any(|t| t == crate::music::discs::JOB_TYPE));
+        if handles_discs {
+            match db::admin::enqueue_disc_backfill(&pool).await {
+                Ok(true) => debug!("enqueued a disc-number back-fill pass"),
+                Ok(false) => {}
+                Err(e) => warn!("disc back-fill enqueue failed: {e}"),
+            }
+        }
+
         // 1b'. The edition's own scheduled work (the hosted edition enqueues
         // its daily storage charge here). Errors are logged, never fatal.
         if let Err(e) = hooks.worker_tick(&pool, &storage, chrono::Utc::now()).await {
@@ -479,7 +494,11 @@ async fn run_loop(pool: PgPool, storage: ObjectStore, config: AppConfig, hooks: 
         // of every file the scan just looked at, on the same disks: on a busy NAS the scan
         // fell from ~100 to under 10 files a minute. The jobs wait and run once it is done.
         let held: Vec<String> = if crate::library_folders::scan_status().0 {
-            vec!["media_checksum".to_string(), crate::music::fingerprint::JOB_TYPE.to_string()]
+            vec![
+                "media_checksum".to_string(),
+                crate::music::fingerprint::JOB_TYPE.to_string(),
+                crate::music::discs::JOB_TYPE.to_string(),
+            ]
         } else {
             Vec::new()
         };
@@ -548,6 +567,10 @@ async fn execute_job(
         "feed_refresh" => execute_feed_refresh(pool, storage, job).await,
         "stats_rollup" => execute_stats_rollup(pool, job).await,
         "media_checksum" => execute_media_checksum(pool, storage, job).await,
+        crate::music::discs::JOB_TYPE => {
+            let result = crate::music::discs::execute(pool, storage).await?;
+            db::jobs::set_result(pool, job.id, &result).await
+        }
         "analyze_audio" => execute_analyze_audio(pool, storage, job).await,
         crate::music::fingerprint::JOB_TYPE => crate::music::fingerprint::execute(pool, storage, job).await,
         "book_file_duration" => execute_book_file_duration(pool, storage, job).await,

@@ -3,6 +3,7 @@
 pub mod identify_runs;
 pub mod affinity;
 pub mod corrections;
+pub mod discs;
 pub mod analysis;
 pub mod fingerprint;
 pub mod intent;

@@ -159,15 +159,22 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 - [x] Holdings; shortcuts (album shortcuts by `album_id`) (v2 revision 13: `GET`/`PUT
       /me/holdings`, `GET /me/holdings/{kind}/{id}`, `GET`/`POST /sync/shortcuts`, `DELETE
       /sync/shortcuts/{id}`, kind `shortcut` in sync). (S M)
-- [ ] Instance admin: users, jobs. (W)
-- [ ] Instance admin, the rest: families (list, detail, trash, lock, unlock, delete), server
-      stats, create a user, revoke a user's sessions, finish setup; hosted: grant credit.
+- [x] Instance admin: users, jobs (v2 revision 14: `GET`/`POST /admin/users`, `GET`/`PATCH`/
+      `DELETE /admin/users/{id}`, `GET /admin/jobs` with `kind=` and `state=`,
+      `GET /admin/jobs/{id}`). (W)
+- [x] Instance admin, the rest: families (list, detail, trash, lock, unlock, delete), server
+      stats, create a user, revoke a user's sessions, finish setup (v2 revision 14:
+      `GET /admin/families?state=active|locked|trashed`, `GET`/`PATCH {locked}`/`DELETE
+      /admin/families/{id}`, `GET /admin/stats`, `DELETE /admin/users/{id}/sessions`,
+      `POST /setup`; the disc-number back-fill as the server's `disc_backfill` job). (audit)
+- [ ] Hosted: an administrator grants credit (`POST /admin/families/{id}/credit`, phase 13).
       (audit)
 - [x] A member leaving the household themselves: `DELETE /family/members/{id}` on oneself
       (v2 revision 9; `409 last_admin`, `409 one_household`). (audit)
 - [x] Family settings: audio analysis, book source (v2 revision 9: `GET`/`PATCH
       /family/settings`). (audit)
-- [ ] Library folders and their scan. (audit)
+- [x] Library folders and their scan (v2 revision 14: `GET /library/folders`,
+      `POST /library/folders/scan`). (audit)
 - [x] Moving items to their default folder paths (`/sync/paths/organise`); a companion image
       as cover (`use-as-cover`) (v2 revision 13: `POST /library/organise` with `dry_run`;
       `PUT /tracks/{id}/image` and `PUT /books/{id}/image` with `{file_id}`). (audit)

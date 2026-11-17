@@ -579,3 +579,46 @@ async fn the_folder_and_its_files_need_a_signed_in_member() {
         assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
     }
 }
+
+#[tokio::test]
+async fn running_the_server_needs_a_signed_in_account() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("GET", "/api/v2/admin/users".to_string()),
+        ("POST", "/api/v2/admin/users".to_string()),
+        ("GET", format!("/api/v2/admin/users/{id}")),
+        ("PATCH", format!("/api/v2/admin/users/{id}")),
+        ("DELETE", format!("/api/v2/admin/users/{id}")),
+        ("DELETE", format!("/api/v2/admin/users/{id}/sessions")),
+        ("GET", "/api/v2/admin/families".to_string()),
+        ("GET", format!("/api/v2/admin/families/{id}")),
+        ("PATCH", format!("/api/v2/admin/families/{id}")),
+        ("DELETE", format!("/api/v2/admin/families/{id}")),
+        ("GET", "/api/v2/admin/stats".to_string()),
+        ("GET", "/api/v2/admin/jobs".to_string()),
+        ("GET", format!("/api/v2/admin/jobs/{id}")),
+        ("GET", "/api/v2/library/folders".to_string()),
+        ("POST", "/api/v2/library/folders/scan".to_string()),
+    ] {
+        let body = json!({ "email": "a@b.c", "password": GOOD, "display_name": "A", "locked": false });
+        let (s, p) = send(&app, method, &path, body, false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
+#[tokio::test]
+async fn setup_is_on_the_setup_bucket() {
+    let state = state(json!({})).await;
+    let mut limits = Limiters::disabled();
+    limits.setup = crate::http::rate_limit::Limiter::per_minute(2, false);
+    let app = app(&state, &limits);
+    let body = json!({ "email": "a@b.c", "password": GOOD, "display_name": "A" });
+    for _ in 0..2 {
+        let (s, _) = send(&app, "POST", "/api/v2/setup", body.clone(), false).await;
+        assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "limited too early");
+    }
+    let (s, p) = send(&app, "POST", "/api/v2/setup", body, false).await;
+    assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")));
+}

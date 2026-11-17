@@ -176,7 +176,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 9 | Statistics — **done** | 5 | S | M W A |
 | 10 | Search across media, list filters — **done** | 2 | S | T W |
 | 11 | File sync remainder — **done** | 11 | L | S M W |
-| 12 | Instance admin, setup, jobs, library folders | 18 | L | W, console |
+| 12 | Instance admin, setup, jobs, library folders — **done** | 18 | L | W, console |
 | 13 | Hosted edition (`audio2`) | 1 + 23 reworked | L | W A, apps |
 | 14 | Release: stable, docs, strict coverage | — | S | — |
 
@@ -1019,7 +1019,54 @@ Tests: the v1 `filesync` suite's checks on v2 (loopback RSS feed, SQL-backed): c
 create/visibility/delete in sync, download through `playback-info`, holdings round-trip,
 shortcuts, organise dry run equals the moves made.
 
-### Phase 12 — instance admin, setup, jobs, library folders (L)
+### Phase 12 — instance admin, setup, jobs, library folders (L) — done 2026-11-17
+
+Done, v2 revision 14: everything in the table below; the 17 missing rows and `GET /users/{id}`
+covered, so only the hosted `POST /admin/families/{id}/credit` is left (phase 13), and the gaps
+plan's admin and library-folder lines ticked. The disc-number back-fill is the `disc_backfill`
+job. Migration 0133 (indexes for the jobs list and for the tracks still to read). Handler tests
+(no token is `401` on every new route; setup on the setup bucket) and unit tests (an account's
+fields, an administrator's own rights, the lists' words); the conformance suite `v2_admin`
+covers behaviour, and `run.py` makes the first administrator through `POST /setup` on a server
+not set up yet — that is the positive case on CI's fresh stack, which no longer calls v1's
+setup. What the plan said, with these differences:
+
+- **An administrator keeps their own rights** (decided the safer way): `PATCH /admin/users/{id}`
+  refuses to demote or block oneself and `DELETE` to delete oneself (`409 own_account`; one's own
+  account is `DELETE /me`, which keeps the last admin), and `PATCH /admin/families/{id}
+  {locked: true}` refuses the household the administrator is in (`409 own_family`). v1 allows
+  both; on a one-household server locking the household locked everyone out, the administrator
+  included, with nobody left to unlock it. So the conformance check of a locked household runs on
+  a second household made through SQL (`--compose-dir`), always unlocked again by a cleanup.
+- `POST /setup` checks whether the server is set up before it reads the body, so once set up it
+  answers `409 setup_complete` to anything; two first requests at once make one administrator (an
+  advisory lock). It answers `Me` as the plan said (v1 answered tokens); signing in is
+  `POST /auth/token`.
+- `GET /admin/families?state=` takes `active`, `locked` and `trashed`: v1's "families in the
+  trash" (`GET /admin/families/trash`) was the trash report per household, so `trashed` lists the
+  households with something in their trash, and every household carries `trash` (items, bytes,
+  restores in 30 days, `flagged`). "Locked" is still what v1 made it: members, none of whom may
+  sign in; unlocking lets every member in again, those blocked one by one included (v1's rule).
+- The account and household lists are cursor-paged too (the plan said so of users only): on the
+  hosted edition both grow with the server. `GET /library/folders` answers `{scanning,
+  files_scanned, folders}` — the array inside, since the scan's state is the server's, not a
+  folder's —, `member` as the plan said (v1: household admins), `media: music|books`.
+- `AdminUser` says `blocked` (v1's `is_active` turned round), as `MemberRecord` does (rule 1);
+  `PATCH /admin/users/{id}` takes `{display_name, instance_role, blocked}` and answers the account.
+  A changed `instance_role` signs the account out everywhere (decided the safer way): the role
+  travels in the access token, so on v1 a demoted administrator kept the server until the token
+  expired.
+- No credit figures in `/admin/stats` and `/admin/families/{id}` (v1's `credit_balance_micro`,
+  `balance_micro`, `last_charge`, `entries` come from the hosted edition's hooks): phase 13 adds
+  them, additively, with the credit grant.
+- The disc job: `disc_backfill`, 20 files a pass, one pass at a time, the next queued on the
+  worker's next tick as long as tracks are left (one look into a partial index that is empty
+  once done), held while a library scan runs, as checksums are. It is in the default set because
+  the FOSS compose file sets no `WORKER_JOB_TYPES`; a deployment that lists its types (the hosted
+  edition's containers) must add it. Each pass's `{checked, left}` is in `GET /admin/jobs`.
+- `GET /admin/jobs` is left out of `v2_walk`'s generic paging (new jobs arrive at its head while
+  it is walked); `v2_admin` pages it allowing for that.
+
 
 v1 ops: `POST /setup/complete`, `POST /auth/admin-create-user`, `GET /users`, `PATCH`/`DELETE
 /users/{id}`, `POST /users/{id}/revoke-sessions`, partly `GET /users/{id}`, admin families (6),

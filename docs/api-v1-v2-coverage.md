@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 287 |
-| partly covered | 1 |
-| missing | 18 |
+| covered | 305 |
+| partly covered | 0 |
+| missing | 1 |
 | not carried over | 10 |
 | **total** | **316** |
 
@@ -25,8 +25,8 @@ grants stay on v1, and with them sharing a playlist with chosen members), a rout
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 11, v2
-revision 13). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 12, v2
+revision 14). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -77,21 +77,21 @@ lists what is still open.
 |---|---|---|---|
 | `GET /server` | `GET /.well-known/own-audio`, `Discovery.demo` | covered | `demo` since v2 revision 3. |
 | `GET /setup/status` | `Discovery.setup` | covered | `setup.complete`. The health checks are `GET /health`'s. |
-| `POST /setup/complete` | — | missing | The first-run wizard. |
-| `POST /auth/admin-create-user` | — | missing |  |
-| `GET /users` | — | missing | Instance admin. |
-| `GET /users/{id}` | `GET /me` | partly | Your own account only; an admin reading another account is missing. |
-| `PATCH /users/{id}` | — | missing | Instance admin. |
-| `DELETE /users/{id}` | — | missing | Instance admin. |
-| `POST /users/{id}/revoke-sessions` | — | missing | Instance admin. |
+| `POST /setup/complete` | `POST /setup` | covered | Answers `Me` (sign in with `POST /auth/token`; v1 answered tokens); `409 setup_complete` once the server has its administrator, whatever the body (v1: `400`). The setup bucket, as v1. |
+| `POST /auth/admin-create-user` | `POST /admin/users` | covered | `{email, password, display_name, instance_role?}` → `AdminUser`; `Idempotency-Key`; `409 email_taken` (v1: `400`), `invalid_role` (v1 made an unknown role a user). |
+| `GET /users` | `GET /admin/users` | covered | Cursor-paged in the order accounts were made, `q=` a part of the address or name (v1: every account at once); the household as `{id, name, role}`, `blocked`, `pending`, `email_verified`. |
+| `GET /users/{id}` | `GET /me`, `GET /admin/users/{id}` | covered | One's own account is `GET /me`; the server's administrator reads anyone's as `AdminUser`. |
+| `PATCH /users/{id}` | `PATCH /admin/users/{id}` | covered | `{display_name?, instance_role?, blocked?}` → `AdminUser` (v1: `204`, `is_active`); nothing written unless all of it is valid; not one's own role or access (`409 own_account`, v1 allowed it). |
+| `DELETE /users/{id}` | `DELETE /admin/users/{id}` | covered | `404` for an unknown account (v1: `204`); one's own is `409 own_account` (v1: `400`), deleted with `DELETE /me`. |
+| `POST /users/{id}/revoke-sessions` | `DELETE /admin/users/{id}/sessions` | covered | `404` for an unknown account. |
 | `GET /users/{id}/avatar` | `Member.image` → `GET /images/{id}` | covered | For people in your household. A signed link since phase 0; until then `Member.image` was this v1 route, which wants the access token. |
-| `GET /admin/families` | — | missing |  |
-| `GET /admin/families/trash` | — | missing |  |
-| `GET /admin/families/{id}` | — | missing |  |
-| `DELETE /admin/families/{id}` | — | missing |  |
-| `POST /admin/families/{id}/lock` | — | missing |  |
-| `POST /admin/families/{id}/unlock` | — | missing |  |
-| `GET /admin/stats` | — | missing |  |
+| `GET /admin/families` | `GET /admin/families` | covered | Cursor-paged in the order households were made (v1: all at once); `state=active|locked|trashed`; `locked` and the trash figures on each. No credit balance: the hosted edition's, phase 13. |
+| `GET /admin/families/trash` | `GET /admin/families` | covered | `state=trashed` lists the households with something in the trash; `trash` (items, bytes, restores in 30 days, `flagged`) is on every household. |
+| `GET /admin/families/{id}` | `GET /admin/families/{id}` | covered | Its people (`blocked`, `pending`, v2 roles), storage and trash. The credit history is the hosted edition's (phase 13). |
+| `DELETE /admin/families/{id}` | `DELETE /admin/families/{id}` | covered | Only a household nobody is in; `409 family_not_empty` (v1: `400`). |
+| `POST /admin/families/{id}/lock` | `PATCH /admin/families/{id}` | covered | `{locked: true}` → `AdminFamilyDetail`; not the household the administrator is in (`409 own_family`: on a one-household server it would lock everyone out; v1 allows it). |
+| `POST /admin/families/{id}/unlock` | `PATCH /admin/families/{id}` | covered | `{locked: false}`. |
+| `GET /admin/stats` | `GET /admin/stats` | covered | Listening in milliseconds (`listened_ms`), `sign_ins` for v1's `logins`, counted in SQL (v1 read every account). The credit balance is the hosted edition's (phase 13). |
 
 ## Family and household
 
@@ -245,7 +245,7 @@ lists what is still open.
 | `GET /music/tracks` | `GET /tracks`, `GET /sync/snapshot` | covered |  |
 | `POST /music/tracks/upload` | `POST /uploads` + `POST /tracks` | covered | No multipart on v2, by design. |
 | `POST /music/tracks/from-upload` | `POST /tracks` | covered |  |
-| `POST /music/tracks/discs` | — | not carried over | A one-off back-fill of the disc numbers of uploads made before they were read: no client should have to start it. It becomes a server job with the instance-admin and jobs work (completion plan phase 12); v1's route stays until then. |
+| `POST /music/tracks/discs` | — | not carried over | A one-off back-fill of the disc numbers of uploads made before they were read: no client should have to start it. Since phase 12 (v2 revision 14) the server's own `disc_backfill` job does it, a few files a pass, each pass in `GET /admin/jobs` with `{checked, left}`; v1's route stays for v1's clients. |
 | `GET /music/tracks/{id}` | `GET /tracks/{id}` | covered |  |
 | `PUT /music/tracks/{id}` | `PATCH /tracks` | covered | One song or many, as a batch in the edit history. |
 | `DELETE /music/tracks/{id}` | `DELETE /tracks/{id}` | covered | As a book. v1's `X-Trash-Batch` header is not taken: one `POST /trash` is one batch. |
@@ -331,8 +331,8 @@ lists what is still open.
 | `GET /library/continue` | `GET /me/progress?kind=` | covered | `kind=track,book,episode&unfinished=true&include=items,podcasts`: one list across kinds, most recent first, the records embedded once. Translations follow with the hosted edition (phase 13). |
 | `GET /library/search` | `GET /search` | covered | `types=` adds `books`, `podcasts`, `episodes` and `contributors` (anyone credited) to the music; one request, ranked one way, only what the caller can see; full records (v1 sent titles). |
 | `GET /library/private` | `GET /tracks`, `GET /books`, `GET /podcasts`, `GET /albums` | covered | `owner=me&visibility=private` on each list, cursor-paged (v1 answered everything at once); `visibility=family` for what is shared. |
-| `GET /library/folders` | — | missing | Server-side library folders and their last scan. |
-| `POST /library/folders/scan` | — | missing |  |
+| `GET /library/folders` | `GET /library/folders` | covered | Any member (v1: household admins); `media: music|books`, `last_scan` absent before the first. |
+| `POST /library/folders/scan` | `POST /library/folders/scan` | covered | `202`, household admins. |
 | `GET /sync/tree` | `GET /sync/changes` | covered | With `GET /sync/snapshot`: `path` and `sha256` on tracks, books and episodes, `relative_path` and `sha256` on book files; renames, grants and policy changes in the feed; owners' names as `member` records, people who left included; `kinds=` to read only what the folder shows. Companion files have rows of their own below. |
 | `GET /sync/tree/ids` | `GET /sync/snapshot` | covered | `fields=ids`: `{type: id, kind, id}` lines, every kind (v1: the folder's), about 60 bytes an item. |
 | `POST /sync/paths/organise` | `POST /library/organise` | covered | `{kind: track|book, dry_run, ids?}` → `{dry_run, moves}`; `dry_run` is required (v1's `preview` defaulted to moving). The caller's own items, as v1; one transaction, a dry run rolled back, so it lists exactly the moves the same request makes. |
@@ -358,8 +358,8 @@ lists what is still open.
 | `POST /trash/empty` | `DELETE /trash` | covered | `{purged}`; walks the trash page by page instead of reading it whole. |
 | `DELETE /trash/{kind}/{id}` | `DELETE /trash/{kind}/{id}` | covered | v2 kinds; `400 invalid_kind`. |
 | `POST /trash/{kind}/{id}/restore` | `POST /trash/{kind}/{id}/restore` | covered | `204` (v1 answers the charge; the list quotes it beforehand). |
-| `GET /jobs` | — | missing | Instance admin. |
-| `GET /jobs/{id}` | — | missing |  |
+| `GET /jobs` | `GET /admin/jobs` | covered | Cursor-paged newest first (v1: the last 50), `kind=` and `state=`; `kind`, `state` for v1's `job_type`, `status`. |
+| `GET /jobs/{id}` | `GET /admin/jobs/{id}` | covered | `404` for an unknown job (v1: `401`). |
 
 ## Notifications and devices
 

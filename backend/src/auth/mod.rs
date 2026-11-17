@@ -1008,6 +1008,36 @@ pub(crate) async fn create_local_account(
     Ok(user)
 }
 
+/// An account made by someone who typed its address — the server's administrator, or the
+/// setup wizard's first admin — with a password and a place in a household. The address
+/// counts as confirmed: whoever typed it vouches for it. The caller has checked the fields.
+pub(crate) async fn create_vouched_account(
+    state: &AppState,
+    email: &str,
+    password: &str,
+    display_name: &str,
+    role: &str,
+) -> Result<User, AuthError> {
+    let pool = state.db();
+    let password_hash = hash_password(password)?;
+    let user = db::users::insert(pool, state.at_rest(), email, display_name, role)
+        .await
+        .map_err(AuthError::Internal)?;
+    db::users::insert_local_identity(pool, user.id, &password_hash)
+        .await
+        .map_err(AuthError::Internal)?;
+    let membership = db::families::home_new_user(pool, user.id, state.hooks().one_family())
+        .await
+        .map_err(AuthError::Internal)?;
+    state
+        .hooks()
+        .user_created(pool, membership.family_id, user.id)
+        .await
+        .map_err(AuthError::Internal)?;
+    verification::born(state, &user, membership.family_id, true).await?;
+    Ok(user)
+}
+
 /// Argon2id with a fresh salt.
 pub(crate) fn hash_password(password: &str) -> Result<String, AuthError> {
     let salt = SaltString::generate(&mut OsRng);
@@ -1432,30 +1462,7 @@ async fn admin_create_user(
         return Err(AuthError::BadRequest("email already in use".into()));
     }
 
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
-        .to_string();
-
-    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, role)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    db::users::insert_local_identity(pool, user.id, &password_hash)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    let membership = db::families::home_new_user(pool, user.id, state.hooks().one_family())
-        .await
-        .map_err(AuthError::Internal)?;
-    state
-        .hooks()
-        .user_created(pool, membership.family_id, user.id)
-        .await
-        .map_err(AuthError::Internal)?;
-    // The admin typed the address: that vouches for it.
-    verification::born(&state, &user, membership.family_id, true).await?;
+    let user = create_vouched_account(&state, &email, &body.password, &display_name, role).await?;
     audit::record(&state, &meta, Some(user.id), Some(auth.user_id), "account.created", serde_json::json!({ "role": user.role })).await;
 
     Ok((

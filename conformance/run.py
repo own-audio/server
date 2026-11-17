@@ -68,6 +68,25 @@ def v2_coverage(calls: list[tuple[str, str, int]]) -> dict[str, list[str]]:
     return out
 
 
+def first_admin(ctx: Ctx) -> None:
+    """A server not set up yet (a fresh stack) gets its administrator through `POST /api/v2/setup`,
+    so a run on one proves the route's success, which no later run can (it answers `409` then)."""
+    try:
+        doc = ctx.call("GET", "/.well-known/own-audio")
+    except ApiError:
+        return
+    if (doc.get("setup") or {}).get("complete", True):
+        return
+    ctx.suite = "setup"
+    print("setup    making the first admin through POST /api/v2/setup")
+    me = ctx.call("POST", "/api/v2/setup", body={"email": ctx.admin_email, "password": ctx.admin_password,
+                                                  "display_name": "Conformance admin"}, expect=(201,))
+    ctx.check("POST /api/v2/setup on a fresh server → 201, the server's administrator",
+              me.get("instance_role") == "admin" and me.get("email") == ctx.admin_email.lower())
+    after = ctx.call("GET", "/.well-known/own-audio")
+    ctx.check("…and discovery says setup is complete", (after.get("setup") or {}).get("complete") is True)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--base-url", default="http://127.0.0.1:8080")
@@ -111,6 +130,7 @@ def main() -> int:
     print(f"server   {ctx.base_url}")
     try:
         ctx.discover()
+        first_admin(ctx)
         ctx.login_admin()
     except Exception as e:  # noqa: BLE001
         print(f"FAIL     cannot talk to the server: {e}")

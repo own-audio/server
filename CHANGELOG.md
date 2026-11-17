@@ -360,6 +360,35 @@ semver. Each release states the **API contract revision** it serves
   and `v2_trash` follow the uploaded show into the trash; `organize`'s identify-undo check
   compares the undo's `items` with the items it put back (the song, and its album and artists
   when the release changed them), not with the number of edits.
+- Running the server on `/api/v2`: `POST /api/v2/setup` makes the first administrator while
+  discovery says `setup.complete: false` (answers `Me`; `409 setup_complete` afterwards, the
+  setup bucket as v1); `GET`/`POST /api/v2/admin/users` (paged in the order accounts were made,
+  `q=` a part of the address or name; a new account with `Idempotency-Key`, `409 email_taken`,
+  `invalid_role`), `GET`/`PATCH`/`DELETE /api/v2/admin/users/{id}` (`{display_name,
+  instance_role, blocked}`; blocking it or changing its role signs it out: v1 left a demoted administrator's tokens working until they expired) and `DELETE
+  /api/v2/admin/users/{id}/sessions`; `GET /api/v2/admin/families?state=active|locked|trashed`
+  (paged, with `locked` and the trash figures), `GET`/`PATCH {locked}`/`DELETE
+  /api/v2/admin/families/{id}` (`409 family_not_empty`); `GET /api/v2/admin/stats` (listening in
+  milliseconds); `GET /api/v2/admin/jobs` (paged newest first, `kind=`, `state=`) and `GET
+  /api/v2/admin/jobs/{id}`. All `instance_admin`. An administrator cannot demote, block or delete
+  their own account there (`409 own_account`), nor lock the household they are in (`409
+  own_family`: on a one-household server that locked everyone out, v1 still allows it). v2
+  revision 14.
+- `GET /api/v2/library/folders` (any member: the folders, `media: music|books`, their last scan)
+  and `POST /api/v2/library/folders/scan` (household admins, `202`). v2 revision 14.
+- `disc_backfill` job: the worker reads the disc number of tracks uploaded before it was kept, 20
+  files a pass, one pass after the other until none are left, each pass's `{checked, left}` in
+  `GET /api/v2/admin/jobs`; held while a library scan runs. On by default (no
+  `WORKER_JOB_TYPES`); a deployment that lists its job types adds `disc_backfill`. v1's `POST
+  /api/v1/music/tracks/discs` is unchanged. Migration 0133: indexes for the jobs list and the
+  tracks still to read.
+- Handler tests: the new routes refuse without a token, setup is on the setup bucket; unit tests
+  for an account's fields, an administrator's own rights, the lists' words. Conformance: the
+  `v2_admin` suite (the permission matrix against a member and a household admin, accounts,
+  households — a second one locked and opened through SQL —, figures, jobs paged while new ones
+  arrive, the disc job on a track marked through SQL); `run.py` makes the first administrator
+  through `POST /api/v2/setup` on a server not set up yet, and CI leaves that to it;
+  `v2_walk` pages the administrator's lists with the administrator's token.
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's

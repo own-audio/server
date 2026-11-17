@@ -9,9 +9,6 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
-use argon2::password_hash::{PasswordHasher, SaltString, rand_core::OsRng};
-use argon2::Argon2;
-
 // ── Router ────────────────────────────────────────────────────────────────
 
 pub fn router(limits: &crate::http::rate_limit::Limiters) -> OpenApiRouter<AppState> {
@@ -122,31 +119,8 @@ async fn complete_setup(
         return Err(AuthError::BadRequest("display name is required".into()));
     }
 
-    // 3. Hash password
-    let salt = SaltString::generate(&mut OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(body.password.as_bytes(), &salt)
-        .map_err(|e| AuthError::Internal(anyhow::anyhow!("password hash failed: {e}")))?
-        .to_string();
-
-    // 4. Create admin user
-    let user = db::users::insert(pool, state.at_rest(), &email, &display_name, "admin")
-        .await
-        .map_err(AuthError::Internal)?;
-
-    db::users::insert_local_identity(pool, user.id, &password_hash)
-        .await
-        .map_err(AuthError::Internal)?;
-
-    let membership = db::families::home_new_user(pool, user.id, state.hooks().one_family())
-        .await
-        .map_err(AuthError::Internal)?;
-    state
-        .hooks()
-        .user_created(pool, membership.family_id, user.id)
-        .await
-        .map_err(AuthError::Internal)?;
-    crate::auth::verification::born(&state, &user, membership.family_id, true).await?;
+    // 3. Create the admin, in the install's household
+    let user = crate::auth::create_vouched_account(&state, &email, &body.password, &display_name, "admin").await?;
 
     tracing::info!(
         email = %user.email,

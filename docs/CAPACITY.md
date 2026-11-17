@@ -377,6 +377,16 @@ someone's private tracks; with a filter, the query also joins the albums of the 
 filter keeps, so the planner starts from those tracks when they are few and still walks when
 they are many (a statement of its own: an unfiltered list plans as before).
 
+## Measured: the administrator's lists on v2 (2026-11-17)
+
+`GET /api/v2/admin/jobs` on 600,000 jobs (one per stored file is what the checksum sweep makes on
+a big library), migration 0133's indexes: the first page of 101, newest first, 0.09 ms
+(`jobs_created_idx`); a later page of one kind 0.08 ms (`jobs_type_created_idx`); the failed ones
+(one in a thousand) 0.4 ms (`jobs_status_created_idx`). Accounts and households are paged by
+`(created_at, id)` over tables that grow with people, not the catalog. The disc-number back-fill
+asks a partial index of the tracks never read (`WHERE NOT disc_checked`): empty once the
+back-fill is done, so the worker's look on every tick costs nothing measurable.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

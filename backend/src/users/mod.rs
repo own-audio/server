@@ -533,7 +533,7 @@ async fn admin_delete_user(
 /// family's key prefixes is referenced *before* the delete, and is no longer
 /// referenced after it. Another member's upload still in flight is
 /// unreferenced before too, so it is never in the snapshot.
-async fn delete_account(state: &AppState, user_id: Uuid) -> Result<(), AuthError> {
+pub(crate) async fn delete_account(state: &AppState, user_id: Uuid) -> Result<(), AuthError> {
     let pool = state.db();
     let membership = db::families::find_membership(pool, user_id)
         .await

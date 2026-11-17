@@ -21,6 +21,9 @@ python3 conformance/run.py --only smoke,trash
 python3 conformance/run.py --report out.json # machine-readable result
 ```
 
+On a server not set up yet (a fresh stack), `run.py` first makes `--admin-email` its administrator
+through `POST /api/v2/setup`.
+
 After a run, `run.py` lists the `/api/v2` operations that never answered 2xx (the report's
 `v2_operations` holds the full split). `--v2-coverage-strict` makes that a failure on a full run.
 
@@ -62,6 +65,7 @@ uploads, file sync and Subsonic on, everything else off.
 | `v2_stats` | `/api/v2` statistics: plays in a batch and a retried one counted once, totals per kind and the most listened, day buckets in the listener's time zone, weeks and months, the plays history paged without loss, who sees one's figures (`stats_visible_to_admin`, an absent member, a managed account, the change feed), the household's figures for admins only, problem shapes | — |
 | `v2_search` | `/api/v2` search across media and the lists' filters: books, podcasts, episodes and contributors found by title or a credited name, only what the caller can see, titles that start with the words first, `include=contributors`, the default still music only; `owner=me` and `visibility=private|family` on tracks, albums, books and podcasts, both together, the problem shapes, each filtered list paged without loss | — |
 | `v2_folder` | `/api/v2` file sync remainder: companion files made by path or next to an item, the cover and lyrics rules, refused types and places, `Idempotency-Key`, kind `file` in the snapshot (only when asked) and the change feed — shared, moved, trashed, restored —, downloaded through `playback-info`, an image as a track's cover; a device's holdings and their paging; shortcuts by `album_id`, a book or a whole kind, in the change feed and as v1 reads them; organise's dry run equal to the moves made; an uploaded show trashed with its episodes, restored beside a new one of its guid, purged with its stored files; a followed show still unfollowed | the purge's object check needs `--compose-dir`; the followed show a loopback `--base-url` |
+| `v2_admin` | `/api/v2` running the server: every `/admin` operation `401` anonymous and `403` to a member and to a household admin; `POST /setup` refused once set up (`409 setup_complete`); accounts made (`Idempotency-Key`, `email_taken`, `weak_password`, `invalid_role`), found by `q`, paged, renamed, made and unmade administrators, blocked and let in, signed out, deleted; the administrator's own account and household kept (`409 own_account`, `409 own_family`); households by state, with people, storage and trash; `409 family_not_empty`; the server's figures; jobs by kind and state, paged while new ones arrive; library folders and a scan | a second household (locked, its people refused, opened, paged, deleted once empty) and the `disc_backfill` job on a track marked through SQL need `--compose-dir` |
 | `v2_walk` | `/api/v2` walked from `docs/api/openapi-v2.json`: the permission matrix, another member's (or household's) ids, problem shapes, paging without loss in every order | — |
 | `library` | read-only library folders: scan, tags, books as folders in natural order, streaming from a folder, removing hides | a server with folders configured: `tools/make_library_fixtures.sh /tmp/oa-library` and `-f conformance/compose.library.yml`; skipped otherwise |
 

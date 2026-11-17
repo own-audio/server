@@ -141,7 +141,7 @@ const EPISODE_SIZE: &str = "COALESCE((SELECT m.size_bytes FROM media_objects m W
 
 /// Every trashed item as one union with the columns of [`Trashed`], for the
 /// caller to filter.
-fn trashed_union() -> String {
+pub(crate) fn trashed_union() -> String {
     let names = "(SELECT u.display_name FROM users u WHERE u.id = {owner}) AS owner_name,
                  x.trashed_at, x.trashed_by,
                  (SELECT u.display_name FROM users u WHERE u.id = x.trashed_by) AS trashed_by_name,
@@ -547,6 +547,11 @@ pub struct FamilyTrashStats {
 }
 
 pub async fn family_stats(pool: &PgPool) -> anyhow::Result<Vec<FamilyTrashStats>> {
+    family_stats_for(pool, None).await
+}
+
+/// [`family_stats`] for these households only, or every one with `None`.
+pub async fn family_stats_for(pool: &PgPool, ids: Option<&[Uuid]>) -> anyhow::Result<Vec<FamilyTrashStats>> {
     let sql = format!(
         "WITH t AS (
              SELECT fm.family_id, x.size_bytes
@@ -573,10 +578,12 @@ pub async fn family_stats(pool: &PgPool) -> anyhow::Result<Vec<FamilyTrashStats>
            FROM families f
            LEFT JOIN r ON r.family_id = f.id
            LEFT JOIN per_item p ON p.family_id = f.id
+          WHERE $1::uuid[] IS NULL OR f.id = ANY($1)
           ORDER BY trashed_bytes DESC, f.name",
         trashed_union()
     );
     sqlx::query_as::<_, FamilyTrashStats>(&sql)
+        .bind(ids)
         .fetch_all(pool)
         .await
         .context("db: family trash stats")

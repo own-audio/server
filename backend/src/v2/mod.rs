@@ -6,6 +6,7 @@
 //! `x-permission` (security hardening plan §5.3).
 
 pub mod account;
+pub mod admin;
 pub mod identify;
 pub mod auth;
 pub mod books;
@@ -260,6 +261,18 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(library::list_quarantine))
         .routes(routes!(library::release_quarantine))
         .routes(map(routes!(identify::search_group), |m| limits.outbound.apply(m)))
+        .routes(routes!(library::list_folders))
+        .routes(routes!(library::scan_folders))
+        // The first admin is made once, with a password: v1's setup bucket.
+        .routes(map(routes!(admin::setup), |m| limits.setup.apply(m)))
+        .routes(routes!(admin::list_users, admin::create_user))
+        .routes(routes!(admin::get_user, admin::patch_user, admin::delete_user))
+        .routes(routes!(admin::delete_user_sessions))
+        .routes(routes!(admin::list_families))
+        .routes(routes!(admin::get_family, admin::patch_family, admin::delete_family))
+        .routes(routes!(admin::stats))
+        .routes(routes!(admin::list_jobs))
+        .routes(routes!(admin::get_job))
 }
 
 /// The scope a personal access token needs for an operation, from the v2

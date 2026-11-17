@@ -5,7 +5,7 @@
 //! why, and can let one back.
 use crate::app::AppState;
 use crate::db;
-use crate::families::FamilyAdmin;
+use crate::families::{FamilyAdmin, FamilyContext};
 use crate::v2::problem::Problem;
 use axum::Json;
 use axum::extract::{Path, State};
@@ -72,4 +72,95 @@ pub async fn release_quarantine(FamilyAdmin(family): FamilyAdmin, State(state): 
         return Err(Problem::not_found());
     }
     Ok(StatusCode::NO_CONTENT)
+}
+
+// ── Library folders ─────────────────────────────────────────────────────────
+
+#[derive(Serialize, ToSchema)]
+pub struct LibraryFolders {
+    /// A scan is running now.
+    pub scanning: bool,
+    /// Files the running (or last) scan has looked at.
+    pub files_scanned: u64,
+    pub folders: Vec<LibraryFolder>,
+}
+
+/// A folder on the server's disk the library is read from, never written to.
+#[derive(Serialize, ToSchema)]
+pub struct LibraryFolder {
+    pub id: Uuid,
+    /// Where it is, inside the server's container.
+    pub path: String,
+    /// `music` or `books`.
+    pub media: String,
+    /// What is found there: `family` (shared) or `private`.
+    pub visibility: String,
+    /// The last scan; absent before the first.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_scan: Option<FolderScan>,
+    /// Files the library still lists but the folder no longer has.
+    pub files_missing: i64,
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct FolderScan {
+    pub started_at: DateTime<Utc>,
+    /// Absent while it runs.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finished_at: Option<DateTime<Utc>>,
+    /// Why it stopped, when it failed.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    pub files_seen: i32,
+    pub files_added: i32,
+}
+
+pub(crate) fn folder_media(kind: &str) -> &'static str {
+    if kind == "audiobooks" { "books" } else { "music" }
+}
+
+/// The household's library folders and how their last scan went.
+#[utoipa::path(get, path = "/library/folders", tag = "library", security(("bearer" = [])),
+    extensions(("x-permission" = json!("member"))),
+    responses((status = 200, body = LibraryFolders)))]
+pub async fn list_folders(family: FamilyContext, State(state): State<AppState>) -> Result<Json<LibraryFolders>, Problem> {
+    let folders = db::admin::library_folders(state.db(), family.family_id)
+        .await?
+        .into_iter()
+        .map(|f| LibraryFolder {
+            id: f.id,
+            path: f.path,
+            media: folder_media(&f.kind).to_string(),
+            visibility: f.visibility,
+            last_scan: f.scan_started_at.map(|started_at| FolderScan {
+                started_at,
+                finished_at: f.scan_finished_at,
+                error: f.scan_error,
+                files_seen: f.files_seen,
+                files_added: f.files_added,
+            }),
+            files_missing: f.files_missing,
+        })
+        .collect();
+    let (scanning, files_scanned) = crate::library_folders::scan_status();
+    Ok(Json(LibraryFolders { scanning, files_scanned, folders }))
+}
+
+/// Scan the library folders now rather than at the scanner's next look. Answers at once; the
+/// list above says when it is done.
+#[utoipa::path(post, path = "/library/folders/scan", tag = "library", security(("bearer" = [])),
+    extensions(("x-permission" = json!("family_admin"))),
+    responses((status = 202, description = "A scan is on its way")))]
+pub async fn scan_folders(_admin: FamilyAdmin) -> StatusCode {
+    crate::library_folders::request_scan();
+    StatusCode::ACCEPTED
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn folder_kinds_are_v2_media() {
+        assert_eq!(super::folder_media("audiobooks"), "books");
+        assert_eq!(super::folder_media("music"), "music");
+    }
 }

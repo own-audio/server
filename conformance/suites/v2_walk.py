@@ -91,8 +91,10 @@ BODIES = {
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
 # an identify run's proposals need a run, and a directory category's shows come from the
-# metadata service's catalogue, not from this server (suite v2_podcasts).
-NOT_PAGED = {"/api/v2/sync/changes", "/api/v2/sync/snapshot", "/api/v2/identify/runs/{id}/proposals", "/api/v2/podcasts/directory"}
+# metadata service's catalogue, not from this server (suite v2_podcasts); the jobs list grows at
+# its head while it is walked (suite v2_admin pages it allowing for that).
+NOT_PAGED = {"/api/v2/sync/changes", "/api/v2/sync/snapshot", "/api/v2/identify/runs/{id}/proposals", "/api/v2/podcasts/directory",
+             "/api/v2/admin/jobs"}
 
 
 def _ops(doc: dict) -> list[tuple[str, str, dict]]:
@@ -343,14 +345,14 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
     kinds = {"/api/v2/me/bookmarks": "track", "/api/v2/me/favourites": "track", "/api/v2/me/progress": "track",
              "/api/v2/me/ratings": "track"}
 
-    def walk(path: str, limit: int):
+    def walk(path: str, limit: int, token: str):
         items, cursor, pages = [], None, 0
         while True:
             q = f"limit={limit}" + (f"&cursor={urllib.parse.quote(cursor)}" if cursor else "")
             url = f"{path}{'&' if '?' in path else '?'}{q}"
-            status, _h, raw = ctx.request("GET", url, tok)
+            status, _h, raw = ctx.request("GET", url, token)
             if status != 200:
-                w.call("GET", url, tok)  # once more, for the shape check
+                w.call("GET", url, token)  # once more, for the shape check
                 return None, status
             page = json.loads(raw)
             items += page.get("items", [])
@@ -372,13 +374,15 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
             continue
         if path in kinds:
             base += f"?kind={kinds[path]}"
+        # The server's lists (accounts, households, jobs) are its administrator's.
+        token = ctx.admin_token if op.get("x-permission") == "instance_admin" else tok
         # The orders the description names; words that are other parameters are not orders.
         sorts = [w for w in re.findall(r"`(\w+)`", params["sort"].get("description", "")) if w not in params] \
             if "sort" in params else []
         for sort in [None] + sorts:
             url = base if sort is None else f"{base}{'&' if '?' in base else '?'}sort={sort}"
             label = f"paging {path}" + (f" sort={sort}" if sort else "")
-            full, status = walk(url, 500)
+            full, status = walk(url, 500, token)
             if full is None:
                 ctx.fail(label, f"answered {status}")
                 continue
@@ -386,7 +390,7 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
                 ctx.skip(label, f"{len(full)} items: too few to page")
                 continue
             # Two at a time, or as many pages as two hundred would make on a big install.
-            small, pages = walk(url, max(2, len(full) // 200))
+            small, pages = walk(url, max(2, len(full) // 200), token)
             keys, small_keys = [key(i) for i in full], [key(i) for i in (small or [])]
             walked += 1
             ctx.check(label, small_keys == keys and len(set(small_keys)) == len(small_keys) and pages > 1,
