@@ -344,6 +344,10 @@ def run(ctx: Ctx) -> None:
             _, episode_id, _ = episode
             progress_path = f"/api/v1/playback/episodes/{episode_id}/progress"
             before = ctx.call("GET", progress_path, admin_token, expect=(200, 404))
+            # A 404's problem body is not a position to put back.
+            before = before if before and "position_secs" in before else None
+            duration = next((e.get("duration_secs") for e in ctx.call("GET", f"/api/v1/podcasts/{episode[0]}/episodes?limit=200", admin_token)
+                             if e["id"] == episode_id), None)
             key = ctx.call("GET", "/api/v1/users/me/subsonic-key", admin_token)
             salt = uuid.uuid4().hex[:8]
             sub = urllib.parse.urlencode({"u": key["username"], "t": hashlib.md5((key["api_key"] + salt).encode()).hexdigest(),
@@ -361,10 +365,10 @@ def run(ctx: Ctx) -> None:
                 need(abs(shared["position_secs"] - 42) < 0.01, f"own.audio progress after createBookmark: {shared}")
                 rest("deleteBookmark", id=episode_id)
                 gone = ctx.call("GET", progress_path, admin_token, expect=(200, 404))
-                need(not gone or gone.get("position_secs", 0) == 0, f"progress after deleteBookmark: {gone}")
+                # In an episode under 102 s, 42 s is in its last minute: that delete is a "finished".
+                if not duration or duration > 42 + 60:
+                    need(not gone or gone.get("position_secs", 0) == 0, f"progress after deleteBookmark: {gone}")
                 # Deleting a bookmark in the last minute is how a client says "finished".
-                duration = next((e.get("duration_secs") for e in ctx.call("GET", f"/api/v1/podcasts/{episode[0]}/episodes?limit=200", admin_token)
-                                 if e["id"] == episode_id), None)
                 if duration and duration > 120:
                     rest("createBookmark", id=episode_id, position=(duration - 20) * 1000)
                     rest("deleteBookmark", id=episode_id)

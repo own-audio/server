@@ -21,6 +21,9 @@ semver. Each release states the **API contract revision** it serves
   family member had just shared were missing).
 - The console's *Translate this episode* asks for a price only once its languages are loaded;
   before, an English show's first quote went out for English and came back 400.
+- The conformance check of Subsonic bookmarks on episodes passes against an episode under 102 s
+  (a 42 s bookmark there is in the last minute, so deleting it means finished) and against one
+  with no position yet (the 404 was put back as a position).
 
 ## [1.0.4] - 2026-11-17
 
