@@ -146,8 +146,8 @@ def run(ctx: Ctx) -> None:
     check = ctx.check
     sfx = ctx.sfx
     owner_id, _oe, owner = ctx.make_family_admin("owner", PW)
-    _mid, _me, member = ctx.make_user("member", PW)
-    nu_id, _ne, no_upload = ctx.make_user("noupload", PW)
+    _mid, _me, member = ctx.make_member("member", PW, owner)
+    nu_id, _ne, no_upload = ctx.make_member("noupload", PW, owner)
     ctx.call("PATCH", f"/api/v2/family/members/{nu_id}", owner, {"can_upload": False}, expect=(200, 204))
 
     directory(ctx, owner)

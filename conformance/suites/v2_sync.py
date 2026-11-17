@@ -128,7 +128,7 @@ def _upload(ctx: Ctx, token: str, kind: str, name: str) -> str:
 def run(ctx: Ctx) -> None:
     sfx = ctx.sfx
     owner_id, _oe, owner = ctx.make_family_admin("owner", PW)
-    kid_id, _ke, kid = ctx.make_user("kid", PW)
+    kid_id, _ke, kid = ctx.make_member("kid", PW, owner)
 
     problems(ctx, owner)
     owner_copy = Copy(ctx, owner)
@@ -443,7 +443,7 @@ def members(ctx: Ctx, owner: str, owner_id: str, kid: str, kid_id: str) -> None:
           str(page)[:300])
     cursor = page["cursor"]
 
-    leaver_id, _le, leaver = ctx.make_user("leaver", PW)
+    leaver_id, _le, leaver = ctx.make_member("leaver", PW, owner)
     def share_a_song(token: str) -> None:
         ctx.call("POST", "/api/v2/tracks", token, {"upload_id": _upload(ctx, token, "track", "l.mp3"), "filename": "l.mp3",
                                                     "title": f"Leaver Song {sfx}", "artist": f"Leaver Band {sfx}",
@@ -458,7 +458,7 @@ def members(ctx: Ctx, owner: str, owner_id: str, kid: str, kid_id: str) -> None:
               bool(left) and left[-1]["op"] == "upsert" and left[-1]["record"]["left_at"] and left[-1]["record"]["display_name"] == f"leaver {sfx}",
               str(left)[:300])
         cursor = page["cursor"]
-        leaver_id, _le, leaver = ctx.make_user("leaver2", PW)
+        leaver_id, _le, leaver = ctx.make_member("leaver2", PW, owner)
         share_a_song(leaver)
     else:
         ctx.skip("someone who leaves stays a member record with their name", "the server has one household: nobody leaves it but by deleting the account")

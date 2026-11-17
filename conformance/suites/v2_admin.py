@@ -86,8 +86,8 @@ ADMIN_OPS = [
 
 
 def matrix(ctx: Ctx) -> None:
-    _mid, _me, member = ctx.make_user("member", PW)
     _aid, _ae, family_admin = ctx.make_family_admin("hadmin", PW)
+    _mid, _me, member = ctx.make_member("member", PW, family_admin)
     fam = ctx.call("GET", "/api/v2/me", family_admin)
     ctx.check("the household admin of this check runs a household, not the server",
               fam["family"]["role"] == "admin" and fam["instance_role"] == "user")
@@ -131,10 +131,12 @@ def accounts(ctx: Ctx, me: dict) -> None:
     made = json.loads(first[2]) if first[0] == 201 else {}
     if made.get("id"):
         ctx.track_user(made["id"], email)
-    ctx.check("POST /admin/users → 201 AdminUser, a user in the household, address confirmed",
+    # The server's one household, or one of their own on a server with several.
+    family = (made.get("family") or {}).get("id")
+    ctx.check("POST /admin/users → 201 AdminUser, a user in a household, address confirmed",
               first[0] == 201 and made.get("email") == email and made.get("instance_role") == "user"
               and made.get("blocked") is False and made.get("email_verified") is True and made.get("pending") is False
-              and (made.get("family") or {}).get("id") == me["family"]["id"])
+              and (family == me["family"]["id"] if ctx.feature("one_family") else bool(family) and family != me["family"]["id"]))
     again = ctx.request("POST", "/api/v2/admin/users", admin, body, headers=key)
     ctx.check("the same Idempotency-Key answers the first account and makes nothing more",
               again[0] == 201 and json.loads(again[2]).get("id") == made.get("id")
@@ -226,7 +228,7 @@ def accounts(ctx: Ctx, me: dict) -> None:
 def households(ctx: Ctx, me: dict) -> None:
     admin = ctx.admin_token
     own = me["family"]["id"]
-    _uid, _e, owner = ctx.make_user("trashowner", PW)
+    _uid, _e, owner = ctx.make_member("trashowner", PW, admin)
     track = ctx.upload_track(owner, f"Admin Trash {ctx.sfx}", content=ctx.tone(), content_type="audio/wav")
     ctx.call("DELETE", f"/api/v2/tracks/{track['id']}", owner, expect=(200, 202, 204))
 

@@ -57,6 +57,12 @@ semver. Each release states the **API contract revision** it serves
   permanent-delete dialogs say "Smazat" in their text as in their titles. The glossary records
   the 2026-11-16 decisions: Follow / Unfollow for podcasts, "Just me", "Storage & credit",
   "Muted music".
+- Conformance runs on a server with many households (the hosted edition): a member a suite
+  needs in a household admin's household joins it through an invitation (`Ctx.make_member`) in
+  `entities`, `v2_admin`, `v2_podcasts` and `v2_sync`, instead of assuming everyone shares the
+  server's one household. `filesync` and `gpodder` skip their feed checks, with the reason, when
+  the server cannot fetch a feed from the machine running the suite (a server outside Docker
+  does not know `host.docker.internal`).
 
 ### Added
 

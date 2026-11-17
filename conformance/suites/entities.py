@@ -125,18 +125,15 @@ def run(ctx: Ctx) -> None:
     authors = ctx.call("GET", "/api/v1/audiobooks/authors", tok)
     ctx.check("the author list holds the book's contributors", {f"Writer {sfx}", f"Solo {sfx}"} <= {a["name"] for a in authors})
 
-    _m_id, _m_email, m_tok = ctx.make_user("member", PW)
-    if not ctx.feature("one_family"):
-        ctx.skip("member edits", "the member is not in the owner's household on this server")
-    else:
-        writer = next(c for c in credits if c["author_name"] == f"Writer {sfx}")
-        ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", m_tok,
-                 {"author_id": writer["author_id"], "role": "editor"}, expect=(403, 404))
-        ctx.call("DELETE", f"/api/v1/audiobooks/authors/book/{book['id']}/{writer['author_id']}/author", m_tok, expect=(403, 404))
-        ctx.call("PUT", f"/api/v1/audiobooks/authors/tags/book/{book['id']}", m_tok, {"tags": ["x"]}, expect=(403, 404))
-        ctx.check("only a book's owner changes its credits and tags", True)
-        ctx.call("DELETE", f"/api/v1/audiobooks/authors/{writer['author_id']}", m_tok, expect=(403,))
-        ctx.check("deleting a contributor is a family admin's", True)
+    _m_id, _m_email, m_tok = ctx.make_member("member", PW, tok)
+    writer = next(c for c in credits if c["author_name"] == f"Writer {sfx}")
+    ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", m_tok,
+             {"author_id": writer["author_id"], "role": "editor"}, expect=(403, 404))
+    ctx.call("DELETE", f"/api/v1/audiobooks/authors/book/{book['id']}/{writer['author_id']}/author", m_tok, expect=(403, 404))
+    ctx.call("PUT", f"/api/v1/audiobooks/authors/tags/book/{book['id']}", m_tok, {"tags": ["x"]}, expect=(403, 404))
+    ctx.check("only a book's owner changes its credits and tags", True)
+    ctx.call("DELETE", f"/api/v1/audiobooks/authors/{writer['author_id']}", m_tok, expect=(403,))
+    ctx.check("deleting a contributor is a family admin's", True)
     ctx.call("POST", f"/api/v1/audiobooks/authors/book/{book['id']}", tok,
              {"author_id": solo_id, "role": "playwright"}, expect=(400,))
     ctx.check("a credit's role comes from the book roles", True)

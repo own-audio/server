@@ -128,6 +128,10 @@ def run(ctx: Ctx) -> None:
         return next((p for p in call("GET", "/api/v1/podcasts", tok) if p["feed_url"] == url), None)
 
     check("the show added through the API is one of the listener's podcasts", podcast(feed_a) is not None)
+    unreachable = ctx.feed_unreachable(tok, feed_b)
+    if unreachable:
+        ctx.skip("reading the shows, following one in the app, episode actions, removing", unreachable)
+        return
     check("the worker reads its title and episodes",
           ctx.wait_until(lambda: (p := podcast(feed_a)) is not None and p["title"] == f"Show A {ctx.sfx}"
                          and len(call("GET", f"/api/v1/podcasts/{p['id']}/episodes", tok)) == 2, timeout=60))

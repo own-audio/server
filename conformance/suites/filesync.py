@@ -378,63 +378,67 @@ def run(ctx: Ctx) -> None:
         server = _FeedServer(ctx, episodes)
         ctx.on_cleanup("rss feed server", server.stop)
         port = server.port
-        feed = call("POST", "/api/v1/podcasts/subscribe", owner_tok,
-                    {"feed_url": f"http://host.docker.internal:{port}/rss", "visibility": "family"})
-        check("auto-store is off by default", feed["auto_store"] is False)
-        call("PUT", f"/api/v1/podcasts/{feed['id']}/auto-store", adult_tok, {"enabled": True}, expect=(403,))
-        check("a member cannot switch it on someone else's show", True)
-        on = call("PUT", f"/api/v1/podcasts/{feed['id']}/auto-store", owner_tok, {"enabled": True})
-        check("the subscriber switches it on", on["auto_store"] is True)
+        unreachable = ctx.feed_unreachable(owner_tok, f"http://host.docker.internal:{port}/rss")
+        if unreachable:
+            ctx.skip("auto-store", unreachable)
+        else:
+            feed = call("POST", "/api/v1/podcasts/subscribe", owner_tok,
+                        {"feed_url": f"http://host.docker.internal:{port}/rss", "visibility": "family"})
+            check("auto-store is off by default", feed["auto_store"] is False)
+            call("PUT", f"/api/v1/podcasts/{feed['id']}/auto-store", adult_tok, {"enabled": True}, expect=(403,))
+            check("a member cannot switch it on someone else's show", True)
+            on = call("PUT", f"/api/v1/podcasts/{feed['id']}/auto-store", owner_tok, {"enabled": True})
+            check("the subscriber switches it on", on["auto_store"] is True)
 
-        episodes.append(("new", "New Episode", datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=5)))
-        call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
-        new_id = None
-        for _ in range(40):
-            eps = call("GET", f"/api/v1/podcasts/{feed['id']}/episodes", owner_tok)
-            eps = eps.get("episodes", eps) if isinstance(eps, dict) else eps
-            new = next((e for e in eps if e["title"] == "New Episode"), None)
-            if new and (new.get("has_local") or new.get("is_downloaded") or new.get("downloaded")):
-                new_id = new["id"]
-                break
-            stored = sql(f"SELECT id FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND title = 'New Episode' AND audio_object_id IS NOT NULL")
-            if stored:
-                new_id = stored
-                break
-            time.sleep(1)
-        check("a new episode is stored by the server", new_id is not None)
-        old_stored = sql(f"SELECT count(*) FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND title = 'Old Episode' AND audio_object_id IS NOT NULL")
-        check("the backlog is not", old_stored == "0")
+            episodes.append(("new", "New Episode", datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=5)))
+            call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
+            new_id = None
+            for _ in range(40):
+                eps = call("GET", f"/api/v1/podcasts/{feed['id']}/episodes", owner_tok)
+                eps = eps.get("episodes", eps) if isinstance(eps, dict) else eps
+                new = next((e for e in eps if e["title"] == "New Episode"), None)
+                if new and (new.get("has_local") or new.get("is_downloaded") or new.get("downloaded")):
+                    new_id = new["id"]
+                    break
+                stored = sql(f"SELECT id FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND title = 'New Episode' AND audio_object_id IS NOT NULL")
+                if stored:
+                    new_id = stored
+                    break
+                time.sleep(1)
+            check("a new episode is stored by the server", new_id is not None)
+            old_stored = sql(f"SELECT count(*) FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND title = 'Old Episode' AND audio_object_id IS NOT NULL")
+            check("the backlog is not", old_stored == "0")
 
-        episodes.append(("older", "Older Episode", now - datetime.timedelta(days=4)))
-        episodes.append(("oldest", "Oldest Episode", now - datetime.timedelta(days=5)))
-        call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
-        call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", adult_tok, {"preview": True}, expect=(403,))
-        check("a member cannot store someone else's back catalogue", True)
-        pv = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"preview": True})
-        check("a preview counts the episodes not stored and sizes them", pv["episodes"] == 3 and pv["estimated_bytes"] > 0)
-        one = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"latest": 1})
-        queued = sql(f"SELECT title FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND auto_stored_at IS NOT NULL AND title <> 'New Episode'")
-        check("latest: 1 queues the newest one only", one["episodes"] == 1 and queued == "Old Episode")
-        rest = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {})
-        check("then the rest, never one twice", rest["episodes"] == 2)
-        check("and nothing is left", call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"preview": True})["episodes"] == 0)
-        found = call("GET", f"/api/v1/podcasts/{feed['id']}/episodes?q=OLDER", owner_tok)
-        check("episodes can be searched by title, any case", [e["title"] for e in found] == ["Older Episode"])
-        check("a % is text, not a wildcard", call("GET", f"/api/v1/podcasts/{feed['id']}/episodes?q=%25", owner_tok) == [])
-        items, _, _, _ = pull(ctx, adult_tok)
-        ep = items.get(new_id, {})
-        check("the stored episode is in the member's tree",
-              ep.get("kind") == "podcast_episode" and ep.get("show", {}).get("id") == feed["id"])
-        day = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%d")
-        check("at Podcasts/<Show>/<date> - <title>", ep.get("path") == f"Podcasts/Show - {sfx}/{day} - New Episode.mp3")
+            episodes.append(("older", "Older Episode", now - datetime.timedelta(days=4)))
+            episodes.append(("oldest", "Oldest Episode", now - datetime.timedelta(days=5)))
+            call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
+            call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", adult_tok, {"preview": True}, expect=(403,))
+            check("a member cannot store someone else's back catalogue", True)
+            pv = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"preview": True})
+            check("a preview counts the episodes not stored and sizes them", pv["episodes"] == 3 and pv["estimated_bytes"] > 0)
+            one = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"latest": 1})
+            queued = sql(f"SELECT title FROM podcast_episodes WHERE feed_id = '{feed['id']}' AND auto_stored_at IS NOT NULL AND title <> 'New Episode'")
+            check("latest: 1 queues the newest one only", one["episodes"] == 1 and queued == "Old Episode")
+            rest = call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {})
+            check("then the rest, never one twice", rest["episodes"] == 2)
+            check("and nothing is left", call("POST", f"/api/v1/podcasts/{feed['id']}/store-all", owner_tok, {"preview": True})["episodes"] == 0)
+            found = call("GET", f"/api/v1/podcasts/{feed['id']}/episodes?q=OLDER", owner_tok)
+            check("episodes can be searched by title, any case", [e["title"] for e in found] == ["Older Episode"])
+            check("a % is text, not a wildcard", call("GET", f"/api/v1/podcasts/{feed['id']}/episodes?q=%25", owner_tok) == [])
+            items, _, _, _ = pull(ctx, adult_tok)
+            ep = items.get(new_id, {})
+            check("the stored episode is in the member's tree",
+                  ep.get("kind") == "podcast_episode" and ep.get("show", {}).get("id") == feed["id"])
+            day = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(seconds=5)).strftime("%Y-%m-%d")
+            check("at Podcasts/<Show>/<date> - <title>", ep.get("path") == f"Podcasts/Show - {sfx}/{day} - New Episode.mp3")
 
-        call("DELETE", f"/api/v1/podcasts/{feed['id']}/episodes/{new_id}/download", owner_tok)
-        call("DELETE", f"/api/v1/trash/podcast_episode/{new_id}", owner_tok)
-        call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
-        time.sleep(3)
-        check("a deleted episode is not stored again",
-              sql(f"SELECT audio_object_id IS NULL FROM podcast_episodes WHERE id = '{new_id}'") == "t")
-        check("its path is gone", sql(f"SELECT count(*) FROM sync_paths WHERE item_id = '{new_id}'") == "0")
+            call("DELETE", f"/api/v1/podcasts/{feed['id']}/episodes/{new_id}/download", owner_tok)
+            call("DELETE", f"/api/v1/trash/podcast_episode/{new_id}", owner_tok)
+            call("POST", f"/api/v1/podcasts/{feed['id']}/refresh", owner_tok)
+            time.sleep(3)
+            check("a deleted episode is not stored again",
+                  sql(f"SELECT audio_object_id IS NULL FROM podcast_episodes WHERE id = '{new_id}'") == "t")
+            check("its path is gone", sql(f"SELECT count(*) FROM sync_paths WHERE item_id = '{new_id}'") == "0")
 
         # ── Companion files (§2 item 16) ──────────────────────────────────────
         if presign_ok:

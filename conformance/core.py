@@ -340,6 +340,29 @@ class Ctx:
             self.call("PUT", f"/api/v1/family/members/{uid}", self.admin_token, {"role": "family_admin"})
         return uid, email, tok
 
+    def make_member(self, label: str, password: str, admin: str) -> tuple[str, str, str]:
+        """A plain member of the household `admin` (a household admin's token) runs. On a server
+        with one household everyone is in it already; on one with many (the hosted edition) a new
+        account has a household of its own, so it joins the admin's through an invitation."""
+        uid, email, tok = self.make_user(label, password)
+        if not self.feature("one_family"):
+            inv = self.call("POST", "/api/v2/family/invites", admin, {"kind": "email", "email": email, "role": "member"}, expect=(201,))
+            self.call("POST", "/api/v2/family/join", tok, {"code": inv["code"]})
+        return uid, email, tok
+
+    def feed_unreachable(self, token: str, feed_url: str) -> str | None:
+        """Why the server cannot read a feed this machine serves, or None when it can. Asked
+        through the feed preview, which fetches without subscribing: a server outside Docker does
+        not know `host.docker.internal`, and one without `SERVER__OUTBOUND__ALLOW_PRIVATE` refuses
+        private addresses."""
+        status = self.request("GET", "/api/v2/podcasts/directory/preview?" + urllib.parse.urlencode({"feed_url": feed_url}), token)[0]
+        if status == 400:
+            return "the server refuses private addresses (SERVER__OUTBOUND__ALLOW_PRIVATE=true to test)"
+        if status != 200:
+            host = urllib.parse.urlsplit(feed_url).hostname
+            return f"the server cannot reach this machine as {host} ({status}): it runs outside Docker, or Docker does not add the name"
+        return None
+
     def track_user(self, uid: str, label: str = "") -> None:
         """Register a user the suite created some other way (register, claim) for deletion at the end."""
         self.on_cleanup(f"user {label or uid}", lambda: self.delete_user(uid))
