@@ -8,6 +8,7 @@
 pub mod account;
 pub mod identify;
 pub mod auth;
+pub mod books;
 pub mod discover;
 pub mod discovery;
 pub mod edit;
@@ -25,6 +26,7 @@ pub mod page;
 pub mod playlists;
 pub mod podcasts;
 pub mod problem;
+pub mod shelves;
 pub mod smart;
 pub mod spoken;
 pub mod state;
@@ -79,8 +81,9 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(me::delete_session))
         .routes(routes!(me::tokens, me::create_token))
         .routes(routes!(me::delete_token))
-        .routes(routes!(music::list_contributors))
-        .routes(routes!(music::get_contributor, edit::patch_contributor))
+        .routes(routes!(music::list_contributors, edit::create_contributor))
+        .routes(routes!(music::get_contributor, edit::patch_contributor, edit::delete_contributor))
+        .routes(routes!(edit::put_contributor_image, edit::delete_contributor_image))
         .routes(routes!(music::list_artists))
         .routes(routes!(music::list_authors))
         .routes(routes!(music::list_narrators))
@@ -109,7 +112,23 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(routes!(smart::resolve_smart))
         .routes(routes!(smart::freeze_smart))
         .routes(routes!(spoken::list_books, uploads::create_book))
-        .routes(routes!(spoken::get_book, trash::delete_book))
+        .routes(routes!(spoken::get_book, trash::delete_book, books::patch_book))
+        .routes(routes!(books::add_files))
+        .routes(routes!(books::patch_file, books::delete_file))
+        .routes(routes!(books::order_files))
+        // The household's book source is a site on the internet: v1's outbound bucket.
+        .routes(map(routes!(books::search_identity), |m| limits.outbound.apply(m)))
+        .routes(map(routes!(books::put_identity), |m| limits.outbound.apply(m)))
+        .routes(routes!(books::put_image, books::delete_image))
+        .routes(routes!(books::put_tags))
+        .routes(routes!(books::list_tags))
+        .routes(routes!(shelves::list_series, shelves::create_series))
+        .routes(routes!(shelves::get_series, shelves::patch_series, shelves::delete_series))
+        .routes(routes!(shelves::put_series_books))
+        .routes(routes!(shelves::list_collections, shelves::create_collection))
+        .routes(routes!(shelves::get_collection, shelves::patch_collection, shelves::delete_collection))
+        .routes(routes!(shelves::list_collection_books, shelves::add_collection_books))
+        .routes(routes!(shelves::remove_collection_book))
         .routes(routes!(spoken::list_podcasts))
         // Following fetches a feed: v1's outbound bucket, as on its subscribe.
         .routes(map(routes!(uploads::create_podcast), |m| limits.outbound.apply(m)))

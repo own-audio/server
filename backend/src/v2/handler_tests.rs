@@ -318,3 +318,107 @@ async fn following_refreshing_and_previewing_share_v1s_outbound_bucket() {
         assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "reading the list is not in the bucket");
     }
 }
+
+// ── Phase 5: books, series, collections, tags, contributors ─────────────────
+
+#[tokio::test]
+async fn book_shelf_and_contributor_routes_need_a_signed_in_member() {
+    let state = state(json!({})).await;
+    let app = app(&state, &Limiters::disabled());
+    let id = uuid::Uuid::new_v4();
+    for (method, path) in [
+        ("PATCH", format!("/api/v2/books/{id}")),
+        ("POST", format!("/api/v2/books/{id}/files")),
+        ("PATCH", format!("/api/v2/books/{id}/files/{id}")),
+        ("DELETE", format!("/api/v2/books/{id}/files/{id}")),
+        ("PUT", format!("/api/v2/books/{id}/files/order")),
+        ("POST", format!("/api/v2/books/{id}/identity/search")),
+        ("PUT", format!("/api/v2/books/{id}/identity")),
+        ("PUT", format!("/api/v2/books/{id}/image")),
+        ("DELETE", format!("/api/v2/books/{id}/image")),
+        ("PUT", format!("/api/v2/books/{id}/tags")),
+        ("GET", "/api/v2/book-tags".to_string()),
+        ("GET", "/api/v2/books?tag=x".to_string()),
+        ("GET", "/api/v2/series".to_string()),
+        ("POST", "/api/v2/series".to_string()),
+        ("GET", format!("/api/v2/series/{id}")),
+        ("PATCH", format!("/api/v2/series/{id}")),
+        ("DELETE", format!("/api/v2/series/{id}")),
+        ("PUT", format!("/api/v2/series/{id}/books")),
+        ("GET", "/api/v2/collections".to_string()),
+        ("POST", "/api/v2/collections".to_string()),
+        ("GET", format!("/api/v2/collections/{id}")),
+        ("PATCH", format!("/api/v2/collections/{id}")),
+        ("DELETE", format!("/api/v2/collections/{id}")),
+        ("GET", format!("/api/v2/collections/{id}/books")),
+        ("POST", format!("/api/v2/collections/{id}/books")),
+        ("DELETE", format!("/api/v2/collections/{id}/books/{id}")),
+        ("POST", "/api/v2/contributors".to_string()),
+        ("DELETE", format!("/api/v2/contributors/{id}")),
+        ("PUT", format!("/api/v2/contributors/{id}/image")),
+        ("DELETE", format!("/api/v2/contributors/{id}/image")),
+    ] {
+        let (s, p) = send(&app, method, &path, json!({ "name": "x", "title": "x", "tags": [], "books": [], "book_ids": [], "file_ids": [] }), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::UNAUTHORIZED, Some("unauthorized")), "{method} {path}");
+    }
+}
+
+#[tokio::test]
+async fn identifying_a_book_shares_v1s_outbound_bucket() {
+    let state = state(json!({})).await;
+    let id = uuid::Uuid::new_v4();
+    for path in [format!("/api/v2/books/{id}/identity/search"), format!("/api/v2/books/{id}/identity")] {
+        let method = if path.ends_with("search") { "POST" } else { "PUT" };
+        let mut limits = Limiters::disabled();
+        limits.outbound = crate::http::rate_limit::Limiter::per_minute(2, false);
+        let app = app(&state, &limits);
+        for _ in 0..2 {
+            let (s, _) = send(&app, method, &path, json!({}), false).await;
+            assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "{path} limited too early");
+        }
+        let (s, p) = send(&app, method, &path, json!({}), false).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")), "{method} {path}");
+    }
+}
+
+/// A stand-in for Open Library: one work found by title and author, and its description.
+async fn stub_open_library() -> String {
+    use axum::extract::Query;
+    use axum::routing::get;
+    use std::collections::HashMap;
+    let router = axum::Router::new()
+        .route("/search.json", get(|Query(q): Query<HashMap<String, String>>| async move {
+            let found = q.get("title").map(String::as_str) == Some("Emma") || q.get("q").is_some_and(|k| k == "key:/works/OL66554W");
+            let docs = if found {
+                vec![json!({ "key": "/works/OL66554W", "title": "Emma", "author_name": ["Jane Austen"], "first_publish_year": 1815,
+                    "cover_i": 9278312, "subject": ["Fiction"] })]
+            } else {
+                vec![]
+            };
+            axum::Json(json!({ "docs": docs }))
+        }))
+        .route("/works/OL66554W.json", get(|| async { axum::Json(json!({ "description": { "type": "/type/text", "value": "A matchmaker." } })) }));
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let address = listener.local_addr().unwrap();
+    tokio::spawn(async move { axum::serve(listener, router).await.unwrap() });
+    format!("http://{address}")
+}
+
+#[tokio::test]
+async fn a_book_identity_search_reads_the_source_and_answers_items() {
+    let base = stub_open_library().await;
+    let items = crate::metadata::open_library::search_at(&base, Some("Emma"), Some("Jane Austen"), 10).await.unwrap();
+    let answer = serde_json::to_value(crate::v2::books::BookCandidates { items: items.into_iter().map(Into::into).collect() }).unwrap();
+    let first = &answer["items"][0];
+    assert_eq!(first["volume_id"], "ol:OL66554W");
+    assert_eq!(first["source"], "openlibrary");
+    assert_eq!((first["title"].as_str(), first["author"].as_str()), (Some("Emma"), Some("Jane Austen")));
+    assert_eq!(first["description"], "A matchmaker.", "the first hits are described");
+    assert_eq!(first["published_year"], 1815);
+    // Nothing for the words: an empty list, not an error.
+    let none = crate::metadata::open_library::search_at(&base, Some("Nothing Like It"), None, 10).await.unwrap();
+    assert!(none.is_empty());
+    // Keeping a match fetches the work again by its id.
+    let work = crate::metadata::open_library::work_at(&base, "OL66554W").await.unwrap();
+    assert_eq!((work.volume_id.as_str(), work.description.as_deref()), ("ol:OL66554W", Some("A matchmaker.")));
+}

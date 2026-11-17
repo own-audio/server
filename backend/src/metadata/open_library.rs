@@ -26,7 +26,7 @@ pub const ID_PREFIX: &str = "ol:";
 /// Open Library asks callers to identify themselves; an identified client
 /// gets a higher rate limit than an anonymous one.
 const USER_AGENT: &str = concat!("own.audio-server/", env!("CARGO_PKG_VERSION"), " (https://own.audio)");
-const SEARCH_URL: &str = "https://openlibrary.org/search.json";
+const BASE_URL: &str = "https://openlibrary.org";
 const FIELDS: &str = "key,title,subtitle,author_name,first_publish_year,cover_i,number_of_pages_median,subject";
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_RESULTS: u8 = 40;
@@ -80,6 +80,11 @@ fn client() -> anyhow::Result<reqwest::Client> {
 /// rescue `google_books::search` does for a title with an uploader's
 /// punctuation left in it.
 pub async fn search(title: Option<&str>, author: Option<&str>, limit: u8) -> anyhow::Result<Vec<BookCandidate>> {
+    search_at(BASE_URL, title, author, limit).await
+}
+
+/// [`search`] against another Open Library: a stand-in in tests.
+pub(crate) async fn search_at(base: &str, title: Option<&str>, author: Option<&str>, limit: u8) -> anyhow::Result<Vec<BookCandidate>> {
     let title = truncate(title);
     let author = truncate(author);
     let limit = limit.clamp(1, MAX_RESULTS).to_string();
@@ -92,12 +97,12 @@ pub async fn search(title: Option<&str>, author: Option<&str>, limit: u8) -> any
     if let Some(a) = author.as_deref() {
         fielded.push(("author", a));
     }
-    let mut docs = query(&client, &fielded).await?;
+    let mut docs = query(&client, base, &fielded).await?;
 
     if docs.is_empty() {
         let free_text = [title.as_deref(), author.as_deref()].into_iter().flatten().collect::<Vec<_>>().join(" ");
         if !free_text.trim().is_empty() {
-            docs = query(&client, &[("fields", FIELDS), ("limit", &limit), ("q", &free_text)]).await?;
+            docs = query(&client, base, &[("fields", FIELDS), ("limit", &limit), ("q", &free_text)]).await?;
         }
     }
 
@@ -111,7 +116,7 @@ pub async fn search(title: Option<&str>, author: Option<&str>, limit: u8) -> any
         candidates
             .iter()
             .take(DESCRIBED)
-            .map(|c| description(&client, c.volume_id.trim_start_matches(ID_PREFIX))),
+            .map(|c| description(&client, base, c.volume_id.trim_start_matches(ID_PREFIX))),
     )
     .await;
     for (candidate, description) in candidates.iter_mut().zip(descriptions) {
@@ -122,24 +127,29 @@ pub async fn search(title: Option<&str>, author: Option<&str>, limit: u8) -> any
 
 /// One work by its id (`OL45804W`), fetched again at apply time.
 pub async fn work(id: &str) -> anyhow::Result<BookCandidate> {
+    work_at(BASE_URL, id).await
+}
+
+/// [`work`] against another Open Library: a stand-in in tests.
+pub(crate) async fn work_at(base: &str, id: &str) -> anyhow::Result<BookCandidate> {
     if !is_work_id(id) {
         bail!("not an Open Library work id: {id}");
     }
     let client = client()?;
     let key = format!("key:/works/{id}");
-    let doc = query(&client, &[("fields", FIELDS), ("q", &key)])
+    let doc = query(&client, base, &[("fields", FIELDS), ("q", &key)])
         .await?
         .into_iter()
         .next()
         .context("open library: no such work")?;
     let mut candidate = candidate(doc, None, None).context("open library: the work has no title")?;
-    candidate.description = description(&client, id).await;
+    candidate.description = description(&client, base, id).await;
     Ok(candidate)
 }
 
-async fn query(client: &reqwest::Client, params: &[(&str, &str)]) -> anyhow::Result<Vec<Doc>> {
+async fn query(client: &reqwest::Client, base: &str, params: &[(&str, &str)]) -> anyhow::Result<Vec<Doc>> {
     let answer: SearchAnswer = client
-        .get(SEARCH_URL)
+        .get(format!("{base}/search.json"))
         .query(params)
         .send()
         .await
@@ -154,12 +164,12 @@ async fn query(client: &reqwest::Client, params: &[(&str, &str)]) -> anyhow::Res
 
 /// Best effort: a work without a description, or one that will not load, is
 /// a candidate without one.
-async fn description(client: &reqwest::Client, id: &str) -> Option<String> {
+async fn description(client: &reqwest::Client, base: &str, id: &str) -> Option<String> {
     if !is_work_id(id) {
         return None;
     }
     let work: Work = client
-        .get(format!("https://openlibrary.org/works/{id}.json"))
+        .get(format!("{base}/works/{id}.json"))
         .send()
         .await
         .ok()?

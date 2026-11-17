@@ -23,6 +23,7 @@ pub mod catalog;
 pub mod changes;
 pub mod storage_usage;
 pub mod collections;
+pub mod shelves;
 pub mod playback;
 pub mod jobs;
 pub mod media;

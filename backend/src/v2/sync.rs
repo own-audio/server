@@ -40,14 +40,16 @@ use utoipa::{IntoParams, ToSchema};
 use uuid::Uuid;
 
 /// The kinds a snapshot can hold, in the order it sends them.
-pub const SNAPSHOT_KINDS: &[&str] =
-    &["member", "contributor", "release_group", "album", "genre", "track", "book", "podcast", "episode", "favourite", "rating", "progress", "bookmark"];
+pub const SNAPSHOT_KINDS: &[&str] = &[
+    "member", "contributor", "release_group", "album", "genre", "track", "book", "series", "collection", "podcast", "episode", "favourite", "rating",
+    "progress", "bookmark",
+];
 
 /// The kinds of the change feed: the snapshot's, and recordings (a track's
 /// `recording_id`; `GET /recordings/{id}`).
 pub const CHANGE_KINDS: &[&str] = &[
-    "member", "contributor", "release_group", "album", "genre", "recording", "track", "book", "podcast", "episode", "favourite", "rating", "progress",
-    "bookmark",
+    "member", "contributor", "release_group", "album", "genre", "recording", "track", "book", "series", "collection", "podcast", "episode", "favourite",
+    "rating", "progress", "bookmark",
 ];
 
 /// A listener's own state, small enough to send in one go.
@@ -138,8 +140,20 @@ async fn records(state: &AppState, family: &FamilyContext, auth: &AuthUser, kind
         }
         "book" => {
             for row in catalog::books_by_ids(pool, viewer, ids).await? {
-                let b = spoken::full_book(state, row).await?;
+                let b = spoken::full_book(state, viewer, row).await?;
                 out.push((b.id, json_of(b)?));
+            }
+        }
+        "series" => {
+            let rows = crate::db::shelves::series_by_ids(pool, viewer, ids).await?;
+            for s in crate::v2::shelves::series_records(state, family, rows).await? {
+                out.push((s.id, json_of(s)?));
+            }
+        }
+        "collection" => {
+            for c in crate::db::shelves::list_collections(pool, viewer, Some(ids), None, ids.len() as i64).await? {
+                let c = crate::v2::shelves::collection(state, c);
+                out.push((c.id, json_of(c)?));
             }
         }
         "podcast" => {
@@ -225,8 +239,8 @@ pub struct ChangesQuery {
     /// Log rows to read, 1 to 1000; 500 when absent.
     pub limit: Option<i64>,
     /// Comma-separated kinds to read, every kind when absent: `member`, `contributor`,
-    /// `release_group`, `album`, `genre`, `recording`, `track`, `book`, `podcast`,
-    /// `episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state
+    /// `release_group`, `album`, `genre`, `recording`, `track`, `book`, `series`, `collection`,
+    /// `podcast`, `episode`, `favourite`, `rating`, `progress`, `bookmark`, or one kind of state
     /// (`progress.episode`). Filtered by the server, so the other kinds cost nothing; keep
     /// passing the same list with the cursor. A `reset` always comes through.
     pub kinds: Option<String>,
@@ -234,7 +248,8 @@ pub struct ChangesQuery {
 
 #[derive(Serialize, ToSchema)]
 pub struct Change {
-    /// `track`, `album`, …, `member`, `favourite.track`, `progress.book`, `bookmark`.
+    /// `track`, `album`, …, `member`, `series`, `collection`, `favourite.track`, `progress.book`,
+    /// `bookmark`. A client skips kinds it does not know.
     pub kind: String,
     pub id: Uuid,
     /// `upsert` (here is the record now) or `delete` (gone, or no longer visible to you).
@@ -310,7 +325,7 @@ pub async fn changes(auth: AuthUser, family: FamilyContext, State(state): State<
 #[into_params(parameter_in = Query)]
 pub struct SnapshotQuery {
     /// Comma-separated kinds; all of them when absent: `member`, `contributor`,
-    /// `release_group`, `album`, `genre`, `track`, `book`, `podcast`,
+    /// `release_group`, `album`, `genre`, `track`, `book`, `series`, `collection`, `podcast`,
     /// `episode`, `favourite`, `rating`, `progress`, `bookmark`.
     pub kinds: Option<String>,
     /// `ids`: each line names a record (`{"type":"id","kind","id"}`) without it, for a client

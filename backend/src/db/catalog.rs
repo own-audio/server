@@ -49,12 +49,20 @@ pub struct ContributorRow {
     pub kind: String,
     pub musicbrainz_artist_id: Option<String>,
     pub image_object_id: Option<Uuid>,
+    pub biography: Option<String>,
+    /// Where a looked-up photo came from and under what licence; empty for one set by hand.
+    pub image_source: Option<String>,
+    pub image_author: Option<String>,
+    pub image_license: Option<String>,
+    pub image_license_url: Option<String>,
+    pub image_source_url: Option<String>,
     /// The list's order: `lower(sort name or name)`.
     pub sort_key: String,
 }
 
 const CONTRIBUTOR_COLS: &str = "k.id, k.name, k.sort_name, k.kind, k.musicbrainz_artist_id,
-    k.image_object_id, lower(COALESCE(k.sort_name, k.name)) AS sort_key";
+    k.image_object_id, k.biography, k.image_source, k.image_author, k.image_license, k.image_license_url,
+    k.image_source_url, lower(COALESCE(k.sort_name, k.name)) AS sort_key";
 
 /// Contributors in name order, after `after` (sort key, id).
 pub async fn list_contributors(
@@ -127,6 +135,42 @@ pub async fn contributor_roles(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyho
 
 /// Contributors by id, for `include`: the household's, whatever is credited.
 /// Callers pass ids from records the viewer already sees.
+/// A contributor of the viewer's household they may correct: one credited on something they
+/// can see, or one credited nowhere yet (made by hand with `POST /contributors`).
+pub async fn editable_contributor(pool: &PgPool, viewer: Viewer, id: Uuid) -> anyhow::Result<Option<ContributorRow>> {
+    let sql = format!(
+        "SELECT {CONTRIBUTOR_COLS} FROM contributors k WHERE k.id = $4 AND k.family_id = $2
+            AND ({} OR NOT EXISTS (SELECT 1 FROM credits c WHERE c.contributor_id = k.id))",
+        credited_visibly("NULL")
+    );
+    viewer!(sqlx::query_as::<_, ContributorRow>(&sql), viewer)
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .context("db: editable contributor")
+}
+
+/// Whether anything at all credits the contributor, seen by the caller or not.
+pub async fn contributor_credited(pool: &PgPool, id: Uuid) -> anyhow::Result<bool> {
+    sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM credits WHERE contributor_id = $1)")
+        .bind(id)
+        .fetch_one(pool)
+        .await
+        .context("db: contributor credited")
+}
+
+/// The household's words about a contributor; `None` clears them.
+pub async fn set_contributor_bio(pool: &PgPool, family_id: Uuid, id: Uuid, bio: Option<&str>) -> anyhow::Result<()> {
+    sqlx::query("UPDATE contributors SET biography = $3, edited_at = now(), updated_at = now() WHERE id = $1 AND family_id = $2")
+        .bind(id)
+        .bind(family_id)
+        .bind(bio)
+        .execute(pool)
+        .await
+        .context("db: contributor bio")?;
+    Ok(())
+}
+
 pub async fn contributors_by_ids(pool: &PgPool, family_id: Uuid, ids: &[Uuid]) -> anyhow::Result<Vec<ContributorRow>> {
     sqlx::query_as::<_, ContributorRow>(&format!(
         "SELECT {CONTRIBUTOR_COLS} FROM contributors k WHERE k.family_id = $1 AND k.id = ANY($2)
@@ -582,7 +626,7 @@ pub struct BookRow {
     pub sort_key: String,
 }
 
-const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
+pub(crate) const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
     t.publisher, t.published_year, t.cover_object_id, t.source,
     (SELECT p.path FROM sync_paths p WHERE p.kind = 'audiobook' AND p.item_id = t.id) AS path, t.created_at,
     t.updated_at, lower(t.title) AS sort_key";
@@ -609,11 +653,18 @@ fn title_or_added_sql(by_added: bool, title: &str, added: &str, id: &str) -> (&'
     }
 }
 
+/// What a book list keeps: credited to a contributor, a part of the title, a tag.
+#[derive(Default)]
+pub struct BookFilter<'a> {
+    pub contributor_id: Option<Uuid>,
+    pub query: Option<&'a str>,
+    pub tag: Option<&'a str>,
+}
+
 pub async fn list_books(
     pool: &PgPool,
     viewer: Viewer,
-    contributor_id: Option<Uuid>,
-    query: Option<&str>,
+    filter: BookFilter<'_>,
     by_added: bool,
     after: Option<TitleOrAdded>,
     limit: i64,
@@ -624,17 +675,20 @@ pub async fn list_books(
           WHERE {} AND {keyset}
             AND ($4::uuid IS NULL OR EXISTS (SELECT 1 FROM credits c WHERE c.item_kind = 'book' AND c.item_id = t.id AND c.contributor_id = $4))
             AND ($5::text IS NULL OR t.title ILIKE '%' || $5 || '%')
+            AND ($10::text IS NULL OR EXISTS (SELECT 1 FROM audiobook_book_tags bt JOIN audiobook_tags g ON g.id = bt.tag_id
+                                               WHERE bt.book_id = t.id AND lower(g.name) = lower($10)))
           ORDER BY {order} LIMIT $9",
         books()
     );
     let (title, added, id) = title_or_added(after);
     viewer!(sqlx::query_as::<_, BookRow>(&sql), viewer)
-        .bind(contributor_id)
-        .bind(query.map(escape_like))
+        .bind(filter.contributor_id)
+        .bind(filter.query.map(escape_like))
         .bind(title)
         .bind(added)
         .bind(id)
         .bind(limit)
+        .bind(filter.tag)
         .fetch_all(pool)
         .await
         .context("db: list books")
@@ -671,18 +725,6 @@ pub async fn book_files(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<Book
     .fetch_all(pool)
     .await
     .context("db: book files")
-}
-
-/// The series a book belongs to: (series id, name, position).
-pub async fn book_series(pool: &PgPool, book_id: Uuid) -> anyhow::Result<Vec<(Uuid, String, f64)>> {
-    sqlx::query_as(
-        "SELECT s.id, s.name, sb.position FROM audiobook_series_books sb JOIN audiobook_series s ON s.id = sb.series_id
-          WHERE sb.book_id = $1 ORDER BY s.name, s.id",
-    )
-    .bind(book_id)
-    .fetch_all(pool)
-    .await
-    .context("db: book series")
 }
 
 // ── Podcasts and episodes ────────────────────────────────────────────────────
@@ -914,6 +956,9 @@ pub async fn visible_ids_after(pool: &PgPool, viewer: Viewer, kind: &str, after:
             music()
         ),
         "book" => format!("SELECT t.id FROM audiobook_books t WHERE {} AND t.id > $4", books()),
+        // Series and collections are seen through the `audiobook` policy, as books are.
+        "series" => format!("SELECT t.id FROM audiobook_series t WHERE {} AND t.id > $4", books()),
+        "collection" => format!("SELECT t.id FROM audiobook_collections t WHERE {} AND t.id > $4", books()),
         "podcast" => format!("SELECT t.id FROM podcast_feeds t WHERE {} AND t.id > $4", podcasts()),
         "episode" => format!(
             "SELECT e.id FROM podcast_episodes e JOIN podcast_feeds t ON t.id = e.feed_id WHERE {} AND e.id > $4",

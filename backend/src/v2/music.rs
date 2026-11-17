@@ -37,9 +37,26 @@ pub struct Contributor {
     pub musicbrainz_artist_id: Option<String>,
     /// Their photo (`GET /images/{id}`; add `w` for the size).
     pub image: Option<String>,
+    /// Who to credit for a looked-up photo, and under what licence; absent for one set by
+    /// hand. Most licences ask for it to be shown with the photo.
+    pub image_credit: Option<ImageCredit>,
+    /// About them, as the household wrote it (`PATCH /contributors/{id}`).
+    pub bio: Option<String>,
     /// What they are credited as on what the caller can see; only on `GET /contributors/{id}`.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub roles: Option<Vec<String>>,
+}
+
+/// Where a photo came from.
+#[derive(Serialize, ToSchema, Clone)]
+pub struct ImageCredit {
+    /// `Wikimedia Commons`.
+    pub source: Option<String>,
+    pub author: Option<String>,
+    pub license: Option<String>,
+    pub license_url: Option<String>,
+    /// The photo's own page.
+    pub source_url: Option<String>,
 }
 
 /// Who did what on an item, in order (MusicBrainz's artist credit).
@@ -181,6 +198,14 @@ pub(crate) fn contributor(state: &AppState, row: catalog::ContributorRow) -> Con
         kind: row.kind,
         musicbrainz_artist_id: row.musicbrainz_artist_id,
         image: crate::v2::images::maybe(state, row.image_object_id),
+        image_credit: (row.image_object_id.is_some() && row.image_source.is_some()).then_some(ImageCredit {
+            source: row.image_source,
+            author: row.image_author,
+            license: row.image_license,
+            license_url: row.image_license_url,
+            source_url: row.image_source_url,
+        }),
+        bio: row.biography,
         roles: None,
     }
 }

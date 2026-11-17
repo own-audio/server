@@ -40,6 +40,8 @@ ID_KINDS = [
     ("/api/v2/episodes/{id}", "episode"),
     ("/api/v2/playlists/{id}", "playlist"),
     ("/api/v2/smart-playlists/{id}", "smart"),
+    ("/api/v2/series/{id}", "series"),
+    ("/api/v2/collections/{id}", "collection"),
     ("/api/v2/me/bookmarks/{id}", "bookmark"),
     ("/api/v2/me/favourites/{kind}/{id}", "track"),
     ("/api/v2/me/progress/{kind}/{id}", "track"),
@@ -56,12 +58,23 @@ BODIES = {
     ("PATCH", "/api/v2/playlists/{id}"): {"name": "taken"},
     ("PATCH", "/api/v2/smart-playlists/{id}"): {"name": "taken"},
     ("PATCH", "/api/v2/me/bookmarks/{id}"): {"label": "taken"},
+    ("PATCH", "/api/v2/books/{id}"): {"title": "taken"},
+    ("PATCH", "/api/v2/series/{id}"): {"name": "taken"},
+    ("PATCH", "/api/v2/collections/{id}"): {"name": "taken"},
+    ("PUT", "/api/v2/books/{id}/tags"): {"tags": ["taken"]},
+    ("PUT", "/api/v2/series/{id}/books"): {"books": []},
+    ("POST", "/api/v2/collections/{id}/books"): {"book_ids": []},
+    ("PUT", "/api/v2/books/{id}/files/order"): {"file_ids": []},
+    ("POST", "/api/v2/books/{id}/identity/search"): {"title": "taken"},
     # Creates, well formed, so a refusal of a member who may not upload is about the right.
     ("POST", "/api/v2/uploads"): {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 10},
     ("POST", "/api/v2/tracks"): {"upload_id": str(uuid.uuid4()), "filename": "x.mp3"},
     ("POST", "/api/v2/books"): {"title": "x", "files": []},
     ("POST", "/api/v2/podcasts"): {"title": "x"},
     ("POST", "/api/v2/podcasts/{id}/episodes"): {"upload_id": str(uuid.uuid4()), "guid": "g", "title": "t"},
+    ("POST", "/api/v2/series"): {"name": "x"},
+    ("POST", "/api/v2/contributors"): {"name": "x"},
+    ("PUT", "/api/v2/contributors/{id}/image"): {"upload_id": "x"},
 }
 
 # Lists not walked here: the change feed and snapshot have their own checks (suite v2, `sync`),
@@ -212,8 +225,13 @@ def fixtures(ctx: Ctx, token: str, user_id: str, visibility: str = "private") ->
         ctx.call("PATCH", f"/api/v2/smart-playlists/{smart['id']}", token, {"visibility": visibility}, expect=(200, 204, 400))
     bookmark = ctx.call("POST", "/api/v2/me/bookmarks", token, {"kind": "track", "item_id": track["id"], "position_ms": 1000},
                         expect=(201,))
+    series = ctx.call("POST", "/api/v2/series", token, {"name": f"Walk Saga {sfx}", "visibility": visibility,
+                                                        "books": [{"book_id": book["id"]}]}, expect=(201,))
+    collection = ctx.call("POST", "/api/v2/collections", token, {"name": f"Walk Shelf {sfx}", "visibility": visibility,
+                                                                 "book_ids": [book["id"]]}, expect=(201,))
     return {"track": track["id"], "book": book["id"], "podcast": podcast["id"], "episode": episode["id"],
-            "playlist": playlist["id"], "smart": smart["id"], "bookmark": bookmark["id"], "member": user_id}
+            "playlist": playlist["id"], "smart": smart["id"], "bookmark": bookmark["id"], "member": user_id,
+            "series": series["id"], "collection": collection["id"]}
 
 
 def _filled(path: str, ids: dict[str, str]) -> str | None:
@@ -281,6 +299,16 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
         ctx.call("POST", f"/api/v2/podcasts/{show['id']}/episodes", tok, {
             "upload_id": _upload(ctx, tok, "episode", f"pe{i}.mp3"), "guid": f"page-{sfx}-{i}", "title": f"Page Episode {i}"},
             expect=(200, 201))
+    page_books = ctx.call("GET", f"/api/v2/books?q={urllib.parse.quote(f'Page Book {sfx}')}", tok)["items"]
+    for i, b in enumerate(page_books):
+        ctx.call("PUT", f"/api/v2/books/{b['id']}/tags", tok, {"tags": [f"pagetag{sfx}{j}" for j in range(i + 1)]})
+    for i in range(3):
+        ctx.call("POST", "/api/v2/series", tok, {"name": f"Page Saga {sfx} {i // 2}", "books": [{"book_id": b["id"]} for b in page_books]},
+                 expect=(201,))
+    shelf = ctx.call("POST", "/api/v2/collections", tok, {"name": f"Page Shelf {sfx}", "book_ids": [b["id"] for b in page_books]},
+                     expect=(201,))
+    for i in range(3):
+        ctx.call("POST", "/api/v2/collections", tok, {"name": f"Page Shelf {sfx} {i}"}, expect=(201,))
     playlist = ctx.call("POST", "/api/v2/playlists", tok, {"name": f"Page List {sfx}", "track_ids": tids + tids[:2]}, expect=(201,))
     for i in range(3):
         ctx.call("POST", "/api/v2/playlists", tok, {"name": f"Page List {sfx} {i}"}, expect=(201,))
@@ -290,7 +318,8 @@ def paging(ctx: Ctx, w: Walker, ops) -> None:
         ctx.call("PUT", f"/api/v2/me/progress/track/{tid}", tok, {"position_ms": 1000}, expect=(200, 204))
     for i in range(3):
         ctx.call("POST", "/api/v2/me/bookmarks", tok, {"kind": "track", "item_id": tids[0], "position_ms": 1000 * (i + 1)}, expect=(201,))
-    fills = {"/api/v2/playlists/{id}/entries": playlist["id"], "/api/v2/podcasts/{id}/episodes": show["id"]}
+    fills = {"/api/v2/playlists/{id}/entries": playlist["id"], "/api/v2/podcasts/{id}/episodes": show["id"],
+             "/api/v2/collections/{id}/books": shelf["id"]}
     kinds = {"/api/v2/me/bookmarks": "track", "/api/v2/me/favourites": "track", "/api/v2/me/progress": "track",
              "/api/v2/me/ratings": "track"}
 

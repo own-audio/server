@@ -169,7 +169,7 @@ rows the phase closes (missing + partly); the sum is 168 = 149 + 19.
 | 2 | Podcast feeds and directory — **done** | 16 | L | M T W Ap |
 | 3 | Sync essentials and continue listening — **done** | 3 | M | S (so M W), A, T |
 | 4 | Deletion and trash — **done** | 7 | M | M W Am, S |
-| 5 | Books: editing, files, series, collections, tags, authors, images | 34 | L | W Ab M |
+| 5 | Books: editing, files, series, collections, tags, authors, images — **done** | 34 | L | W Ab M |
 | 6 | Music remainder and playlists in sync | 17 | M | M W Am |
 | 7 | Household remainder | 18 | L | M W Ab |
 | 8 | Listening settings, queue, notifications, push | 11 | M | M T W A |
@@ -526,7 +526,62 @@ Tests: what the v1 `trash` suite proves, on v2: delete → gone from lists, a re
 `/sync/changes`, back on restore; batch restore brings the whole batch; purge removes the objects
 (SQL-backed); another family's id is `404`; a member cannot purge someone else's item.
 
-### Phase 5 — books, series, collections, tags, authors, images (L)
+### Phase 5 — books, series, collections, tags, authors, images (L) — done 2026-11-17
+
+Done, v2 revision 7: every operation in the table below; the 34 rows covered, and the gaps
+plan's §5 lines ticked. Migration 0127. Handler tests (no token is `401` on every route, the
+outbound bucket on the identity routes, an identity search against a stub Open Library) and unit
+tests for tags, places in a series, the search's checks and the source's failures; the
+conformance suite `v2_books` covers behaviour, and `v2_walk` walks series and collections. What
+the plan said, with these differences:
+
+- Who may is v1's per function: the owner edits a book's details, adds files, sets its cover
+  and tags; renaming, removing and reordering files and identifying are also a household
+  admin's on a shared book (`x-permission: owner` on all of them). Identity search is the
+  owner's or that admin's too (v1: anyone who sees the book; a search nobody may keep is no use).
+- `PATCH /books/{id}` takes title, description, publisher, `published_year` and ISBN. Subtitle
+  and language are not there: books have no such columns (a search's `subtitle` is shown, then
+  dropped, as on v1). Adding them is a migration and an optional field later.
+- `POST /books/{id}/files` takes `{files: [{upload_id, relative_path, title?}]}`, the shape of
+  `POST /books`'s files (rule 1), not bare `upload_ids`: the path decides the play order, as
+  v1's. Answers the book (`200`).
+- `DELETE /books/{id}/files/{file_id}` refuses the last file (`409 last_file`; decided the safer
+  way: v1 leaves a book with nothing to play, v2 points at `DELETE /books/{id}`, which the trash
+  undoes). `PUT /books/{id}/files/order` answers `204` and `400 invalid_file` as the playlist
+  order does; v1 left files it was not given unplaced.
+- The identity routes answer `{items: [BookMatch]}` and take `{volume_id, fields}` (v1's
+  fields); source failures are `502 source_unavailable`, `503 source_refused` (spent Google
+  quota or refused key) and `400 invalid_volume_id`.
+- `Book.tags` (names) is in the full record only, like `files` and `series`; `GET /books?tag=`
+  matches a name in any case. Tags stay server-wide names (v1's table); a reader learns of one
+  only through a book they can see.
+- Series and collections have `visibility` and an owner, read through the audiobook policy like
+  books. `POST /series` is `can_upload`, `POST /collections` any member's (a playlist's rule);
+  changing either is its owner's, deleting also a household admin's for a shared one. A
+  replace keeps the books the owner cannot see. `Series.books` holds the visible books with
+  their places (`SeriesBook {book_id, position}`); collections count their books and page them
+  (`CollectionEntry {position, added_at, book}`). v1 still lists only the caller's own.
+- `Book.series` names only the series the reader can see (it named another member's private
+  series too).
+- Contributors: `POST /contributors` answers the household's contributor of that name with
+  `200` when there is one. An uncredited contributor is found by `PATCH`, the image routes and
+  `DELETE` (`GET` still shows only those credited on something visible). `DELETE` refuses a
+  credited one (`409 in_use`) where v1 took the credits away. `Contributor.image_credit` is
+  `null` for a picture set by hand.
+- Migration 0127: change-log triggers on series (a rename, a share or a new owner also sends its
+  books, whose records name it), places in a series (the series and the book), collections and
+  their books (the collection), book tags and a renamed tag (the book); `change_log_item` adds
+  the series and collections a book is in (a book shared, unshared or trashed changes what they
+  show); indexes on the two junctions by book. Kinds `series` and `collection` are in the
+  default snapshot and change feed: the iPhone apps ask for explicit kinds and keep only theirs,
+  the TV skips kinds it does not know.
+- Not measured on the 600k fixture: nothing here reads a catalog-sized table but by index. Books
+  (1,000 at most), their tags, series and collections are small; the contributor lookups are by
+  id with the credits' contributor index. Timings on 1,000 books are in `CAPACITY.md`.
+- Phase 6 can point `POST /music/artists/upload-image`, `DELETE /music/artists/image` and
+  `GET /music/artists/image-info` at the contributor routes and `image_credit`: an artist is a
+  contributor.
+
 
 v1 ops: every Audiobooks row still missing or partly except `DELETE /audiobooks/{id}`: file add,
 reorder, rename, delete, upload-file, metadata search/apply, upload-cover, `PUT /audiobooks/{id}`

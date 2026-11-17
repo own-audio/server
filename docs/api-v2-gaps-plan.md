@@ -102,13 +102,20 @@ yet. Lines marked (audit) come from the full v1 → v2 audit of the same day
 
 ## 5. Books
 
-- [ ] `PATCH /books/{id}` (metadata), file rename and reorder, replace the cover, metadata
-      search and apply. (M W Ab)
-- [ ] `POST /books/{id}/files` (add files to a book). (S)
-- [ ] Series and collections as writable resources; author create and delete. (W Ab)
-- [ ] Delete one file of a book. (audit)
-- [ ] Book tags (list, read, replace). (audit)
-- [ ] Author photo upload; `bio` in `PATCH /contributors/{id}`. (audit)
+- [x] `PATCH /books/{id}` (metadata), file rename and reorder, replace the cover, metadata
+      search and apply (v2 revision 7: `PATCH /books/{id}`, `PATCH /books/{id}/files/{file_id}`,
+      `PUT /books/{id}/files/order`, `PUT`/`DELETE /books/{id}/image`,
+      `POST /books/{id}/identity/search`, `PUT /books/{id}/identity`). (M W Ab)
+- [x] `POST /books/{id}/files` (add files to a book; v2 revision 7). (S)
+- [x] Series and collections as writable resources; author create and delete (v2 revision 7:
+      `/series`, `/collections`, kinds `series` and `collection` in sync; `POST`/`DELETE
+      /contributors`). (W Ab)
+- [x] Delete one file of a book (v2 revision 7: `DELETE /books/{id}/files/{file_id}`). (audit)
+- [x] Book tags (list, read, replace; v2 revision 7: `GET /book-tags`, `Book.tags`,
+      `PUT /books/{id}/tags`, `GET /books?tag=`). (audit)
+- [x] Author photo upload; `bio` in `PATCH /contributors/{id}` (v2 revision 7:
+      `PUT`/`DELETE /contributors/{id}/image`, `Contributor.bio`, `Contributor.image_credit`).
+      (audit)
 
 ## 6. Listening settings
 

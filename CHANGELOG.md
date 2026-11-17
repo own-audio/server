@@ -172,6 +172,45 @@ semver. Each release states the **API contract revision** it serves
   job now runs with it, so the SQL-backed suites (`trash`, `filesync`) and checks run in CI.
   `filesync` and `v2_walk` upload a real tone (`Ctx.tone()`) for their songs: the fingerprint
   job quarantined their random bytes part-way through the suite, depending on timing.
+- `PATCH /api/v2/books/{id}` — correct a book's title, description, publisher, year and ISBN
+  (`null` clears one); the owner's, as v1. v2 revision 7.
+- A book's files on v2: `POST /api/v2/books/{id}/files` (many uploads at once, play order by
+  their paths, a path the book has answers its file, `Idempotency-Key`),
+  `PATCH /api/v2/books/{id}/files/{file_id}` (rename), `DELETE …/files/{file_id}` (`409
+  last_file`: a book keeps one), `PUT …/files/order` (one ordered list, as a playlist's; `400
+  invalid_file`). Renaming, removing and reordering are also a household admin's on a shared
+  book, as v1. v2 revision 7.
+- `POST /api/v2/books/{id}/identity/search` and `PUT /api/v2/books/{id}/identity` — identify a
+  book from the household's book source, named as the tracks' identity routes; v1's outbound
+  bucket. A source that does not answer is `502 source_unavailable`, a spent Google quota or a
+  refused key `503 source_refused`, an id no search gave `400 invalid_volume_id`. v2 revision 7.
+- `PUT`/`DELETE /api/v2/books/{id}/image` — a book's cover from an upload, or none; a new
+  picture is a new object and link. v2 revision 7.
+- Book tags on v2: `PUT /api/v2/books/{id}/tags` (the whole list), `Book.tags` in a full book
+  record, `GET /api/v2/books?tag=` and `GET /api/v2/book-tags` (cursor-paged, with how many books
+  the caller can see carry each). v2 revision 7.
+- Series on v2: `GET`/`POST /api/v2/series`, `GET`/`PATCH`/`DELETE /api/v2/series/{id}` and
+  `PUT /api/v2/series/{id}/books` (the ordered list in one call; places such as `1.5`). A series
+  is its owner's, private or shared with the household (`visibility`), and shows each reader only
+  the books they can see. v2 revision 7.
+- Collections on v2: `GET`/`POST /api/v2/collections`, `GET`/`PATCH`/`DELETE
+  /api/v2/collections/{id}`, `GET`/`POST /api/v2/collections/{id}/books` (paged; add many) and
+  `DELETE /api/v2/collections/{id}/books/{book_id}` — the playlist shape for books, with
+  `visibility`. v2 revision 7.
+- Kinds `series` and `collection` in `/api/v2/sync/snapshot` and `/sync/changes`: a series, a
+  collection, a book's place in a series, a collection's books and a book's tags write to the
+  change log, and so does what a book makes visible (the series and collections it is in).
+  Replacing a series' books is one change row of the series; renaming or sharing a series sends
+  its books again. Migration 0127. v2 revision 7.
+- Contributors on v2: `POST /api/v2/contributors` (a name the household has answers that one,
+  `200`), `DELETE /api/v2/contributors/{id}` (a household admin's; `409 in_use` while anything
+  credits them), `PUT`/`DELETE /api/v2/contributors/{id}/image` (a photo from an upload, kept for
+  good; or forget it so the server looks again), `bio` in `PATCH /api/v2/contributors/{id}`.
+  `Contributor` gains `bio` and `image_credit` (source, author, licence and links of a looked-up
+  photo; v1's `image-info` in the record). v2 revision 7.
+- Handler tests for every phase-5 route without a token, the outbound bucket on the identity
+  routes, and an identity search against a stub Open Library. Conformance: the `v2_books` suite;
+  `v2_walk` walks series and collections too (someone else's, paging).
 - Console: back from a credit top-up (`/billing?topup=success`), a thank-you dialog with the
   amount added, the new balance and, at the library's current size, the date the credit lasts
   until. It waits up to 20 s for the payment to reach the ledger, since the payment provider's
@@ -181,6 +220,8 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- `Book.series` named every series a book is in, another member's private one included; it
+  names those the reader can see.
 - Deleting an account that follows a podcast failed (`500`): the gPodder subscription log
   wrote an entry for the account being deleted. Migration 0126.
 - A member moving from one household to another in one step reached only the household they

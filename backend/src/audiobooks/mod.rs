@@ -725,17 +725,28 @@ async fn append_files_from_uploads(
     Path(id): Path<Uuid>,
     Json(body): Json<AppendFilesRequest>,
 ) -> Result<Json<Vec<AppendedFile>>, AuthError> {
+    Ok(Json(append_files(&state, &family, id, body.files).await?))
+}
+
+/// Adds uploaded files to a book the caller owns, sorted into play order by path again;
+/// a path the book already has answers its existing file. `/api/v1` and `/api/v2` alike.
+pub(crate) async fn append_files(
+    state: &AppState,
+    family: &FamilyContext,
+    id: Uuid,
+    files: Vec<FromUploadsFile>,
+) -> Result<Vec<AppendedFile>, AuthError> {
     family.require_can_upload()?;
     db::audiobooks::find_book_owned(state.db(), id, family.user_id)
         .await
         .map_err(AuthError::Internal)?
         .ok_or(AuthError::ItemNotFound)?;
-    if body.files.is_empty() {
+    if files.is_empty() {
         return Err(AuthError::BadRequest("at least one file is required".to_string()));
     }
-    let mut incoming = Vec::with_capacity(body.files.len());
-    for file in body.files {
-        crate::uploads::require_own_key(&family, &file.object_key)?;
+    let mut incoming = Vec::with_capacity(files.len());
+    for file in files {
+        crate::uploads::require_own_key(family, &file.object_key)?;
         let raw = file.relative_path.as_deref().ok_or_else(|| {
             AuthError::BadRequest("every file needs a relative_path".to_string())
         })?;
@@ -759,7 +770,7 @@ async fn append_files_from_uploads(
             answer.push(AppendedFile { id: found.0.to_string(), relative_path: relative.clone() });
             continue;
         }
-        let media_id = register_uploaded_object(&state, &mut tx, &file.object_key).await?;
+        let media_id = register_uploaded_object(state, &mut tx, &file.object_key).await?;
         next += 1;
         let title = file
             .title
@@ -819,7 +830,7 @@ async fn append_files_from_uploads(
     db::audiobooks::recalculate_total_duration(state.db(), id)
         .await
         .map_err(AuthError::Internal)?;
-    Ok(Json(answer))
+    Ok(answer)
 }
 
 /// Confirm an uploaded object really landed and record it, inside the caller's
@@ -1343,7 +1354,7 @@ fn identify_error(state: &AppState, error: anyhow::Error) -> AuthError {
 /// Best-effort, exactly like the music side's `apply_cover_art`: every failure
 /// here leaves the book with the cover it already had and logs, because the
 /// metadata apply this belongs to has already succeeded.
-async fn apply_book_cover(
+pub(crate) async fn apply_book_cover(
     state: &AppState,
     family: &FamilyContext,
     book_id: Uuid,

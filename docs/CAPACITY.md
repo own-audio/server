@@ -251,6 +251,26 @@ the first page about half a second; the fix then is `(trashed_at DESC, id DESC) 
 IS NOT NULL` per table, so each branch is read in order and the page stops after 100 rows.
 `DELETE /api/v2/trash` walks the same pages 200 rows at a time.
 
+## Measured: books' tags, series and collections (2026-11-17)
+
+v2 phase 5 (`api-v2-completion-plan.md`), on PostgreSQL 16 (compose stack, Apple-silicon Mac):
+1,000 shared books, 50 tags at 5 a book, 100 series of 10 books, 50 collections of 20.
+
+| Request (whole answer, page of 100) | Time |
+|---|---|
+| `GET /api/v2/book-tags` | 3 ms |
+| `GET /api/v2/books?tag=` | 3 ms |
+| `GET /api/v2/series` (each with its books) | 2.4 ms |
+| `GET /api/v2/collections` (each with its count) | 4.8 ms (the query 3 ms) |
+| `GET /api/v2/collections/{id}/books` | 4.8 ms |
+
+Not run on the 600,000-track fixture: none of these reads a catalog-sized table. Books are 1,000
+at most, and tags, series and collections are bounded by them; the contributor routes look up
+one contributor by id, and "still credited" (`DELETE /contributors/{id}`) is the credits'
+`(contributor_id, item_kind)` index. Migration 0127 adds `(book_id)` indexes on series and
+collection membership, so the change-log trigger goes from a book to its series and
+collections without a scan.
+
 ## How we will know
 
 - A **scale test**: a generated catalog of 600k tracks and 1,000 books in a

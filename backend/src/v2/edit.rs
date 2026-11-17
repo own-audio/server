@@ -28,7 +28,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 
 /// Absent, `null` and a value are three different things in a PATCH.
-fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
+pub(crate) fn present<'de, D: Deserializer<'de>, T: Deserialize<'de>>(d: D) -> Result<Option<Option<T>>, D::Error> {
     Option::<T>::deserialize(d).map(Some)
 }
 
@@ -229,6 +229,10 @@ pub struct ContributorPatch {
     #[serde(default, deserialize_with = "present")]
     #[schema(value_type = Option<String>)]
     pub musicbrainz_artist: Option<Option<String>>,
+    /// About them, in the household's words, at most 10,000 characters; `null` clears it.
+    #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
+    pub bio: Option<Option<String>>,
 }
 
 async fn visible_contributor(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Contributor, Problem> {
@@ -236,7 +240,23 @@ async fn visible_contributor(state: &AppState, family: &FamilyContext, id: Uuid)
     Ok(crate::v2::music::contributor(state, row))
 }
 
-/// Correct a contributor: name, sort name, kind.
+/// One the caller sees credited, or one credited nowhere yet; `404` otherwise.
+async fn editable_contributor(state: &AppState, family: &FamilyContext, id: Uuid) -> Result<Contributor, Problem> {
+    let row = catalog::editable_contributor(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
+    Ok(crate::v2::music::contributor(state, row))
+}
+
+const MAX_BIO_CHARS: usize = 10_000;
+
+fn bio_of(bio: Option<&str>, field: &str) -> Result<Option<String>, Problem> {
+    let bio = bio.map(str::trim).filter(|b| !b.is_empty());
+    if bio.is_some_and(|b| b.chars().count() > MAX_BIO_CHARS) {
+        return Err(Problem::bad_request("invalid_body", format!("a bio is at most {MAX_BIO_CHARS} characters")).field(field.to_string(), "too_long", ""));
+    }
+    Ok(bio.map(str::to_string))
+}
+
+/// Correct a contributor: name, sort name, kind, bio.
 #[utoipa::path(patch, path = "/contributors/{id}", tag = "corrections", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
     params(("id" = Uuid, Path)), request_body = ContributorPatch,
@@ -244,12 +264,13 @@ async fn visible_contributor(state: &AppState, family: &FamilyContext, id: Uuid)
         (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody),
         (status = 409, description = "`name_taken`: another contributor has the name; merge them instead", body = crate::v2::problem::ProblemBody)))]
 pub async fn patch_contributor(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ContributorPatch>) -> Result<Json<Contributor>, Problem> {
-    visible_contributor(&state, &family, id).await?;
+    editable_contributor(&state, &family, id).await?;
     if let Some(kind) = body.kind.as_deref() {
         if !CONTRIBUTOR_KINDS.contains(&kind) {
             return Err(Problem::bad_request("invalid_body", format!("kind is one of: {}", CONTRIBUTOR_KINDS.join(", "))).field("/kind", "invalid", kind.to_string()));
         }
     }
+    let bio = body.bio.as_ref().map(|b| bio_of(b.as_deref(), "/bio")).transpose()?;
     // A rename and a new sort name are one save.
     let edit = crate::db::edits::Edit::new(family.user_id, "manual");
     if let Some(name) = body.name.as_deref() {
@@ -283,7 +304,106 @@ pub async fn patch_contributor(family: FamilyContext, State(state): State<AppSta
                 .with("contributor_id", other.to_string()));
         }
     }
-    Ok(Json(visible_contributor(&state, &family, id).await?))
+    if let Some(bio) = bio {
+        catalog::set_contributor_bio(state.db(), family.family_id, id, bio.as_deref()).await?;
+    }
+    Ok(Json(editable_contributor(&state, &family, id).await?))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct NewContributor {
+    pub name: String,
+    /// How the name sorts: `Tolkien, J. R. R.`.
+    pub sort_name: Option<String>,
+    pub bio: Option<String>,
+}
+
+/// Name someone before crediting them: an author, a narrator, an artist. The household has
+/// one contributor per name, so a name it has already answers that one (`200`), as it is.
+/// Credit them with `PUT /books/{id}/credits` (or a track's, a podcast's); until then only
+/// the corrections routes find them.
+#[utoipa::path(post, path = "/contributors", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("can_upload"))),
+    request_body = NewContributor,
+    responses((status = 201, body = Contributor),
+        (status = 200, description = "The household's contributor of that name", body = Contributor),
+        (status = 400, description = "`invalid_body`: an empty name, a field too long", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody)))]
+pub async fn create_contributor(family: FamilyContext, State(state): State<AppState>, Json(body): Json<NewContributor>) -> Result<(StatusCode, Json<Contributor>), Problem> {
+    family.require_can_upload()?;
+    let name = body.name.trim();
+    if name.is_empty() || name.chars().count() > 500 {
+        return Err(Problem::bad_request("invalid_body", "a name is 1 to 500 characters").field("/name", "invalid", "1 to 500 characters"));
+    }
+    let sort_name = body.sort_name.as_deref().map(str::trim).filter(|s| !s.is_empty());
+    if sort_name.is_some_and(|s| s.chars().count() > 500) {
+        return Err(Problem::bad_request("invalid_body", "a sort name is at most 500 characters").field("/sort_name", "too_long", ""));
+    }
+    let bio = bio_of(body.bio.as_deref(), "/bio")?;
+    if let Some(existing) = db::music::contributor_by_name(state.db(), family.family_id, name).await? {
+        let row = catalog::contributors_by_ids(state.db(), family.family_id, &[existing]).await?.pop().ok_or_else(Problem::not_found)?;
+        return Ok((StatusCode::OK, Json(crate::v2::music::contributor(&state, row))));
+    }
+    let made = db::authors::create_author(state.db(), family.family_id, name, sort_name, bio.as_deref()).await?;
+    let row = catalog::contributors_by_ids(state.db(), family.family_id, &[made.id]).await?.pop().ok_or_else(Problem::not_found)?;
+    Ok((StatusCode::CREATED, Json(crate::v2::music::contributor(&state, row))))
+}
+
+/// Remove a contributor nothing credits any more. One still credited answers `409 in_use`:
+/// take their credits away first, or merge them into another (`POST /contributors/{id}/merge`).
+#[utoipa::path(delete, path = "/contributors/{id}", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("family_admin"))),
+    params(("id" = Uuid, Path)),
+    responses((status = 204, description = "Removed"),
+        (status = 404, description = "Not the household's", body = crate::v2::problem::ProblemBody),
+        (status = 409, description = "`in_use`: still credited", body = crate::v2::problem::ProblemBody)))]
+pub async fn delete_contributor(FamilyAdmin(family): FamilyAdmin, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
+    if !db::entities::all_in_household(state.db(), family.family_id, &[id]).await? {
+        return Err(Problem::not_found());
+    }
+    if catalog::contributor_credited(state.db(), id).await? {
+        return Err(Problem::new(StatusCode::CONFLICT, "in_use").detail("still credited; take the credits away or merge them first"));
+    }
+    if !db::authors::delete_author(state.db(), family.family_id, id).await? {
+        return Err(Problem::not_found());
+    }
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// A contributor's photo, from an upload: kept for good, never replaced by one looked up.
+#[utoipa::path(put, path = "/contributors/{id}/image", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("can_upload"))),
+    params(("id" = Uuid, Path)), request_body = crate::v2::books::ImageUpload,
+    responses((status = 200, description = "The contributor now", body = Contributor),
+        (status = 400, description = "`not_an_image`, `invalid_upload`", body = crate::v2::problem::ProblemBody),
+        (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible, or no such upload in this household", body = crate::v2::problem::ProblemBody),
+        (status = 413, description = "`too_large`: over 20 MB", body = crate::v2::problem::ProblemBody)))]
+pub async fn put_contributor_image(
+    family: FamilyContext,
+    State(state): State<AppState>,
+    Path(id): Path<Uuid>,
+    Json(body): Json<crate::v2::books::ImageUpload>,
+) -> Result<Json<Contributor>, Problem> {
+    family.require_can_upload()?;
+    editable_contributor(&state, &family, id).await?;
+    let image = crate::v2::books::adopt_image(&state, &family, &body.upload_id).await?;
+    db::music::set_user_artist_image(state.db(), id, image).await?;
+    Ok(Json(editable_contributor(&state, &family, id).await?))
+}
+
+/// Forget a contributor's photo, set by hand or looked up, so the server looks for one again.
+#[utoipa::path(delete, path = "/contributors/{id}/image", tag = "corrections", security(("bearer" = [])),
+    extensions(("x-permission" = json!("can_upload"))),
+    params(("id" = Uuid, Path)),
+    responses((status = 204, description = "Forgotten"),
+        (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody),
+        (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
+pub async fn delete_contributor_image(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<StatusCode, Problem> {
+    family.require_can_upload()?;
+    editable_contributor(&state, &family, id).await?;
+    db::music::clear_artist_image(state.db(), id).await?;
+    Ok(StatusCode::NO_CONTENT)
 }
 
 #[derive(Deserialize, ToSchema)]

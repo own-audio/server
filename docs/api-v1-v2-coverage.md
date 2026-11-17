@@ -13,9 +13,9 @@ prefixes.
 
 | Status | Count |
 |---|---|
-| covered | 192 |
-| partly covered | 10 |
-| missing | 107 |
+| covered | 226 |
+| partly covered | 5 |
+| missing | 78 |
 | not carried over | 7 |
 | **total** | **316** |
 
@@ -24,8 +24,8 @@ grants stay on v1) or a route no client calls (the Stripe webhook). The hosted r
 covered because they answer under `/api/v2`, but their bodies are still v1's.
 What is missing or partly covered is tracked for the work in `api-v2-gaps-plan.md`.
 
-Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 4, v2
-revision 6). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
+Kept current as `api-v2-completion-plan.md` moves functions (updated for its phase 5, v2
+revision 7). `scripts/check-v2-coverage.py` checks this table against both OpenAPI documents and
 lists what is still open.
 
 
@@ -136,60 +136,60 @@ lists what is still open.
 | v1 operation | v2 | status | note |
 |---|---|---|---|
 | `GET /audiobooks` | `GET /books` | covered |  |
-| `POST /audiobooks` | `POST /books` | partly | v2 creates a book with its files in one call; adding files afterwards is missing. |
+| `POST /audiobooks` | `POST /books` | covered | A book with its files in one call; more files later with `POST /books/{id}/files`. |
 | `POST /audiobooks/from-uploads` | `POST /books` | covered |  |
 | `POST /audiobooks/upload` | `POST /uploads` + `POST /books` | covered | No multipart on v2, by design. |
 | `GET /audiobooks/{id}` | `GET /books/{id}` | covered |  |
-| `PUT /audiobooks/{id}` | `PUT /books/{id}/credits` | partly | Author and narrator through credits; title and description cannot be edited. |
+| `PUT /audiobooks/{id}` | `PATCH /books/{id}` | covered | Title, description, publisher, year, ISBN; author and narrator through `PUT /books/{id}/credits`. |
 | `DELETE /audiobooks/{id}` | `DELETE /books/{id}` | covered | Into the 30-day trash, a batch of its own; several things at once through `POST /trash`. |
 | `GET /audiobooks/{id}/chapters` | `GET /books/{id}` | covered | Chapters are in the book. |
 | `GET /audiobooks/{id}/cover` | `Book.image` → `GET /images/{id}` | covered |  |
 | `GET /audiobooks/{id}/files` | `GET /books/{id}` | covered | Files are in the book. |
-| `POST /audiobooks/{id}/files/from-uploads` | — | missing |  |
-| `PUT /audiobooks/{id}/files/reorder` | — | missing |  |
-| `PUT /audiobooks/{id}/files/{file_id}` | — | missing | Rename a file. |
-| `DELETE /audiobooks/{id}/files/{file_id}` | — | missing |  |
+| `POST /audiobooks/{id}/files/from-uploads` | `POST /books/{id}/files` | covered | Many at once, `Idempotency-Key`; answers the book. |
+| `PUT /audiobooks/{id}/files/reorder` | `PUT /books/{id}/files/order` | covered | As a playlist's order: files left out follow; an unknown or repeated id is `400 invalid_file` (v1 left them unplaced). |
+| `PUT /audiobooks/{id}/files/{file_id}` | `PATCH /books/{id}/files/{file_id}` | covered | Rename a file. |
+| `DELETE /audiobooks/{id}/files/{file_id}` | `DELETE /books/{id}/files/{file_id}` | covered | The last file stays (`409 last_file`); v1 left a book without files. |
 | `GET /audiobooks/{id}/files/{file_id}/stream` | `POST /playback-info` | covered | Kind `book_file`. |
-| `POST /audiobooks/{id}/metadata/search` | — | missing |  |
-| `POST /audiobooks/{id}/metadata/apply` | — | missing |  |
-| `POST /audiobooks/{id}/upload-cover` | — | missing |  |
-| `POST /audiobooks/{id}/upload-file` | — | missing |  |
+| `POST /audiobooks/{id}/metadata/search` | `POST /books/{id}/identity/search` | covered | The owner's, or a household admin's on a shared book (v1: anyone who sees it); `{items}`. |
+| `POST /audiobooks/{id}/metadata/apply` | `PUT /books/{id}/identity` | covered | Source failures as `502 source_unavailable`, `503 source_refused` (v1: `400` or `500`). |
+| `POST /audiobooks/{id}/upload-cover` | `PUT /books/{id}/image` | covered | An upload id (`POST /uploads`); `DELETE /books/{id}/image` takes it away. |
+| `POST /audiobooks/{id}/upload-file` | `POST /uploads` + `POST /books/{id}/files` | covered | No multipart on v2. Replacing the file at a place: delete it, add the new one. |
 | `PUT /audiobooks/{id}/visibility` | `PUT /books/{id}/visibility` | covered |  |
 | `GET /audiobooks/authors` | `GET /authors` | covered |  |
-| `POST /audiobooks/authors` | — | missing |  |
+| `POST /audiobooks/authors` | `POST /contributors` | covered | A name the household has answers that one (`200`). |
 | `GET /audiobooks/authors/{id}` | `GET /contributors/{id}` | covered |  |
-| `PUT /audiobooks/authors/{id}` | `PATCH /contributors/{id}` | partly | Name and sort name; `bio` is gone. |
-| `DELETE /audiobooks/authors/{id}` | — | missing |  |
+| `PUT /audiobooks/authors/{id}` | `PATCH /contributors/{id}` | covered | Name, sort name, kind and `bio`. |
+| `DELETE /audiobooks/authors/{id}` | `DELETE /contributors/{id}` | covered | `409 in_use` while anything credits them (v1 took the credits with them). |
 | `GET /audiobooks/authors/{id}/books` | `GET /books?contributor_id=` | covered |  |
 | `GET /audiobooks/authors/{id}/image` | `Contributor.image` → `GET /images/{id}` | covered |  |
-| `POST /audiobooks/authors/{id}/image` | — | missing |  |
-| `DELETE /audiobooks/authors/{id}/image` | — | missing | Forget the picture and look it up again. |
-| `GET /audiobooks/authors/{id}/image-info` | — | missing | Credit and licence of a fetched picture. |
+| `POST /audiobooks/authors/{id}/image` | `PUT /contributors/{id}/image` | covered | An upload id. Serves artists too. |
+| `DELETE /audiobooks/authors/{id}/image` | `DELETE /contributors/{id}/image` | covered | Forget the picture and look it up again. |
+| `GET /audiobooks/authors/{id}/image-info` | `Contributor.image_credit` | covered | In the record: no request of its own. |
 | `GET /audiobooks/authors/book/{book_id}` | `GET /books/{id}` | covered | Credits with roles. |
 | `POST /audiobooks/authors/book/{book_id}` | `PUT /books/{id}/credits` | covered |  |
 | `DELETE /audiobooks/authors/book/{book_id}/{author_id}/{role}` | `PUT /books/{id}/credits` | covered |  |
-| `GET /audiobooks/authors/tags` | — | missing | Book tags have no v2 counterpart at all. |
-| `GET /audiobooks/authors/tags/book/{book_id}` | — | missing |  |
-| `PUT /audiobooks/authors/tags/book/{book_id}` | — | missing |  |
-| `GET /audiobooks/organize/collections` | — | missing | Collections cannot be read on v2. |
-| `POST /audiobooks/organize/collections` | — | missing |  |
-| `GET /audiobooks/organize/collections/{id}` | — | missing |  |
-| `PUT /audiobooks/organize/collections/{id}` | — | missing |  |
-| `DELETE /audiobooks/organize/collections/{id}` | — | missing |  |
-| `GET /audiobooks/organize/collections/{id}/books` | — | missing |  |
-| `POST /audiobooks/organize/collections/{id}/books` | — | missing |  |
-| `DELETE /audiobooks/organize/collections/{id}/books/{book_id}` | — | missing |  |
+| `GET /audiobooks/authors/tags` | `GET /book-tags` | covered | Cursor-paged, with how many visible books carry each. |
+| `GET /audiobooks/authors/tags/book/{book_id}` | `Book.tags` | covered | In the full book record; `GET /books?tag=` filters. |
+| `PUT /audiobooks/authors/tags/book/{book_id}` | `PUT /books/{id}/tags` | covered |  |
+| `GET /audiobooks/organize/collections` | `GET /collections` | covered | Cursor-paged; shared ones too (`visibility`, v1's were the caller's only). |
+| `POST /audiobooks/organize/collections` | `POST /collections` | covered | With books to start with. |
+| `GET /audiobooks/organize/collections/{id}` | `GET /collections/{id}` | covered |  |
+| `PUT /audiobooks/organize/collections/{id}` | `PATCH /collections/{id}` | covered | `visibility` instead of `is_public`. |
+| `DELETE /audiobooks/organize/collections/{id}` | `DELETE /collections/{id}` | covered |  |
+| `GET /audiobooks/organize/collections/{id}/books` | `GET /collections/{id}/books` | covered | Cursor-paged, the v2 `Book` in each entry. |
+| `POST /audiobooks/organize/collections/{id}/books` | `POST /collections/{id}/books` | covered | Many at once. |
+| `DELETE /audiobooks/organize/collections/{id}/books/{book_id}` | `DELETE /collections/{id}/books/{book_id}` | covered |  |
 | `GET /audiobooks/organize/favorites` | `GET /me/favourites?kind=book` | covered |  |
 | `POST /audiobooks/organize/favorites/{book_id}` | `PUT /me/favourites/book/{id}` | covered |  |
 | `DELETE /audiobooks/organize/favorites/{book_id}` | `DELETE /me/favourites/book/{id}` | covered |  |
 | `GET /audiobooks/organize/favorites/{book_id}/check` | `GET /me/favourites`, sync | covered |  |
-| `GET /audiobooks/organize/series` | `Book.series` | partly | A book names its series and place; no list of series. |
-| `GET /audiobooks/organize/series/{id}` | `Book.series` | partly | Same. |
-| `POST /audiobooks/organize/series` | — | missing |  |
-| `PUT /audiobooks/organize/series/{id}` | — | missing |  |
-| `DELETE /audiobooks/organize/series/{id}` | — | missing |  |
-| `POST /audiobooks/organize/series/{id}/books` | — | missing |  |
-| `DELETE /audiobooks/organize/series/{id}/books/{book_id}` | — | missing |  |
+| `GET /audiobooks/organize/series` | `GET /series` | covered | Cursor-paged; shared ones too. |
+| `GET /audiobooks/organize/series/{id}` | `GET /series/{id}` | covered | The books the reader can see, by place. |
+| `POST /audiobooks/organize/series` | `POST /series` | covered | With books to start with; `visibility`. |
+| `PUT /audiobooks/organize/series/{id}` | `PATCH /series/{id}` | covered |  |
+| `DELETE /audiobooks/organize/series/{id}` | `DELETE /series/{id}` | covered |  |
+| `POST /audiobooks/organize/series/{id}/books` | `PUT /series/{id}/books` | covered | One ordered list instead of a book at a time. |
+| `DELETE /audiobooks/organize/series/{id}/books/{book_id}` | `PUT /series/{id}/books` | covered | The list without it. |
 
 ## Podcasts
 

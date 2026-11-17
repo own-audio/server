@@ -196,7 +196,7 @@ pub async fn create_book(family: FamilyContext, State(state): State<AppState>, J
     let id: Uuid = made.book.id.parse().map_err(|e: uuid::Error| Problem::internal(anyhow::anyhow!(e)))?;
     db::media::queue_book_checksums(state.db(), id).await;
     let row = db::catalog::find_book(state.db(), viewer, id).await?.ok_or_else(Problem::not_found)?;
-    Ok((StatusCode::CREATED, Json(spoken::full_book(&state, row).await?)))
+    Ok((StatusCode::CREATED, Json(spoken::full_book(&state, viewer, row).await?)))
 }
 
 // ── Uploaded podcasts (docs/uploaded-podcasts-plan.md) ───────────────────────

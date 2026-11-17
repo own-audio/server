@@ -47,6 +47,9 @@ pub struct Book {
     pub chapters: Option<Vec<Chapter>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub series: Option<Vec<SeriesEntry>>,
+    /// Its tags, by name (`PUT /books/{id}/tags`; `GET /books?tag=`). Where `files` are.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tags: Option<Vec<String>>,
 }
 
 /// One audio file of a book, in playing order.
@@ -155,6 +158,23 @@ pub struct ShelfQuery {
     pub cursor: Option<String>,
 }
 
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct BookShelfQuery {
+    /// Credited to this contributor (an author, a narrator, a translator…).
+    pub contributor_id: Option<Uuid>,
+    /// Part of the title, any case.
+    pub q: Option<String>,
+    /// Carrying this tag, by name, any case (`GET /book-tags`).
+    pub tag: Option<String>,
+    /// `title` (default) or `added`, newest first.
+    pub sort: Option<String>,
+    /// `contributors` to send them along.
+    pub include: Option<String>,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
+}
+
 impl ShelfQuery {
     fn by_added(&self) -> Result<bool, Problem> {
         match self.sort.as_deref() {
@@ -228,6 +248,7 @@ pub(crate) fn book(state: &AppState, row: catalog::BookRow, credits: Vec<Credit>
         files: None,
         chapters: None,
         series: None,
+        tags: None,
     }
 }
 
@@ -282,13 +303,15 @@ pub(crate) fn episode(state: &AppState, row: catalog::EpisodeRow) -> Episode {
 /// Books the caller can see.
 #[utoipa::path(get, path = "/books", tag = "catalog", security(("bearer" = [])),
     extensions(("x-permission" = json!("member"))),
-    params(ShelfQuery),
+    params(BookShelfQuery),
     responses((status = 200, body = Page<Book>)))]
-pub async fn list_books(family: FamilyContext, State(state): State<AppState>, Query(q): Query<ShelfQuery>) -> Result<Json<Page<Book>>, Problem> {
+pub async fn list_books(family: FamilyContext, State(state): State<AppState>, Query(b): Query<BookShelfQuery>) -> Result<Json<Page<Book>>, Problem> {
+    let tag = b.tag.as_deref().map(str::trim).filter(|t| !t.is_empty()).map(str::to_string);
+    let q = ShelfQuery { contributor_id: b.contributor_id, q: b.q, sort: b.sort, include: b.include, limit: b.limit, cursor: b.cursor };
     let by_added = q.by_added()?;
     let include = q.include_contributors()?;
     let (limit, after) = q.page(by_added)?;
-    let rows = catalog::list_books(state.db(), family.viewer(), q.contributor_id, q.q.as_deref(), by_added, after, limit + 1).await?;
+    let rows = catalog::list_books(state.db(), family.viewer(), catalog::BookFilter { contributor_id: q.contributor_id, query: q.q.as_deref(), tag: tag.as_deref() }, by_added, after, limit + 1).await?;
     let page = if by_added {
         let p = Page::from_rows(rows, limit, |b| (b.created_at, b.id));
         (p.items, p.next)
@@ -321,7 +344,7 @@ pub struct BookAnswer {
     responses((status = 200, body = BookAnswer), (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn get_book(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<BookAnswer>, Problem> {
     let row = catalog::find_book(state.db(), family.viewer(), id).await?.ok_or_else(Problem::not_found)?;
-    let answer = full_book(&state, row).await?;
+    let answer = full_book(&state, family.viewer(), row).await?;
     let included = contributors_of(&state, &family, answer.credits.iter()).await?.unwrap_or_default();
     Ok(Json(BookAnswer { book: answer, included }))
 }
@@ -406,8 +429,8 @@ pub async fn get_episode(family: FamilyContext, State(state): State<AppState>, P
     Ok(Json(episode(&state, row)))
 }
 
-/// A book with its files, chapters and series.
-pub(crate) async fn full_book(state: &AppState, row: catalog::BookRow) -> Result<Book, Problem> {
+/// A book with its files, chapters, tags and the series the viewer can see.
+pub(crate) async fn full_book(state: &AppState, viewer: crate::db::access::Viewer, row: catalog::BookRow) -> Result<Book, Problem> {
     let pool = state.db();
     let id = row.id;
     let credits = credits_of(state, "book", &[id]).await?.remove(&id).unwrap_or_default();
@@ -436,11 +459,12 @@ pub(crate) async fn full_book(state: &AppState, row: catalog::BookRow) -> Result
             .collect(),
     );
     answer.series = Some(
-        catalog::book_series(pool, id)
+        crate::db::shelves::book_series(pool, viewer, id)
             .await?
             .into_iter()
             .map(|(series_id, name, position)| SeriesEntry { series_id, name, position })
             .collect(),
     );
+    answer.tags = Some(crate::db::shelves::book_tags(pool, id).await?);
     Ok(answer)
 }
