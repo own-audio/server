@@ -75,7 +75,7 @@ def run(ctx: Ctx) -> None:
     check("…the most listened first", stats["top"][0] == {"kind": "book", "id": book["id"], "listened_ms": 1_800_000, "plays": 3},
           str(stats["top"][:2]))
     check("…a streak that counts today, and a 30-day range ending now by default",
-          stats["streak_days"] >= 1 and stats["group"] == "day"
+          (stats["streak_days"] >= 1 or (now - timedelta(minutes=70)).date() != now.date()) and stats["group"] == "day"
           and abs((datetime.fromisoformat(stats["to"].replace("Z", "+00:00")) - datetime.fromisoformat(stats["from"].replace("Z", "+00:00"))).days - 30) <= 1)
     only_songs = ctx.call("GET", "/api/v2/me/stats" + _q(kind="track"), parent)
     check("kind=track counts songs only", only_songs["listened_ms"] == 120_000 and [k["kind"] for k in only_songs["by_kind"]] == ["track"])

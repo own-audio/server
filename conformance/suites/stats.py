@@ -74,7 +74,10 @@ def run(ctx):
         check("session count is 3", stats["by_kind"][0]["sessions"] == 3)
         check("top item is the book", stats["top_items"][0]["item_id"] == bid)
         check("top item resolves its title", stats["top_items"][0]["title"] == f"Stats Book {sfx}")
-        check("streak counts today", stats["streak_days"] >= 1)
+        # The plays end up to an hour ago: just after UTC midnight they all fall on yesterday,
+        # and a streak counts from today, so it is 0 then.
+        played_today = (datetime.now(timezone.utc) - timedelta(minutes=70)).date() == datetime.now(timezone.utc).date()
+        check("streak counts today", stats["streak_days"] >= 1 if played_today else stats["streak_days"] >= 0)
         check("by_day has an entry", len(stats["by_day"]) >= 1)
 
         hist = call("GET", "/api/v1/stats/me/history?limit=10", parent_tok)
