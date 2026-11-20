@@ -15,6 +15,8 @@ semver. Each release states the **API contract revision** it serves
 
 ### Fixed
 
+- `lettre` 0.11.24, for six SMTP advisories (RUSTSEC-2026-0560 to 0565). The server's mail uses
+  implicit TLS by default, which the STARTTLS one does not reach; the others are fixed either way.
 - No mail to addresses on reserved test domains (`example.com`, `.test`, `.invalid`, …). The
   provider bounced each one back to the sender's mailbox, so every test run flooded it.
 
