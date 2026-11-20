@@ -32,6 +32,9 @@ export default function AuthPage() {
   const [params] = useSearchParams();
   const { setAuth, token } = useAuthStore();
   const next = safeReturnTo(params.get("next"));
+  // Here from the QR on a TV: the visitor may have no account yet, and that has to be as easy
+  // to see as signing in.
+  const fromTv = next.startsWith("/link");
   const { t, rich } = useT();
 
   const { data: regStatus } = useQuery({ queryKey: ["registration-status"], queryFn: checkRegistrationStatus, staleTime: 60_000 });
@@ -145,8 +148,18 @@ export default function AuthPage() {
   return (
     <AuthLayout>
       <AuthHeading
-        title={mode === "login" ? t("auth.signIn.title") : mode === "register" ? t("auth.register.title") : t("auth.forgot.title")}
-        subtitle={mode === "forgot" ? t("auth.forgot.body") : undefined}
+        title={
+          fromTv && mode === "login"
+            ? t("auth.link.title")
+            : mode === "login" ? t("auth.signIn.title") : mode === "register" ? t("auth.register.title") : t("auth.forgot.title")
+        }
+        subtitle={
+          mode === "forgot"
+            ? t("auth.forgot.body")
+            : fromTv
+              ? mode === "login" ? t("auth.link.signInBody") : t("auth.link.registerBody")
+              : undefined
+        }
       />
 
       {demo && (
@@ -262,7 +275,16 @@ export default function AuthPage() {
         </p>
       )}
 
-      {registrationOpen && mode !== "forgot" && (
+      {fromTv && registrationOpen && mode === "login" && (
+        <div className="mt-6 space-y-3 text-center">
+          <p className="text-sm text-muted">{t("auth.link.noAccount")}</p>
+          <Button type="button" variant="secondary" size="lg" className="w-full" onClick={() => switchMode("register")}>
+            {t("common.action.createAccount")}
+          </Button>
+        </div>
+      )}
+
+      {registrationOpen && mode !== "forgot" && !(fromTv && mode === "login") && (
         <p className="mt-6 text-center text-sm text-muted">
           {mode === "login"
             ? rich("auth.newHere", {

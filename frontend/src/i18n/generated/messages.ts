@@ -246,6 +246,10 @@ export interface MessageParams {
   "auth.forgot.title": undefined;
   "auth.haveAccount": { "link": (chunks: ReactNode[]) => ReactNode };
   "auth.haveInviteCode": undefined;
+  "auth.link.noAccount": undefined;
+  "auth.link.registerBody": undefined;
+  "auth.link.signInBody": undefined;
+  "auth.link.title": undefined;
   "auth.mfa.body": undefined;
   "auth.mfa.code": undefined;
   "auth.mfa.expired": undefined;

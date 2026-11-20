@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- Console: arriving from a TV's QR code, the sign-in page says "Connect your TV" and offers making
+  an account as plainly as signing in, with a full-width button; afterwards it returns to the
+  approval as before.
+
 ### Fixed
 
 - No mail to addresses on reserved test domains (`example.com`, `.test`, `.invalid`, …). The
