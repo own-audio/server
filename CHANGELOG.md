@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- No mail to addresses on reserved test domains (`example.com`, `.test`, `.invalid`, …). The
+  provider bounced each one back to the sender's mailbox, so every test run flooded it.
+
 ## [1.0.4] - 2026-11-18
 
 Contract revision 28. API v2 revision 17, **stable**.

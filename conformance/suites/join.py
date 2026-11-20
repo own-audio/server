@@ -10,7 +10,7 @@ code kills the old one.
 """
 from __future__ import annotations
 
-from core import Ctx
+from core import MAIL_DOMAIN, Ctx
 
 NAME = "join"
 PW = "FamilyJoinTest123!"
@@ -40,7 +40,7 @@ def run(ctx: Ctx) -> None:
     ctx.check("preview is valid and reveals the family",
               preview["status"] == "valid" and bool(preview["family_name"]))
 
-    joiner_email = f"joiner-{sfx}@example.com"
+    joiner_email = f"joiner-{sfx}@{MAIL_DOMAIN}"
     joined = ctx.call("POST", "/api/v1/auth/register", body={
         "email": joiner_email, "password": PW, "display_name": "Link Joiner",
         "invite_code": link["code"],
@@ -48,7 +48,7 @@ def run(ctx: Ctx) -> None:
     _track_user(ctx, joined["user"]["id"], joiner_email)
     ctx.ok("registering with a link code needs no email match")
 
-    second_email = f"joiner2-{sfx}@example.com"
+    second_email = f"joiner2-{sfx}@{MAIL_DOMAIN}"
     joined2 = ctx.call("POST", "/api/v1/auth/register", body={
         "email": second_email, "password": PW, "display_name": "Second Joiner",
         "invite_code": link["code"],
@@ -60,7 +60,7 @@ def run(ctx: Ctx) -> None:
     ctx.check("link reports exhausted once max_uses is spent", exhausted["status"] == "exhausted")
     ctx.check("exhausted preview reveals nothing about the family", exhausted["family_name"] is None)
 
-    third_email = f"joiner3-{sfx}@example.com"
+    third_email = f"joiner3-{sfx}@{MAIL_DOMAIN}"
     ctx.call("POST", "/api/v1/auth/register", body={
         "email": third_email, "password": PW, "display_name": "Third Joiner",
         "invite_code": link["code"],

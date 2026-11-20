@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -22,6 +23,11 @@ import urllib.request
 import uuid
 from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable
+
+# The run's accounts get mail (address confirmation, new device, lockout). On a domain no one
+# receives at, the provider bounces every message into the sender's own mailbox, so they go to
+# a real one with a catch-all instead.
+MAIL_DOMAIN = os.environ.get("CONFORMANCE_MAIL_DOMAIN", "own.audio")
 
 # Cloudflare fronts the hosted API and answers urllib's default User-Agent
 # with a 403 "error code: 1010" before the request reaches the backend.
@@ -360,7 +366,7 @@ class Ctx:
     ) -> tuple[str, str, str]:
         """Create a user as the admin and log them in. Returns (id, email, token). Registered for cleanup."""
         prefix = prefix or self.suite
-        email = f"{prefix}-{label}-{self.sfx}@example.com"
+        email = f"{prefix}-{label}-{self.sfx}@{MAIL_DOMAIN}"
         u = self.call(
             "POST", "/api/v1/auth/admin-create-user", self.admin_token,
             {"email": email, "password": password, "display_name": display_name or f"{label} {self.sfx}", "role": role},

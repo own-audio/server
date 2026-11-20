@@ -23,7 +23,7 @@ import struct
 import urllib.parse
 import uuid
 
-from core import Ctx
+from core import MAIL_DOMAIN, Ctx
 from suites.v2_books import _problem
 
 NAME = "v2_admin"
@@ -92,7 +92,7 @@ def matrix(ctx: Ctx) -> None:
     fam = ctx.call("GET", "/api/v2/me", family_admin)
     ctx.check("the household admin of this check runs a household, not the server",
               fam["family"]["role"] == "admin" and fam["instance_role"] == "user")
-    body = {"email": f"nobody-{ctx.sfx}@example.com", "password": PW, "display_name": "Nobody", "locked": True}
+    body = {"email": f"nobody-{ctx.sfx}@{MAIL_DOMAIN}", "password": PW, "display_name": "Nobody", "locked": True}
     wrong = []
     for method, path in ADMIN_OPS:
         # The server's own administrator's id, so a refusal is about the caller, not the id.
@@ -111,7 +111,7 @@ def matrix(ctx: Ctx) -> None:
 
 
 def setup(ctx: Ctx) -> None:
-    body = {"email": f"late-{ctx.sfx}@example.com", "password": PW, "display_name": "Too late"}
+    body = {"email": f"late-{ctx.sfx}@{MAIL_DOMAIN}", "password": PW, "display_name": "Too late"}
     ctx.check("POST /setup once the server has its administrator → 409 setup_complete",
               _problem(ctx.request("POST", "/api/v2/setup", None, body), 409, "setup_complete"))
     ctx.check("…whatever the body says → 409 setup_complete",
@@ -125,7 +125,7 @@ def setup(ctx: Ctx) -> None:
 def accounts(ctx: Ctx, me: dict) -> None:
     admin = ctx.admin_token
     sfx = ctx.sfx
-    email = f"v2admin-made-{sfx}@example.com"
+    email = f"v2admin-made-{sfx}@{MAIL_DOMAIN}"
     body = {"email": email, "password": PW, "display_name": f"Made {sfx}"}
     key = {"Idempotency-Key": f"admin-user-{sfx}"}
     first = ctx.request("POST", "/api/v2/admin/users", admin, body, headers=key)
@@ -158,7 +158,7 @@ def accounts(ctx: Ctx, me: dict) -> None:
     ctx.check("the account signs in with its password", token is not None)
 
     for i in range(3):
-        ctx.call("POST", "/api/v2/admin/users", admin, {"email": f"v2admin-page{i}-{sfx}@example.com", "password": PW,
+        ctx.call("POST", "/api/v2/admin/users", admin, {"email": f"v2admin-page{i}-{sfx}@{MAIL_DOMAIN}", "password": PW,
                                                          "display_name": f"Pager {i} {sfx}"}, expect=(201,))
         ctx.track_user(ctx.call("GET", f"/api/v2/admin/users?q=v2admin-page{i}-{sfx}", admin)["items"][0]["id"])
     found = ctx.call("GET", f"/api/v2/admin/users?q={urllib.parse.quote(f'PAGER 1 {sfx}')}", admin)["items"]
@@ -358,7 +358,7 @@ def second_household(ctx: Ctx) -> None:
     one with several, a new account has its own."""
     admin = ctx.admin_token
     sfx = ctx.sfx
-    email = f"v2admin-locked-{sfx}@example.com"
+    email = f"v2admin-locked-{sfx}@{MAIL_DOMAIN}"
     made = ctx.call("POST", "/api/v2/admin/users", admin, {"email": email, "password": PW, "display_name": f"Locked {sfx}"}, expect=(201,))
     uid = made["id"]
     ctx.track_user(uid, email)

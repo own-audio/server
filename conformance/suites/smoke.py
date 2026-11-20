@@ -17,7 +17,7 @@ import uuid
 from contextlib import contextmanager
 from typing import Any, Iterator
 
-from core import USER_AGENT, ApiError, Ctx, Skip
+from core import MAIL_DOMAIN, USER_AGENT, ApiError, Ctx, Skip
 
 NAME = "smoke"
 
@@ -206,9 +206,9 @@ def one_family_lifecycle(ctx: Ctx, admin_token: str, user_token: str, user_id: s
     need(family["id"] == admin_family["id"], "a new account must join the install's family")
     need(family["my_role"] == "member", "a new account joins as a member")
     ctx.call("PUT", "/api/v1/family", user_token, {"name": "hijacked"}, expect=(403,))
-    ctx.call("POST", "/api/v1/family/invites", user_token, {"email": "nope@example.com"}, expect=(403,))
+    ctx.call("POST", "/api/v1/family/invites", user_token, {"email": f"nope@{MAIL_DOMAIN}"}, expect=(403,))
 
-    member_email = f"smoke-member-{ctx.sfx}@example.com"
+    member_email = f"smoke-member-{ctx.sfx}@{MAIL_DOMAIN}"
     invite = ctx.call("POST", "/api/v1/family/invites", admin_token, {"email": member_email, "role": "member"},
                       expect=(200, 201))
     reg = ctx.call("POST", "/api/v1/auth/register", body={
@@ -240,7 +240,7 @@ def run(ctx: Ctx) -> None:
         need(isinstance(users, list) and len(users) >= 1, "users list must contain at least one user")
 
     suffix = ctx.sfx
-    test_email = f"smoke-{suffix}@example.com"
+    test_email = f"smoke-{suffix}@{MAIL_DOMAIN}"
     test_password = "SmokePass123!"
     new_password = "SmokePass456!"
 
@@ -469,7 +469,7 @@ def run(ctx: Ctx) -> None:
             need(renamed["name"] == f"Smoke Family {suffix}", "family rename must persist")
 
             # Invite a second account into the family.
-            member_email = f"smoke-member-{suffix}@example.com"
+            member_email = f"smoke-member-{suffix}@{MAIL_DOMAIN}"
             member_password = "SmokeMember123!"
             invite = ctx.call(
                 "POST", "/api/v1/family/invites", user_token, {"email": member_email, "role": "member"}, expect=(200, 201),
@@ -502,7 +502,7 @@ def run(ctx: Ctx) -> None:
 
             # Members cannot perform family-admin actions.
             ctx.call("PUT", "/api/v1/family", member_token, {"name": "hijacked"}, expect=(403,))
-            ctx.call("POST", "/api/v1/family/invites", member_token, {"email": "nope@example.com"}, expect=(403,))
+            ctx.call("POST", "/api/v1/family/invites", member_token, {"email": f"nope@{MAIL_DOMAIN}"}, expect=(403,))
 
             # The last family admin cannot be demoted.
             ctx.call(

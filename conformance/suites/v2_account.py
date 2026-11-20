@@ -20,7 +20,7 @@ import urllib.parse
 import urllib.request
 import uuid
 
-from core import Ctx
+from core import MAIL_DOMAIN, Ctx
 
 NAME = "v2_account"
 PW = "V2AccountTest123!"
@@ -142,7 +142,7 @@ def discovery(ctx: Ctx, disco: dict) -> None:
 
 def register(ctx: Ctx, a: Account, disco: dict) -> None:
     sfx = ctx.sfx
-    email = f"v2acc-reg-{sfx}@example.com"
+    email = f"v2acc-reg-{sfx}@{MAIL_DOMAIN}"
     body = {"email": email, "password": PW, "display_name": "Signed Up"}
     reg = lambda b: ctx.request("POST", "/api/v2/auth/register", body=b)  # noqa: E731
     ctx.check("sign-up: a short password is 400 weak_password on its field",
@@ -173,7 +173,7 @@ def register(ctx: Ctx, a: Account, disco: dict) -> None:
     again = {**body, "email": email.upper()}
     if closed:
         ctx.check("a used invitation does not let a second account in",
-                  _problem(reg({**body, "email": f"v2acc-reg2-{sfx}@example.com"}), 400, "invalid_invite"))
+                  _problem(reg({**body, "email": f"v2acc-reg2-{sfx}@{MAIL_DOMAIN}"}), 400, "invalid_invite"))
         fresh = ctx.call("POST", "/api/v2/family/invites", admin, {"kind": "link", "role": "member", "max_uses": 1}, expect=(201,))
         again["invite_code"] = fresh["code"]
     ctx.check("sign-up again with the same address, in any case: 409 email_taken (a retry makes nothing)",
@@ -209,7 +209,7 @@ def password(ctx: Ctx, a: Account, disco: dict) -> None:
     reset = lambda b: ctx.request("POST", "/api/v2/auth/password-reset", body=b)  # noqa: E731
     if (disco.get("auth") or {}).get("password_reset"):
         ctx.check("password reset: 202 for an address with an account", reset({"email": email})[0] == 202)
-        ctx.check("…and 202 for one without (nothing told apart)", reset({"email": f"nobody-{ctx.sfx}@example.com"})[0] == 202)
+        ctx.check("…and 202 for one without (nothing told apart)", reset({"email": f"nobody-{ctx.sfx}@{MAIL_DOMAIN}"})[0] == 202)
     else:
         got = reset({"email": email})
         ctx.check("password reset on a server without mail: 501 feature_unavailable, as discovery says",

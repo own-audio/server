@@ -33,7 +33,7 @@ Exit code is 1 on any failed check. Skips never fail a run.
 ## What it needs from the server
 
 An instance-admin account. Every suite creates its own users, families and
-media under unique `…-<suffix>@example.com` addresses and deletes them
+media under unique `…-<suffix>@own.audio` addresses and deletes them
 afterwards; nothing it makes is meant to survive, and it never touches
 accounts it did not create. The admin's own password is not changed.
 
