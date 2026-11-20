@@ -35,6 +35,8 @@ artist and album ids change once: Subsonic clients re-sync their library, and
 stars, ratings and artist photos are carried over by the server. Authors and
 book tags are per household now (they were one list for the whole server).
 
+From 1.0.4 to 1.0.5: nothing to do, no migrations.
+
 From 1.0.3 to 1.0.4: nothing to do. The first start runs migrations 0126–0133 (the change
 feed's new triggers, the trash for uploaded shows, the admin lists' indexes) in seconds. The
 apps on `/api/v1` keep working. A server run outside the image with an ffmpeg that has no

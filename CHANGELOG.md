@@ -7,6 +7,12 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-11-20
+
+Contract revision 28. API v2 revision 17.
+
+A security update for the mail: six SMTP advisories in `lettre`. No API change, no migrations.
+
 ### Changed
 
 - Console: arriving from a TV's QR code, the sign-in page says "Connect your TV" and offers making
