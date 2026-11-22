@@ -3,7 +3,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { listVoiceProfiles } from "../../../api/generation";
+import type { VoiceTier, VoiceTierId } from "../../../api/types";
+import { showsTierPicker } from "../../../lib/voiceTiers";
 import { useT, type PlainKey } from "../../../i18n";
+import VoiceTierPicker from "../VoiceTierPicker";
 
 type OutputMode = "single_m4b" | "multi_file";
 
@@ -11,6 +14,9 @@ export default function VoiceStep({
   voiceProfileId,
   outputMode,
   language,
+  tiers,
+  voiceTier,
+  onVoiceTierChange,
   onVoiceChange,
   onOutputModeChange,
 }: {
@@ -18,14 +24,19 @@ export default function VoiceStep({
   outputMode: OutputMode;
   /** The language the audiobook will be read in; its voices come first. */
   language: string;
+  /** Empty on a server without tiers: then only the voice list, Chirp's, as before. */
+  tiers: VoiceTier[];
+  voiceTier: VoiceTierId | undefined;
+  onVoiceTierChange: (id: VoiceTierId) => void;
   onVoiceChange: (id: string) => void;
   onOutputModeChange: (mode: OutputMode) => void;
 }) {
   const { t } = useT();
   const { data: all = [], isLoading } = useQuery({
-    queryKey: ["voice-profiles"],
-    queryFn: listVoiceProfiles,
+    queryKey: ["voice-profiles", voiceTier ?? "default"],
+    queryFn: () => listVoiceProfiles(voiceTier),
   });
+  const picker = showsTierPicker(tiers);
   // A German voice reading an English book was one tap away; the book's own language comes first.
   const base = language.slice(0, 2).toLowerCase();
   const matching = all.filter((v) => v.language.slice(0, 2).toLowerCase() === base);
@@ -41,6 +52,13 @@ export default function VoiceStep({
       <h2 className="mb-1 text-lg font-semibold">{t("generate.voice.title")}</h2>
       <p className="mb-5 text-sm text-muted">{t("generate.voice.intro")}</p>
 
+      {picker && (
+        <div className="mb-6">
+          <VoiceTierPicker tiers={tiers} language={language} value={voiceTier} onChange={onVoiceTierChange} />
+        </div>
+      )}
+
+      {picker && <p className="mb-2 text-sm font-medium text-fg">{t("generate.voice.listTitle")}</p>}
       {isLoading && <p className="text-sm text-muted">{t("generate.voice.loading")}</p>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -50,6 +68,7 @@ export default function VoiceStep({
             <button
               key={voice.id}
               type="button"
+              aria-pressed={selected}
               onClick={() => onVoiceChange(voice.id)}
               className={`rounded-xl border p-4 text-left transition ${
  selected
@@ -72,7 +91,7 @@ export default function VoiceStep({
                   onClick={(e) => e.stopPropagation()}
                   className="mt-3 h-8 w-full"
                 />
-              ) : (
+              ) : picker ? null : (
                 <p className="mt-3 text-xs text-muted">{t("generate.voice.noPreview")}</p>
               )}
             </button>

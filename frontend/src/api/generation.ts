@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
-import type { GenerationJobStatus, GenerationQuote, Language, VoiceProfile } from "./types";
+import { isAxiosError } from "axios";
+import type { GenerationJobStatus, GenerationQuote, Language, VoiceProfile, VoiceTier, VoiceTierId } from "./types";
 
 const ACCEPTED_EXTENSIONS = [".epub", ".mobi", ".txt"];
 
@@ -9,7 +10,13 @@ export async function listLanguages(): Promise<Language[]> {
   return data;
 }
 
-export type CoverMode = "auto" | "none" | "custom";
+/** `book`: the EPUB/MOBI's own cover, a generated one when the file has none. */
+export type CoverMode = "auto" | "book" | "none" | "custom";
+
+/** Only an EPUB or MOBI can carry a cover of its own. */
+export function canHaveOwnCover(file: File | null): boolean {
+  return !!file && /\.(epub|mobi)$/i.test(file.name);
+}
 
 export interface CreateGenerationJobRequest {
   file: File;
@@ -18,6 +25,8 @@ export interface CreateGenerationJobRequest {
   sourceLanguage: string;
   targetLanguage: string;
   voiceProfileId: string;
+  /** Sent only when the server offers tiers; without it the server reads with Chirp 3: HD. */
+  voiceTier?: VoiceTierId;
   outputMode: "single_m4b" | "multi_file";
   coverMode: CoverMode;
   /** Required when `coverMode` is "custom" — the server rejects the job without
@@ -38,9 +47,24 @@ export function isSupportedSourceFile(file: File): boolean {
   return ACCEPTED_EXTENSIONS.some((ext) => lower.endsWith(ext));
 }
 
-export async function listVoiceProfiles(): Promise<VoiceProfile[]> {
-  const { data } = await api.get<VoiceProfile[]>("/audiobook-gen/voices");
+/** The voices of one tier; without `tier`, the server's default list (Chirp 3: HD). */
+export async function listVoiceProfiles(tier?: VoiceTierId): Promise<VoiceProfile[]> {
+  const { data } = tier
+    ? await api.get<VoiceProfile[]>("/audiobook-gen/voices", { params: { tier } })
+    : await api.get<VoiceProfile[]>("/audiobook-gen/voices");
   return data;
+}
+
+/** The voice tiers this server offers, or none on a server that has no tiers (Chirp only). */
+export async function listVoiceTiers(): Promise<VoiceTier[]> {
+  try {
+    const { data } = await api.get<VoiceTier[]>("/audiobook-gen/voice-tiers");
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    const status = isAxiosError(err) ? err.response?.status : undefined;
+    if (status === 404 || status === 405 || status === 501) return [];
+    throw err;
+  }
 }
 
 /** Upper-bound char-count estimate from the raw file, used for the up-front quote. */
@@ -59,15 +83,16 @@ export async function getQuote(
   sourceLanguage: string,
   targetLanguage: string,
   voiceProfileId: string,
-  coverMode: CoverMode = "auto"
+  coverMode: CoverMode = "auto",
+  voiceTier?: VoiceTierId
 ): Promise<GenerationQuote> {
-  // The cover is part of the price on a hosted server; an older one ignores the field.
   const { data } = await api.post<GenerationQuote>("/audiobook-gen/quote", {
     char_count: charCount,
     source_language: sourceLanguage,
     target_language: targetLanguage,
     voice_profile_id: voiceProfileId,
     cover_mode: coverMode,
+    ...(voiceTier ? { voice_tier: voiceTier } : {}),
   });
   return data;
 }
@@ -82,6 +107,7 @@ export async function createGenerationJob(
   formData.append("source_language", req.sourceLanguage);
   formData.append("target_language", req.targetLanguage);
   formData.append("voice_profile_id", req.voiceProfileId);
+  if (req.voiceTier) formData.append("voice_tier", req.voiceTier);
   formData.append("output_mode", req.outputMode);
   formData.append("cover_mode", req.coverMode);
   if (req.coverMode === "custom" && req.coverPrompt?.trim()) {

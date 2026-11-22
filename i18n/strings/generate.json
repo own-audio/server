@@ -9,8 +9,8 @@
   "generate.voice.otherLanguages": { "en": "Voices in other languages ({count})", "cs": "Hlasy v jiných jazycích ({count})" },
   "generate.start": { "en": "Start narrating", "cs": "Spustit namlouvání" },
   "generate.chargeNote": {
-    "en": "Narrating a book is charged against your family's credit at the price quoted on the last step. If a job fails you aren't charged, but it has to be started again from scratch.",
-    "cs": "Namluvení knihy se zaplatí z kreditu vaší rodiny v ceně uvedené v posledním kroku. Když úloha selže, nic se neúčtuje, ale je potřeba ji spustit znovu od začátku."
+    "en": "Narration is paid from your family's credit. If a job fails, you pay only for the part already made, and the book has to be started again.",
+    "cs": "Namluvení se platí z kreditu vaší rodiny. Když úloha selže, zaplatíte jen za už hotovou část a knihu je potřeba spustit znovu."
   },
   "generate.error.missing": { "en": "Missing required fields.", "cs": "Chybí povinné údaje." },
   "generate.error.start": { "en": "Couldn't start narrating the book.", "cs": "Namlouvání knihy se nepodařilo spustit." },
@@ -47,6 +47,28 @@
     "cs": "{language} · {gender, select, male {Mužský} female {Ženský} other {Neutrální}} · Google TTS",
     "note": "Under a voice's name: language code, the voice's gender, the provider."
   },
+  "generate.voice.listTitle": { "en": "Voice", "cs": "Hlas", "note": "Above the list of voices, under the voice model cards." },
+  "generate.tier.title": { "en": "Voice model", "cs": "Hlasový model", "note": "Above the cards for Chirp 3: HD and the Gemini TTS models." },
+  "generate.tier.preview": { "en": "Preview", "cs": "Zkušební", "note": "Badge on a model Google offers as a Preview." },
+  "generate.tier.previewHint": {
+    "en": "A preview model: Google may change it or withdraw it.",
+    "cs": "Zkušební model: Google ho může změnit nebo stáhnout."
+  },
+  "generate.tier.perHour": {
+    "en": "About {price} per hour of audio",
+    "cs": "Asi {price} za hodinu nahrávky",
+    "note": "{price} is a formatted price like “$1.25”."
+  },
+  "generate.tier.unavailable": { "en": "Not available in this language", "cs": "V tomto jazyce není k dispozici" },
+  "generate.tier.play": { "en": "Listen", "cs": "Poslechnout", "note": "Button: plays a short sample of the model." },
+  "generate.tier.stop": { "en": "Stop", "cs": "Zastavit" },
+  "generate.tier.playLabel": { "en": "Play a sample of {name}", "cs": "Přehrát ukázku: {name}", "note": "For screen readers. {name} is a model name." },
+  "generate.tier.stopLabel": { "en": "Stop the sample of {name}", "cs": "Zastavit ukázku: {name}", "note": "For screen readers." },
+  "generate.tier.sampleError": { "en": "The sample couldn't be played.", "cs": "Ukázku se nepodařilo přehrát." },
+  "generate.tier.priceNote": {
+    "en": "The price shown is the most you pay. You pay only for what is actually made.",
+    "cs": "Uvedená cena je nejvyšší možná. Zaplatíte jen za to, co se skutečně vytvoří."
+  },
   "generate.voice.noPreview": { "en": "Preview unavailable", "cs": "Ukázka není k dispozici" },
   "generate.voice.output": { "en": "Output format", "cs": "Výstupní formát" },
   "generate.voice.singleM4b": { "en": "Single M4B", "cs": "Jediný soubor (M4B)" },
@@ -56,12 +78,15 @@
 
   "generate.cover.title": { "en": "Name it and give it a cover", "cs": "Pojmenujte ji a dejte jí obálku" },
   "generate.cover.intro": { "en": "All of this can be changed afterwards.", "cs": "Vše lze později změnit." },
+  "generate.cover.book": { "en": "The book's own", "cs": "Obálka z knihy", "note": "Cover option: the cover inside the EPUB/MOBI file." },
+  "generate.cover.bookHint": { "en": "From the file; made for you if it has none", "cs": "Ze souboru; když žádnou nemá, vytvoří se" },
   "generate.cover.auto": { "en": "Make one for me", "cs": "Vytvořit za mě" },
   "generate.cover.autoHint": { "en": "Generated from the book", "cs": "Vytvoří se podle knihy" },
   "generate.cover.custom": { "en": "Describe it", "cs": "Popsat vlastními slovy" },
   "generate.cover.customHint": { "en": "Your own brief", "cs": "Váš vlastní popis" },
   "generate.cover.none": { "en": "No cover", "cs": "Bez obálky" },
   "generate.cover.noneHint": { "en": "Leave it blank", "cs": "Nechat prázdné" },
+  "generate.cover.free": { "en": "The cover is free.", "cs": "Obálka je zdarma." },
   "generate.cover.prompt": { "en": "What should it look like?", "cs": "Jak má vypadat?" },
   "generate.cover.loadingBrief": { "en": "Loading the default brief…", "cs": "Načítání výchozího popisu…" },
   "generate.cover.resetBrief": { "en": "Reset to the default brief", "cs": "Obnovit výchozí popis" },
@@ -69,18 +94,17 @@
 
   "generate.quote.title": { "en": "Review & confirm", "cs": "Shrnutí a potvrzení" },
   "generate.quote.intro": {
-    "en": "You'll only be charged if the audiobook is generated successfully.",
-    "cs": "Platíte jen tehdy, když se audiokniha úspěšně vytvoří."
+    "en": "Check the details and the price before you start.",
+    "cs": "Před spuštěním zkontrolujte údaje a cenu."
   },
   "generate.quote.calculating": { "en": "Calculating price…", "cs": "Výpočet ceny…" },
   "generate.quote.characters": { "en": "Estimated characters", "cs": "Odhadovaný počet znaků" },
   "generate.quote.translation": { "en": "Translation", "cs": "Překlad" },
   "generate.quote.narration": { "en": "Narration (TTS)", "cs": "Namluvení (TTS)" },
+  "generate.quote.voiceModel": { "en": "Voice model", "cs": "Hlasový model" },
+  "generate.quote.cover": { "en": "Cover", "cs": "Obálka" },
+  "generate.quote.free": { "en": "Free", "cs": "Zdarma", "note": "Price of the cover in the summary." },
   "generate.quote.total": { "en": "Total price", "cs": "Celková cena" },
-  "generate.quote.finalNote": {
-    "en": "Final charge may be lower than this quote, and is only captured once your audiobook is ready — never on a failed generation.",
-    "cs": "Výsledná částka může být nižší než tato nabídka a strhne se až ve chvíli, kdy je audiokniha hotová — za neúspěšné namlouvání nikdy."
-  },
 
   "generate.stage.extracting": { "en": "Reading the book", "cs": "Čtení knihy" },
   "generate.stage.translating": { "en": "Translating", "cs": "Překládání" },

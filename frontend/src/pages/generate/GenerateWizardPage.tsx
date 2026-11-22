@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { createGenerationJob, estimateCharCount, getQuote, listLanguages, type CoverMode } from "../../api/generation";
+import { canHaveOwnCover, createGenerationJob, estimateCharCount, getQuote, listLanguages, listVoiceTiers, type CoverMode } from "../../api/generation";
+import type { VoiceTierId } from "../../api/types";
+import { effectiveTier, voiceForTier } from "../../lib/voiceTiers";
 import { Page } from "../../components/shell/SplitView";
 import { Button } from "../../components/ui";
 import { cn } from "../../lib/cn";
@@ -37,11 +39,12 @@ export default function GenerateWizardPage() {
   const [params] = useSearchParams();
   const [translate, setTranslate] = useState(params.get("translate") === "1");
   const [targetLanguage, setTargetLanguage] = useState("cs");
-  const [voiceProfileId, setVoiceProfileId] = useState<string | null>(null);
+  const [pickedVoice, setVoiceProfileId] = useState<string | null>(null);
+  const [chosenTier, setChosenTier] = useState<VoiceTierId | null>(null);
   const [outputMode, setOutputMode] = useState<OutputMode>("single_m4b");
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
-  const [coverMode, setCoverMode] = useState<CoverMode>("auto");
+  const [pickedCoverMode, setCoverMode] = useState<CoverMode>("auto");
   const [coverPrompt, setCoverPrompt] = useState("");
   const [coverShowTitle, setCoverShowTitle] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -54,12 +57,32 @@ export default function GenerateWizardPage() {
   const effectiveTitle = titleTouched ? title : (file?.name.replace(/\.[^.]+$/, "") ?? "");
 
   const effectiveTargetLanguage = translate ? targetLanguage : sourceLanguage;
+  // A TXT has no cover of its own: a book-cover choice made for an earlier EPUB becomes a made one.
+  const coverMode: CoverMode = pickedCoverMode === "book" && !canHaveOwnCover(file) ? "auto" : pickedCoverMode;
 
   const { data: languages = [] } = useQuery({
     queryKey: ["generation-languages"],
     queryFn: listLanguages,
     staleTime: Infinity,
   });
+
+  // A server without tiers answers 404/501; then nothing about tiers is shown or sent.
+  const { data: tiers = [], isPending: tiersPending } = useQuery({
+    queryKey: ["voice-tiers"],
+    queryFn: listVoiceTiers,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
+  const voiceTier = effectiveTier(tiers, chosenTier, effectiveTargetLanguage);
+  // A language without the chosen tier's voices falls back to the default tier, and the voice with it.
+  const voiceProfileId = voiceForTier(pickedVoice, voiceTier);
+
+  function changeTier(id: VoiceTierId) {
+    if (id === voiceTier) return;
+    setChosenTier(id);
+    // A voice belongs to one tier; the server refuses another tier's voice.
+    setVoiceProfileId(null);
+  }
 
   const { data: charCount } = useQuery({
     queryKey: ["char-count", file?.name, file?.size],
@@ -68,9 +91,10 @@ export default function GenerateWizardPage() {
   });
 
   const { data: quote, isLoading: quoteLoading } = useQuery({
-    queryKey: ["quote", charCount, sourceLanguage, effectiveTargetLanguage, voiceProfileId, coverMode],
-    queryFn: () => getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string, coverMode),
-    enabled: !!charCount && !!voiceProfileId && step >= CONFIRM,
+    queryKey: ["quote", charCount, sourceLanguage, effectiveTargetLanguage, voiceProfileId, voiceTier, coverMode],
+    queryFn: () =>
+      getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string, coverMode, voiceTier),
+    enabled: !!charCount && !!voiceProfileId && step >= CONFIRM && !tiersPending,
   });
 
   const submitMutation = useMutation({
@@ -83,6 +107,7 @@ export default function GenerateWizardPage() {
         sourceLanguage,
         targetLanguage: effectiveTargetLanguage,
         voiceProfileId,
+        voiceTier,
         outputMode,
         coverMode,
         coverPrompt,
@@ -163,6 +188,9 @@ export default function GenerateWizardPage() {
             voiceProfileId={voiceProfileId}
             outputMode={outputMode}
             language={effectiveTargetLanguage}
+            tiers={tiers}
+            voiceTier={voiceTier}
+            onVoiceTierChange={changeTier}
             onVoiceChange={setVoiceProfileId}
             onOutputModeChange={setOutputMode}
           />
@@ -174,6 +202,7 @@ export default function GenerateWizardPage() {
             coverMode={coverMode}
             coverPrompt={coverPrompt}
             coverShowTitle={coverShowTitle}
+            ownCover={canHaveOwnCover(file)}
             onTitleChange={(v) => {
               setTitleTouched(true);
               setTitle(v);
@@ -184,7 +213,7 @@ export default function GenerateWizardPage() {
             onCoverShowTitleChange={setCoverShowTitle}
           />
         )}
-        {step === 4 && <QuoteStep quote={quote} isLoading={quoteLoading} />}
+        {step === 4 && <QuoteStep quote={quote} isLoading={quoteLoading} tiers={tiers} coverMode={coverMode} />}
 
         {submitError && (
           <p role="alert" className="mt-4 rounded-[10px] bg-error/10 px-3 py-2 text-sm text-error">{submitError}</p>

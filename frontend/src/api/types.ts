@@ -85,6 +85,9 @@ export interface PodcastTranslationQuote {
   quoted_price_cents: number;
   currency: string;
   notice: string;
+  voice_tier?: VoiceTierId;
+  voice_tier_preview?: boolean;
+  tts_audio_tokens?: number;
 }
 
 export type PodcastTranslationStatus = "translating" | "narrating" | "assembling" | "complete" | "failed";
@@ -95,6 +98,7 @@ export interface PodcastEpisodeTranslation {
   source_language: string;
   target_language: string;
   voice_profile_id: string;
+  voice_tier?: VoiceTierId;
   status: PodcastTranslationStatus;
   char_count: number;
   quoted_price_cents: number;
@@ -428,6 +432,34 @@ export interface VoiceProfile {
   gender: "male" | "female" | "neutral";
   preview_url: string | null;
   cost_per_million_chars_cents: number;
+  /** The engine that reads with this voice; absent on a server without tiers. */
+  tier?: VoiceTierId;
+  tier_preview?: boolean;
+  /** About what an hour of finished audio costs with this voice, in cents. */
+  price_per_hour_cents?: number;
+}
+
+/** Tier ids the server sends; an unknown one is still shown, by its label. */
+export type VoiceTierId = "chirp3_hd" | "gemini_flash" | "gemini_flash_lite" | (string & {});
+
+export interface VoiceTierLanguage {
+  language: string;
+  /** About what an hour of finished audio costs the family, in cents (USD). */
+  price_per_hour_cents: number;
+  price_per_million_chars_cents: number;
+  /** A short sample of the tier in this language. */
+  sample_url?: string | null;
+}
+
+/** `GET /audiobook-gen/voice-tiers`: an engine to read with, and its price per language. */
+export interface VoiceTier {
+  id: VoiceTierId;
+  label: string;
+  model: string | null;
+  /** A Preview model: Google may change or withdraw it. */
+  preview: boolean;
+  default: boolean;
+  languages: VoiceTierLanguage[];
 }
 
 /** Every *_cost_cents is the upstream cost of that part; quoted_price_cents is their sum × 2. */
@@ -441,6 +473,9 @@ export interface GenerationQuote {
   preprocess_cost_cents?: number;
   cover_cost_cents?: number;
   internal_cost_cents: number;
+  voice_tier?: VoiceTierId;
+  voice_tier_preview?: boolean;
+  tts_audio_tokens?: number;
   quoted_price_cents: number;
   currency: string;
 }
@@ -477,6 +512,7 @@ export interface GenerationJobStatus {
   /** The published book, once assembly has run. Both output modes publish
    *  one, so this is the deep-link that always works. */
   book_id: string | null;
+  voice_tier?: VoiceTierId;
   quoted_price_cents: number;
   /** Running total of real API cost incurred so far. audio2 is self-hosted — this is cost visibility, not a charge. */
   actual_cost_cents: number | null;

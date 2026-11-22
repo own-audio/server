@@ -2,12 +2,16 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Languages } from "lucide-react";
-import { listLanguages, listVoiceProfiles } from "../../api/generation";
+import { listLanguages, listVoiceProfiles, listVoiceTiers } from "../../api/generation";
+import type { VoiceTierId } from "../../api/types";
 import { createTranslation, quoteTranslation } from "../../api/podcastTranslate";
 import { Button, Dialog, DialogContent, Select, Skeleton, toast } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/apiError";
 import { formatCents } from "../../lib/format";
+import { effectiveTier, showsTierPicker } from "../../lib/voiceTiers";
 import { useT } from "../../i18n";
+import VoiceTierPicker from "../generate/VoiceTierPicker";
+import QuoteTierRow from "../generate/QuoteTierRow";
 
 /**
  * Personal-use podcast translation (`docs/android-client-guide.md` §11a).
@@ -40,15 +44,29 @@ export default function TranslateEpisodeModal({
   const qc = useQueryClient();
   const [target, setTarget] = useState<string | null>(null);
   const [voice, setVoice] = useState<string | null>(null);
+  const [chosenTier, setChosenTier] = useState<VoiceTierId | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data: languages = [] } = useQuery({ queryKey: ["generation-languages"], queryFn: listLanguages, staleTime: Infinity });
-  const { data: voices = [] } = useQuery({ queryKey: ["voice-profiles"], queryFn: listVoiceProfiles, staleTime: Infinity });
+  // A server without tiers answers 404/501; then nothing about tiers is shown or sent.
+  const { data: tiers = [], isPending: tiersPending } = useQuery({
+    queryKey: ["voice-tiers"],
+    queryFn: listVoiceTiers,
+    staleTime: 5 * 60_000,
+    retry: false,
+  });
 
   // A feed's language may be a full tag ("en-GB"); the language list is bare codes.
   const source = sourceLanguage?.slice(0, 2).toLowerCase();
   const targetLanguage = target ?? languages.find((l) => l.code !== source)?.code ?? "en";
   const setTargetLanguage = setTarget;
+  const voiceTier = effectiveTier(tiers, chosenTier, targetLanguage);
+
+  const { data: voices = [] } = useQuery({
+    queryKey: ["voice-profiles", voiceTier ?? "default"],
+    queryFn: () => listVoiceProfiles(voiceTier),
+    staleTime: Infinity,
+  });
 
   const voicesForLanguage = useMemo(() => voices.filter((v) => v.language === targetLanguage), [voices, targetLanguage]);
   // Derived rather than synced in an effect: whatever is picked stays picked
@@ -60,16 +78,17 @@ export default function TranslateEpisodeModal({
     isLoading: quoteLoading,
     error: quoteError,
   } = useQuery({
-    queryKey: ["podcast-translate-quote", episodeId, targetLanguage, selectedVoice],
-    queryFn: () => quoteTranslation(episodeId, targetLanguage, selectedVoice as string),
+    queryKey: ["podcast-translate-quote", episodeId, targetLanguage, selectedVoice, voiceTier],
+    queryFn: () => quoteTranslation(episodeId, targetLanguage, selectedVoice as string, undefined, voiceTier),
     // Not before the languages are in: until then the target is the "en" fallback, which for
     // an English show is its own language, and the server refuses that quote with a 400.
-    enabled: !!selectedVoice && languages.length > 0 && targetLanguage !== source,
+    // Nor before the tiers are known, so the first quote is already for the tier shown.
+    enabled: !!selectedVoice && languages.length > 0 && targetLanguage !== source && !tiersPending,
     retry: false,
   });
 
   const create = useMutation({
-    mutationFn: () => createTranslation(episodeId, targetLanguage, selectedVoice as string),
+    mutationFn: () => createTranslation(episodeId, targetLanguage, selectedVoice as string, undefined, voiceTier),
     onSuccess: () => {
       // The episode's own list, and the show-wide and recent lists on the Translate page.
       qc.invalidateQueries({ queryKey: ["podcast-translations"] });
@@ -87,6 +106,7 @@ export default function TranslateEpisodeModal({
       <DialogContent
         title={t("podcasts.translate.title")}
         description={t("podcasts.translate.description")}
+        className={showsTierPicker(tiers) ? "sm:max-w-2xl" : undefined}
         footer={
           <>
             <Button variant="ghost" onClick={onClose}>
@@ -103,15 +123,21 @@ export default function TranslateEpisodeModal({
           </>
         }
       >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Select label={t("podcasts.translate.language")} value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)}>
-            {languages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.label}
-              </option>
-            ))}
-          </Select>
+        <Select label={t("podcasts.translate.language")} value={targetLanguage} onChange={(e) => setTargetLanguage(e.target.value)}>
+          {languages.map((lang) => (
+            <option key={lang.code} value={lang.code}>
+              {lang.label}
+            </option>
+          ))}
+        </Select>
 
+        {showsTierPicker(tiers) && (
+          <div className="mt-4">
+            <VoiceTierPicker tiers={tiers} language={targetLanguage} value={voiceTier} onChange={setChosenTier} />
+          </div>
+        )}
+
+        <div className="mt-4">
           {voicesForLanguage.length === 0 ? (
             <div>
               <span className="mb-1.5 block text-[13px] font-medium text-fg">{t("podcasts.translate.voice")}</span>
@@ -135,6 +161,9 @@ export default function TranslateEpisodeModal({
             <p className="text-sm text-error">{quoteMessage}</p>
           ) : quote ? (
             <>
+              <dl className="mb-2 text-sm">
+                <QuoteTierRow tiers={tiers} tierId={quote.voice_tier} preview={quote.voice_tier_preview} />
+              </dl>
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted">{t("podcasts.translate.price")}</span>
                 {/* The server states the currency; never assume dollars. */}

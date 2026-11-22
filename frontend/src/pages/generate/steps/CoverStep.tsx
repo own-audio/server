@@ -7,6 +7,7 @@ import { cn } from "../../../lib/cn";
 import { useT, type PlainKey } from "../../../i18n";
 
 const MODES: { mode: CoverMode; label: PlainKey; description: PlainKey }[] = [
+  { mode: "book", label: "generate.cover.book", description: "generate.cover.bookHint" },
   { mode: "auto", label: "generate.cover.auto", description: "generate.cover.autoHint" },
   { mode: "custom", label: "generate.cover.custom", description: "generate.cover.customHint" },
   { mode: "none", label: "generate.cover.none", description: "generate.cover.noneHint" },
@@ -25,6 +26,7 @@ export default function CoverStep({
   coverMode,
   coverPrompt,
   coverShowTitle,
+  ownCover,
   onTitleChange,
   onAuthorChange,
   onCoverModeChange,
@@ -36,6 +38,8 @@ export default function CoverStep({
   coverMode: CoverMode;
   coverPrompt: string;
   coverShowTitle: boolean;
+  /** The file may carry a cover of its own (EPUB, MOBI). */
+  ownCover: boolean;
   onTitleChange: (v: string) => void;
   onAuthorChange: (v: string) => void;
   onCoverModeChange: (v: CoverMode) => void;
@@ -67,7 +71,7 @@ export default function CoverStep({
 
       <p className="mb-2 mt-6 text-sm font-medium text-fg">{t("audiobooks.field.cover")}</p>
       <div className="flex flex-col gap-2 sm:flex-row">
-        {MODES.map((m) => (
+        {MODES.filter((m) => ownCover || m.mode !== "book").map((m) => (
           <button
             key={m.mode}
             type="button"
@@ -83,6 +87,8 @@ export default function CoverStep({
           </button>
         ))}
       </div>
+
+      {coverMode !== "none" && <p className="mt-2 text-xs text-muted">{t("generate.cover.free")}</p>}
 
       {coverMode === "custom" && (
         <div className="mt-4">
@@ -105,7 +111,7 @@ export default function CoverStep({
         </div>
       )}
 
-      {coverMode !== "none" && (
+      {coverMode !== "none" && coverMode !== "book" && (
         <label className="mt-4 flex items-center gap-2 text-sm">
           <input
             type="checkbox"

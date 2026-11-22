@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
-import type { PodcastEpisodeTranslation, PodcastTranslationQuote, RecentPodcastTranslation } from "./types";
+import type { VoiceTierId, PodcastEpisodeTranslation, PodcastTranslationQuote, RecentPodcastTranslation } from "./types";
 
 export async function quoteTranslation(
   episodeId: string,
   targetLanguage: string,
   voiceProfileId: string,
-  sourceLanguage?: string
+  sourceLanguage?: string,
+  voiceTier?: VoiceTierId
 ): Promise<PodcastTranslationQuote> {
   const { data } = await api.post<PodcastTranslationQuote>(`/podcast-translate/episodes/${episodeId}/quote`, {
     target_language: targetLanguage,
     voice_profile_id: voiceProfileId,
     source_language: sourceLanguage,
+    ...(voiceTier ? { voice_tier: voiceTier } : {}),
   });
   return data;
 }
@@ -20,12 +22,14 @@ export async function createTranslation(
   episodeId: string,
   targetLanguage: string,
   voiceProfileId: string,
-  sourceLanguage?: string
+  sourceLanguage?: string,
+  voiceTier?: VoiceTierId
 ): Promise<PodcastEpisodeTranslation> {
   const { data } = await api.post<PodcastEpisodeTranslation>(`/podcast-translate/episodes/${episodeId}`, {
     target_language: targetLanguage,
     voice_profile_id: voiceProfileId,
     source_language: sourceLanguage,
+    ...(voiceTier ? { voice_tier: voiceTier } : {}),
   });
   return data;
 }

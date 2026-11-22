@@ -1,16 +1,23 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import type { GenerationQuote } from "../../../api/types";
+import type { CoverMode } from "../../../api/generation";
+import type { GenerationQuote, VoiceTier } from "../../../api/types";
 import { formatCents } from "../../../lib/format";
 import { useT } from "../../../i18n";
+import QuoteTierRow from "../QuoteTierRow";
 
 export default function QuoteStep({
   quote,
   isLoading,
+  tiers = [],
+  coverMode = "auto",
 }: {
   quote: GenerationQuote | undefined;
   isLoading: boolean;
+  tiers?: VoiceTier[];
+  coverMode?: CoverMode;
 }) {
   const { t, locale } = useT();
+  const coverCents = quote?.cover_cost_cents ?? 0;
   return (
     <div>
       <h2 className="mb-1 text-lg font-semibold">{t("generate.quote.title")}</h2>
@@ -21,6 +28,7 @@ export default function QuoteStep({
       {quote && (
         <div className="rounded-xl border border-border bg-card p-5">
           <dl className="space-y-2 text-sm">
+            <QuoteTierRow tiers={tiers} tierId={quote.voice_tier} preview={quote.voice_tier_preview} />
             <div className="flex justify-between">
               <dt className="text-muted">{t("generate.quote.characters")}</dt>
               <dd className="tabular-nums">{quote.char_count.toLocaleString(locale)}</dd>
@@ -35,6 +43,15 @@ export default function QuoteStep({
               <dt className="text-muted">{t("generate.quote.narration")}</dt>
               <dd className="tabular-nums">{formatCents(quote.tts_cost_cents, quote.currency)}</dd>
             </div>
+            {coverMode !== "none" && (
+              <div className="flex justify-between">
+                <dt className="text-muted">{t("generate.quote.cover")}</dt>
+                {/* A server that still prices the cover says so in the quote; it is never hidden. */}
+                <dd className="tabular-nums">
+                  {coverCents > 0 ? formatCents(coverCents, quote.currency) : t("generate.quote.free")}
+                </dd>
+              </div>
+            )}
           </dl>
           <div className="mt-4 flex justify-between border-t border-border pt-4 text-base font-semibold">
             <span>{t("generate.quote.total")}</span>
@@ -42,7 +59,7 @@ export default function QuoteStep({
               {formatCents(quote.quoted_price_cents, quote.currency)}
             </span>
           </div>
-          <p className="mt-3 text-xs text-muted">{t("generate.quote.finalNote")}</p>
+          <p className="mt-3 text-xs text-muted">{t("generate.tier.priceNote")}</p>
         </div>
       )}
     </div>

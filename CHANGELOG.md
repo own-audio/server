@@ -7,6 +7,22 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Web console: Narrate a book and Translate this episode offer the voice models a hosted server
+  lists at `GET /narration/voice-tiers` (Chirp 3: HD by default; Gemini 3.8 Flash TTS and
+  Flash-Lite TTS marked Preview), each with its price per hour of audio in the chosen language
+  and a sample to hear, then that model's voices. The quote and the request carry `voice_tier`,
+  and the summary names the model. A server without tiers shows the voice list as before and is
+  sent nothing new.
+- Web console: an EPUB or MOBI can keep its own cover when narrated (`cover_mode` `book`; one is
+  made when the file has none).
+
+### Changed
+
+- Web console: the narration wizard shows the cover as free, and says that the price shown is the
+  most you pay and that a failed job costs the part already made.
+
 ## [1.0.7] - 2026-11-22
 
 Contract revision 28. API v2 revision 18.
