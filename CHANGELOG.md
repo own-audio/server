@@ -7,6 +7,11 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Fixed
+
+- `url` 2.5.9 for RUSTSEC-2026-0592 (a stack overflow in `Url::origin()` on nested `blob:` URLs);
+  the `webpki-roots` exception in `deny.toml` is gone, the advisory no longer applies.
+
 ## [1.0.6] - 2026-11-22
 
 Contract revision 28. API v2 revision 18.
