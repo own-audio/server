@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.7] - 2026-11-22
+
+Contract revision 28. API v2 revision 18.
+
+Undoing an identify takes everything back, the organizer's Changed means a change in effect, a
+failed paid job in the console says what it cost, and `url` 2.5.9 for a security advisory. No
+migrations.
+
 ### Fixed
 
 - `url` 2.5.9 for RUSTSEC-2026-0592 (a stack overflow in `Url::origin()` on nested `blob:` URLs);
