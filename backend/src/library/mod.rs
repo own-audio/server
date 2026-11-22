@@ -158,7 +158,7 @@ fn parse_cursor(raw: &str) -> Result<DateTime<Utc>, AuthError> {
             song with `id`, `album_artist`, `title`, `artist`, `album`, `track_number`, `disc_number`, \
             `duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`. `audiobooks` items have \
             `id`, `title`, `author`, `narrator`, `total_duration_secs`, `visibility`, `is_owner`, \
-            `owner_id`, `updated_at`; `podcasts` items `id`, `title`, `author`, `feed_url`, `visibility`, \
+            `owner_id`, `updated_at`, `language`, `origin` (revision 29); `podcasts` items `id`, `title`, `author`, `feed_url`, `visibility`, \
             `is_owner`, `owner_id`, `updated_at`."),
         (status = 400, description = "`since` is not an RFC3339 timestamp", body = crate::http::openapi::ErrorBody)))]
 async fn changes(
@@ -220,6 +220,8 @@ async fn changes(
                     "is_owner": b.user_id == family.user_id,
                     "owner_id": b.user_id.to_string(),
                     "updated_at": b.updated_at.to_rfc3339(),
+                    "language": b.language,
+                    "origin": b.origin.map(|o| o.0),
                 })
             })
             .collect(),

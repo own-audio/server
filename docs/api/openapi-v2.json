@@ -914,6 +914,24 @@
               "null"
             ]
           },
+          "language": {
+            "description": "BCP 47 (`en`, `pt-BR`), when known; the owner sets it with `PATCH /books/{id}` (revision 19).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BookOrigin",
+                "description": "How the server made the book, when it was not simply uploaded; `null` for an ordinary book\n(revision 19). A client marks `kind` `machine_translated` as a machine translation."
+              }
+            ]
+          },
           "owner_id": {
             "format": "uuid",
             "type": "string"
@@ -1180,6 +1198,40 @@
         ],
         "type": "object"
       },
+      "BookOrigin": {
+        "description": "Where a book came from when it is not an ordinary upload (migration 0134). Written by the\nserver — the hosted edition's narration — never by a client.",
+        "properties": {
+          "kind": {
+            "description": "`narrated` (read by a synthetic voice from a text in the book's own language) or\n`machine_translated` (translated by machine, then read). Treat any other value as an\nordinary book.",
+            "type": "string"
+          },
+          "source_language": {
+            "description": "The language it was translated from, BCP 47; on `machine_translated`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "translator": {
+            "description": "Who translated it: `google` for Google Translate; on `machine_translated`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "voice": {
+            "description": "The reading voice's display name (\"Sarah\").",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "type": "object"
+      },
       "BookPatch": {
         "properties": {
           "description": {
@@ -1190,6 +1242,13 @@
             ]
           },
           "isbn": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "description": "BCP 47 (`en`, `pt-BR`); `null` clears it (revision 19). A book's `origin` is the server's\nand cannot be set here.",
             "type": [
               "string",
               "null"
@@ -6103,6 +6162,24 @@
                   "type": [
                     "string",
                     "null"
+                  ]
+                },
+                "language": {
+                  "description": "BCP 47 (`en`, `pt-BR`), when known; the owner sets it with `PATCH /books/{id}` (revision 19).",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "origin": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BookOrigin",
+                      "description": "How the server made the book, when it was not simply uploaded; `null` for an ordinary book\n(revision 19). A client marks `kind` `machine_translated` as a machine translation."
+                    }
                   ]
                 },
                 "owner_id": {
@@ -12739,7 +12816,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.18"
+    "version": "2.19"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -15693,7 +15770,7 @@
         "x-scope": "library:read"
       },
       "patch": {
-        "description": "Correct a book's title, description, publisher, year or ISBN. Its people are its credits\n(`PUT /books/{id}/credits`).",
+        "description": "Correct a book's title, description, publisher, year, ISBN or language. Its people are its credits\n(`PUT /books/{id}/credits`).",
         "operationId": "books_patch_book",
         "parameters": [
           {
@@ -15735,7 +15812,7 @@
                 }
               }
             },
-            "description": "`invalid_body`: an empty title, a field too long, a year out of range"
+            "description": "`invalid_body`: an empty title, a field too long, a year out of range, a language that is not a BCP 47 tag"
           },
           "401": {
             "content": {
@@ -15783,7 +15860,7 @@
             "bearer": []
           }
         ],
-        "summary": "Correct a book's title, description, publisher, year or ISBN",
+        "summary": "Correct a book's title, description, publisher, year, ISBN or language",
         "tags": [
           "books"
         ],

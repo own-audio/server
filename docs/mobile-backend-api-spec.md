@@ -437,6 +437,18 @@ Tracks and books carry `source` (`upload` or `folder`) and `read_only`
 (revision 3). A `read_only` item comes from a library folder: its file cannot
 be edited or deleted on disk; deleting the item hides it from the library.
 
+Books carry `language` (BCP 47, `null` when unknown) and `origin` (revision 29;
+v2 revision 19), in v1's book answers and `/library/changes`, and on v2's
+`Book` everywhere it is sent (lists, `GET /books/{id}`, `/sync/snapshot`,
+`/sync/changes`). `origin` is `null` for an ordinary book. A server that made
+the book itself sets it, and no client can: `{"kind": "narrated", "voice":
+"Sarah"}` for a text read by a synthetic voice, `{"kind":
+"machine_translated", "source_language": "cs", "translator": "google",
+"voice": "Sarah"}` for one translated by machine first. Show a
+`machine_translated` book with a "Machine translation" badge; treat an unknown
+`kind` as an ordinary book. The owner may change `language` with v2's
+`PATCH /books/{id}`.
+
 ## 5. Podcasts
 
 | Method | Path | Purpose |

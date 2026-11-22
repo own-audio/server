@@ -95,19 +95,28 @@ pub struct BookPatch {
     #[serde(default, deserialize_with = "present")]
     #[schema(value_type = Option<String>)]
     pub isbn: Option<Option<String>>,
+    /// BCP 47 (`en`, `pt-BR`); `null` clears it (revision 19). A book's `origin` is the server's
+    /// and cannot be set here.
+    #[serde(default, deserialize_with = "present")]
+    #[schema(value_type = Option<String>)]
+    pub language: Option<Option<String>>,
 }
 
-/// Correct a book's title, description, publisher, year or ISBN. Its people are its credits
+/// Correct a book's title, description, publisher, year, ISBN or language. Its people are its credits
 /// (`PUT /books/{id}/credits`).
 #[utoipa::path(patch, path = "/books/{id}", tag = "books", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)), request_body = BookPatch,
     responses((status = 200, description = "The book now", body = Book),
-        (status = 400, description = "`invalid_body`: an empty title, a field too long, a year out of range", body = crate::v2::problem::ProblemBody),
+        (status = 400, description = "`invalid_body`: an empty title, a field too long, a year out of range, a language that is not a BCP 47 tag", body = crate::v2::problem::ProblemBody),
         (status = 403, description = "Not the book's owner", body = crate::v2::problem::ProblemBody),
         (status = 404, description = "Unknown or not visible", body = crate::v2::problem::ProblemBody)))]
 pub async fn patch_book(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<BookPatch>) -> Result<Json<Book>, Problem> {
     let row = owned(&state, &family, id).await?;
+    let language = match body.language {
+        Some(l) => Some(language_tag(l.as_deref())?),
+        None => None,
+    };
     let title = match body.title.as_deref() {
         Some(t) => text("title", Some(t), 500)?.ok_or_else(|| Problem::bad_request("invalid_body", "a title cannot be empty").field("/title", "required", "a title"))?,
         None => row.title,
@@ -132,7 +141,28 @@ pub async fn patch_book(family: FamilyContext, State(state): State<AppState>, Pa
         None => row.isbn,
     };
     db::shelves::update_book_details(state.db(), id, &title, description.as_deref(), publisher.as_deref(), published_year, isbn.as_deref()).await?;
+    if let Some(language) = language {
+        db::audiobooks::set_book_language(state.db(), id, language.as_deref()).await?;
+    }
     Ok(Json(answer(&state, &family, id).await?))
+}
+
+/// A language as BCP 47 writes it, loosely: letters, digits and hyphens, a 2–3 letter language
+/// first (`en`, `pt-BR`, `zh-Hant`). Blank is none.
+fn language_tag(raw: Option<&str>) -> Result<Option<String>, Problem> {
+    let Some(tag) = raw.map(str::trim).filter(|t| !t.is_empty()) else {
+        return Ok(None);
+    };
+    let mut parts = tag.split('-');
+    let first = parts.next().unwrap_or_default();
+    let ok = tag.len() <= 35
+        && (2..=3).contains(&first.len())
+        && first.chars().all(|c| c.is_ascii_alphabetic())
+        && parts.all(|p| (1..=8).contains(&p.len()) && p.chars().all(|c| c.is_ascii_alphanumeric()));
+    if !ok {
+        return Err(Problem::bad_request("invalid_body", "a language is a BCP 47 tag, such as en or pt-BR").field("/language", "invalid", "a BCP 47 tag"));
+    }
+    Ok(Some(tag.to_string()))
 }
 
 // ── Files ────────────────────────────────────────────────────────────────────
@@ -589,6 +619,34 @@ pub async fn list_tags(family: FamilyContext, State(state): State<AppState>, Que
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_language_is_a_loose_bcp47_tag() {
+        assert_eq!(language_tag(Some(" pt-BR ")).unwrap().as_deref(), Some("pt-BR"));
+        assert_eq!(language_tag(Some("zh-Hant")).unwrap().as_deref(), Some("zh-Hant"));
+        assert_eq!(language_tag(Some("  ")).unwrap(), None);
+        assert_eq!(language_tag(None).unwrap(), None);
+        for bad in ["e", "english", "en_US", "en--US", "12", "en-toolongpart"] {
+            assert_eq!(language_tag(Some(bad)).unwrap_err().code(), "invalid_body", "{bad}");
+        }
+    }
+
+    #[test]
+    fn an_origin_names_only_what_it_has() {
+        use crate::audiobooks::models::BookOrigin;
+        let translated = BookOrigin {
+            kind: BookOrigin::MACHINE_TRANSLATED.into(),
+            source_language: Some("cs".into()),
+            translator: Some("google".into()),
+            voice: Some("Sarah".into()),
+        };
+        assert_eq!(
+            serde_json::to_value(&translated).unwrap(),
+            serde_json::json!({"kind": "machine_translated", "source_language": "cs", "translator": "google", "voice": "Sarah"})
+        );
+        let narrated: BookOrigin = serde_json::from_value(serde_json::json!({"kind": "narrated"})).unwrap();
+        assert_eq!(serde_json::to_value(&narrated).unwrap(), serde_json::json!({"kind": "narrated"}));
+    }
 
     #[test]
     fn tags_are_trimmed_kept_once_and_bounded() {

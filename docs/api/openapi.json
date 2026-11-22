@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.28"
+    "version": "1.29"
   },
   "servers": [
     {
@@ -6816,7 +6816,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Streamed. After `deleted` the object has a `tracks` array: one object per changed song with `id`, `album_artist`, `title`, `artist`, `album`, `track_number`, `disc_number`, `duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`. `audiobooks` items have `id`, `title`, `author`, `narrator`, `total_duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`; `podcasts` items `id`, `title`, `author`, `feed_url`, `visibility`, `is_owner`, `owner_id`, `updated_at`.",
+            "description": "Streamed. After `deleted` the object has a `tracks` array: one object per changed song with `id`, `album_artist`, `title`, `artist`, `album`, `track_number`, `disc_number`, `duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`. `audiobooks` items have `id`, `title`, `author`, `narrator`, `total_duration_secs`, `visibility`, `is_owner`, `owner_id`, `updated_at`, `language`, `origin` (revision 29); `podcasts` items `id`, `title`, `author`, `feed_url`, `visibility`, `is_owner`, `owner_id`, `updated_at`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -15653,6 +15653,40 @@
           }
         }
       },
+      "BookOrigin": {
+        "type": "object",
+        "description": "Where a book came from when it is not an ordinary upload (migration 0134). Written by the\nserver — the hosted edition's narration — never by a client.",
+        "required": [
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`narrated` (read by a synthetic voice from a text in the book's own language) or\n`machine_translated` (translated by machine, then read). Treat any other value as an\nordinary book."
+          },
+          "source_language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The language it was translated from, BCP 47; on `machine_translated`."
+          },
+          "translator": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Who translated it: `google` for Google Translate; on `machine_translated`."
+          },
+          "voice": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The reading voice's display name (\"Sarah\")."
+          }
+        }
+      },
       "BookProgressSummary": {
         "type": "object",
         "required": [
@@ -15797,6 +15831,24 @@
           },
           "read_only": {
             "type": "boolean"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "BCP 47 (`en`, `pt-BR`), when known (revision 29)."
+          },
+          "origin": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/BookOrigin",
+                "description": "How the server made it, when it was not simply uploaded: `kind` `narrated` or\n`machine_translated` (revision 29). `null` for an ordinary book."
+              }
+            ]
           }
         }
       },

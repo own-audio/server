@@ -671,12 +671,14 @@ pub struct BookRow {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub sort_key: String,
+    pub language: Option<String>,
+    pub origin: Option<sqlx::types::Json<crate::audiobooks::models::BookOrigin>>,
 }
 
 pub(crate) const BOOK_COLS: &str = "t.id, t.title, t.user_id, t.family_id, t.description, t.total_duration_secs, t.isbn,
     t.publisher, t.published_year, t.cover_object_id, t.source,
     (SELECT p.path FROM sync_paths p WHERE p.kind = 'audiobook' AND p.item_id = t.id) AS path, t.created_at,
-    t.updated_at, lower(t.title) AS sort_key";
+    t.updated_at, lower(t.title) AS sort_key, t.language, t.origin";
 
 /// Where a page of books or podcasts starts: after this title, or before this time.
 pub enum TitleOrAdded {

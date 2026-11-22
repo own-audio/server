@@ -184,6 +184,32 @@ def details(ctx: Ctx, s: Suite, owner: str, member: str, outsider: str | None) -
     else:
         ctx.skip("PATCH /books/{id}: another household", "one household on this server")
     check("…and nothing of that changed it", s.get_book(owner, b["id"])["title"] == f"Edited {ctx.sfx}")
+    language(ctx, s, owner, member)
+
+
+def language(ctx: Ctx, s: Suite, owner: str, member: str) -> None:
+    """A book's language (the owner's to set) and origin (the server's only), revision 19."""
+    check = ctx.check
+    b = s.book(owner)
+    fresh = s.get_book(owner, b["id"])
+    check("GET /books/{id}: an uploaded book has language and origin, both null",
+          "language" in fresh and fresh["language"] is None and "origin" in fresh and fresh["origin"] is None)
+    feed = Feed(ctx, member, "book")
+    st, _h, raw = ctx.request("PATCH", f"/api/v2/books/{b['id']}", owner, {
+        "language": "pt-BR", "origin": {"kind": "machine_translated", "translator": "google"}})
+    got = json.loads(raw) if st == 200 else {}
+    check("PATCH /books/{id}: the owner sets the language", st == 200 and got.get("language") == "pt-BR", f"{st} {raw[:300]!r}")
+    check("…but origin is the server's: a client's is ignored", st == 200 and got.get("origin") is None)
+    row = _last(feed.read(), "book", b["id"])
+    check("…and the change feed sends the book with its language", row is not None and row["record"].get("language") == "pt-BR")
+    st, _h, v1 = ctx.request("GET", f"/api/v1/audiobooks/{b['id']}", owner)
+    v1_book = json.loads(v1) if st == 200 else {}
+    check("GET /api/v1/audiobooks/{id}: language and origin there too (revision 29)",
+          v1_book.get("language") == "pt-BR" and "origin" in v1_book and v1_book["origin"] is None, f"{st} {v1[:300]!r}")
+    check("PATCH /books/{id}: a language that is not a BCP 47 tag is 400 invalid_body",
+          _problem(ctx.request("PATCH", f"/api/v2/books/{b['id']}", owner, {"language": "english"}), 400, "invalid_body"))
+    st, _h, raw = ctx.request("PATCH", f"/api/v2/books/{b['id']}", owner, {"language": None})
+    check("…null clears it", st == 200 and json.loads(raw).get("language") is None, f"{st} {raw[:200]!r}")
 
 
 def files(ctx: Ctx, s: Suite, owner: str, member: str, member_id: str, outsider: str | None) -> None:

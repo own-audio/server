@@ -40,6 +40,11 @@ pub struct Book {
     pub image: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// BCP 47 (`en`, `pt-BR`), when known; the owner sets it with `PATCH /books/{id}` (revision 19).
+    pub language: Option<String>,
+    /// How the server made the book, when it was not simply uploaded; `null` for an ordinary book
+    /// (revision 19). A client marks `kind` `machine_translated` as a machine translation.
+    pub origin: Option<crate::audiobooks::models::BookOrigin>,
     /// Only on `GET /books/{id}`, in the change feed and the snapshot.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub files: Option<Vec<BookFile>>,
@@ -253,6 +258,8 @@ pub(crate) fn book(state: &AppState, row: catalog::BookRow, credits: Vec<Credit>
         image: crate::v2::images::maybe(state, row.cover_object_id),
         created_at: row.created_at,
         updated_at: row.updated_at,
+        language: row.language,
+        origin: row.origin.map(|o| o.0),
         files: None,
         chapters: None,
         series: None,

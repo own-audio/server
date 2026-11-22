@@ -27,6 +27,36 @@ pub struct AudiobookBook {
     /// `upload` or `folder` (a read-only library folder).
     #[sqlx(default)]
     pub source: Option<String>,
+    /// BCP 47 (`en`, `pt-BR`); `None` when nobody said (migration 0134).
+    #[sqlx(default)]
+    pub language: Option<String>,
+    /// Set only by the server: how the book was made, when it was not simply uploaded.
+    #[sqlx(default)]
+    pub origin: Option<sqlx::types::Json<BookOrigin>>,
+}
+
+/// Where a book came from when it is not an ordinary upload (migration 0134). Written by the
+/// server — the hosted edition's narration — never by a client.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, utoipa::ToSchema)]
+pub struct BookOrigin {
+    /// `narrated` (read by a synthetic voice from a text in the book's own language) or
+    /// `machine_translated` (translated by machine, then read). Treat any other value as an
+    /// ordinary book.
+    pub kind: String,
+    /// The language it was translated from, BCP 47; on `machine_translated`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_language: Option<String>,
+    /// Who translated it: `google` for Google Translate; on `machine_translated`.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub translator: Option<String>,
+    /// The reading voice's display name ("Sarah").
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub voice: Option<String>,
+}
+
+impl BookOrigin {
+    pub const NARRATED: &'static str = "narrated";
+    pub const MACHINE_TRANSLATED: &'static str = "machine_translated";
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]

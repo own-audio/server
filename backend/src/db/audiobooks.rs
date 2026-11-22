@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-use crate::audiobooks::models::{AudiobookBook, AudiobookChapter, AudiobookFile};
+use crate::audiobooks::models::{AudiobookBook, AudiobookChapter, AudiobookFile, BookOrigin};
 use crate::db::access::{AUDIOBOOK, VISIBLE, Viewer};
 use anyhow::Context;
 use sqlx::PgPool;
@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub(crate) const BOOK_COLS: &str =
     "id, user_id, family_id, title, author, narrator, description, cover_object_id,
      total_duration_secs, source_url, google_books_volume_id, isbn, publisher,
-     published_year, created_at, updated_at, source";
+     published_year, created_at, updated_at, source, language, origin";
 
 /// Bind the four leading parameters every [`VISIBLE`] query expects.
 macro_rules! bind_viewer {
@@ -225,6 +225,31 @@ pub async fn apply_google_books_metadata(
     .await
     .context("db: apply google books metadata to audiobook")?;
 
+    Ok(())
+}
+
+/// Records how a book was made and in what language (migration 0134). For server-side code
+/// only — the hosted edition calls it when a narration is assembled; no client request reaches
+/// `origin`. `language` `None` leaves the one there.
+pub async fn set_book_origin(pool: &PgPool, id: Uuid, language: Option<&str>, origin: Option<&BookOrigin>) -> anyhow::Result<()> {
+    sqlx::query("UPDATE audiobook_books SET language = COALESCE($2, language), origin = $3, updated_at = now() WHERE id = $1")
+        .bind(id)
+        .bind(language)
+        .bind(origin.map(sqlx::types::Json))
+        .execute(pool)
+        .await
+        .context("db: set book origin")?;
+    Ok(())
+}
+
+/// The owner's correction of a book's language; `None` clears it.
+pub async fn set_book_language(pool: &PgPool, id: Uuid, language: Option<&str>) -> anyhow::Result<()> {
+    sqlx::query("UPDATE audiobook_books SET language = $2, updated_at = now() WHERE id = $1 AND language IS DISTINCT FROM $2")
+        .bind(id)
+        .bind(language)
+        .execute(pool)
+        .await
+        .context("db: set book language")?;
     Ok(())
 }
 

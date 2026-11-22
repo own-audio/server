@@ -9,6 +9,14 @@ semver. Each release states the **API contract revision** it serves
 
 ### Added
 
+- Books have a `language` and an `origin` (migration 0134): `language` and `origin` on v1's
+  book answers and `/library/changes` (contract revision 29) and on v2's `Book` in lists,
+  `GET /books/{id}`, `/sync/snapshot` and `/sync/changes` (API v2 revision 19). `origin` is
+  `null` for an ordinary book and is set only by the server — `{kind: "narrated", voice}` or
+  `{kind: "machine_translated", source_language, translator, voice}` — so every client can mark
+  a machine translation. `PATCH /api/v2/books/{id}` takes `language` (a BCP 47 tag; `null`
+  clears it); `db::audiobooks::set_book_origin` is how an edition records a book it made.
+
 - Web console: Narrate a book and Translate this episode offer the voice models a hosted server
   lists at `GET /narration/voice-tiers` (Chirp 3: HD by default; Gemini 3.8 Flash TTS and
   Flash-Lite TTS marked Preview), each with its price per hour of audio in the chosen language

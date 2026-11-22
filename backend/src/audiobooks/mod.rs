@@ -186,6 +186,11 @@ pub struct BookResponse {
     /// `upload` or `folder`; a folder book's files are read-only (API revision 3).
     pub source: String,
     pub read_only: bool,
+    /// BCP 47 (`en`, `pt-BR`), when known (revision 29).
+    pub language: Option<String>,
+    /// How the server made it, when it was not simply uploaded: `kind` `narrated` or
+    /// `machine_translated` (revision 29). `null` for an ordinary book.
+    pub origin: Option<models::BookOrigin>,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -1665,6 +1670,8 @@ fn book_to_response(b: models::AudiobookBook, viewer_id: Uuid) -> BookResponse {
         updated_at: b.updated_at.to_rfc3339(),
         read_only: b.source.as_deref() == Some("folder"),
         source: b.source.unwrap_or_else(|| "upload".to_string()),
+        language: b.language,
+        origin: b.origin.map(|o| o.0),
     }
 }
 
