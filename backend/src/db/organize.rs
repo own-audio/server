@@ -56,7 +56,19 @@ pub struct Filter {
     pub duplicates: bool,
 }
 
-const SELECT: &str = "SELECT t.id, t.title, t.artist, t.album, t.album_artist, t.genre, t.track_number,
+/// Whether a song has a change in effect: an edit not undone, one of whose new values the
+/// song still holds, where that value is not what the field held before anyone changed it.
+/// So an undo (its values are the first ones), a revert, an edit overwritten by a later one
+/// or by a rescan, and an undone identify don't count; the history keeps them all.
+/// `metadata_edits_item_idx` keeps it to the song's own few rows.
+const EDITED: &str = "EXISTS (SELECT 1 FROM metadata_edits e CROSS JOIN LATERAL jsonb_each(e.after) AS a(k, v)
+     WHERE e.item_kind = 'track' AND e.item_id = t.id AND e.undone_at IS NULL
+       AND (to_jsonb(t) -> a.k) = a.v
+       AND a.v IS DISTINCT FROM (SELECT o.before -> a.k FROM metadata_edits o
+                                  WHERE o.item_kind = 'track' AND o.item_id = t.id AND o.before ? a.k
+                                  ORDER BY o.at, o.id LIMIT 1))";
+
+static SELECT: LazyLock<String> = LazyLock::new(|| format!("SELECT t.id, t.title, t.artist, t.album, t.album_artist, t.genre, t.track_number,
         t.disc_number, t.disc_total, t.is_compilation, t.duration_secs, t.album_id,
         left(al.release_date, 4) AS year, t.musicbrainz_recording_id, t.musicbrainz_release_id,
         i.source AS identity, t.cover_object_id IS NOT NULL AS has_cover,
@@ -65,12 +77,12 @@ const SELECT: &str = "SELECT t.id, t.title, t.artist, t.album, t.album_artist, t
              THEN substr(mo.object_key, length(split_part(mo.object_key, '/', 2)) + 9)
              ELSE regexp_replace(mo.object_key, '^.*/', '') END AS path,
         mo.content_type, mo.size_bytes,
-        EXISTS (SELECT 1 FROM metadata_edits e WHERE e.item_kind = 'track' AND e.item_id = t.id) AS edited,
+        {EDITED} AS edited,
         t.updated_at
    FROM music_tracks t
    JOIN media_objects mo ON mo.id = t.audio_object_id
    LEFT JOIN albums al ON al.id = t.album_id
-   LEFT JOIN music_track_identity i ON i.track_id = t.id";
+   LEFT JOIN music_track_identity i ON i.track_id = t.id"));
 
 /// The duplicates filter's test: the same file, the same MusicBrainz recording, or the same
 /// title and artist (spelling and punctuation aside) within a few seconds of the same length
@@ -106,7 +118,7 @@ static WHERE: LazyLock<String> = LazyLock::new(|| {
     AND (NOT $8 OR t.cover_object_id IS NULL)
     AND (NOT $9 OR al.release_date IS NULL)
     AND (NOT $10 OR t.genre IS NULL OR trim(t.genre) = '')
-    AND (NOT $11 OR EXISTS (SELECT 1 FROM metadata_edits e WHERE e.item_kind = 'track' AND e.item_id = t.id))
+    AND (NOT $11 OR {EDITED})
     AND (NOT $12 OR {DUPLICATE})"
     )
 });
@@ -147,8 +159,8 @@ pub async fn list(
     let dir = if desc { "DESC" } else { "ASC" };
     let order = order.split(", ").map(|c| format!("{c} {dir} NULLS LAST")).collect::<Vec<_>>().join(", ");
     let rows = bind(sqlx::query_as::<_, OrganizeRow>(&format!(
-        "WITH {DUPLICATES_CTE} {SELECT} WHERE {} ORDER BY {order}, t.id LIMIT $13 OFFSET $14",
-        *WHERE
+        "WITH {DUPLICATES_CTE} {} WHERE {} ORDER BY {order}, t.id LIMIT $13 OFFSET $14",
+        *SELECT, *WHERE
     )), user_id, f)
     .bind(limit)
     .bind(offset)
@@ -271,8 +283,7 @@ pub async fn facets(pool: &PgPool, user_id: Uuid) -> anyhow::Result<(Vec<FolderF
                 count(*) FILTER (WHERE t.cover_object_id IS NULL) AS no_cover,
                 count(*) FILTER (WHERE al.release_date IS NULL) AS no_year,
                 count(*) FILTER (WHERE t.genre IS NULL OR trim(t.genre) = '') AS no_genre,
-                count(*) FILTER (WHERE EXISTS (SELECT 1 FROM metadata_edits e
-                                                WHERE e.item_kind = 'track' AND e.item_id = t.id)) AS edited,
+                count(*) FILTER (WHERE {EDITED}) AS edited,
                 count(*) FILTER (WHERE {DUPLICATE}) AS duplicates
            FROM music_tracks t JOIN media_objects mo ON mo.id = t.audio_object_id
                 LEFT JOIN albums al ON al.id = t.album_id

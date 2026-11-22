@@ -19,6 +19,9 @@ semver. Each release states the **API contract revision** it serves
   and the identify's entries in the edit history are marked undone. Undoing an identify's
   batch from the history (`POST /api/v2/edits/batches/{id}/undo`) keeps the artist's id by
   the same rule.
+- `GET /api/v2/organize/tracks` and `/organize/facets`: *Changed* (`edited`) means a change
+  is still in effect. A song whose identify or edit was undone, reverted or overwritten since
+  is no longer counted; the history keeps every entry.
 
 ## [1.0.6] - 2026-11-22
 

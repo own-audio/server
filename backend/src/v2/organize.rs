@@ -48,7 +48,8 @@ pub struct OrganizeTrack {
     pub path: String,
     pub content_type: String,
     pub size_bytes: Option<i64>,
-    /// It has changes in the history.
+    /// A change to it is in effect: one in the history that was not undone (an
+    /// undone identify included) and was not overwritten since.
     pub edited: bool,
     pub updated_at: DateTime<Utc>,
 }
@@ -101,7 +102,7 @@ pub struct OrganizeFilter {
     pub no_year: bool,
     #[serde(default)]
     pub no_genre: bool,
-    /// Songs with changes in the history.
+    /// Songs with a change in effect (see `OrganizeTrack.edited`).
     #[serde(default)]
     pub edited: bool,
     /// Songs you probably have twice: the same file, the same MusicBrainz
