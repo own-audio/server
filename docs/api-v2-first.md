@@ -59,7 +59,8 @@ These shapes are part of the contract (gaps plan §0) and stay as they are:
     `expired_token` (RFC 8628).
   - `403 mfa_required` with an `mfa_token`: finish with the `mfa-otp` grant.
   - `429 account_locked` with `Retry-After` (too many wrong passwords for one account), and
-    `429 rate_limited` from the per-address bucket.
+    `429 rate_limited` from the per-address bucket: the refresh bucket (as v1 `/auth/refresh`)
+    for `refresh_token` and token-exchange, the sign-in bucket for every other grant.
 - **Every other operation**, when the access token is missing, malformed, expired or revoked:
   `401 unauthorized`. Refresh once; if the refresh answers `invalid_grant`, sign in again.
 - `401 invalid_credentials` comes from operations that check an account inside a signed-in

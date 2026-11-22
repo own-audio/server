@@ -38,7 +38,7 @@ and fails on any row that is missing or partly covered.
 | `GET /auth/registration-status` | `GET /.well-known/own-audio` | covered | `modules.registration_open`. |
 | `POST /auth/login` | `POST /auth/token` | covered | `grant_type=password`. |
 | `POST /auth/totp/verify` | `POST /auth/token` | covered | The `mfa-otp` grant after `403 mfa_required`. |
-| `POST /auth/refresh` | `POST /auth/token` | covered | `grant_type=refresh_token`. |
+| `POST /auth/refresh` | `POST /auth/token` | covered | `grant_type=refresh_token`. The refresh bucket, as v1. |
 | `POST /auth/logout` | `POST /auth/revoke`, `DELETE /me/sessions/{id}` | covered |  |
 | `POST /auth/fork` | `POST /auth/token` | covered | The token-exchange grant (RFC 8693), `subject_token_type` a refresh token. |
 | `GET /auth/me` | `GET /me` | covered |  |

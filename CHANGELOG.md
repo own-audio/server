@@ -13,6 +13,16 @@ semver. Each release states the **API contract revision** it serves
   `max_bytes` beside the problem's `detail`, so an app can show the sizes its own way. The
   `code` stays `bad_request`. Contract change: API v2 revision 18.
 
+### Changed
+
+- `POST /api/v2/auth/token`: the `refresh_token` and token-exchange grants count against the
+  refresh limit (`SERVER__RATE_LIMIT__REFRESH_PER_MINUTE`, 120 per minute per address), as v1's
+  `POST /auth/refresh` always has. Before, every grant shared sign-in's 30, so a household's
+  devices refreshing behind one address could use up its members' sign-in attempts. Password,
+  two-factor, device code, provider and authorization-code grants keep sign-in's limit and the
+  per-account lockout. `docker-compose.yml` now passes `SERVER__RATE_LIMIT__REFRESH_PER_MINUTE`
+  through to the server (it was read only when set some other way).
+
 ### Fixed
 
 - Uploads over the single-upload limit say so in words ("The file is 6.0 GB; one upload can be

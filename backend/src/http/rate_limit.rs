@@ -128,31 +128,40 @@ impl Limiters {
     }
 }
 
-async fn check(State(limiter): State<Limiter>, req: Request, next: Next) -> Response {
-    let Some(inner) = limiter.inner.as_ref() else {
-        return next.run(req).await;
-    };
-    let peer = req
-        .extensions()
-        .get::<ConnectInfo<SocketAddr>>()
-        .map(|c| c.0.ip());
-    let key = request_key(peer, req.headers(), inner.trust_proxy_headers);
-    // The keyed store only grows; drop idle keys now and then.
-    if inner.checks.fetch_add(1, Ordering::Relaxed) % 1024 == 1023 {
-        inner.limiter.retain_recent();
+impl Limiter {
+    pub fn is_enabled(&self) -> bool {
+        self.inner.is_some()
     }
-    match inner.limiter.check_key(&key) {
-        Ok(()) => next.run(req).await,
-        Err(not_until) => {
-            let wait = not_until.wait_time_from(DefaultClock::default().now());
-            let secs = wait.as_secs().max(1);
+
+    /// Counts one request against the caller's budget: `None` when it may go on, the
+    /// `429` to answer when it is over. For a route that picks its bucket by what the
+    /// request says (the v2 token endpoint, by grant), where a layer per route cannot.
+    pub fn refusal(&self, extensions: &axum::http::Extensions, headers: &HeaderMap) -> Option<Response> {
+        let inner = self.inner.as_ref()?;
+        let peer = extensions.get::<ConnectInfo<SocketAddr>>().map(|c| c.0.ip());
+        let key = request_key(peer, headers, inner.trust_proxy_headers);
+        // The keyed store only grows; drop idle keys now and then.
+        if inner.checks.fetch_add(1, Ordering::Relaxed) % 1024 == 1023 {
+            inner.limiter.retain_recent();
+        }
+        let not_until = inner.limiter.check_key(&key).err()?;
+        let wait = not_until.wait_time_from(DefaultClock::default().now());
+        let secs = wait.as_secs().max(1);
+        Some(
             (
                 StatusCode::TOO_MANY_REQUESTS,
                 [("Retry-After", secs.to_string())],
                 Json(json!({ "error": "rate_limited", "retry_after_secs": secs })),
             )
-                .into_response()
-        }
+                .into_response(),
+        )
+    }
+}
+
+async fn check(State(limiter): State<Limiter>, req: Request, next: Next) -> Response {
+    match limiter.refusal(req.extensions(), req.headers()) {
+        Some(refused) => refused,
+        None => next.run(req).await,
     }
 }
 

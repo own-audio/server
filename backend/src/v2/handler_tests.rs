@@ -140,6 +140,47 @@ async fn the_password_and_code_routes_share_the_sign_in_bucket() {
 }
 
 #[tokio::test]
+async fn refreshing_has_v1_refreshs_bucket_and_every_other_grant_sign_ins() {
+    use crate::v2::auth::{GRANT_ASSERTION, GRANT_CODE, GRANT_DEVICE, GRANT_MFA, GRANT_PASSWORD, GRANT_REFRESH, GRANT_TOKEN_EXCHANGE};
+    let state = state(json!({})).await;
+    // Each body is refused before the database is asked (a required field is missing).
+    let grants = [GRANT_REFRESH, GRANT_TOKEN_EXCHANGE, GRANT_PASSWORD, GRANT_MFA, GRANT_DEVICE, GRANT_ASSERTION, GRANT_CODE];
+    for form in [false, true] {
+        for grant in grants {
+            let refresh_like = matches!(grant, GRANT_REFRESH | GRANT_TOKEN_EXCHANGE);
+            let mut limits = Limiters::disabled();
+            limits.login = crate::http::rate_limit::Limiter::per_minute(2, false);
+            limits.refresh = crate::http::rate_limit::Limiter::per_minute(4, false);
+            let app = app(&state, &limits);
+            let room = if refresh_like { 4 } else { 2 };
+            for _ in 0..room {
+                let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": grant }), form).await;
+                assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "{grant} (form {form}) limited too early");
+            }
+            let (s, p) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": grant }), form).await;
+            assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")), "{grant} (form {form})");
+            // The other bucket is untouched: refreshing phones never cost a sign-in, nor the other way round.
+            let other = if refresh_like { GRANT_PASSWORD } else { GRANT_REFRESH };
+            let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": other }), form).await;
+            assert_ne!(s, StatusCode::TOO_MANY_REQUESTS, "{grant} spent {other}'s bucket");
+        }
+    }
+}
+
+#[tokio::test]
+async fn a_token_request_that_names_no_grant_counts_as_a_sign_in() {
+    let state = state(json!({})).await;
+    let mut limits = Limiters::disabled();
+    limits.login = crate::http::rate_limit::Limiter::per_minute(1, false);
+    limits.refresh = crate::http::rate_limit::Limiter::per_minute(100, false);
+    let app = app(&state, &limits);
+    let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "refresh_token": "x" }), false).await;
+    assert_eq!(s, StatusCode::BAD_REQUEST);
+    let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "refresh_token": "x" }), false).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "a body without a grant is not a free try");
+}
+
+#[tokio::test]
 async fn the_token_exchange_names_what_it_takes() {
     let state = state(json!({})).await;
     let app = app(&state, &Limiters::disabled());

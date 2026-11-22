@@ -60,6 +60,75 @@ impl<T: DeserializeOwned + Send> FromRequest<AppState> for FormOrJson<T> {
     }
 }
 
+/// The refresh-like grants: their credential is a refresh token, a long random secret nobody
+/// guesses, and a family's devices present one every few minutes from one address behind a
+/// home router. They count against v1 refresh's bucket (`SERVER__RATE_LIMIT__REFRESH_PER_MINUTE`)
+/// so a household's devices refreshing at once cannot use up its members' sign-in attempts.
+/// The token exchange presents a live refresh token the same way. Every grant that checks a
+/// password, a code or a provider's word keeps sign-in's smaller bucket (and the per-account
+/// lockout behind the password grant).
+fn refresh_like(grant_type: &str) -> bool {
+    matches!(grant_type, GRANT_REFRESH | GRANT_TOKEN_EXCHANGE)
+}
+
+/// What axum's form and JSON extractors accept by default; the handler reads the body again.
+const TOKEN_BODY_LIMIT: usize = 2 * 1024 * 1024;
+
+#[derive(Deserialize)]
+struct GrantOnly {
+    grant_type: String,
+}
+
+/// The grant a token request names, read the way [`FormOrJson`] reads it; `None` when the
+/// body does not parse, which then counts as a sign-in and is refused by the handler.
+fn grant_of(content_type: Option<&str>, body: &[u8]) -> Option<String> {
+    let form = content_type.is_some_and(|v| v.starts_with("application/x-www-form-urlencoded"));
+    if form {
+        form_urlencoded::parse(body).find(|(k, _)| k == "grant_type").map(|(_, v)| v.into_owned())
+    } else {
+        serde_json::from_slice::<GrantOnly>(body).ok().map(|g| g.grant_type)
+    }
+}
+
+#[derive(Clone)]
+struct TokenLimits {
+    login: crate::http::rate_limit::Limiter,
+    refresh: crate::http::rate_limit::Limiter,
+}
+
+/// `POST /auth/token` with the bucket of the grant it carries (see [`refresh_like`]).
+pub fn limit_by_grant(
+    limits: &crate::http::rate_limit::Limiters,
+    route: axum::routing::MethodRouter<AppState>,
+) -> axum::routing::MethodRouter<AppState> {
+    if !limits.login.is_enabled() && !limits.refresh.is_enabled() {
+        return route;
+    }
+    let state = TokenLimits { login: limits.login.clone(), refresh: limits.refresh.clone() };
+    route.route_layer(axum::middleware::from_fn_with_state(state, by_grant))
+}
+
+async fn by_grant(State(limits): State<TokenLimits>, request: Request, next: axum::middleware::Next) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    let (parts, body) = request.into_parts();
+    let Ok(bytes) = axum::body::to_bytes(body, TOKEN_BODY_LIMIT).await else {
+        // Counted as a sign-in before refusing, so an oversized body is no free try.
+        if let Some(refused) = limits.login.refusal(&parts.extensions, &parts.headers) {
+            return refused;
+        }
+        return Problem::new(StatusCode::PAYLOAD_TOO_LARGE, "too_large").detail("the request body is too large").into_response();
+    };
+    let content_type = parts.headers.get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok());
+    let limiter = match grant_of(content_type, &bytes) {
+        Some(grant) if refresh_like(&grant) => &limits.refresh,
+        _ => &limits.login,
+    };
+    if let Some(refused) = limiter.refusal(&parts.extensions, &parts.headers) {
+        return refused;
+    }
+    next.run(Request::from_parts(parts, axum::body::Body::from(bytes))).await
+}
+
 /// An OAuth error (RFC 6749 §5.2) as problem details.
 fn oauth(status: StatusCode, error: &str, description: impl Into<String>) -> Problem {
     let description = description.into();

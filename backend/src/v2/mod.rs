@@ -70,7 +70,7 @@ pub const PERMISSIONS: &[&str] =
 pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
     use crate::http::openapi::map;
     OpenApiRouter::new()
-        .routes(map(routes!(auth::token), |m| limits.login.apply(m)))
+        .routes(map(routes!(auth::token), |m| auth::limit_by_grant(limits, m)))
         .routes(routes!(auth::revoke))
         .routes(map(routes!(auth::device_authorization), |m| limits.device.apply(m)))
         .routes(routes!(auth::describe_device))

@@ -155,7 +155,9 @@ fn read_only_by_default() -> bool {
 #[serde(default)]
 pub struct RateLimitConfig {
     pub enabled: bool,
+    /// Sign-in, registration, and every v2 token grant that is not refresh-like.
     pub login_per_minute: u32,
+    /// v1 `/auth/refresh` and v2's `refresh_token` and token-exchange grants.
     pub refresh_per_minute: u32,
     pub device_per_minute: u32,
     pub join_per_minute: u32,
