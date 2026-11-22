@@ -212,7 +212,8 @@ Status columns: **Mac** = what the Mac app has (from its plans, 2026-08-27);
 | Feature | API | Mac | Web now | Phase |
 |---|---|---|---|---|
 | AI narration wizard + status | `/audiobook-gen/*` | ✅ | ✅ | W8 restyle |
-| Translate and narrate a book (hosted, planned 2026-11-22; plan in the hosted repo, `docs/book-translation-plan.md`) | `/api/v2/narration/*` | ⬜ | ⬜ | — |
+| Translate and narrate a book (hosted, planned 2026-11-22; plan in the hosted repo, `docs/book-translation-plan.md`) | `/api/v2/narration/*` | ⬜ | 🚧 Create ▸ Translate a book (`/translate-book`, 2026-11-22) on the v1 multipart job; "Translated from" / "Translations" on the book page and translating a book narrated here wait for the server (plan T0, T5) | T3 |
+| Voice model choice (Chirp 3: HD default; Gemini Flash / Flash-Lite TTS as Preview) with samples and price per hour; free cover (made for you / described / the book's own / none, new cover later); quote as the most you pay — in narration and episode translation, the same in every client (spec in the hosted repo, `docs/creation-features-clients.md`) | `/api/v2/narration/voice-tiers`, `voices?tier=`, `quote`, `jobs`, `jobs/{id}/cover`; `/api/v2/translation/*` | 🚧 | ✅ 2026-11-22 (on the v1 paths), refusals by code, cover changes on the status page | — |
 | Instance admin: users, jobs | `/users`, `/jobs` — gated on `users.role == admin` | 🚧 | ✅ | W7 (add jobs) |
 | Family-admin gating on `my_role` from `GET /family`, never instance role | — | ✅ | ✅ | W6 |
 
