@@ -1723,14 +1723,42 @@ fn infer_upload_title(uploads: &[(UploadManifestEntry, TempUpload)]) -> String {
         .unwrap_or_else(|| "Audiobook".to_string())
 }
 
-fn infer_file_title(path: &str) -> String {
-    StdPath::new(path)
-        .file_stem()
-        .and_then(|stem| stem.to_str())
-        .map(|stem| stem.replace(['_', '-'], " "))
-        .map(|stem| stem.trim().to_string())
-        .filter(|stem| !stem.is_empty())
-        .unwrap_or_else(|| path.to_string())
+/// A book file's title from its path when nothing better is given: `Book/01 - One.mp3` → `One`.
+/// Shared by every way a book file arrives (uploads, multipart, library folders), so one
+/// folder gets the same titles however it was added.
+pub(crate) fn infer_file_title(path: &str) -> String {
+    let name = path.rsplit(['/', '\\']).next().unwrap_or(path);
+    let stem = match name.rsplit_once('.') {
+        Some((stem, ext)) if !stem.is_empty() && (1..=5).contains(&ext.len()) && ext.chars().all(|c| c.is_ascii_alphanumeric()) => stem,
+        _ => name,
+    };
+    let title = strip_track_number(stem).replace('_', " ").split_whitespace().collect::<Vec<_>>().join(" ");
+    if title.is_empty() { path.to_string() } else { title }
+}
+
+/// `01 - One`, `01 – One`, `01. One`, `01_One`, `1-One`, `01) One` → `One`. A number that is the whole
+/// title (`1984`) stays, and so does one run into more digits without spaces (`1-2-3`,
+/// `3.14 Pi`), which reads as part of the name rather than a track number. Three digits at
+/// most, so a year in front of a name (`2001 - …`) is not taken for one.
+fn strip_track_number(stem: &str) -> &str {
+    let trimmed = stem.trim_start();
+    let digits = trimmed.len() - trimmed.trim_start_matches(|c: char| c.is_ascii_digit()).len();
+    if digits == 0 || digits > 3 {
+        return stem;
+    }
+    let after = &trimmed[digits..];
+    let spaced_before = after.starts_with(char::is_whitespace);
+    let after = after.trim_start();
+    let Some(sep) = after.chars().next().filter(|c| matches!(c, '-' | '–' | '—' | '.' | '_' | ')')) else {
+        return stem;
+    };
+    let after_sep = &after[sep.len_utf8()..];
+    let spaced = spaced_before || after_sep.starts_with(char::is_whitespace) || sep == '_';
+    let rest = after_sep.trim_start_matches([' ', '\t', '_']);
+    if rest.is_empty() || (!spaced && rest.starts_with(|c: char| c.is_ascii_digit())) {
+        return stem;
+    }
+    rest
 }
 
 pub(crate) fn sanitize_filename_component(value: &str) -> String {
@@ -1834,3 +1862,38 @@ async fn store_temp_upload(
     .map_err(AuthError::Internal)
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::infer_file_title;
+
+    #[test]
+    fn file_titles_from_paths() {
+        let cases = [
+            ("01 - One.mp3", "One"),
+            ("01. One.mp3", "One"),
+            ("01_One.mp3", "One"),
+            ("1-One.mp3", "One"),
+            ("01) One.m4b", "One"),
+            ("Book/Part 1/03 - The Ride.mp3", "The Ride"),
+            ("Book\\03 - The Ride.mp3", "The Ride"),
+            ("03_The_Ride.mp3", "The Ride"),
+            ("01 -   Two   Words .mp3", "Two Words"),
+            ("01 - 1984.mp3", "1984"),
+            ("1984.mp3", "1984"),
+            ("1.mp3", "1"),
+            ("2001 - A Space Odyssey.mp3", "2001 - A Space Odyssey"),
+            ("1-2-3.mp3", "1-2-3"),
+            ("3.14 Pi.mp3", "3.14 Pi"),
+            ("Chapter 01.mp3", "Chapter 01"),
+            ("Jean-Luc.mp3", "Jean-Luc"),
+            ("01 - .mp3", "01 -"),
+            ("Mr. Smith", "Mr. Smith"),
+            ("Kapitola 1 – Začátek.mp3", "Kapitola 1 – Začátek"),
+            ("07 – Konec.mp3", "Konec"),
+        ];
+        for (path, want) in cases {
+            assert_eq!(infer_file_title(path), want, "{path}");
+        }
+    }
+}

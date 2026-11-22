@@ -996,10 +996,13 @@ def library(ctx: Ctx, problem) -> None:
     files = [upload("book_file", f"part{i}-{sfx}.mp3") for i in (1, 2)]
     st, _h, raw = ctx.request("POST", "/api/v2/books", tok, {
         "title": f"Uploaded Book {sfx}", "author": f"Up Writer {sfx}",
-        "files": [{"upload_id": f.get("upload_id"), "relative_path": f"0{i + 1}.mp3"} for i, f in enumerate(files)]})
+        "files": [{"upload_id": f.get("upload_id"), "relative_path": f"0{i + 1} - {name}.mp3"}
+                  for i, (f, name) in enumerate(zip(files, ("One", "Two")))]})
     book = json.loads(raw) if st == 201 else {}
     ctx.check("a book from uploaded files, its files in order", st == 201 and len(book.get("files", [])) == 2
               and [f["position"] for f in book["files"]] == sorted(f["position"] for f in book["files"]), str(book)[:200])
+    ctx.check("…titled from their names without the track numbers",
+              [f.get("title") for f in sorted(book.get("files", []), key=lambda f: f["position"])] == ["One", "Two"], str(book.get("files"))[:200])
     disco = json.loads(ctx.request("GET", "/.well-known/own-audio")[2])
     ctx.check("discovery states the upload and batch limits", disco["limits"].get("upload_max_bytes", 0) > 0 and disco["limits"].get("batch_max") == 500)
 

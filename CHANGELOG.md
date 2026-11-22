@@ -18,6 +18,11 @@ semver. Each release states the **API contract revision** it serves
 - Uploads over the single-upload limit say so in words ("The file is 6.0 GB; one upload can be
   at most 5 GB.") instead of "larger than the 5368709120-byte single-upload limit", on
   `POST /api/v2/uploads` and `POST /api/v1/uploads/presign` alike.
+- A book file's title from its name drops the track number and the extension:
+  `01 - One.mp3`, `01. One.mp3`, `01_One.mp3` and `1-One.mp3` are all "One" (they were
+  "01   One" and the like). A number that is the whole name stays (`1984.mp3` is "1984"), as do
+  hyphens inside a name. The same for books made from uploads (v1 and v2), multipart uploads and
+  the files of library folders that have no title tag; existing titles are not changed.
 
 ## [1.0.5] - 2026-11-20
 

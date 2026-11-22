@@ -348,10 +348,9 @@ fn duration_by_decoding(path: &Path) -> Option<u64> {
     (total.is_finite() && total > 0.0).then_some(total.round() as u64)
 }
 
-/// Title for an audiobook file from its name: `03_The_Ride.mp3` → `03 The Ride`.
+/// Title for an audiobook file without a title tag: `03_The_Ride.mp3` → `The Ride`.
 fn file_title(name: &str) -> String {
-    let stem = name.rsplit_once('.').map(|(s, _)| s).unwrap_or(name);
-    stem.replace(['_', '.'], " ").trim().to_string()
+    crate::audiobooks::infer_file_title(name)
 }
 
 fn join_rel(dir: &str, name: &str) -> String {
@@ -1054,7 +1053,7 @@ mod tests {
         assert!(is_audio("book.m4b"));
         assert!(!is_audio("cover.jpg"));
         assert!(!is_audio("README"));
-        assert_eq!(file_title("03_The_Ride.mp3"), "03 The Ride");
+        assert_eq!(file_title("03_The_Ride.mp3"), "The Ride");
         assert_eq!(audio_content_type("a.m4b"), "audio/mp4");
     }
 
