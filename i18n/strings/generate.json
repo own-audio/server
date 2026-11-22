@@ -101,6 +101,7 @@
   "generate.quote.characters": { "en": "Estimated characters", "cs": "Odhadovaný počet znaků" },
   "generate.quote.translation": { "en": "Translation", "cs": "Překlad" },
   "generate.quote.narration": { "en": "Narration (TTS)", "cs": "Namluvení (TTS)" },
+  "generate.quote.preparation": { "en": "Text preparation", "cs": "Příprava textu", "note": "Quote line: getting the book's text ready for the voice (abbreviations, numbers, dialogue)." },
   "generate.quote.voiceModel": { "en": "Voice model", "cs": "Hlasový model" },
   "generate.quote.cover": { "en": "Cover", "cs": "Obálka" },
   "generate.quote.free": { "en": "Free", "cs": "Zdarma", "note": "Price of the cover in the summary." },

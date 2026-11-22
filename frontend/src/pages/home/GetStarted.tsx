@@ -7,7 +7,7 @@ import { listBooks } from "../../api/audiobooks";
 import { listFeeds } from "../../api/podcasts";
 import { listTracks } from "../../api/music";
 import { getFamily, isFamilyAdmin } from "../../api/family";
-import { formatMicro, getBilling } from "../../api/billing";
+import { formatAmount, getBilling } from "../../api/billing";
 import { useAuthStore } from "../../store/authStore";
 import { IconButton } from "../../components/ui";
 import { cn } from "../../lib/cn";
@@ -92,7 +92,7 @@ export function GetStarted() {
           </h2>
           <p className="mt-0.5 text-sm text-muted">
             {t("home.getStarted.progress", { done: steps.length - remaining, total: steps.length })}
-            {balance > 0 && billing.data && <> · {t("home.getStarted.credit", { amount: formatMicro(balance, billing.data.pricing.currency) })}</>}
+            {balance > 0 && billing.data && <> · {t("home.getStarted.credit", { amount: formatAmount(balance, billing.data.pricing.currency) })}</>}
           </p>
         </div>
         <IconButton label={t("home.getStarted.hide")} size="sm" onClick={dismiss} className="-mr-1 -mt-1 text-muted">

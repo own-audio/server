@@ -9,7 +9,7 @@ import { grantContentAccess, type MediaKind } from "../../api/family";
 import { restoreTrashItem, type TrashKind } from "../../api/trash";
 import type { Notification } from "../../api/types";
 import { toast } from "../ui";
-import { formatMicro } from "../../api/billing";
+import { formatAmount } from "../../api/billing";
 import { timeAgo } from "../../lib/format";
 import { Button } from "../ui/Button";
 import { cn } from "../../lib/cn";
@@ -36,8 +36,8 @@ function creditTopupText(n: Notification, t: ReturnType<typeof useT>["t"], local
   if (n.kind !== "credit_topup" || !n.data) return null;
   const { amount_micro, balance_micro, until, days_remaining } = n.data as Record<string, unknown>;
   if (typeof amount_micro !== "number" || typeof balance_micro !== "number") return null;
-  const amount = formatMicro(amount_micro, "USD");
-  const balance = formatMicro(balance_micro, "USD");
+  const amount = formatAmount(amount_micro, "USD");
+  const balance = formatAmount(balance_micro, "USD");
   const body = typeof days_remaining === "number" && isLongRunway(days_remaining)
     ? t("shell.notifications.creditTopup.long", { amount, balance })
     : typeof until === "string"

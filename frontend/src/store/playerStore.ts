@@ -44,6 +44,8 @@ export interface AudiobookPlayerTrack {
   bookTotalDurationSecs: number | null;
   /** The book is a machine translation (`origin.kind`). */
   machineTranslated?: boolean;
+  /** Read by an AI voice in its own language (`origin.kind` narrated). */
+  aiVoice?: boolean;
 }
 
 export interface MusicPlayerTrack {

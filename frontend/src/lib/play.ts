@@ -7,7 +7,7 @@ import { downloadEpisode, getStreamUrl } from "../api/podcasts";
 import { usePlayerStore, type MusicPlayerTrack, type QueueSource } from "../store/playerStore";
 import type { AudioBook, MusicTrack, PodcastEpisode, PodcastFeed } from "../api/types";
 import { t as translate } from "../i18n";
-import { isMachineTranslatedBook } from "./machineTranslation";
+import { isAiVoiceBook, isMachineTranslatedBook } from "./machineTranslation";
 
 /* One place that turns library items into player queues. Stream URLs are
    resolved at play time and never cached — they expire in ~4 h. */
@@ -67,6 +67,7 @@ export async function playBook(book: AudioBook, startFileId?: string, startAt?: 
       bookPositionOffsetSecs: fileOffset,
       bookTotalDurationSecs: book.total_duration_secs,
       machineTranslated: isMachineTranslatedBook(book),
+      aiVoice: isAiVoiceBook(book),
     };
   });
 

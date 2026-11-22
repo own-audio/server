@@ -7,6 +7,23 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Console: an "AI voice" badge on a book read by an AI voice in its own language (`origin.kind`
+  `narrated`) — on cards, rows, the book's page (with "Read by the AI voice …"), the player and
+  Made here. A machine translation keeps its own badge; an item never gets both.
+
+### Changed
+
+- Console: account amounts are shown on the ledger's 4-decimal grid — credit balance, recent
+  charges, paid-work quotes and their lines, charged amounts on jobs, episode translations,
+  summaries and identify runs, and the daily cap ($9.8983, -$0.0017, +$5.0000), rounded half to
+  even from micro-units. List prices (per GB, top-up buttons, per-hour voice prices) keep two
+  decimals. The Narrate a book / Translate a book confirm step lists what the family pays for each
+  part, with a new Text preparation line, adding up to the total, from the hosted edition's new
+  `*_price_micro` quote fields (the providers' costs in cents from a server without them); charged
+  amounts use `charged_price_micro` when sent.
+
 ## [1.0.8] - 2026-11-22
 
 Contract revision 29. API v2 revision 20.

@@ -61,10 +61,3 @@ export async function askEpisode(episodeId: string, question: string): Promise<A
   const { data } = await api.post<AskedTurn>(`/summaries/episodes/${episodeId}/ask`, { question }, v2);
   return data;
 }
-
-/** A price in the ledger's dollars; these are fractions of a cent, so three decimals below 10 ¢. */
-export function formatPrice(micro: number, locale: string): string {
-  const usd = micro / 1_000_000;
-  const digits = usd < 0.1 ? 3 : 2;
-  return new Intl.NumberFormat(locale, { style: "currency", currency: "USD", minimumFractionDigits: digits, maximumFractionDigits: digits }).format(usd);
-}

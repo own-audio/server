@@ -5,12 +5,13 @@ import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { Pause, Play, Sparkles } from "lucide-react";
 import SectionTheme from "../../components/shell/SectionTheme";
 import { Page } from "../../components/shell/SplitView";
-import { Button, Cover, EmptyState, MachineTranslationBadge, Skeleton } from "../../components/ui";
+import { AiVoiceBadge, Button, Cover, EmptyState, MachineTranslationBadge, Skeleton } from "../../components/ui";
 import { getGenerationStatus, listGenerationJobs, startedJobIds } from "../../api/generation";
 import { listBooks } from "../../api/audiobooks";
 import { listRecentTranslations } from "../../api/podcastTranslate";
 import type { AudioBook, GenerationJobStatus, GenerationStage, RecentPodcastTranslation } from "../../api/types";
-import { formatCents } from "../../lib/format";
+import { formatAmount } from "../../api/billing";
+import { chargedMicro } from "../../lib/price";
 import { useServerFeatures } from "../../lib/features";
 import { useMyPermissions } from "../../lib/permissions";
 import { episodeMachineTranslationLine, isMachineTranslatedEpisode, languageName } from "../../lib/machineTranslation";
@@ -56,6 +57,7 @@ export function JobRow({ job, book }: { job: GenerationJobStatus; book?: AudioBo
   const playing = usePlayerStore((s) => s.playing);
   const state = jobState(job);
   const blocks = jobBlocks(job);
+  const charged = chargedMicro(job);
   const translated = isTranslationJob(job, book);
   const isCurrent = !!book && current?.kind === "audiobook" && current.bookId === book.id;
   const stage = STAGE[job.stage];
@@ -75,7 +77,7 @@ export function JobRow({ job, book }: { job: GenerationJobStatus; book?: AudioBo
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Link to={`/generate/${job.id}`} className="min-w-0 truncate font-medium hover:underline">{job.title}</Link>
-            {translated && <MachineTranslationBadge />}
+            {translated ? <MachineTranslationBadge /> : <AiVoiceBadge />}
           </div>
           {languages && <p className="text-xs text-muted">{languages}</p>}
 
@@ -103,7 +105,7 @@ export function JobRow({ job, book }: { job: GenerationJobStatus; book?: AudioBo
           {state === "ready" && (
             <p className="mt-1 text-xs text-success-text">
               {t("generate.madeHere.ready")}
-              {job.charged_price_cents != null && <span className="text-muted"> · {t("generate.status.actualCost")}: {formatCents(job.charged_price_cents, job.currency)}</span>}
+              {charged != null && <span className="text-muted"> · {t("generate.status.actualCost")}: {formatAmount(charged, job.currency)}</span>}
             </p>
           )}
 
@@ -111,8 +113,8 @@ export function JobRow({ job, book }: { job: GenerationJobStatus; book?: AudioBo
             <div className="mt-1 text-xs">
               <p className="font-medium text-error">{t("generate.madeHere.failed")} — {job.error ?? t("generate.status.failedFallback")}</p>
               <p className="text-muted">
-                {job.charged_price_cents
-                  ? t("generate.status.chargedPartial", { amount: formatCents(job.charged_price_cents, job.currency) })
+                {charged
+                  ? t("generate.status.chargedPartial", { amount: formatAmount(charged, job.currency) })
                   : t("generate.status.notCharged")}
               </p>
             </div>

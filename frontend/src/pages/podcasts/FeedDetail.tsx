@@ -5,9 +5,11 @@ import { Archive, Check, Compass, ChevronDown, ChevronUp, CircleCheck, CloudDown
 import { getEpisodeTranscript, getFeed, listEpisodes, similarFeeds, subscribeFeed, syncImages, refreshFeed, setFeedVisibility, downloadEpisode, getStreamUrl, setAutoStore, storeAll, type StoreAllResult } from "../../api/podcasts";
 import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
-import { askEpisode, clearQuestions, createSummary, formatPrice, getSummary, listQuestions, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
+import { askEpisode, clearQuestions, createSummary, getSummary, listQuestions, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
 import { apiErrorMessage } from "../../lib/apiError";
-import { formatCents, formatDate, formatDuration, stripHtml } from "../../lib/format";
+import { formatDate, formatDuration, stripHtml } from "../../lib/format";
+import { formatAmount } from "../../api/billing";
+import { chargedMicro } from "../../lib/price";
 import { playEpisode } from "../../lib/play";
 import { getTranslationProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
 import { playTranslation } from "../../lib/playTranslation";
@@ -203,10 +205,10 @@ function Translations({
                 )}
                 {tr.status === "failed" && (
                   <p className="mt-0.5 text-xs text-muted">
-                    {tr.charged_price_cents
+                    {chargedMicro(tr)
                       ? tr.error
-                        ? t("podcasts.translation.chargedPartialWithError", { error: tr.error, amount: formatCents(tr.charged_price_cents, tr.currency) })
-                        : t("podcasts.translation.chargedPartial", { amount: formatCents(tr.charged_price_cents, tr.currency) })
+                        ? t("podcasts.translation.chargedPartialWithError", { error: tr.error, amount: formatAmount(chargedMicro(tr) ?? 0, tr.currency) })
+                        : t("podcasts.translation.chargedPartial", { amount: formatAmount(chargedMicro(tr) ?? 0, tr.currency) })
                       : tr.error
                         ? t("podcasts.translation.notChargedWithError", { error: tr.error })
                         : t("podcasts.translation.notCharged")}
@@ -693,7 +695,7 @@ function EpisodeSummaryView({ episodeId }: { episodeId: string }) {
     if (q && !ask.isPending) ask.mutate(q);
   };
   const price = (micro: number) =>
-    micro > 0 ? <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.price", { price: formatPrice(micro, locale) })}</p> : null;
+    micro > 0 ? <p className="text-xs text-muted">{t("podcasts.feed.episode.ai.price", { price: formatAmount(micro, "USD") })}</p> : null;
   const lengths: SummaryLength[] = ["short", "medium", "long"];
   return (
     <div className="mt-2 space-y-3 rounded-lg border border-border p-3 text-sm leading-relaxed">

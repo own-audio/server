@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Package, Wallet } from "lucide-react";
 import { BookIcon, MusicIcon, PodcastIcon } from "../../components/ui/CloudIcon";
-import { createTopup, formatBytes, formatMicro, getBilling, setBillingAlerts, type Billing } from "../../api/billing";
+import { createTopup, formatAmount, formatBytes, formatPrice, getBilling, setBillingAlerts, type Billing } from "../../api/billing";
 import { getFamily, isFamilyAdmin } from "../../api/family";
 import { listTrash } from "../../api/trash";
 import { Link, useSearchParams } from "react-router-dom";
@@ -43,7 +43,7 @@ function TopUp({ presets, currency, min, max }: { presets: number[]; currency: s
     <div className="mt-3 flex flex-wrap items-center gap-2">
       {presets.map((p) => (
         <Button key={p} size="sm" variant="secondary" loading={busy === p} onClick={() => go(p)}>
-          {formatMicro(p, currency)}
+          {formatPrice(p, currency)}
         </Button>
       ))}
       <form
@@ -52,7 +52,7 @@ function TopUp({ presets, currency, min, max }: { presets: number[]; currency: s
           e.preventDefault();
           const micro = Math.round(Number(custom) * 1_000_000);
           if (!Number.isFinite(micro) || micro < min || micro > max) {
-            toast.error(t("billing.topup.range", { min: formatMicro(min, currency), max: formatMicro(max, currency) }));
+            toast.error(t("billing.topup.range", { min: formatPrice(min, currency), max: formatPrice(max, currency) }));
             return;
           }
           void go(micro);
@@ -168,7 +168,7 @@ function TopUpReturn({ data, refetch }: { data: Billing; refetch: () => unknown 
       >
         {topup ? (
           <div className="space-y-2 text-sm">
-            <p>{t("billing.thanks.added", { amount: formatMicro(topup.amount_micro, currency), balance: formatMicro(data.balance_micro, currency) })}</p>
+            <p>{t("billing.thanks.added", { amount: formatAmount(topup.amount_micro, currency), balance: formatAmount(data.balance_micro, currency) })}</p>
             {isLongRunway(data.days_remaining) ? (
               <p>{t("billing.thanks.long")}</p>
             ) : data.runs_out_on && (
@@ -221,7 +221,7 @@ export default function BillingPage() {
         <div className="rounded-card border border-border px-4 py-3">
           <p className="text-xs uppercase tracking-wide text-muted">{t("billing.credit")}</p>
           <p className={cn("mt-1 text-2xl font-semibold tabular-nums", data.balance_micro <= 0 && "text-error")}>
-            {formatMicro(data.balance_micro, currency)}
+            {formatAmount(data.balance_micro, currency)}
           </p>
         </div>
         <div className="rounded-card border border-border px-4 py-3">
@@ -235,7 +235,7 @@ export default function BillingPage() {
         </div>
         <div className="rounded-card border border-border px-4 py-3">
           <p className="text-xs uppercase tracking-wide text-muted">{t("billing.costing")}</p>
-          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatMicro(data.estimated_monthly_cost_micro, currency)}</p>
+          <p className="mt-1 text-2xl font-semibold tabular-nums">{formatAmount(data.estimated_monthly_cost_micro, currency)}</p>
           <p className="mt-0.5 text-xs text-muted">{t("billing.perMonthAt", { size: formatBytes(storage.total_bytes) })}</p>
         </div>
       </div>
@@ -243,7 +243,7 @@ export default function BillingPage() {
       <section className="mt-4 rounded-card border border-border p-4">
         <div className="mb-3 flex items-center justify-between">
           <p className="text-xs uppercase tracking-wide text-muted">{t("billing.usage.title")}</p>
-          <p className="text-xs text-muted">{t("billing.usage.price", { price: formatMicro(pricing.price_per_gb_month_micro, currency) })}</p>
+          <p className="text-xs text-muted">{t("billing.usage.price", { price: formatPrice(pricing.price_per_gb_month_micro, currency) })}</p>
         </div>
         <div className="space-y-2.5">
           {KINDS.map((k) => {
@@ -315,7 +315,7 @@ export default function BillingPage() {
                 </span>
                 <span className={cn("text-sm tabular-nums", e.amount_micro > 0 ? "text-success" : "text-muted")}>
                   {e.amount_micro > 0 ? "+" : ""}
-                  {formatMicro(e.amount_micro, currency)}
+                  {formatAmount(e.amount_micro, currency)}
                 </span>
               </div>
             ))}

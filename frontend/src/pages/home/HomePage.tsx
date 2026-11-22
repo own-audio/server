@@ -8,14 +8,14 @@ import { listBooks } from "../../api/audiobooks";
 import { listPlaylists, listTracks } from "../../api/music";
 import { getFeed, listEpisodes, listFeeds } from "../../api/podcasts";
 import { listHistory } from "../../api/stats";
-import { formatBytes, formatMicro, getBilling, getFamilyStorage } from "../../api/billing";
+import { formatAmount, formatBytes, getBilling, getFamilyStorage } from "../../api/billing";
 import { useServerFeatures } from "../../lib/features";
 import { useAuthStore } from "../../store/authStore";
 import { usePlayerStore } from "../../store/playerStore";
 import { listTranslationsInProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
 import { formatDuration } from "../../lib/format";
 import { playBook, playEpisode, playTracks } from "../../lib/play";
-import { isMachineTranslatedBook } from "../../lib/machineTranslation";
+import { isAiVoiceBook, isMachineTranslatedBook } from "../../lib/machineTranslation";
 import { Page } from "../../components/shell/SplitView";
 import { Button, IconButton, Cover, Dialog, DialogContent, EmptyState, Skeleton } from "../../components/ui";
 import { MediaCard } from "../../components/library/MediaCard";
@@ -372,6 +372,7 @@ function NewBooksWidget() {
             subtitle={b.author}
             cover={b.cover_url}
             machineTranslated={isMachineTranslatedBook(b)}
+            aiVoice={isAiVoiceBook(b)}
             active={active}
             playing={active && playing}
             onPlay={() => void playBook(b)}
@@ -420,6 +421,7 @@ function RecentBooksWidget() {
           subtitle={b.author}
           cover={b.cover_url}
           machineTranslated={isMachineTranslatedBook(b)}
+            aiVoice={isAiVoiceBook(b)}
           onPlay={() => void playBook(b)}
           onClick={() => navigate(`/audiobooks/${b.id}`)}
           className="w-36 shrink-0"
@@ -507,7 +509,7 @@ function StorageWidget() {
           <div className="rounded-card border border-border px-4 py-3">
             <p className="text-xs uppercase tracking-wide text-muted">{t("home.storage.credit")}</p>
             <p className={cn("mt-1 text-xl font-semibold tabular-nums", credit.balance_micro <= 0 && "text-error")}>
-              {formatMicro(credit.balance_micro, credit.pricing.currency)}
+              {formatAmount(credit.balance_micro, credit.pricing.currency)}
             </p>
           </div>
           <div className="rounded-card border border-border px-4 py-3">

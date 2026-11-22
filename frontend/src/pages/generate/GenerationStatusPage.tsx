@@ -6,7 +6,9 @@ import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getGenerationStatus } from "../../api/generation";
 import type { GenerationStage } from "../../api/types";
-import { formatCents, formatDuration } from "../../lib/format";
+import { formatDuration } from "../../lib/format";
+import { formatAmount } from "../../api/billing";
+import { chargedMicro, quotedMicro } from "../../lib/price";
 import { useT, type PlainKey } from "../../i18n";
 import { useMyPermissions } from "../../lib/permissions";
 import JobCoverPanel from "./JobCoverPanel";
@@ -97,6 +99,7 @@ export default function GenerationStatusPage() {
   const relevantStages = STAGE_ORDER.filter((s) => job.stages.includes(s.stage));
 
   const done = job.stage === "complete";
+  const charged = chargedMicro(job);
 
   return (
     <SectionTheme cloud="book">
@@ -113,8 +116,8 @@ export default function GenerationStatusPage() {
             {/* A failed job is charged what Google had already billed for it, so "nothing charged"
                 is only true when that was nothing. */}
             <p className="mt-1">
-              {job.charged_price_cents
-                ? t("generate.status.chargedPartial", { amount: formatCents(job.charged_price_cents, job.currency) })
+              {charged
+                ? t("generate.status.chargedPartial", { amount: formatAmount(charged, job.currency) })
                 : t("generate.status.notCharged")}
             </p>
           </div>
@@ -214,15 +217,15 @@ export default function GenerationStatusPage() {
             )}
             <p className="mt-2 text-xs text-muted">{t("generate.personalUse.short")}</p>
 
-            {job.charged_price_cents != null && (
+            {charged != null && (
               <dl className="mt-4 space-y-1 text-xs text-muted">
                 <div className="flex justify-between">
                   <dt>{t("generate.status.quoted")}</dt>
-                  <dd className="tabular-nums">{formatCents(job.quoted_price_cents, job.currency)}</dd>
+                  <dd className="tabular-nums">{formatAmount(quotedMicro(job), job.currency)}</dd>
                 </div>
                 <div className="flex justify-between font-medium text-fg">
                   <dt>{t("generate.status.actualCost")}</dt>
-                  <dd className="tabular-nums">{formatCents(job.charged_price_cents, job.currency)}</dd>
+                  <dd className="tabular-nums">{formatAmount(charged, job.currency)}</dd>
                 </div>
               </dl>
             )}

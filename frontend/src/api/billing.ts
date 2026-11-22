@@ -93,7 +93,23 @@ export async function createTopup(amount_micro: number): Promise<{ checkout_url:
   return data;
 }
 
-export function formatMicro(micro: number, currency: string): string {
+/** Micro-units on the ledger's 0.0001 grid (100 micro), half to even like the server's decimals. */
+export function toAmountGrid(micro: number): number {
+  const abs = Math.abs(Math.trunc(micro));
+  let q = Math.floor(abs / 100);
+  const r = abs % 100;
+  if (r > 50 || (r === 50 && q % 2 === 1)) q += 1;
+  return q === 0 ? 0 : Math.sign(micro) * q * 100;
+}
+
+/** An account amount — balance, charge, quote, ledger row, cap: always four decimals, "$9.8983". */
+export function formatAmount(micro: number, currency: string): string {
+  return new Intl.NumberFormat(intlLocale(), { style: "currency", currency, minimumFractionDigits: 4, maximumFractionDigits: 4 })
+    .format(toAmountGrid(micro) / 1_000_000);
+}
+
+/** A list price that is not an account amount — per GB, a top-up button: the currency's own decimals, "$0.05". */
+export function formatPrice(micro: number, currency: string): string {
   return new Intl.NumberFormat(intlLocale(), { style: "currency", currency }).format(micro / 1_000_000);
 }
 

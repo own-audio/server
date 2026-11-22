@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowRight, Check, Disc3, Loader2, ScanSearch, Search, Trash2, Undo2, X } from "lucide-react";
+import { formatAmount } from "../../api/billing";
 import {
   acceptProposal,
   acceptSure,
@@ -13,7 +14,6 @@ import {
   chooseRecording,
   createRun,
   deleteRun,
-  formatCharge,
   getGroup,
   getRun,
   identifyError,
@@ -148,7 +148,7 @@ function RunsPage() {
       if (features.billing) {
         const quote = await quoteRun(runScope);
         if (quote.charge_micro > 0
-          && !window.confirm(t("music.identifyRuns.confirmCharge", { tracks: quote.tracks, price: formatCharge(quote.charge_micro) }))) {
+          && !window.confirm(t("music.identifyRuns.confirmCharge", { tracks: quote.tracks, price: formatAmount(quote.charge_micro, "USD") }))) {
           return null;
         }
       }

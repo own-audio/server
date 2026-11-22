@@ -6,7 +6,7 @@ export { Dialog, DialogTrigger, DialogClose, DialogContent } from "./Dialog";
 export { Toaster } from "./Toast";
 export { toast } from "../../lib/toast";
 export { Tooltip, TooltipProvider } from "./Tooltip";
-export { FamilyBadge, FavoriteBadge, MachineTranslationBadge, Pill } from "./Badge";
+export { AiVoiceBadge, FamilyBadge, FavoriteBadge, MachineTranslationBadge, Pill } from "./Badge";
 export { Cover, type MediaKind } from "./Cover";
 export { EmptyState, Skeleton } from "./EmptyState";
 export { SegmentedControl } from "./SegmentedControl";

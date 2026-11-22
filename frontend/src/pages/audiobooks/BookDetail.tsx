@@ -22,8 +22,8 @@ import { getFamily, isFamilyAdmin } from "../../api/family";
 import { formatDuration } from "../../lib/format";
 import { playBook } from "../../lib/play";
 import { usePlayerStore } from "../../store/playerStore";
-import { Button, IconButton, Cover, Skeleton, Pill, Dialog, DialogContent, MenuItem, MachineTranslationBadge, toast } from "../../components/ui";
-import { bookMachineTranslationLine, isMachineTranslatedBook } from "../../lib/machineTranslation";
+import { Button, IconButton, Cover, Skeleton, Pill, Dialog, DialogContent, MenuItem, MachineTranslationBadge, AiVoiceBadge, toast } from "../../components/ui";
+import { bookAiVoiceLine, bookMachineTranslationLine, isAiVoiceBook, isMachineTranslatedBook } from "../../lib/machineTranslation";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
 import { ClampedText } from "../../components/library/ClampedText";
 import AudienceList from "../../components/library/AudienceList";
@@ -306,7 +306,7 @@ export default function BookDetail({ bookId }: { bookId: string }) {
     actions.push({ key: "identify", label: t("audiobooks.identify.title"), icon: <ScanSearch className="h-4 w-4" />, onSelect: () => setIdentifying(true) });
 
   // The server writes the same line into a narrated book's description; then it is not repeated.
-  const translationLine = book ? bookMachineTranslationLine(book) : null;
+  const translationLine = book ? bookMachineTranslationLine(book) ?? bookAiVoiceLine(book) : null;
 
   if (isLoading || !book) {
     return <div className="space-y-4 p-6"><Skeleton className="h-44 w-32" /><Skeleton className="h-6 w-64" /><Skeleton className="h-24" /></div>;
@@ -328,6 +328,7 @@ export default function BookDetail({ bookId }: { bookId: string }) {
             {progress?.completed ? <Pill tone="success">{t("audiobooks.status.finished")}</Pill> : pct != null && pct > 0 ? <Pill tone="accent">{t("audiobooks.status.progress", { progress: pct / 100, remaining: formatDuration(remaining ?? 0) })}</Pill> : null}
             {book.visibility === "family" && <Pill tone="accent">{t("audiobooks.visibility.shared")}</Pill>}
             {isMachineTranslatedBook(book) && <MachineTranslationBadge />}
+            {isAiVoiceBook(book) && <AiVoiceBadge />}
           </div>
           {translationLine && !book.description?.includes(translationLine) && (
             <p className="mt-2 text-xs text-muted">{translationLine}</p>

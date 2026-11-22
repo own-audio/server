@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { useI18n } from "../../i18n";
 import { MediaCard, MediaRow } from "../../components/library/MediaCard";
-import { MachineTranslationBadge } from "../../components/ui";
+import { AiVoiceBadge, MachineTranslationBadge } from "../../components/ui";
+import { bookAiVoiceLine, isAiVoiceBook } from "../../lib/machineTranslation";
 import type { AudioBook, GenerationJobStatus, RecentPodcastTranslation } from "../../api/types";
 import { EpisodeRow, JobRow } from "./MadeHerePage";
 
@@ -54,6 +55,23 @@ describe("the badge", () => {
     expect(renderToStaticMarkup(<MediaRow kind="audiobook" title="A" machineTranslated />)).toContain("Machine translation");
     expect(renderToStaticMarkup(<MediaCard kind="audiobook" title="A" />)).not.toContain("Machine translation");
   });
+
+  it("marks an AI narration, and a translation only as a translation", () => {
+    expect(renderToStaticMarkup(<MediaCard kind="audiobook" title="A" aiVoice />)).toContain("AI voice");
+    expect(renderToStaticMarkup(<MediaRow kind="audiobook" title="A" aiVoice />)).toContain("AI voice");
+    const both = renderToStaticMarkup(<MediaCard kind="audiobook" title="A" machineTranslated aiVoice />);
+    expect(both).toContain("Machine translation");
+    expect(both).not.toContain("AI voice");
+    expect(renderToStaticMarkup(<AiVoiceBadge compact />)).toContain('class="sr-only">AI voice');
+  });
+
+  it("tells a narrated book from a translated one", () => {
+    expect(isAiVoiceBook({ origin: { kind: "narrated", voice: "Tereza" } })).toBe(true);
+    expect(isAiVoiceBook({ origin: { kind: "machine_translated", source_language: "cs", translator: "google" } })).toBe(false);
+    expect(isAiVoiceBook({ origin: null })).toBe(false);
+    expect(bookAiVoiceLine({ origin: { kind: "narrated", voice: "Tereza" } })).toBe("Read by the AI voice Tereza.");
+    expect(bookAiVoiceLine({ origin: { kind: "narrated" } })).toBeNull();
+  });
 });
 
 describe("Made here rows", () => {
@@ -81,7 +99,7 @@ describe("Made here rows", () => {
   it("shows a failed job with the server's error and what was charged", () => {
     const html = wrap(<JobRow job={job({ stage: "failed", error: "The voice service stopped.", charged_price_cents: 120 })} />);
     expect(html).toContain("Failed — The voice service stopped.");
-    expect(html).toContain("You were charged $1.20 for the part already made");
+    expect(html).toContain("You were charged $1.2000 for the part already made");
     const free = wrap(<JobRow job={job({ stage: "failed", charged_price_cents: 0 })} />);
     expect(free).toContain("You have not been charged.");
   });

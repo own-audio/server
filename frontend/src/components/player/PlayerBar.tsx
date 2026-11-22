@@ -33,7 +33,7 @@ import { getTrackStreamUrl } from "../../api/music";
 import { offlineStreamUrl } from "../../lib/offline/downloads";
 import { nextStep, rememberFallback, routed, switchSource } from "../../lib/mediaRoute";
 import { Cover } from "../ui/Cover";
-import { MachineTranslationBadge } from "../ui/Badge";
+import { AiVoiceBadge, MachineTranslationBadge } from "../ui/Badge";
 import { toast } from "../../lib/toast";
 import { IconButton } from "../ui/Button";
 import { Dialog, DialogContent } from "../ui/Dialog";
@@ -809,6 +809,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
           : track.bookTitle;
 
   const machineTranslated = track.kind !== "music" && track.machineTranslated === true;
+  const aiVoice = !machineTranslated && track.kind === "audiobook" && track.aiVoice === true;
   const isMusic = track.kind === "music";
   // A song only: books and podcasts are not described by the server yet.
   const quality = isMusic ? [describeSource(playingInfo?.source), describeDelivery(playingInfo)].filter(Boolean).join(" → ") || null : null;
@@ -961,6 +962,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
             subtitle && <p className="mt-1 truncate text-base text-muted">{subtitle}</p>
           )}
           {machineTranslated && <MachineTranslationBadge className="mt-2" />}
+          {aiVoice && <AiVoiceBadge className="mt-2" />}
           {quality && (
             <p className="mt-1.5 truncate text-xs tabular-nums text-muted" aria-label={t("player.quality.label")} title={quality}>
               {quality}
@@ -1021,6 +1023,7 @@ export default function PlayerBar({ canStop = true }: { canStop?: boolean } = {}
             <span className="flex min-w-0 items-center gap-1.5">
               {subtitle && <span className="block truncate text-xs text-muted">{subtitle}</span>}
               {machineTranslated && <MachineTranslationBadge compact />}
+              {aiVoice && <AiVoiceBadge compact />}
             </span>
           </span>
         </button>

@@ -53,16 +53,16 @@ describe("paid-work refusals", () => {
 
   it("reads the figures as v2 problem members too", () => {
     const problem = { type: "about:blank", status: 409, code: "daily_cap_reached", detail: "x", daily_cap_micro: 70_000_000, spent_today_micro: 69_000_000 };
-    expect(refusalMessage(readRefusal(refused(409, problem)), "fb")).toContain("($70.00)");
+    expect(refusalMessage(readRefusal(refused(409, problem)), "fb")).toContain("($70.0000)");
     expect(readRefusal(refused(409, { code: "too_many_jobs", running: 3, max_running: "3" }))).toEqual({ kind: "too_many_jobs", maxRunning: 3 });
     expect(readRefusal(refused(409, { code: "daily_cap_reached", daily_cap_micro: "nope" }))).toEqual({ kind: "daily_cap", limitMicro: null });
   });
 
   it("formats the daily cap the server sent, never a fixed one", () => {
     expect(refusalMessage({ kind: "daily_cap", limitMicro: 70_000_000 }, "fb")).toBe(
-      "Today's limit for paid work ($70.00) is reached. Try again tomorrow."
+      "Today's limit for paid work ($70.0000) is reached. Try again tomorrow."
     );
-    expect(refusalMessage({ kind: "daily_cap", limitMicro: 12_500_000 }, "fb")).toContain("($12.50)");
+    expect(refusalMessage({ kind: "daily_cap", limitMicro: 12_500_000 }, "fb")).toContain("($12.5000)");
   });
 
   it("counts the running jobs from the body", () => {

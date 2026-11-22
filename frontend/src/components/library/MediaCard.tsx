@@ -2,7 +2,7 @@
 import type { ReactNode, MouseEvent } from "react";
 import { Pause, Play } from "lucide-react";
 import { Cover, type MediaKind } from "../ui/Cover";
-import { FamilyBadge, FavoriteBadge, MachineTranslationBadge, TranslatableBadge } from "../ui/Badge";
+import { AiVoiceBadge, FamilyBadge, FavoriteBadge, MachineTranslationBadge, TranslatableBadge } from "../ui/Badge";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
 
@@ -34,6 +34,8 @@ export interface MediaCardProps {
   translatable?: boolean;
   /** A machine translation: a small badge under the title, not on the cover. */
   machineTranslated?: boolean;
+  /** Narrated by an AI voice in its own language: the same small badge, "AI voice". */
+  aiVoice?: boolean;
   /** A person (an artist) rather than a release: the picture is a circle. */
   roundCover?: boolean;
   /** This item is what the player is on. */
@@ -60,6 +62,7 @@ export function MediaCard({
   favorite,
   translatable,
   machineTranslated,
+  aiVoice,
   roundCover,
   active,
   playing,
@@ -149,7 +152,7 @@ export function MediaCard({
           <span className={cn("block truncate text-[13px] font-medium leading-tight", active && "text-accent")}>{title}</span>
           {subtitle && <span className="mt-0.5 block truncate text-xs text-muted">{subtitle}</span>}
           {meta && <span className="mt-0.5 block truncate text-[11px] text-muted">{meta}</span>}
-          {machineTranslated && <MachineTranslationBadge className="mt-1" />}
+          {machineTranslated ? <MachineTranslationBadge className="mt-1" /> : aiVoice && <AiVoiceBadge className="mt-1" />}
         </button>
       </div>
     </div>
@@ -183,6 +186,7 @@ export interface MediaRowProps {
   favorite?: boolean;
   translatable?: boolean;
   machineTranslated?: boolean;
+  aiVoice?: boolean;
   roundCover?: boolean;
   active?: boolean;
   playing?: boolean;
@@ -208,6 +212,7 @@ export function MediaRow({
   favorite,
   translatable,
   machineTranslated,
+  aiVoice,
   roundCover,
   active,
   playing,
@@ -273,6 +278,8 @@ export function MediaRow({
         {translatable && <TranslatableBadge className="bg-bg-alt" />}
         {machineTranslated && <MachineTranslationBadge className="max-sm:hidden" />}
         {machineTranslated && <MachineTranslationBadge compact className="sm:hidden" />}
+        {!machineTranslated && aiVoice && <AiVoiceBadge className="max-sm:hidden" />}
+        {!machineTranslated && aiVoice && <AiVoiceBadge compact className="sm:hidden" />}
         {trailing && <span className="text-xs tabular-nums text-muted max-sm:hidden">{trailing}</span>}
         {menu && (
           <span className="opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100 data-[state=open]:opacity-100 pointer-coarse:opacity-100">{menu}</span>

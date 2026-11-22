@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import type { CoverMode } from "../../../api/generation";
 import type { GenerationQuote, VoiceTier } from "../../../api/types";
-import { formatCents } from "../../../lib/format";
-import { formatMicro } from "../../../api/billing";
+import { quoteLines } from "../../../lib/price";
+import { formatAmount } from "../../../api/billing";
 import { useT } from "../../../i18n";
 import QuoteTierRow from "../QuoteTierRow";
 
@@ -23,7 +23,8 @@ export default function QuoteStep({
   creditCurrency?: string;
 }) {
   const { t, locale } = useT();
-  const coverCents = quote?.cover_cost_cents ?? 0;
+  const lines = quote ? quoteLines(quote) : undefined;
+  const money = (micro: number) => formatAmount(micro, quote?.currency ?? "USD");
   return (
     <div>
       <h2 className="mb-1 text-lg font-semibold">{t("generate.quote.title")}</h2>
@@ -31,7 +32,7 @@ export default function QuoteStep({
 
       {isLoading && <p className="text-sm text-muted">{t("generate.quote.calculating")}</p>}
 
-      {quote && (
+      {quote && lines && (
         <div className="rounded-xl border border-border bg-card p-5">
           <dl className="space-y-2 text-sm">
             <QuoteTierRow tiers={tiers} tierId={quote.voice_tier} preview={quote.voice_tier_preview} />
@@ -39,22 +40,28 @@ export default function QuoteStep({
               <dt className="text-muted">{t("generate.quote.characters")}</dt>
               <dd className="tabular-nums">{quote.char_count.toLocaleString(locale)}</dd>
             </div>
-            {quote.translation_cost_cents > 0 && (
+            {lines.translation > 0 && (
               <div className="flex justify-between">
                 <dt className="text-muted">{t("generate.quote.translation")}</dt>
-                <dd className="tabular-nums">{formatCents(quote.translation_cost_cents, quote.currency)}</dd>
+                <dd className="tabular-nums">{money(lines.translation)}</dd>
               </div>
             )}
             <div className="flex justify-between">
               <dt className="text-muted">{t("generate.quote.narration")}</dt>
-              <dd className="tabular-nums">{formatCents(quote.tts_cost_cents, quote.currency)}</dd>
+              <dd className="tabular-nums">{money(lines.narration)}</dd>
             </div>
+            {lines.preparation > 0 && (
+              <div className="flex justify-between">
+                <dt className="text-muted">{t("generate.quote.preparation")}</dt>
+                <dd className="tabular-nums">{money(lines.preparation)}</dd>
+              </div>
+            )}
             {coverMode !== "none" && (
               <div className="flex justify-between">
                 <dt className="text-muted">{t("generate.quote.cover")}</dt>
                 {/* A server that still prices the cover says so in the quote; it is never hidden. */}
                 <dd className="tabular-nums">
-                  {coverCents > 0 ? formatCents(coverCents, quote.currency) : t("generate.quote.free")}
+                  {lines.cover > 0 ? money(lines.cover) : t("generate.quote.free")}
                 </dd>
               </div>
             )}
@@ -62,14 +69,14 @@ export default function QuoteStep({
           <div className="mt-4 flex justify-between border-t border-border pt-4 text-base font-semibold">
             <span>{t("generate.quote.total")}</span>
             <span className="tabular-nums text-accent">
-              {formatCents(quote.quoted_price_cents, quote.currency)}
+              {money(lines.total)}
             </span>
           </div>
           <p className="mt-3 text-xs text-muted">{t("generate.tier.priceNote")}</p>
           {creditMicro != null && (
             <div className="mt-3 flex justify-between text-sm">
               <span className="text-muted">{t("generate.quote.credit")}</span>
-              <span className="tabular-nums">{formatMicro(creditMicro, creditCurrency ?? quote.currency)}</span>
+              <span className="tabular-nums">{formatAmount(creditMicro, creditCurrency ?? quote.currency)}</span>
             </div>
           )}
         </div>

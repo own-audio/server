@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { Users, Heart, Languages } from "lucide-react";
+import { Users, Heart, Languages, AudioLines } from "lucide-react";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
 
@@ -78,6 +78,27 @@ export function MachineTranslationBadge({ compact, className }: { compact?: bool
   return (
     <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-pill bg-bg-alt px-2 py-0.5 text-[11px] font-medium text-muted", className)}>
       <Languages className="h-3 w-3" aria-hidden />
+      {label}
+    </span>
+  );
+}
+
+/** A book read by an AI voice in its own language (origin `narrated`). A machine translation is
+ *  read by one too, but gets the translation badge instead: one badge per item. */
+export function AiVoiceBadge({ compact, className }: { compact?: boolean; className?: string }) {
+  const { t } = useT();
+  const label = t("badge.aiVoice");
+  if (compact) {
+    return (
+      <span title={label} className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-bg-alt text-muted", className)}>
+        <AudioLines className="h-3 w-3" aria-hidden />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-pill bg-bg-alt px-2 py-0.5 text-[11px] font-medium text-muted", className)}>
+      <AudioLines className="h-3 w-3" aria-hidden />
       {label}
     </span>
   );

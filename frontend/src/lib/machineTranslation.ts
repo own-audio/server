@@ -10,6 +10,11 @@ export function isMachineTranslatedBook(book: { origin?: BookOrigin | null } | n
   return book?.origin?.kind === "machine_translated";
 }
 
+/** Narrated by an AI voice in the book's own language — the "AI voice" badge. */
+export function isAiVoiceBook(book: { origin?: BookOrigin | null } | null | undefined): boolean {
+  return book?.origin?.kind === "narrated";
+}
+
 export function isMachineTranslatedEpisode(tr: Pick<PodcastEpisodeTranslation, "machine_translated"> | null | undefined): boolean {
   return tr?.machine_translated === true;
 }
@@ -67,4 +72,10 @@ export function episodeMachineTranslationLine(tr: PodcastEpisodeTranslation, voi
     voice: voiceName(tr.voice_profile_id, voices),
   };
   return tr.translator === "google" ? t("podcasts.translate.machineTranslated", params) : t("podcasts.translate.machineTranslatedNeutral", params);
+}
+
+/** "Read by the AI voice Tereza." — or null when the book is not an AI narration or the voice is unknown. */
+export function bookAiVoiceLine(book: { origin?: BookOrigin | null }): string | null {
+  const voice = book.origin?.voice;
+  return isAiVoiceBook(book) && voice ? t("audiobooks.detail.aiVoice", { voice }) : null;
 }

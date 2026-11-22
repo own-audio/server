@@ -1,3 +1,4 @@
 {
-  "badge.machineTranslation": {"en": "Machine translation", "cs": "Strojový překlad", "note": "Small neutral badge on a machine-translated book or a translated episode (lists, detail, player). Describes the item; not a warning."}
+  "badge.machineTranslation": {"en": "Machine translation", "cs": "Strojový překlad", "note": "Small neutral badge on a machine-translated book or a translated episode (lists, detail, player). Describes the item; not a warning."},
+  "badge.aiVoice": {"en": "AI voice", "cs": "Hlas AI", "note": "Small neutral badge on a book narrated by an AI voice in its own language (not translated). Describes the item; not a warning."}
 }

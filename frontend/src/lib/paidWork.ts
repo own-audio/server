@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
-import { formatMicro } from "../api/billing";
+import { formatAmount } from "../api/billing";
 import { t } from "../i18n";
 
 /**
@@ -68,7 +68,7 @@ export function refusalMessage(refusal: PaidWorkRefusal, fallback: string, curre
     case "daily_cap":
       // The limit is the server's, formatted; an older server without it gets the sentence without a figure.
       return refusal.limitMicro != null
-        ? t("billing.paidWork.dailyCap", { limit: formatMicro(refusal.limitMicro, currency) })
+        ? t("billing.paidWork.dailyCap", { limit: formatAmount(refusal.limitMicro, currency) })
         : t("billing.paidWork.dailyCapNoFigure");
     case "too_many_jobs":
       return t("billing.paidWork.tooManyJobs", { count: refusal.maxRunning ?? 2 });

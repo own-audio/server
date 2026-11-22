@@ -83,6 +83,12 @@ export interface PodcastTranslationQuote {
   translation_cost_cents: number;
   tts_cost_cents: number;
   quoted_price_cents: number;
+  /* Customer prices in micro-units (hosted, 2026-11-22): each part rounded up to a tenth of a cent,
+     0 when absent, and quoted_price_micro is exactly their sum. Absent on an older server. */
+  translation_price_micro?: number;
+  narration_price_micro?: number;
+  preparation_price_micro?: number;
+  quoted_price_micro?: number;
   currency: string;
   /** The older English sentence; show `personal_use_notice` where the server sends it. */
   notice: string;
@@ -106,6 +112,10 @@ export interface PodcastEpisodeTranslation {
   char_count: number;
   quoted_price_cents: number;
   charged_price_cents: number | null;
+  /** The same in micro-units, exact to a tenth of a cent (hosted, 2026-11-22); absent on an older server. */
+  quoted_price_micro?: number;
+  /** Null until charged; absent on an older server. */
+  charged_price_micro?: number | null;
   currency: string;
   error: string | null;
   stream_url: string | null;
@@ -485,7 +495,8 @@ export interface VoiceTier {
   languages: VoiceTierLanguage[];
 }
 
-/** Every *_cost_cents is the upstream cost of that part; quoted_price_cents is their sum × 2. */
+/** Every *_cost_cents is the upstream cost of that part. The *_price_micro fields are what the family
+ *  pays for each part (cost × 2, up to a tenth of a cent); show those when the server sends them. */
 export interface GenerationQuote {
   char_count: number;
   /** Characters the voice is billed for: char_count × expansion (1 without translation). */
@@ -500,6 +511,12 @@ export interface GenerationQuote {
   voice_tier_preview?: boolean;
   tts_audio_tokens?: number;
   quoted_price_cents: number;
+  /* Customer prices in micro-units (hosted, 2026-11-22): each part rounded up to a tenth of a cent,
+     0 when absent, and quoted_price_micro is exactly their sum. Absent on an older server. */
+  translation_price_micro?: number;
+  narration_price_micro?: number;
+  preparation_price_micro?: number;
+  quoted_price_micro?: number;
   currency: string;
   /** The personal-use line for the confirm step, in the request's language (hosted, 2026-11-22). */
   personal_use_notice?: string;
@@ -543,6 +560,10 @@ export interface GenerationJobStatus {
   actual_cost_cents: number | null;
   /** Set once the job reaches "complete": min(actual_cost_cents * markup, quoted_price_cents). */
   charged_price_cents: number | null;
+  /** The same in micro-units, exact to a tenth of a cent (hosted, 2026-11-22); absent on an older server. */
+  quoted_price_micro?: number;
+  /** Null until charged; absent on an older server. */
+  charged_price_micro?: number | null;
   currency: string;
   /** The cover chosen last. Absent on a server from before free covers (2026-11-22). */
   cover_mode?: CoverModeId;

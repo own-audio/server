@@ -14,7 +14,7 @@ import {
   type TrashKind,
   type TrashScope,
 } from "../../api/trash";
-import { formatBytes, formatMicro, getBilling } from "../../api/billing";
+import { formatAmount, formatBytes, getBilling, toAmountGrid } from "../../api/billing";
 import { useServerFeatures } from "../../lib/features";
 import { Page } from "../../components/shell/SplitView";
 import { Button, Dialog, DialogContent, EmptyState, IconButton, SegmentedControl, Skeleton, toast } from "../../components/ui";
@@ -65,9 +65,9 @@ export default function TrashPage() {
   const { features } = useServerFeatures();
   const { data: billing } = useQuery({ queryKey: ["billing"], queryFn: getBilling, retry: false, enabled: features.billing });
   const currency = billing?.pricing.currency ?? "USD";
-  const money = (micro: number) => formatMicro(micro, currency);
-  // A few KB for a few days is a fraction of a cent; "$0.00" would read as free.
-  const cost = (micro: number) => (micro < ONE_CENT ? t("trash.lessThan", { amount: money(ONE_CENT) }) : money(micro));
+  const money = (micro: number) => formatAmount(micro, currency);
+  // A few KB for a few days can round to nothing; "$0.0000" would read as free.
+  const cost = (micro: number) => (micro > 0 && toAmountGrid(micro) === 0 ? t("trash.lessThan", { amount: money(100) }) : money(micro));
 
   const [pendingRestore, setPendingRestore] = useState<PendingRestore | null>(null);
   const [purging, setPurging] = useState<TrashItem | null>(null);

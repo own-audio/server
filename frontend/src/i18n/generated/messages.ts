@@ -46,6 +46,7 @@ export interface MessageParams {
   "audiobooks.credits.role": undefined;
   "audiobooks.credits.title": undefined;
   "audiobooks.detail.addFavorite": undefined;
+  "audiobooks.detail.aiVoice": { "voice": string | number };
   "audiobooks.detail.chapters": undefined;
   "audiobooks.detail.dragHint": undefined;
   "audiobooks.detail.editDetails": undefined;
@@ -279,6 +280,7 @@ export interface MessageParams {
   "auth.verify.title": undefined;
   "auth.verify.working": undefined;
   "auth.version": { "version": string | number };
+  "badge.aiVoice": undefined;
   "badge.machineTranslation": undefined;
   "billing.alerts.balance": { "currency": string | number };
   "billing.alerts.days": undefined;
@@ -612,6 +614,7 @@ export interface MessageParams {
   "generate.quote.free": undefined;
   "generate.quote.intro": undefined;
   "generate.quote.narration": undefined;
+  "generate.quote.preparation": undefined;
   "generate.quote.title": undefined;
   "generate.quote.total": undefined;
   "generate.quote.translation": undefined;

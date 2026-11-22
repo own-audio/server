@@ -8,7 +8,8 @@ import { createTranslation, quoteTranslation } from "../../api/podcastTranslate"
 import { Button, Dialog, DialogContent, Select, Skeleton, toast } from "../../components/ui";
 import { readRefusal, type PaidWorkRefusal } from "../../lib/paidWork";
 import PaidWorkAlert from "../../components/PaidWorkAlert";
-import { formatCents } from "../../lib/format";
+import { formatAmount } from "../../api/billing";
+import { quotedMicro } from "../../lib/price";
 import { effectiveTier, showsTierPicker } from "../../lib/voiceTiers";
 import { useT } from "../../i18n";
 import VoiceTierPicker from "../generate/VoiceTierPicker";
@@ -178,7 +179,7 @@ export default function TranslateEpisodeModal({
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-muted">{t("podcasts.translate.price")}</span>
                 {/* The server states the currency; never assume dollars. */}
-                <span className="text-lg font-semibold">{formatCents(quote.quoted_price_cents, quote.currency)}</span>
+                <span className="text-lg font-semibold">{formatAmount(quotedMicro(quote), quote.currency)}</span>
               </div>
               <p className="mt-1 text-xs text-muted">
                 {t("podcasts.translate.chargeLine", { count: quote.char_count })}
