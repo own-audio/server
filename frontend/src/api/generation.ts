@@ -58,13 +58,16 @@ export async function getQuote(
   charCount: number,
   sourceLanguage: string,
   targetLanguage: string,
-  voiceProfileId: string
+  voiceProfileId: string,
+  coverMode: CoverMode = "auto"
 ): Promise<GenerationQuote> {
+  // The cover is part of the price on a hosted server; an older one ignores the field.
   const { data } = await api.post<GenerationQuote>("/audiobook-gen/quote", {
     char_count: charCount,
     source_language: sourceLanguage,
     target_language: targetLanguage,
     voice_profile_id: voiceProfileId,
+    cover_mode: coverMode,
   });
   return data;
 }

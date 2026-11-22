@@ -11,6 +11,10 @@ semver. Each release states the **API contract revision** it serves
 
 - `url` 2.5.9 for RUSTSEC-2026-0592 (a stack overflow in `Url::origin()` on nested `blob:` URLs);
   the `webpki-roots` exception in `deny.toml` is gone, the advisory no longer applies.
+- Web console: a failed narration or episode translation says what it was charged for the part
+  already made (the hosted edition charges what Google had already billed), and "You have not
+  been charged" only when that was nothing. The narration wizard sends its cover choice with the
+  quote request, since a generated cover is part of a hosted quote now.
 - `DELETE /api/v2/tracks/{id}/identity`, `POST /api/v2/identify/runs/{id}/revert` and
   `POST /api/v1/music/tracks/{id}/metadata/revert` undo everything the identify changed. The
   MusicBrainz artist id it gave the song's artist goes too (it stayed, so a later run revert

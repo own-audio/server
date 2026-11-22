@@ -107,6 +107,13 @@ export default function GenerationStatusPage() {
           <div className="rounded-card border border-error/40 bg-error/10 p-4 text-sm text-error">
             <p className="font-semibold">{t("generate.status.failedTitle")}</p>
             <p className="mt-1">{job.error ?? t("generate.status.failedFallback")}</p>
+            {/* A failed job is charged what Google had already billed for it, so "nothing charged"
+                is only true when that was nothing. */}
+            <p className="mt-1">
+              {job.charged_price_cents
+                ? t("generate.status.chargedPartial", { amount: formatCents(job.charged_price_cents, job.currency) })
+                : t("generate.status.notCharged")}
+            </p>
           </div>
         ) : (
           <ol className="space-y-3">

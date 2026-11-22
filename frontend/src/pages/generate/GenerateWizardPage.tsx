@@ -68,8 +68,8 @@ export default function GenerateWizardPage() {
   });
 
   const { data: quote, isLoading: quoteLoading } = useQuery({
-    queryKey: ["quote", charCount, sourceLanguage, effectiveTargetLanguage, voiceProfileId],
-    queryFn: () => getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string),
+    queryKey: ["quote", charCount, sourceLanguage, effectiveTargetLanguage, voiceProfileId, coverMode],
+    queryFn: () => getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string, coverMode),
     enabled: !!charCount && !!voiceProfileId && step >= CONFIRM,
   });
 

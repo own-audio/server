@@ -7,7 +7,7 @@ import { bulkSetEpisodesPlayed } from "../../api/playback";
 import { listTranslations } from "../../api/podcastTranslate";
 import { askEpisode, clearQuestions, createSummary, formatPrice, getSummary, listQuestions, type AskedTurn, type SummaryLength } from "../../api/podcastAi";
 import { apiErrorMessage } from "../../lib/apiError";
-import { formatDate, formatDuration, stripHtml } from "../../lib/format";
+import { formatCents, formatDate, formatDuration, stripHtml } from "../../lib/format";
 import { playEpisode } from "../../lib/play";
 import { getTranslationProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
 import { playTranslation } from "../../lib/playTranslation";
@@ -200,7 +200,15 @@ function Translations({
                   </div>
                 )}
                 {tr.status === "failed" && (
-                  <p className="mt-0.5 text-xs text-muted">{tr.error ? t("podcasts.translation.notChargedWithError", { error: tr.error }) : t("podcasts.translation.notCharged")}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {tr.charged_price_cents
+                      ? tr.error
+                        ? t("podcasts.translation.chargedPartialWithError", { error: tr.error, amount: formatCents(tr.charged_price_cents, tr.currency) })
+                        : t("podcasts.translation.chargedPartial", { amount: formatCents(tr.charged_price_cents, tr.currency) })
+                      : tr.error
+                        ? t("podcasts.translation.notChargedWithError", { error: tr.error })
+                        : t("podcasts.translation.notCharged")}
+                  </p>
                 )}
                 {tr.status === "complete" && tr.notice && <p className="mt-0.5 text-xs text-muted">{tr.notice}</p>}
               </li>

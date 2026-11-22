@@ -77,6 +77,9 @@ export interface PodcastEpisode {
 
 export interface PodcastTranslationQuote {
   char_count: number;
+  /** Characters the voice is billed for: the translated text, char_count × expansion. */
+  tts_char_count?: number;
+  expansion?: number;
   translation_cost_cents: number;
   tts_cost_cents: number;
   quoted_price_cents: number;
@@ -427,10 +430,16 @@ export interface VoiceProfile {
   cost_per_million_chars_cents: number;
 }
 
+/** Every *_cost_cents is the upstream cost of that part; quoted_price_cents is their sum × 2. */
 export interface GenerationQuote {
   char_count: number;
+  /** Characters the voice is billed for: char_count × expansion (1 without translation). */
+  tts_char_count?: number;
+  expansion?: number;
   translation_cost_cents: number;
   tts_cost_cents: number;
+  preprocess_cost_cents?: number;
+  cover_cost_cents?: number;
   internal_cost_cents: number;
   quoted_price_cents: number;
   currency: string;

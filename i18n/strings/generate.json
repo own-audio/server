@@ -92,9 +92,16 @@
   "generate.status.stoppedEarly": { "en": "This job stopped early.", "cs": "Tato úloha skončila předčasně." },
   "generate.status.narrating": { "en": "Narrating your book…", "cs": "Vaše kniha se namlouvá…" },
   "generate.status.failedTitle": { "en": "Narration failed", "cs": "Namlouvání selhalo" },
-  "generate.status.failedFallback": {
-    "en": "Something went wrong. You have not been charged.",
-    "cs": "Něco se pokazilo. Nic vám nebylo účtováno."
+  "generate.status.failedFallback": { "en": "Something went wrong.", "cs": "Něco se pokazilo." },
+  "generate.status.notCharged": {
+    "en": "You have not been charged.",
+    "cs": "Nic vám nebylo účtováno.",
+    "note": "Under a failed narration when it cost nothing."
+  },
+  "generate.status.chargedPartial": {
+    "en": "You were charged {amount} for the part already made; the rest of the reserved credit was released.",
+    "cs": "Za již hotovou část vám bylo účtováno {amount}, zbytek rezervovaného kreditu byl uvolněn.",
+    "note": "Under a failed narration that Google had already billed in part. {amount} is a formatted price like “$1.25”."
   },
   "generate.status.progressTitle": { "en": "Narrating your audiobook", "cs": "Namlouvání audioknihy" },
   "generate.status.blocks": {

@@ -351,6 +351,16 @@
     "en": "You haven't been charged.",
     "cs": "Nic vám nebylo účtováno."
   },
+  "podcasts.translation.chargedPartial": {
+    "en": "You were charged {amount} for the part already made; the rest of the reserved credit was released.",
+    "cs": "Za již hotovou část vám bylo účtováno {amount}, zbytek rezervovaného kreditu byl uvolněn.",
+    "note": "A failed translation that Google had already billed in part. {amount} is a formatted price like “$1.25”."
+  },
+  "podcasts.translation.chargedPartialWithError": {
+    "en": "{error} — you were charged {amount} for the part already made; the rest of the reserved credit was released.",
+    "cs": "{error} — za již hotovou část vám bylo účtováno {amount}, zbytek rezervovaného kreditu byl uvolněn.",
+    "note": "{error} is the server's message, shown as it arrives; {amount} a formatted price."
+  },
   "podcasts.translation.notChargedWithError": {
     "en": "{error} — you haven't been charged.",
     "cs": "{error} — nic vám nebylo účtováno.",

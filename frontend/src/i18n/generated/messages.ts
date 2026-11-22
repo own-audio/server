@@ -575,12 +575,14 @@ export interface MessageParams {
   "generate.status.actualCost": undefined;
   "generate.status.another": undefined;
   "generate.status.blocks": { "done": number; "total": number };
+  "generate.status.chargedPartial": { "amount": string | number };
   "generate.status.download": undefined;
   "generate.status.failedFallback": undefined;
   "generate.status.failedTitle": undefined;
   "generate.status.finished": undefined;
   "generate.status.listenNow": undefined;
   "generate.status.narrating": undefined;
+  "generate.status.notCharged": undefined;
   "generate.status.perChapterNote": undefined;
   "generate.status.progressTitle": undefined;
   "generate.status.quoted": undefined;
@@ -1550,6 +1552,8 @@ export interface MessageParams {
   "podcasts.translatePage.playLanguage": { "language": string | number };
   "podcasts.translatePage.title": undefined;
   "podcasts.translatePage.yours": undefined;
+  "podcasts.translation.chargedPartial": { "amount": string | number };
+  "podcasts.translation.chargedPartialWithError": { "error": string | number; "amount": string | number };
   "podcasts.translation.left": { "time": string | number };
   "podcasts.translation.notCharged": undefined;
   "podcasts.translation.notChargedWithError": { "error": string | number };
