@@ -635,5 +635,8 @@
   },
 
   "podcasts.translate.alreadyMade": {"en": "This translation is already made", "cs": "Tento překlad už existuje", "note": "Toast title when the same episode, language and voice were translated before (200): nothing new is charged."},
-  "podcasts.translate.alreadyMadeBody": {"en": "It's under the episode. Nothing new was charged.", "cs": "Najdete ho pod epizodou. Nic dalšího se neúčtovalo."}
+  "podcasts.translate.alreadyMadeBody": {"en": "It's under the episode. Nothing new was charged.", "cs": "Najdete ho pod epizodou. Nic dalšího se neúčtovalo."},
+
+  "podcasts.translate.machineTranslated": {"en": "Machine-translated by Google from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.", "note": "A translated episode's detail line. {source}/{target} from common.languageInSentence."},
+  "podcasts.translate.machineTranslatedNeutral": {"en": "Machine-translated from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.", "note": "The same line when the translator is not Google (none today)."}
 }

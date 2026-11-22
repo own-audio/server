@@ -291,5 +291,7 @@
     "en": "< 1 min",
     "cs": "< 1 min",
     "note": "Where there is no room for 'under a minute' — small tiles."
-  }
+  },
+
+  "common.languageInSentence": {"en": "{code, select, cs {Czech} en {English} de {German} it {Italian} fr {French} es {Spanish} sk {Slovak} pl {Polish} other {{name}}}", "cs": "{code, select, cs {češtiny} en {angličtiny} de {němčiny} it {italštiny} fr {francouzštiny} es {španělštiny} sk {slovenštiny} pl {polštiny} other {{name}}}", "note": "A language's name as it reads after “from … to …” in the machine-translation line. Czech: the genitive after „z“ and „do“. {code} is the base language code; {name} a fallback name for any other language."}
 }

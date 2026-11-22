@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
 import { isAxiosError } from "axios";
-import type { CoverModeId, GenerationJobStatus, GenerationQuote, Language, VoiceProfile, VoiceTier, VoiceTierId } from "./types";
+import type { CoverModeId, GenerationJobPage, GenerationJobStatus, GenerationQuote, Language, VoiceProfile, VoiceTier, VoiceTierId } from "./types";
 
 const ACCEPTED_EXTENSIONS = [".epub", ".mobi", ".txt"];
 
@@ -116,6 +116,7 @@ export async function createGenerationJob(
   if (req.coverShowTitle) formData.append("cover_show_title", "true");
 
   const { data } = await api.post<GenerationJobStatus>("/audiobook-gen/jobs", formData);
+  rememberStartedJob(data.id);
   return { id: data.id };
 }
 
@@ -145,4 +146,37 @@ export async function setJobCover(id: string, req: SetCoverRequest): Promise<Gen
     }
   );
   return data;
+}
+
+/** The caller's own jobs, newest first, from any device; `null` on a server without the list
+ *  (before audio2 a6c93cf), which answers 404 or 405. */
+export async function listGenerationJobs(cursor?: string, limit = 50): Promise<GenerationJobPage | null> {
+  try {
+    const { data } = await api.get<GenerationJobPage>("/audiobook-gen/jobs", { params: { limit, ...(cursor ? { cursor } : {}) } });
+    return { items: Array.isArray(data?.items) ? data.items : [], next: data?.next ?? null };
+  } catch (err) {
+    const status = isAxiosError(err) ? err.response?.status : undefined;
+    if (status === 404 || status === 405) return null;
+    throw err;
+  }
+}
+
+const STARTED_KEY = "own-audio-started-narrations";
+
+/** Jobs started in this browser, newest first: what Made here shows on a server without the list. */
+export function startedJobIds(): string[] {
+  try {
+    const v: unknown = JSON.parse(localStorage.getItem(STARTED_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberStartedJob(id: string) {
+  try {
+    localStorage.setItem(STARTED_KEY, JSON.stringify([id, ...startedJobIds().filter((x) => x !== id)].slice(0, 50)));
+  } catch {
+    // storage unavailable — the server's list is the real source anyway
+  }
 }

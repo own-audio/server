@@ -9,6 +9,7 @@ import { listBookProgress, resetBookProgress } from "../../api/playback";
 import { checkFavorite } from "../../api/collections";
 import { formatDuration } from "../../lib/format";
 import { playBook } from "../../lib/play";
+import { isMachineTranslatedBook } from "../../lib/machineTranslation";
 import { usePlayerStore } from "../../store/playerStore";
 import { useMyPermissions } from "../../lib/permissions";
 import { canDelete, moveToTrash } from "../../lib/trash";
@@ -184,6 +185,7 @@ export default function AudiobooksPage() {
       completed: p?.completed,
       favorite: favSet.has(b.id),
       family: b.visibility === "family",
+      machineTranslated: isMachineTranslatedBook(b),
       active,
       playing: active && playing,
       selected: selection.count > 0 ? selection.has(b.id) : b.id === bookId,

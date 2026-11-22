@@ -41,6 +41,8 @@ export default function JobCoverPanel({ job }: { job: GenerationJobStatus & { bo
     onMutate: () => setError(null),
     onSuccess: (updated) => {
       qc.setQueryData(["generation-status", job.id], updated);
+      // Made here lists the same job.
+      qc.invalidateQueries({ queryKey: ["generation-jobs"] });
       if (book?.cover_url) forgetAuthImage(book.cover_url);
       qc.invalidateQueries({ queryKey: ["book", job.book_id] });
       qc.invalidateQueries({ queryKey: ["books"] });

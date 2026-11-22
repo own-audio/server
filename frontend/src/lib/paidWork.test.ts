@@ -46,6 +46,18 @@ describe("paid-work refusals", () => {
     expect(refusalMessage({ kind: "other" }, "Couldn't start narrating the book.")).toBe("Couldn't start narrating the book.");
   });
 
+  it("never shows a placeholder for a figure the server did not send", () => {
+    expect(refusalMessage({ kind: "daily_cap", limitMicro: null }, "fb")).toBe("Today's limit for paid work is reached. Try again tomorrow.");
+    expect(refusalMessage(readRefusal(refused(409, { code: "daily_cap_reached" })), "fb")).not.toContain("—");
+  });
+
+  it("reads the figures as v2 problem members too", () => {
+    const problem = { type: "about:blank", status: 409, code: "daily_cap_reached", detail: "x", daily_cap_micro: 70_000_000, spent_today_micro: 69_000_000 };
+    expect(refusalMessage(readRefusal(refused(409, problem)), "fb")).toContain("($70.00)");
+    expect(readRefusal(refused(409, { code: "too_many_jobs", running: 3, max_running: "3" }))).toEqual({ kind: "too_many_jobs", maxRunning: 3 });
+    expect(readRefusal(refused(409, { code: "daily_cap_reached", daily_cap_micro: "nope" }))).toEqual({ kind: "daily_cap", limitMicro: null });
+  });
+
   it("formats the daily cap the server sent, never a fixed one", () => {
     expect(refusalMessage({ kind: "daily_cap", limitMicro: 70_000_000 }, "fb")).toBe(
       "Today's limit for paid work ($70.00) is reached. Try again tomorrow."

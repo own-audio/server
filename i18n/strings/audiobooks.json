@@ -898,5 +898,8 @@
   "audiobooks.person.noBooksHint": {
     "en": "Add a credit from a book's own editor.",
     "cs": "Tvůrce přidáte v úpravách knihy."
-  }
+  },
+
+  "audiobooks.detail.machineTranslated": {"en": "Machine-translated by Google from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.", "note": "Book detail, under the badge. {source}/{target} from common.languageInSentence; {voice} the voice's name. Same as the line the server writes into the description."},
+  "audiobooks.detail.machineTranslatedNeutral": {"en": "Machine-translated from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.", "note": "The same line when the translator is not Google (none today)."}
 }

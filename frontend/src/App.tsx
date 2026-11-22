@@ -34,6 +34,7 @@ const PlayPage = lazyPage(() => import("./pages/play/PlayPage"));
 const TranslatePage = lazyPage(() => import("./pages/podcasts/TranslatePage"));
 const GenerateWizardPage = lazyPage(() => import("./pages/generate/GenerateWizardPage"));
 const GenerationStatusPage = lazyPage(() => import("./pages/generate/GenerationStatusPage"));
+const MadeHerePage = lazyPage(() => import("./pages/generate/MadeHerePage"));
 
 interface AppProps {
   /** Additional route elements to render inside the protected layout */
@@ -113,6 +114,7 @@ export default function App({ extraRoutes }: AppProps = {}) {
           <Route path="music/organize" element={<FeatureGate feature="organizer"><SectionTheme cloud="music"><OrganizePage /></SectionTheme></FeatureGate>} />
 
           {/* Hosted-only features: on a server that reports them false these routes go home. */}
+          <Route path="made-here" element={<FeatureGate when={(f) => f.narration || f.translation}><MadeHerePage /></FeatureGate>} />
           <Route path="generate" element={<FeatureGate feature="narration"><GenerateWizardPage key="narrate" /></FeatureGate>} />
           <Route path="translate-book" element={<FeatureGate when={offersBookTranslation}><GenerateWizardPage key="translate" mode="translate" /></FeatureGate>} />
           <Route path="translate" element={<FeatureGate feature="translation"><TranslatePage /></FeatureGate>} />

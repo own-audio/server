@@ -24,8 +24,14 @@ interface RefusalBody {
   code?: string;
   error?: string;
   detail?: string;
-  daily_cap_micro?: number;
-  max_running?: number;
+  daily_cap_micro?: number | string;
+  max_running?: number | string;
+}
+
+/** A refusal's number, as v1 sends it and as v2 keeps it beside `code` (core 7853a2c). */
+function count(value: unknown): number | null {
+  const n = typeof value === "string" && value.trim() !== "" ? Number(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n >= 0 ? n : null;
 }
 
 export function readRefusal(err: unknown): PaidWorkRefusal {
@@ -37,9 +43,9 @@ export function readRefusal(err: unknown): PaidWorkRefusal {
     case "insufficient_credit":
       return { kind: "insufficient_credit" };
     case "daily_cap_reached":
-      return { kind: "daily_cap", limitMicro: typeof body.daily_cap_micro === "number" ? body.daily_cap_micro : null };
+      return { kind: "daily_cap", limitMicro: count(body.daily_cap_micro) };
     case "too_many_jobs":
-      return { kind: "too_many_jobs", maxRunning: typeof body.max_running === "number" ? body.max_running : null };
+      return { kind: "too_many_jobs", maxRunning: count(body.max_running) };
     case "email_unverified":
       return { kind: "email_unverified" };
     case "feature_unavailable":
@@ -60,8 +66,10 @@ export function refusalMessage(refusal: PaidWorkRefusal, fallback: string, curre
     case "insufficient_credit":
       return t("billing.paidWork.insufficientCreditWeb");
     case "daily_cap":
-      // The limit is the server's, formatted; without it the sentence still reads.
-      return t("billing.paidWork.dailyCap", { limit: refusal.limitMicro != null ? formatMicro(refusal.limitMicro, currency) : "—" });
+      // The limit is the server's, formatted; an older server without it gets the sentence without a figure.
+      return refusal.limitMicro != null
+        ? t("billing.paidWork.dailyCap", { limit: formatMicro(refusal.limitMicro, currency) })
+        : t("billing.paidWork.dailyCapNoFigure");
     case "too_many_jobs":
       return t("billing.paidWork.tooManyJobs", { count: refusal.maxRunning ?? 2 });
     case "email_unverified":

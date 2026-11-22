@@ -394,5 +394,7 @@
   "shell.notifications.creditTopup.until": {"en": "{amount} added, credit is {balance} — enough until {date}.", "cs": "Přidáno {amount}, kredit je {balance} — vystačí do {date}."},
   "shell.notifications.creditTopup.long": {"en": "{amount} added, credit is {balance} — enough for more than 10 years.", "cs": "Přidáno {amount}, kredit je {balance} — vystačí na více než 10 let."},
 
-  "shell.nav.translateBook": {"en": "Translate a book", "cs": "Přeložit knihu", "note": "Sidebar item under Create, between Narrate a book and Translate an episode."}
+  "shell.nav.translateBook": {"en": "Translate a book", "cs": "Přeložit knihu", "note": "Sidebar item under Create, between Narrate a book and Translate an episode."},
+
+  "shell.nav.madeHere": {"en": "Made here", "cs": "Vytvořeno", "note": "Sidebar item, first under Create: everything you had narrated or translated. The Mac's “Made Here”."}
 }

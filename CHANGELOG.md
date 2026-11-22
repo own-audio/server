@@ -17,6 +17,19 @@ semver. Each release states the **API contract revision** it serves
   a machine translation. `PATCH /api/v2/books/{id}` takes `language` (a BCP 47 tag; `null`
   clears it); `db::audiobooks::set_book_origin` is how an edition records a book it made.
 
+- Web console: a small "Machine translation" badge on a machine-translated book (`origin.kind`
+  `machine_translated`) in the library, on Home, on its page and in the player, and on a translated
+  episode the server flags `machine_translated` (Your translations, the show's episode rows, the
+  episode's translations, the player). The book's page adds "Machine-translated by Google from
+  Czech to English, read by Sarah." unless its description already says it; Czech names the
+  languages in the genitive. A book without `origin` or a row without the flag shows nothing.
+- Web console: Create ▸ Made here, first under Create: your narrations from any device
+  (`GET /audiobook-gen/jobs`, paged) — running with stage and blocks, ready with what it cost,
+  Listen now and the cover actions, failed with the server's error and the charge — and the
+  family's translated episodes with Play. On a server without the job list, the jobs started in
+  this browser.
+- Web console: the daily-cap refusal without `daily_cap_micro` says the sentence without a figure
+  instead of "(—)"; the refusal's numbers are read from v2 problem members too.
 - Web console: Narrate a book and Translate this episode offer the voice models a hosted server
   lists at `GET /narration/voice-tiers` (Chirp 3: HD by default; Gemini 3.8 Flash TTS and
   Flash-Lite TTS marked Preview), each with its price per hour of audio in the chosen language

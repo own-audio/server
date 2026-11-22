@@ -52,6 +52,8 @@ export interface MessageParams {
   "audiobooks.detail.fileCount": { "count": number };
   "audiobooks.detail.files": undefined;
   "audiobooks.detail.isbn": { "isbn": string | number };
+  "audiobooks.detail.machineTranslated": { "source": string | number; "target": string | number; "voice": string | number };
+  "audiobooks.detail.machineTranslatedNeutral": { "source": string | number; "target": string | number; "voice": string | number };
   "audiobooks.detail.narratedBy": { "name": string | number };
   "audiobooks.detail.noFiles": undefined;
   "audiobooks.detail.removeFavorite": undefined;
@@ -277,6 +279,7 @@ export interface MessageParams {
   "auth.verify.title": undefined;
   "auth.verify.working": undefined;
   "auth.version": { "version": string | number };
+  "badge.machineTranslation": undefined;
   "billing.alerts.balance": { "currency": string | number };
   "billing.alerts.days": undefined;
   "billing.alerts.description": undefined;
@@ -294,6 +297,7 @@ export interface MessageParams {
   "billing.moreThanTenYears": undefined;
   "billing.page.title": undefined;
   "billing.paidWork.dailyCap": { "limit": string | number };
+  "billing.paidWork.dailyCapNoFigure": undefined;
   "billing.paidWork.emailUnverified": undefined;
   "billing.paidWork.insufficientCredit": undefined;
   "billing.paidWork.insufficientCreditWeb": undefined;
@@ -383,6 +387,7 @@ export interface MessageParams {
   "common.language.en": undefined;
   "common.language.system": undefined;
   "common.language.title": undefined;
+  "common.languageInSentence": { "code": string; "name": string | number };
   "common.loading": undefined;
   "common.qrCode.invite": undefined;
   "common.theme.dark": undefined;
@@ -580,6 +585,22 @@ export interface MessageParams {
   "generate.language.target": undefined;
   "generate.language.title": undefined;
   "generate.language.translate": undefined;
+  "generate.madeHere.books": undefined;
+  "generate.madeHere.changeCover": undefined;
+  "generate.madeHere.chooseItem": undefined;
+  "generate.madeHere.details": undefined;
+  "generate.madeHere.empty": undefined;
+  "generate.madeHere.emptyTranslatedBooks": undefined;
+  "generate.madeHere.episodes": undefined;
+  "generate.madeHere.error": undefined;
+  "generate.madeHere.failed": undefined;
+  "generate.madeHere.hideCover": undefined;
+  "generate.madeHere.languages": { "source": string | number; "target": string | number };
+  "generate.madeHere.older": undefined;
+  "generate.madeHere.ready": undefined;
+  "generate.madeHere.title": undefined;
+  "generate.madeHere.translatedBooks": undefined;
+  "generate.madeHere.unknownState": undefined;
   "generate.personalUse.episodeLong": undefined;
   "generate.personalUse.long": undefined;
   "generate.personalUse.short": undefined;
@@ -1584,6 +1605,8 @@ export interface MessageParams {
   "podcasts.translate.error.quote": undefined;
   "podcasts.translate.error.start": undefined;
   "podcasts.translate.language": undefined;
+  "podcasts.translate.machineTranslated": { "source": string | number; "target": string | number; "voice": string | number };
+  "podcasts.translate.machineTranslatedNeutral": { "source": string | number; "target": string | number; "voice": string | number };
   "podcasts.translate.noVoice": undefined;
   "podcasts.translate.pickForPrice": undefined;
   "podcasts.translate.price": undefined;
@@ -1818,6 +1841,7 @@ export interface MessageParams {
   "shell.nav.household": undefined;
   "shell.nav.justMe": undefined;
   "shell.nav.library": undefined;
+  "shell.nav.madeHere": undefined;
   "shell.nav.narrate": undefined;
   "shell.nav.new": undefined;
   "shell.nav.organize": undefined;

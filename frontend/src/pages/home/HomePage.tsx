@@ -15,6 +15,7 @@ import { usePlayerStore } from "../../store/playerStore";
 import { listTranslationsInProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
 import { formatDuration } from "../../lib/format";
 import { playBook, playEpisode, playTracks } from "../../lib/play";
+import { isMachineTranslatedBook } from "../../lib/machineTranslation";
 import { Page } from "../../components/shell/SplitView";
 import { Button, IconButton, Cover, Dialog, DialogContent, EmptyState, Skeleton } from "../../components/ui";
 import { MediaCard } from "../../components/library/MediaCard";
@@ -370,6 +371,7 @@ function NewBooksWidget() {
             title={b.title}
             subtitle={b.author}
             cover={b.cover_url}
+            machineTranslated={isMachineTranslatedBook(b)}
             active={active}
             playing={active && playing}
             onPlay={() => void playBook(b)}
@@ -417,6 +419,7 @@ function RecentBooksWidget() {
           title={b.title}
           subtitle={b.author}
           cover={b.cover_url}
+          machineTranslated={isMachineTranslatedBook(b)}
           onPlay={() => void playBook(b)}
           onClick={() => navigate(`/audiobooks/${b.id}`)}
           className="w-36 shrink-0"

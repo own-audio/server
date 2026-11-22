@@ -2,6 +2,7 @@
 import type { PodcastEpisodeTranslation } from "../api/types";
 import { usePlayerStore } from "../store/playerStore";
 import { getTranslationProgress, rememberTranslation } from "./translationProgress";
+import { isMachineTranslatedEpisode } from "./machineTranslation";
 
 /**
  * Play a finished translation of an episode, or pause/resume it when it is already the one
@@ -43,5 +44,6 @@ export function playTranslation(
     streamUrl: tr.stream_url,
     durationSecs: known?.durationSecs ?? episode.durationSecs,
     resumePosition: known && !known.completed ? known.positionSecs : 0,
+    machineTranslated: isMachineTranslatedEpisode(tr),
   });
 }

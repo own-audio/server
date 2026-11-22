@@ -179,5 +179,22 @@
   "generate.cover.error.failed": {"en": "The cover couldn't be made. Nothing was used up — try again in a moment.", "cs": "Obálku se nepodařilo vytvořit. Nic se nespotřebovalo — zkuste to za chvíli znovu.", "note": "502 cover_failed."},
   "generate.cover.error.unavailable": {"en": "Covers can't be made on this server right now.", "cs": "Na tomto serveru teď obálky vytvářet nelze.", "note": "503 cover_unavailable."},
   "generate.cover.error.notFound": {"en": "This narration isn't yours, or it no longer exists.", "cs": "Toto namlouvání není vaše, nebo už neexistuje.", "note": "404."},
-  "generate.cover.error.generic": {"en": "Couldn't change the cover.", "cs": "Obálku se nepodařilo změnit."}
+  "generate.cover.error.generic": {"en": "Couldn't change the cover.", "cs": "Obálku se nepodařilo změnit."},
+
+  "generate.madeHere.title": {"en": "Made here", "cs": "Vytvořeno", "note": "Page title: everything you had narrated or translated."},
+  "generate.madeHere.empty": {"en": "What you narrate or translate appears here: audiobooks from your ebooks, and podcast episodes in another language.", "cs": "Zde se objeví, co namluvíte nebo přeložíte: audioknihy z vašich e-knih a epizody podcastů v jiném jazyce."},
+  "generate.madeHere.emptyTranslatedBooks": {"en": "Books you translate appear here.", "cs": "Zde se objeví knihy, které přeložíte.", "note": "Mac: Translate a Book's list of translated books, when empty."},
+  "generate.madeHere.books": {"en": "Audiobooks", "cs": "Audioknihy", "note": "Section heading: narrated and translated books."},
+  "generate.madeHere.translatedBooks": {"en": "Translated books", "cs": "Přeložené knihy", "note": "Section heading on the Mac's Translate a Book page."},
+  "generate.madeHere.episodes": {"en": "Podcast episodes", "cs": "Epizody podcastů", "note": "Section heading: translated episodes."},
+  "generate.madeHere.ready": {"en": "Ready", "cs": "Připraveno", "note": "A finished narration's state in the list."},
+  "generate.madeHere.failed": {"en": "Failed", "cs": "Selhalo", "note": "A failed narration's state in the list."},
+  "generate.madeHere.unknownState": {"en": "Couldn't load its state.", "cs": "Stav se nepodařilo načíst."},
+  "generate.madeHere.chooseItem": {"en": "Choose something on the left.", "cs": "Vyberte něco vlevo.", "note": "Mac: the detail column with nothing selected."},
+  "generate.madeHere.languages": {"en": "{source} → {target}", "cs": "{source} → {target}", "note": "A translation's two languages, by name."},
+  "generate.madeHere.details": {"en": "Details", "cs": "Podrobnosti", "note": "Link from a row to the narration's own status page."},
+  "generate.madeHere.changeCover": {"en": "Change the cover", "cs": "Změnit obálku", "note": "Opens the cover actions of a finished book under its row."},
+  "generate.madeHere.hideCover": {"en": "Hide the cover", "cs": "Skrýt obálku", "note": "Closes the cover actions again."},
+  "generate.madeHere.older": {"en": "Show older", "cs": "Zobrazit starší", "note": "Loads the next page of narrations."},
+  "generate.madeHere.error": {"en": "Couldn't load what was made here.", "cs": "Seznam vytvořeného se nepodařilo načíst."}
 }

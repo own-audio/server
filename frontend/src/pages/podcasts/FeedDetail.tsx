@@ -12,7 +12,7 @@ import { playEpisode } from "../../lib/play";
 import { getTranslationProgress, subscribeToTranslationProgress } from "../../lib/translationProgress";
 import { playTranslation } from "../../lib/playTranslation";
 import { usePlayerStore } from "../../store/playerStore";
-import { Button, IconButton, Cover, Dialog, DialogContent, EmptyState, MenuItem, Pill, SearchField, SegmentedControl, Skeleton, toast } from "../../components/ui";
+import { Button, IconButton, Cover, Dialog, DialogContent, EmptyState, MachineTranslationBadge, MenuItem, Pill, SearchField, SegmentedControl, Skeleton, toast } from "../../components/ui";
 import { MoreMenuTrigger } from "../../components/library/BrowseControls";
 import { ClampedText } from "../../components/library/ClampedText";
 import TranslateEpisodeModal from "./TranslateEpisodeModal";
@@ -22,6 +22,7 @@ import type { PodcastEpisode, PodcastEpisodeTranslation, Visibility } from "../.
 import { VisibilityField } from "../../components/library/VisibilityField";
 import AudienceList from "../../components/library/AudienceList";
 import { cn } from "../../lib/cn";
+import { isMachineTranslatedEpisode } from "../../lib/machineTranslation";
 import { useT, type PlainKey } from "../../i18n";
 
 /**
@@ -190,6 +191,7 @@ function Translations({
                       {known?.completed && tr.status === "complete" && ` — ${t("podcasts.translation.played")}`}
                       {left && ` — ${t("podcasts.translation.left", { time: left })}`}
                     </span>
+                    {isMachineTranslatedEpisode(tr) && <MachineTranslationBadge />}
                   </span>
                 </div>
                 {/* Its own position, kept in this browser: the server has none for a

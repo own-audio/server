@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useEffect, useState } from "react";
 import { NavLink, useMatch, useNavigate, useLocation } from "react-router-dom";
-import { BarChart3, Home, Keyboard, LogOut, ChevronsLeft, ChevronsRight, PlayCircle, Settings, Sparkles, User, UserRound, Users, Trash2, Wallet, Languages, Tags } from "lucide-react";
+import { BarChart3, Home, Keyboard, LogOut, ChevronsLeft, ChevronsRight, PlayCircle, Settings, Sparkles, User, UserRound, Users, Trash2, Wallet, Languages, Tags, FolderHeart } from "lucide-react";
 import { BookIcon, MusicIcon, PodcastIcon } from "../ui/CloudIcon";
 import Logo, { Wordmark } from "../Logo";
 import ThemeToggle from "./ThemeToggle";
@@ -220,6 +220,10 @@ export default function Sidebar({ forceExpanded = false }: { forceExpanded?: boo
             a server that offers them at all. */}
         {(features.translation || features.organizer || (features.narration && canGenerate)) && (
           <SectionLabel collapsed={collapsed}>{t("shell.nav.create")}</SectionLabel>
+        )}
+        {/* First: what was made, then the ways to make more — as on the Mac. */}
+        {((features.narration && canGenerate) || features.translation) && (
+          <NavItem item={{ to: "/made-here", label: "shell.nav.madeHere", icon: <FolderHeart />, cloud: "book" }} collapsed={collapsed} />
         )}
         {features.narration && canGenerate && (
           <NavItem item={{ to: "/generate", label: "shell.nav.narrate", icon: <Sparkles />, cloud: "book" }} collapsed={collapsed} />

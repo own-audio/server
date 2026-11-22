@@ -25,6 +25,8 @@ export interface PodcastPlayerTrack {
    * this browser instead (`lib/translationProgress`).
    */
   translationId?: string;
+  /** A machine translation: the player shows the badge. Older saved queues lack it. */
+  machineTranslated?: boolean;
 }
 
 export interface AudiobookPlayerTrack {
@@ -40,6 +42,8 @@ export interface AudiobookPlayerTrack {
   resumePosition: number;
   bookPositionOffsetSecs: number;
   bookTotalDurationSecs: number | null;
+  /** The book is a machine translation (`origin.kind`). */
+  machineTranslated?: boolean;
 }
 
 export interface MusicPlayerTrack {

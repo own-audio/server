@@ -16,6 +16,8 @@ import { usePlayerStore } from "../../store/playerStore";
 import { cn } from "../../lib/cn";
 import { useT, type PlainKey } from "../../i18n";
 import TranslateEpisodeModal from "./TranslateEpisodeModal";
+import { MachineTranslationBadge } from "../../components/ui";
+import { isMachineTranslatedEpisode } from "../../lib/machineTranslation";
 
 /**
  * Translate and narrate a podcast episode, as its own place under Create.
@@ -119,6 +121,7 @@ export default function TranslatePage() {
                       subtitle={tr.status === "complete" ? tr.feed_title : `${tr.feed_title} · ${t(STATUS[tr.status])}`}
                       cover={tr.image_url}
                       coverAuth={false}
+                      machineTranslated={isMachineTranslatedEpisode(tr)}
                       active={isPlaying(tr.id)}
                       onClick={() => navigate(`/podcasts/${tr.feed_id}`)}
                       action={
@@ -176,6 +179,7 @@ export default function TranslatePage() {
                     onClick={() => setTranslating(ep.id)}
                     action={
                       <span className="flex shrink-0 items-center gap-1">
+                        {(byEpisode.get(ep.id) ?? []).some(isMachineTranslatedEpisode) && <MachineTranslationBadge compact />}
                         {(byEpisode.get(ep.id) ?? []).map((tr) => (
                           <LanguageChip
                             key={tr.id}

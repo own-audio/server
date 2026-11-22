@@ -60,3 +60,25 @@ export function TranslatableBadge({ className }: { className?: string }) {
     </span>
   );
 }
+
+/** A machine translation (a book or an episode). Neutral on purpose: it describes the item, it
+ *  is not a warning (creation-features-clients.md §9.5). `compact` is the glyph alone, for a
+ *  crowded row; its name is still read out. */
+export function MachineTranslationBadge({ compact, className }: { compact?: boolean; className?: string }) {
+  const { t } = useT();
+  const label = t("badge.machineTranslation");
+  if (compact) {
+    return (
+      <span title={label} className={cn("inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-pill bg-bg-alt text-muted", className)}>
+        <Languages className="h-3 w-3" aria-hidden />
+        <span className="sr-only">{label}</span>
+      </span>
+    );
+  }
+  return (
+    <span className={cn("inline-flex shrink-0 items-center gap-1 rounded-pill bg-bg-alt px-2 py-0.5 text-[11px] font-medium text-muted", className)}>
+      <Languages className="h-3 w-3" aria-hidden />
+      {label}
+    </span>
+  );
+}

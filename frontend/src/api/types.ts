@@ -112,6 +112,11 @@ export interface PodcastEpisodeTranslation {
   notice: string;
   /** Length of the finished audio. */
   duration_secs?: number | null;
+  /** Always true on a server that sends it (audio2 06a8925): badge it as a machine translation. */
+  machine_translated?: boolean;
+  /** Who translated it: `google` today. */
+  translator?: string;
+  created_at?: string;
 }
 
 /** A translation with the episode and show it belongs to (`GET /podcast-translate/recent`). */
@@ -161,6 +166,21 @@ export interface AudioBook {
   is_owner: boolean;
   created_at: string;
   updated_at: string;
+  /** BCP 47; absent on a server from before 2026-11-22 (core 87195af). */
+  language?: string | null;
+  /** How the server made the book; `null` for an ordinary one. */
+  origin?: BookOrigin | null;
+}
+
+/** Set only by the server. Any other `kind` is treated like none. */
+export interface BookOrigin {
+  kind: "narrated" | "machine_translated" | string;
+  /** On `machine_translated`: the language it was translated from. */
+  source_language?: string | null;
+  /** `google` today. */
+  translator?: string | null;
+  /** The reading voice's display name ("Sarah"). */
+  voice?: string | null;
 }
 
 export interface AudioBookFile {
@@ -530,6 +550,21 @@ export interface GenerationJobStatus {
   cover_regenerations_left?: number;
   /** The uploaded file has a cover of its own; null until the file is read. */
   source_has_cover?: boolean | null;
+  /* Since 2026-11-22 (audio2 a6c93cf); absent on an older server. */
+  source_language?: string;
+  target_language?: string;
+  blocks_done?: number;
+  blocks_total?: number;
+  created_at?: string;
+  updated_at?: string;
+  /** Null while it runs. */
+  finished_at?: string | null;
+}
+
+/** `GET /audiobook-gen/jobs`: the caller's own jobs, newest first. */
+export interface GenerationJobPage {
+  items: GenerationJobStatus[];
+  next?: string | null;
 }
 
 /** `book`: the EPUB/MOBI's own cover, a generated one when the file has none. */
