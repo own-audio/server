@@ -8,6 +8,7 @@ import AuthPage from "./pages/auth/AuthPage";
 import SectionTheme from "./components/shell/SectionTheme";
 import { Suspense, type ReactNode } from "react";
 import { lazyPage } from "./lib/lazyPage";
+import { offersBookTranslation } from "./lib/features";
 
 const SetupWizard = lazyPage(() => import("./pages/setup/SetupWizard"));
 const HomePage = lazyPage(() => import("./pages/home/HomePage"));
@@ -112,7 +113,8 @@ export default function App({ extraRoutes }: AppProps = {}) {
           <Route path="music/organize" element={<FeatureGate feature="organizer"><SectionTheme cloud="music"><OrganizePage /></SectionTheme></FeatureGate>} />
 
           {/* Hosted-only features: on a server that reports them false these routes go home. */}
-          <Route path="generate" element={<FeatureGate feature="narration"><GenerateWizardPage /></FeatureGate>} />
+          <Route path="generate" element={<FeatureGate feature="narration"><GenerateWizardPage key="narrate" /></FeatureGate>} />
+          <Route path="translate-book" element={<FeatureGate when={offersBookTranslation}><GenerateWizardPage key="translate" mode="translate" /></FeatureGate>} />
           <Route path="translate" element={<FeatureGate feature="translation"><TranslatePage /></FeatureGate>} />
           <Route path="generate/:jobId" element={<FeatureGate feature="narration"><GenerationStatusPage /></FeatureGate>} />
           <Route path="private" element={<PrivatePage />} />

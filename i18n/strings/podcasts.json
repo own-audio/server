@@ -632,5 +632,8 @@
   "podcasts.feed.episode.ai.error": {
     "en": "That didn't work. Try again.",
     "cs": "Nepodařilo se. Zkuste to znovu."
-  }
+  },
+
+  "podcasts.translate.alreadyMade": {"en": "This translation is already made", "cs": "Tento překlad už existuje", "note": "Toast title when the same episode, language and voice were translated before (200): nothing new is charged."},
+  "podcasts.translate.alreadyMadeBody": {"en": "It's under the episode. Nothing new was charged.", "cs": "Najdete ho pod epizodou. Nic dalšího se neúčtovalo."}
 }

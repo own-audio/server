@@ -2,6 +2,7 @@
 import type { CoverMode } from "../../../api/generation";
 import type { GenerationQuote, VoiceTier } from "../../../api/types";
 import { formatCents } from "../../../lib/format";
+import { formatMicro } from "../../../api/billing";
 import { useT } from "../../../i18n";
 import QuoteTierRow from "../QuoteTierRow";
 
@@ -10,11 +11,16 @@ export default function QuoteStep({
   isLoading,
   tiers = [],
   coverMode = "auto",
+  creditMicro,
+  creditCurrency,
 }: {
   quote: GenerationQuote | undefined;
   isLoading: boolean;
   tiers?: VoiceTier[];
   coverMode?: CoverMode;
+  /** The family's credit, for information; the server decides whether it is enough. */
+  creditMicro?: number;
+  creditCurrency?: string;
 }) {
   const { t, locale } = useT();
   const coverCents = quote?.cover_cost_cents ?? 0;
@@ -60,8 +66,17 @@ export default function QuoteStep({
             </span>
           </div>
           <p className="mt-3 text-xs text-muted">{t("generate.tier.priceNote")}</p>
+          {creditMicro != null && (
+            <div className="mt-3 flex justify-between text-sm">
+              <span className="text-muted">{t("generate.quote.credit")}</span>
+              <span className="tabular-nums">{formatMicro(creditMicro, creditCurrency ?? quote.currency)}</span>
+            </div>
+          )}
         </div>
       )}
+      {/* The server's sentence when it sends one (verbatim, in the request's language); the
+          catalog's, which is the same text, from an older server. */}
+      {quote && <p className="mt-4 text-xs leading-relaxed text-muted">{quote.personal_use_notice ?? t("generate.personalUse.long")}</p>}
     </div>
   );
 }

@@ -210,7 +210,8 @@ function Translations({
                         : t("podcasts.translation.notCharged")}
                   </p>
                 )}
-                {tr.status === "complete" && tr.notice && <p className="mt-0.5 text-xs text-muted">{tr.notice}</p>}
+                {/* The server's line, verbatim; the catalog's short one from a server without it. */}
+                {tr.status === "complete" && <p className="mt-0.5 text-xs text-muted">{tr.notice || t("generate.personalUse.short")}</p>}
               </li>
             );
           })}

@@ -38,6 +38,9 @@ export interface ServerFeatures {
   payments: boolean;
   narration: boolean;
   translation: boolean;
+  /** Translate a book (plan T1). Not sent yet: until it is, narration and translation together
+   *  stand for it (`offersBookTranslation`). */
+  book_translation?: boolean;
   /** Hosted: summarize an episode and answer questions about it, from its transcript. */
   summaries: boolean;
   /** Revision 22: concerts — chapter marks on music tracks, albums of release kind `live`. */

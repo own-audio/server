@@ -17,11 +17,30 @@ semver. Each release states the **API contract revision** it serves
   sent nothing new.
 - Web console: an EPUB or MOBI can keep its own cover when narrated (`cover_mode` `book`; one is
   made when the file has none).
+- Web console: Translate a book under Create (`/translate-book`), the narration wizard with
+  translation always on — "The book is in" and "Translate into", which must differ. Shown on a
+  server with narration and translation (or `book_translation`, once a server sends it) to a
+  member who may order paid work; the Add audiobook dialog's "Translate and narrate" opens it.
+- Web console: a finished narration's cover can be changed on its status page, free: a new one
+  (made for you or from your own brief), the book's own when the file has one, or none, with the
+  number of free covers left (`POST /audiobook-gen/jobs/{id}/cover`). Each refusal
+  (`not_finished`, `no_book_cover`, `cover_limit_reached`, `cover_failed`, `cover_unavailable`)
+  has its own sentence.
+- Web console: the confirm step of narrating or translating a book and the episode translation
+  dialog carry the personal-use note (the server's `personal_use_notice` when it sends one), and
+  a finished narration says it is based on the original work, for personal listening. The
+  confirm step also shows the family's credit.
 
 ### Changed
 
 - Web console: the narration wizard shows the cover as free, and says that the price shown is the
   most you pay and that a failed job costs the part already made.
+- Web console: a refused narration, book translation or episode translation is told by its code:
+  not enough credit (with a link to Storage & credit), the day's limit for paid work (the limit
+  the server sent), too many jobs running, an unconfirmed email address, no permission, or a
+  voice model no longer offered — then the wizard reads the models again, falls back to the
+  default and asks for a voice. The episode dialog shows the price note too, and a translation
+  made before (`200`) says so instead of "Translation started".
 
 ## [1.0.7] - 2026-11-22
 

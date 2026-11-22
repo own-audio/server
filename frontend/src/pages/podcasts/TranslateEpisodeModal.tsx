@@ -6,7 +6,8 @@ import { listLanguages, listVoiceProfiles, listVoiceTiers } from "../../api/gene
 import type { VoiceTierId } from "../../api/types";
 import { createTranslation, quoteTranslation } from "../../api/podcastTranslate";
 import { Button, Dialog, DialogContent, Select, Skeleton, toast } from "../../components/ui";
-import { apiErrorMessage } from "../../lib/apiError";
+import { readRefusal, type PaidWorkRefusal } from "../../lib/paidWork";
+import PaidWorkAlert from "../../components/PaidWorkAlert";
 import { formatCents } from "../../lib/format";
 import { effectiveTier, showsTierPicker } from "../../lib/voiceTiers";
 import { useT } from "../../i18n";
@@ -45,7 +46,7 @@ export default function TranslateEpisodeModal({
   const [target, setTarget] = useState<string | null>(null);
   const [voice, setVoice] = useState<string | null>(null);
   const [chosenTier, setChosenTier] = useState<VoiceTierId | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<PaidWorkRefusal | null>(null);
 
   const { data: languages = [] } = useQuery({ queryKey: ["generation-languages"], queryFn: listLanguages, staleTime: Infinity });
   // A server without tiers answers 404/501; then nothing about tiers is shown or sent.
@@ -89,17 +90,27 @@ export default function TranslateEpisodeModal({
 
   const create = useMutation({
     mutationFn: () => createTranslation(episodeId, targetLanguage, selectedVoice as string, undefined, voiceTier),
-    onSuccess: () => {
+    onSuccess: ({ alreadyMade }) => {
       // The episode's own list, and the show-wide and recent lists on the Translate page.
       qc.invalidateQueries({ queryKey: ["podcast-translations"] });
-      toast.success(t("podcasts.translate.started"), t("podcasts.translate.startedBody"));
+      // 200: made before, for the same language and voice; it is under the episode, not charged again.
+      if (alreadyMade) toast.success(t("podcasts.translate.alreadyMade"), t("podcasts.translate.alreadyMadeBody"));
+      else toast.success(t("podcasts.translate.started"), t("podcasts.translate.startedBody"));
       onClose();
     },
-    onError: (err) => setError(apiErrorMessage(err, t("podcasts.translate.error.start"))),
+    onError: (err) => {
+      const refusal = readRefusal(err);
+      if (refusal.kind === "tier_withdrawn") {
+        // Read the tiers again and fall back to the default; the quote follows by itself.
+        qc.invalidateQueries({ queryKey: ["voice-tiers"] });
+        setChosenTier(null);
+        setVoice(null);
+      }
+      setError(refusal);
+    },
   });
 
-  const quoteMessage =
-    quoteError && apiErrorMessage(quoteError, t("podcasts.translate.error.quote"));
+  const quoteRefusal = quoteError ? readRefusal(quoteError) : null;
 
   return (
     <Dialog open onOpenChange={(v) => !v && onClose()}>
@@ -116,7 +127,7 @@ export default function TranslateEpisodeModal({
               icon={<Languages className="h-4 w-4" />}
               onClick={() => create.mutate()}
               loading={create.isPending}
-              disabled={!quote}
+              disabled={!quote || create.isPending}
             >
               {t("podcasts.translate.action")}
             </Button>
@@ -157,8 +168,8 @@ export default function TranslateEpisodeModal({
         <div className="mt-4 rounded-card border border-border p-4">
           {quoteLoading ? (
             <Skeleton className="h-10" />
-          ) : quoteMessage ? (
-            <p className="text-sm text-error">{quoteMessage}</p>
+          ) : quoteRefusal ? (
+            <PaidWorkAlert refusal={quoteRefusal} fallback={t("podcasts.translate.error.quote")} className="text-sm text-error" />
           ) : quote ? (
             <>
               <dl className="mb-2 text-sm">
@@ -172,6 +183,7 @@ export default function TranslateEpisodeModal({
               <p className="mt-1 text-xs text-muted">
                 {t("podcasts.translate.chargeLine", { count: quote.char_count })}
               </p>
+              <p className="mt-1 text-xs text-muted">{t("generate.tier.priceNote")}</p>
             </>
           ) : (
             <p className="text-sm text-muted">{t("podcasts.translate.pickForPrice")}</p>
@@ -180,9 +192,14 @@ export default function TranslateEpisodeModal({
 
         {/* Verbatim, as the contract requires — this is the personal-use
             statement, not marketing copy to reword. */}
-        {quote?.notice && <p className="mt-3 text-xs leading-relaxed text-muted">{quote.notice}</p>}
+        {/* `personal_use_notice` supersedes the older English `notice` where the server sends it. */}
+        {quote && (
+          <p className="mt-3 text-xs leading-relaxed text-muted">
+            {quote.personal_use_notice ?? quote.notice ?? t("generate.personalUse.episodeLong")}
+          </p>
+        )}
 
-        {error && <p role="alert" className="mt-3 rounded-[10px] bg-error/10 px-3 py-2 text-sm text-error">{error}</p>}
+        {error && <PaidWorkAlert refusal={error} fallback={t("podcasts.translate.error.start")} currency={quote?.currency} className="mt-3 rounded-[10px] bg-error/10 px-3 py-2 text-sm text-error" />}
       </DialogContent>
     </Dialog>
   );

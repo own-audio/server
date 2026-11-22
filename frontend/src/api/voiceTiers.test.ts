@@ -8,7 +8,7 @@ vi.mock("./client", () => ({
   default: { get: (...a: unknown[]) => get(...a), post: (...a: unknown[]) => post(...a) },
 }));
 
-const { createGenerationJob, getQuote, listVoiceProfiles, listVoiceTiers } = await import("./generation");
+const { createGenerationJob, getQuote, listVoiceProfiles, listVoiceTiers, setJobCover } = await import("./generation");
 const { createTranslation, quoteTranslation } = await import("./podcastTranslate");
 
 afterEach(() => {
@@ -77,7 +77,7 @@ describe("voice tier requests", () => {
   });
 
   it("sends voice_tier in the episode translation quote and request", async () => {
-    post.mockResolvedValue({ data: {} });
+    post.mockResolvedValue({ data: {}, status: 201 });
     await quoteTranslation("e1", "cs", "gemini_flash:cs-CZ:Charon", undefined, "gemini_flash");
     await createTranslation("e1", "cs", "gemini_flash:cs-CZ:Charon", undefined, "gemini_flash");
     await createTranslation("e1", "cs", "cs-CZ-Chirp3-HD-Charon");
@@ -98,5 +98,53 @@ describe("cover", () => {
     expect(canHaveOwnCover(new File([""], "book.mobi"))).toBe(true);
     expect(canHaveOwnCover(new File([""], "book.txt"))).toBe(false);
     expect(canHaveOwnCover(null)).toBe(false);
+  });
+});
+
+describe("translate a book", () => {
+  it("sends both languages in the quote and the job", async () => {
+    post.mockResolvedValue({ data: { id: "j1" } });
+    await getQuote(5000, "en", "cs", "cs-CZ-Chirp3-HD-Aoede", "book", "chirp3_hd");
+    expect(post.mock.calls[0][1]).toMatchObject({ source_language: "en", target_language: "cs", cover_mode: "book" });
+    await createGenerationJob({
+      file: new File(["x"], "book.epub"),
+      title: "Kniha",
+      sourceLanguage: "en",
+      targetLanguage: "cs",
+      voiceProfileId: "cs-CZ-Chirp3-HD-Aoede",
+      outputMode: "single_m4b",
+      coverMode: "book",
+      coverShowTitle: false,
+    });
+    const form = post.mock.calls[1][1] as FormData;
+    expect(form.get("source_language")).toBe("en");
+    expect(form.get("target_language")).toBe("cs");
+    expect(form.get("cover_mode")).toBe("book");
+    expect(form.has("cover_show_title")).toBe(false);
+  });
+});
+
+describe("cover on a finished narration", () => {
+  it("posts each mode with only the fields it uses", async () => {
+    post.mockResolvedValue({ data: { id: "j1" } });
+    await setJobCover("j1", { coverMode: "auto", coverShowTitle: true });
+    await setJobCover("j1", { coverMode: "custom", coverPrompt: "  A red fox  ", coverShowTitle: false });
+    await setJobCover("j1", { coverMode: "book", coverShowTitle: true });
+    await setJobCover("j1", { coverMode: "none" });
+    expect(post.mock.calls[0]).toEqual(["/audiobook-gen/jobs/j1/cover", { cover_mode: "auto", cover_show_title: true }]);
+    expect(post.mock.calls[1][1]).toEqual({ cover_mode: "custom", cover_prompt: "A red fox", cover_show_title: false });
+    // The title overlay is for a generated cover only.
+    expect(post.mock.calls[2][1]).toEqual({ cover_mode: "book", cover_show_title: false });
+    expect(post.mock.calls[3][1]).toEqual({ cover_mode: "none", cover_show_title: false });
+  });
+});
+
+describe("episode translation already made", () => {
+  it("tells a 200 (made before, not charged again) from a 201", async () => {
+    post.mockResolvedValueOnce({ data: { id: "t1" }, status: 201 });
+    post.mockResolvedValueOnce({ data: { id: "t0" }, status: 200 });
+    expect((await createTranslation("e1", "cs", "v")).alreadyMade).toBe(false);
+    const again = await createTranslation("e1", "cs", "v");
+    expect(again).toEqual({ translation: { id: "t0" }, alreadyMade: true });
   });
 });

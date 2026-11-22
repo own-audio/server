@@ -78,7 +78,7 @@
 
   "generate.cover.title": { "en": "Name it and give it a cover", "cs": "Pojmenujte ji a dejte jí obálku" },
   "generate.cover.intro": { "en": "All of this can be changed afterwards.", "cs": "Vše lze později změnit." },
-  "generate.cover.book": { "en": "The book's own", "cs": "Obálka z knihy", "note": "Cover option: the cover inside the EPUB/MOBI file." },
+  "generate.cover.book": { "en": "The book's own cover", "cs": "Obálka z knihy", "note": "Cover option: the cover inside the EPUB/MOBI file." },
   "generate.cover.bookHint": { "en": "From the file; made for you if it has none", "cs": "Ze souboru; když žádnou nemá, vytvoří se" },
   "generate.cover.auto": { "en": "Make one for me", "cs": "Vytvořit za mě" },
   "generate.cover.autoHint": { "en": "Generated from the book", "cs": "Vytvoří se podle knihy" },
@@ -154,5 +154,30 @@
     "en": "About {duration} remaining",
     "cs": "Zbývá asi {duration}",
     "note": "duration is formatted like 1 h 20 min."
-  }
+  },
+
+  "generate.translate.intro": {"en": "A book becomes an audiobook in another language, read in a voice you choose.", "cs": "Z knihy vznikne audiokniha v jiném jazyce, namluvená hlasem, který si vyberete."},
+  "generate.translate.from": {"en": "The book is in", "cs": "Kniha je v jazyce", "note": "Label of the source-language select in Translate a book."},
+  "generate.translate.into": {"en": "Translate into", "cs": "Přeložit do", "note": "Label of the target-language select in Translate a book."},
+  "generate.translate.sameLanguage": {"en": "Pick a language other than the book's.", "cs": "Vyberte jiný jazyk, než ve kterém je kniha."},
+  "generate.translate.start": {"en": "Start translating", "cs": "Spustit překlad"},
+  "generate.personalUse.long": {"en": "This audiobook is based on the original work and is meant for personal listening — yours and your family's. Whether you may share it further or publish it depends on the rights to the original and the laws where you live.", "cs": "Tato audiokniha vychází z původního díla a je určená k osobnímu poslechu — vašemu a vaší rodiny. Zda ji smíte dál šířit nebo zveřejnit, záleží na právech k původnímu dílu a na zákonech ve vaší zemi.", "note": "A quiet note (not a warning) on the confirm step of Narrate a book and Translate a book."},
+  "generate.personalUse.episodeLong": {"en": "This translation is based on the original work and is meant for personal listening — yours and your family's. Whether you may share it further or publish it depends on the rights to the original and the laws where you live.", "cs": "Tento překlad vychází z původního díla a je určený k osobnímu poslechu — vašemu a vaší rodiny. Zda ho smíte dál šířit nebo zveřejnit, záleží na právech k původnímu dílu a na zákonech ve vaší zemi.", "note": "The same note for Translate an episode, beside the price."},
+  "generate.personalUse.short": {"en": "Based on the original work, for personal listening.", "cs": "Vychází z původního díla, k osobnímu poslechu.", "note": "Small text on a finished narration, translated book or translated episode."},
+  "generate.quote.credit": {"en": "Family credit", "cs": "Kredit rodiny", "note": "On the confirm step, for information: the server decides whether it is enough."},
+  "generate.tier.withdrawn": {"en": "That voice model is no longer offered. Choose another.", "cs": "Tento hlasový model už není k dispozici. Vyberte jiný.", "note": "400 naming voice_tier: the model was withdrawn meanwhile."},
+  "generate.quote.error": {"en": "Couldn't work out the price.", "cs": "Cenu se nepodařilo zjistit."},
+  "generate.cover.regenerate": {"en": "Make a new cover", "cs": "Vytvořit novou obálku", "note": "On a finished narration: generate another cover, free."},
+  "generate.cover.regenerateLeft": {"en": "{count, plural, one {# more free cover} other {# more free covers}}", "cs": "{count, plural, one {Ještě # obálka zdarma} few {Ještě # obálky zdarma} other {Ještě # obálek zdarma}}", "note": "{count} is cover_regenerations_left."},
+  "generate.cover.useBook": {"en": "Use the book's own cover", "cs": "Použít obálku z knihy", "note": "Only when the uploaded file has a cover of its own."},
+  "generate.cover.remove": {"en": "Remove the cover", "cs": "Odstranit obálku"},
+  "generate.cover.working": {"en": "Making the cover… this takes about half a minute.", "cs": "Obálka se vytváří… trvá to asi půl minuty."},
+  "generate.cover.changed": {"en": "The cover is changed.", "cs": "Obálka byla změněna."},
+  "generate.cover.error.notFinished": {"en": "The book isn't finished yet, or it was deleted.", "cs": "Kniha ještě není hotová, nebo byla smazána.", "note": "409 not_finished."},
+  "generate.cover.error.noBookCover": {"en": "The book's file has no cover of its own.", "cs": "Soubor knihy nemá vlastní obálku.", "note": "422 no_book_cover."},
+  "generate.cover.error.limitReached": {"en": "This book has used all its free covers.", "cs": "Tato kniha už vyčerpala všechny obálky zdarma.", "note": "429 cover_limit_reached."},
+  "generate.cover.error.failed": {"en": "The cover couldn't be made. Nothing was used up — try again in a moment.", "cs": "Obálku se nepodařilo vytvořit. Nic se nespotřebovalo — zkuste to za chvíli znovu.", "note": "502 cover_failed."},
+  "generate.cover.error.unavailable": {"en": "Covers can't be made on this server right now.", "cs": "Na tomto serveru teď obálky vytvářet nelze.", "note": "503 cover_unavailable."},
+  "generate.cover.error.notFound": {"en": "This narration isn't yours, or it no longer exists.", "cs": "Toto namlouvání není vaše, nebo už neexistuje.", "note": "404."},
+  "generate.cover.error.generic": {"en": "Couldn't change the cover.", "cs": "Obálku se nepodařilo změnit."}
 }

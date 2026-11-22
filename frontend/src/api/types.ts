@@ -84,7 +84,10 @@ export interface PodcastTranslationQuote {
   tts_cost_cents: number;
   quoted_price_cents: number;
   currency: string;
+  /** The older English sentence; show `personal_use_notice` where the server sends it. */
   notice: string;
+  /** The personal-use line, in the request's language (hosted, 2026-11-22). */
+  personal_use_notice?: string;
   voice_tier?: VoiceTierId;
   voice_tier_preview?: boolean;
   tts_audio_tokens?: number;
@@ -478,6 +481,8 @@ export interface GenerationQuote {
   tts_audio_tokens?: number;
   quoted_price_cents: number;
   currency: string;
+  /** The personal-use line for the confirm step, in the request's language (hosted, 2026-11-22). */
+  personal_use_notice?: string;
 }
 
 export type GenerationStage =
@@ -519,7 +524,16 @@ export interface GenerationJobStatus {
   /** Set once the job reaches "complete": min(actual_cost_cents * markup, quoted_price_cents). */
   charged_price_cents: number | null;
   currency: string;
+  /** The cover chosen last. Absent on a server from before free covers (2026-11-22). */
+  cover_mode?: CoverModeId;
+  /** Generated covers still possible for this book (`POST …/jobs/{id}/cover`), free. */
+  cover_regenerations_left?: number;
+  /** The uploaded file has a cover of its own; null until the file is read. */
+  source_has_cover?: boolean | null;
 }
+
+/** `book`: the EPUB/MOBI's own cover, a generated one when the file has none. */
+export type CoverModeId = "auto" | "book" | "none" | "custom";
 
 /** A row from `GET /library/private`: one flat list across all three kinds. */
 export interface PrivateItem {

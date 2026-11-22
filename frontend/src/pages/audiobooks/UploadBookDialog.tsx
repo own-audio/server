@@ -12,7 +12,7 @@ import { filesFromDrop } from "../../lib/dropFiles";
 import { Button, Dialog, DialogContent, Input, Textarea, toast } from "../../components/ui";
 import { cn } from "../../lib/cn";
 import { useT } from "../../i18n";
-import { useServerFeatures } from "../../lib/features";
+import { offersBookTranslation, useServerFeatures } from "../../lib/features";
 import { useMyPermissions } from "../../lib/permissions";
 
 const AUDIO_EXTENSIONS = new Set(["mp3", "m4a", "m4b", "aac", "flac", "ogg", "opus", "wav", "mp4"]);
@@ -154,8 +154,8 @@ export default function UploadBookDialog() {
     ...(features.narration && canGenerate
       ? [{ to: "/generate", icon: <Sparkles className="h-5 w-5" />, title: t("audiobooks.upload.narrate.title"), body: t("audiobooks.upload.narrate.body") }]
       : []),
-    ...(features.translation
-      ? [{ to: "/generate?translate=1", icon: <Languages className="h-5 w-5" />, title: t("audiobooks.upload.translate.title"), body: t("audiobooks.upload.translate.body") }]
+    ...(offersBookTranslation(features) && canGenerate
+      ? [{ to: "/translate-book", icon: <Languages className="h-5 w-5" />, title: t("audiobooks.upload.translate.title"), body: t("audiobooks.upload.translate.body") }]
       : []),
   ];
 

@@ -123,3 +123,16 @@ export function loadAuthImage(src: string, token: string | null): { url: Promise
     },
   };
 }
+
+/** Forget what was loaded for `src` (any account), so the next showing asks again: the image
+ *  behind the address changed, as a book's cover does after a new one is made. */
+export function forgetAuthImage(src: string) {
+  for (const key of [...entries.keys()]) {
+    if (!key.endsWith(` ${src}`)) continue;
+    const entry = entries.get(key)!;
+    entries.delete(key);
+    if (entry.started && entry.waiters === 0) {
+      void entry.promise.then((url) => url?.startsWith("blob:") && URL.revokeObjectURL(url));
+    }
+  }
+}

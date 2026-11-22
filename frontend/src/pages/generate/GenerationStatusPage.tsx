@@ -8,6 +8,8 @@ import { getGenerationStatus } from "../../api/generation";
 import type { GenerationStage } from "../../api/types";
 import { formatCents, formatDuration } from "../../lib/format";
 import { useT, type PlainKey } from "../../i18n";
+import { useMyPermissions } from "../../lib/permissions";
+import JobCoverPanel from "./JobCoverPanel";
 
 /** One (time, blocksDone) sample used to estimate narration throughput. */
 interface ProgressSample {
@@ -71,6 +73,7 @@ function stageRank(stages: GenerationStage[], stage: GenerationStage): number {
 export default function GenerationStatusPage() {
   const { jobId } = useParams<{ jobId: string }>();
   const { t } = useT();
+  const { canGenerate } = useMyPermissions();
 
   const { data: job } = useQuery({
     queryKey: ["generation-status", jobId],
@@ -209,6 +212,7 @@ export default function GenerationStatusPage() {
             {!job.download_url && (
               <p className="mt-2 text-xs text-muted">{t("generate.status.perChapterNote")}</p>
             )}
+            <p className="mt-2 text-xs text-muted">{t("generate.personalUse.short")}</p>
 
             {job.charged_price_cents != null && (
               <dl className="mt-4 space-y-1 text-xs text-muted">
@@ -221,6 +225,11 @@ export default function GenerationStatusPage() {
                   <dd className="tabular-nums">{formatCents(job.charged_price_cents, job.currency)}</dd>
                 </div>
               </dl>
+            )}
+
+            {/* Only a server with free covers reports what is left; an older one has no route for it. */}
+            {job.book_id && canGenerate && job.cover_regenerations_left !== undefined && (
+              <JobCoverPanel job={{ ...job, book_id: job.book_id }} />
             )}
           </div>
         )}

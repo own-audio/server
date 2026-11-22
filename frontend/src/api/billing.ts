@@ -54,6 +54,8 @@ export interface Billing {
   storage: BillingStorage;
   pricing: BillingPricing;
   balance_micro: number;
+  /** The balance less what running jobs hold (hosted, 2026-11). */
+  available_micro?: number;
   estimated_daily_cost_micro: number;
   estimated_monthly_cost_micro: number;
   days_remaining: number | null;

@@ -2,6 +2,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { getServerInfo, NO_FEATURES, type ServerFeatures, type ServerInfo } from "../api/server";
 
+/** Translate a book needs narration and the Translate key; read the server's own flag once it
+ *  sends one (`audio2/docs/creation-features-clients.md` §2). */
+export function offersBookTranslation(features: ServerFeatures): boolean {
+  return features.book_translation ?? (features.narration && features.translation);
+}
+
 /**
  * The server's `features` (`GET /server`), cached for the session. Gating
  * on these is UX, not a control: the server answers 501 for a feature it

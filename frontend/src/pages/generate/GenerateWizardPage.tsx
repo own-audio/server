@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { canHaveOwnCover, createGenerationJob, estimateCharCount, getQuote, listLanguages, listVoiceTiers, type CoverMode } from "../../api/generation";
 import type { VoiceTierId } from "../../api/types";
 import { effectiveTier, voiceForTier } from "../../lib/voiceTiers";
@@ -16,6 +16,10 @@ import VoiceStep from "./steps/VoiceStep";
 import CoverStep from "./steps/CoverStep";
 import QuoteStep from "./steps/QuoteStep";
 import { useT, type PlainKey } from "../../i18n";
+import { getBilling } from "../../api/billing";
+import { useServerFeatures } from "../../lib/features";
+import { readRefusal, type PaidWorkRefusal } from "../../lib/paidWork";
+import PaidWorkAlert from "../../components/PaidWorkAlert";
 
 type OutputMode = "single_m4b" | "multi_file";
 
@@ -28,16 +32,26 @@ const STEP_LABELS: PlainKey[] = [
 ];
 const CONFIRM = STEP_LABELS.length - 1;
 
-export default function GenerateWizardPage() {
+const VOICE_STEP = 2;
+
+/**
+ * Narrate a book, or — `mode="translate"` — Translate a book: the same wizard with translation
+ * always on, so the two languages are both asked for and must differ.
+ */
+export default function GenerateWizardPage({ mode = "narrate" }: { mode?: "narrate" | "translate" }) {
   const navigate = useNavigate();
   const { t } = useT();
+  const qc = useQueryClient();
+  const { features } = useServerFeatures();
+  const translating = mode === "translate";
   const [step, setStep] = useState(0);
 
   const [file, setFile] = useState<File | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState("en");
   // "Translate and narrate" in the Add audiobook dialog opens this with ?translate=1.
   const [params] = useSearchParams();
-  const [translate, setTranslate] = useState(params.get("translate") === "1");
+  const [translateChecked, setTranslate] = useState(params.get("translate") === "1");
+  const translate = translating || translateChecked;
   const [targetLanguage, setTargetLanguage] = useState("cs");
   const [pickedVoice, setVoiceProfileId] = useState<string | null>(null);
   const [chosenTier, setChosenTier] = useState<VoiceTierId | null>(null);
@@ -47,7 +61,9 @@ export default function GenerateWizardPage() {
   const [pickedCoverMode, setCoverMode] = useState<CoverMode>("auto");
   const [coverPrompt, setCoverPrompt] = useState("");
   const [coverShowTitle, setCoverShowTitle] = useState(false);
-  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<PaidWorkRefusal | null>(null);
+  /** Said once on the voice step after the server stopped offering the tier that was picked. */
+  const [tierWithdrawn, setTierWithdrawn] = useState(false);
 
   /* The server falls back to the filename when no title is sent; showing that
      same guess up front means the box is never blank and the fallback is never
@@ -90,12 +106,39 @@ export default function GenerateWizardPage() {
     enabled: !!file && step >= CONFIRM,
   });
 
-  const { data: quote, isLoading: quoteLoading } = useQuery({
+  const { data: quote, isLoading: quoteLoading, error: quoteError } = useQuery({
     queryKey: ["quote", charCount, sourceLanguage, effectiveTargetLanguage, voiceProfileId, voiceTier, coverMode],
-    queryFn: () =>
-      getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string, coverMode, voiceTier),
+    queryFn: async () => {
+      try {
+        return await getQuote(charCount as number, sourceLanguage, effectiveTargetLanguage, voiceProfileId as string, coverMode, voiceTier);
+      } catch (err) {
+        if (readRefusal(err).kind === "tier_withdrawn") onTierWithdrawn();
+        throw err;
+      }
+    },
     enabled: !!charCount && !!voiceProfileId && step >= CONFIRM && !tiersPending,
+    retry: false,
   });
+  const quoteRefusal = quoteError ? readRefusal(quoteError) : null;
+
+  // Shown for information only: the server decides whether it is enough (holds count running jobs).
+  const { data: billing } = useQuery({
+    queryKey: ["billing"],
+    queryFn: getBilling,
+    enabled: features.billing && step >= CONFIRM,
+    retry: false,
+  });
+
+  /* The tier went away between reading the list and ordering: read the list again, fall back
+     to the default tier and ask for a voice of it — a voice belongs to one tier. */
+  function onTierWithdrawn() {
+    qc.invalidateQueries({ queryKey: ["voice-tiers"] });
+    setChosenTier(null);
+    setVoiceProfileId(null);
+    setTierWithdrawn(true);
+    setSubmitError(null);
+    setStep(VOICE_STEP);
+  }
 
   const submitMutation = useMutation({
     mutationFn: async () => {
@@ -115,8 +158,11 @@ export default function GenerateWizardPage() {
       });
     },
     onSuccess: ({ id }) => navigate(`/generate/${id}`),
+    // No automatic retry: the multipart job has no Idempotency-Key, so a retry could start a second one.
     onError: (err: unknown) => {
-      setSubmitError((err as Error)?.message || t("generate.error.start"));
+      const refusal = readRefusal(err);
+      if (refusal.kind === "tier_withdrawn") onTierWithdrawn();
+      else setSubmitError(refusal);
     },
   });
 
@@ -131,17 +177,20 @@ export default function GenerateWizardPage() {
 
   function goNext() {
     if (!canAdvance()) return;
+    setTierWithdrawn(false);
+    setSubmitError(null);
     setStep((s) => Math.min(s + 1, STEP_LABELS.length - 1));
   }
 
   function goBack() {
+    setSubmitError(null);
     setStep((s) => Math.max(s - 1, 0));
   }
 
   return (
     <SectionTheme cloud="book">
-    <Page title={t("shell.nav.narrate")} width="max-w-2xl">
-      <p className="-mt-4 mb-6 text-sm text-muted">{t("generate.intro")}</p>
+    <Page title={t(translating ? "shell.nav.translateBook" : "shell.nav.narrate")} width="max-w-2xl">
+      <p className="-mt-4 mb-6 text-sm text-muted">{t(translating ? "generate.translate.intro" : "generate.intro")}</p>
 
       {/* A phone has room for where you are, not for five labelled steps. */}
       <div className="mb-6 sm:hidden">
@@ -178,12 +227,16 @@ export default function GenerateWizardPage() {
             sourceLanguage={sourceLanguage}
             targetLanguage={targetLanguage}
             translate={translate}
+            fixed={translating}
             onSourceLanguageChange={setSourceLanguage}
             onTargetLanguageChange={setTargetLanguage}
             onTranslateChange={setTranslate}
           />
         )}
-        {step === 2 && (
+        {step === VOICE_STEP && tierWithdrawn && (
+          <p role="alert" className="mb-4 rounded-[10px] bg-error/10 px-3 py-2 text-sm text-error">{t("generate.tier.withdrawn")}</p>
+        )}
+        {step === VOICE_STEP && (
           <VoiceStep
             voiceProfileId={voiceProfileId}
             outputMode={outputMode}
@@ -213,11 +266,21 @@ export default function GenerateWizardPage() {
             onCoverShowTitleChange={setCoverShowTitle}
           />
         )}
-        {step === 4 && <QuoteStep quote={quote} isLoading={quoteLoading} tiers={tiers} coverMode={coverMode} />}
-
-        {submitError && (
-          <p role="alert" className="mt-4 rounded-[10px] bg-error/10 px-3 py-2 text-sm text-error">{submitError}</p>
+        {step === CONFIRM && (
+          <QuoteStep
+            quote={quote}
+            isLoading={quoteLoading}
+            tiers={tiers}
+            coverMode={coverMode}
+            creditMicro={billing ? (billing.available_micro ?? billing.balance_micro) : undefined}
+            creditCurrency={billing?.pricing.currency}
+          />
         )}
+        {step === CONFIRM && quoteRefusal && quoteRefusal.kind !== "tier_withdrawn" && (
+          <PaidWorkAlert refusal={quoteRefusal} fallback={t("generate.quote.error")} currency={quote?.currency} />
+        )}
+
+        {submitError && <PaidWorkAlert refusal={submitError} fallback={t("generate.error.start")} currency={quote?.currency} />}
 
         {/* On a phone the buttons stay at the thumb, whatever the step's length. */}
         <div className="sticky bottom-0 -mx-4 mt-8 flex justify-between gap-3 border-t border-border bg-bg/90 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
@@ -229,8 +292,8 @@ export default function GenerateWizardPage() {
               {t("common.action.next")}
             </Button>
           ) : (
-            <Button onClick={() => submitMutation.mutate()} disabled={!quote} loading={submitMutation.isPending}>
-              {t("generate.start")}
+            <Button onClick={() => submitMutation.mutate()} disabled={!quote || submitMutation.isPending} loading={submitMutation.isPending}>
+              {t(translating ? "generate.translate.start" : "generate.start")}
             </Button>
           )}
         </div>

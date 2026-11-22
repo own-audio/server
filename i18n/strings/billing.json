@@ -52,5 +52,12 @@
   "billing.thanks.long": {"en": "At your library's current size, it lasts more than 10 years.", "cs": "Při současné velikosti knihovny vám vystačí na více než 10 let."},
   "billing.thanks.pending": {"en": "The payment went through. The credit appears here in a moment.", "cs": "Platba proběhla. Kredit se tu objeví za okamžik."},
   "billing.thanks.ok": {"en": "OK", "cs": "OK"},
-  "billing.topup.cancelled": {"en": "Payment canceled — nothing was charged.", "cs": "Platba zrušena — nic se nestrhlo."}
+  "billing.topup.cancelled": {"en": "Payment canceled — nothing was charged.", "cs": "Platba zrušena — nic se nestrhlo."},
+
+  "billing.paidWork.insufficientCredit": {"en": "There isn't enough credit in the family for this.", "cs": "Rodina na to nemá dost kreditu.", "note": "402 insufficient_credit, in the store apps: no pointer to where credit is bought."},
+  "billing.paidWork.insufficientCreditWeb": {"en": "There isn't enough credit in the family for this. Add credit in Storage & credit, then try again.", "cs": "Rodina na to nemá dost kreditu. Přidejte kredit v části Úložiště a kredit a zkuste to znovu.", "note": "402 insufficient_credit on the web and the Mac, followed by a link to Storage & credit."},
+  "billing.paidWork.dailyCap": {"en": "Today's limit for paid work ({limit}) is reached. Try again tomorrow.", "cs": "Dnešní limit placené práce ({limit}) je vyčerpán. Zkuste to zítra.", "note": "409 daily_cap_reached. {limit} is the server's daily_cap_micro, formatted like “$70.00” — never a fixed number."},
+  "billing.paidWork.tooManyJobs": {"en": "{count, plural, one {A narration or translation is already being made for your family. Wait for it to finish.} other {# narrations or translations are already being made for your family. Wait for one to finish.}}", "cs": "{count, plural, one {Pro vaši rodinu se už vytváří jedno namlouvání nebo překlad. Počkejte, až skončí.} few {Pro vaši rodinu se už vytvářejí # namlouvání nebo překlady. Počkejte, až jedno skončí.} other {Pro vaši rodinu se už vytváří # namlouvání nebo překladů. Počkejte, až jedno skončí.}}", "note": "409 too_many_jobs. {count} is the body's max_running (2 today)."},
+  "billing.paidWork.emailUnverified": {"en": "Confirm your email address first.", "cs": "Nejdřív potvrďte svou e-mailovou adresu.", "note": "403 email_unverified."},
+  "billing.paidWork.notAllowed": {"en": "You can't order paid work in this family.", "cs": "V této rodině nemůžete objednávat placenou práci.", "note": "403 without a code: the permission to order paid work was taken away."}
 }

@@ -11,7 +11,7 @@ import { IconButton } from "../ui/Button";
 import { useAuthStore } from "../../store/authStore";
 import { logout } from "../../api/auth";
 import { useMyPermissions } from "../../lib/permissions";
-import { useServerFeatures } from "../../lib/features";
+import { offersBookTranslation, useServerFeatures } from "../../lib/features";
 import { useShortcuts } from "../../lib/shortcuts";
 import { useSidebar } from "../../lib/sidebar";
 import { usePlayerStore } from "../../store/playerStore";
@@ -223,6 +223,9 @@ export default function Sidebar({ forceExpanded = false }: { forceExpanded?: boo
         )}
         {features.narration && canGenerate && (
           <NavItem item={{ to: "/generate", label: "shell.nav.narrate", icon: <Sparkles />, cloud: "book" }} collapsed={collapsed} />
+        )}
+        {offersBookTranslation(features) && canGenerate && (
+          <NavItem item={{ to: "/translate-book", label: "shell.nav.translateBook", icon: <Languages />, cloud: "book" }} collapsed={collapsed} />
         )}
         {features.organizer && (
           <NavItem item={{ to: "/music/organize", label: "shell.nav.organize", icon: <Tags />, cloud: "music" }} collapsed={collapsed} />

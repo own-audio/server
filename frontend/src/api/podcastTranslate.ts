@@ -24,14 +24,15 @@ export async function createTranslation(
   voiceProfileId: string,
   sourceLanguage?: string,
   voiceTier?: VoiceTierId
-): Promise<PodcastEpisodeTranslation> {
-  const { data } = await api.post<PodcastEpisodeTranslation>(`/podcast-translate/episodes/${episodeId}`, {
+): Promise<{ translation: PodcastEpisodeTranslation; alreadyMade: boolean }> {
+  // 200 rather than 201: the same episode, language and voice were translated before; nothing new is charged.
+  const { data, status } = await api.post<PodcastEpisodeTranslation>(`/podcast-translate/episodes/${episodeId}`, {
     target_language: targetLanguage,
     voice_profile_id: voiceProfileId,
     source_language: sourceLanguage,
     ...(voiceTier ? { voice_tier: voiceTier } : {}),
   });
-  return data;
+  return { translation: data, alreadyMade: status === 200 };
 }
 
 export async function listTranslations(episodeId: string): Promise<PodcastEpisodeTranslation[]> {

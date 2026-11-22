@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 import api from "./client";
 import { isAxiosError } from "axios";
-import type { GenerationJobStatus, GenerationQuote, Language, VoiceProfile, VoiceTier, VoiceTierId } from "./types";
+import type { CoverModeId, GenerationJobStatus, GenerationQuote, Language, VoiceProfile, VoiceTier, VoiceTierId } from "./types";
 
 const ACCEPTED_EXTENSIONS = [".epub", ".mobi", ".txt"];
 
@@ -10,8 +10,7 @@ export async function listLanguages(): Promise<Language[]> {
   return data;
 }
 
-/** `book`: the EPUB/MOBI's own cover, a generated one when the file has none. */
-export type CoverMode = "auto" | "book" | "none" | "custom";
+export type CoverMode = CoverModeId;
 
 /** Only an EPUB or MOBI can carry a cover of its own. */
 export function canHaveOwnCover(file: File | null): boolean {
@@ -122,5 +121,28 @@ export async function createGenerationJob(
 
 export async function getGenerationStatus(id: string): Promise<GenerationJobStatus> {
   const { data } = await api.get<GenerationJobStatus>(`/audiobook-gen/jobs/${id}`);
+  return data;
+}
+
+export interface SetCoverRequest {
+  /** `auto`/`custom` make a new cover (free, a bounded number per book), `book` takes the file's
+   *  own, `none` takes the cover off. */
+  coverMode: CoverMode;
+  /** Required for `custom`. */
+  coverPrompt?: string;
+  coverShowTitle?: boolean;
+}
+
+/** Changes a finished narration's cover; answers the job with the new cover on its book. A
+ *  generated cover takes 10–20 s. */
+export async function setJobCover(id: string, req: SetCoverRequest): Promise<GenerationJobStatus> {
+  const { data } = await api.post<GenerationJobStatus>(
+    `/audiobook-gen/jobs/${id}/cover`,
+    {
+      cover_mode: req.coverMode,
+      ...(req.coverMode === "custom" && req.coverPrompt?.trim() ? { cover_prompt: req.coverPrompt.trim() } : {}),
+      cover_show_title: req.coverMode === "auto" || req.coverMode === "custom" ? !!req.coverShowTitle : false,
+    }
+  );
   return data;
 }
