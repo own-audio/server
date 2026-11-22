@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.6] - 2026-11-22
+
+Contract revision 28. API v2 revision 18.
+
+Token refresh on its own rate limit in v2, readable refusals of files over the upload limit,
+book file titles without track numbers. No migrations.
+
 ### Added
 
 - `POST /api/v2/uploads`: a file over the single-upload limit is refused with `size_bytes` and
