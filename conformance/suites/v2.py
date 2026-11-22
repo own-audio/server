@@ -972,8 +972,12 @@ def library(ctx: Ctx, problem) -> None:
 
     ctx.check("an upload must say how big it is", problem(ctx.request("POST", "/api/v2/uploads", tok,
               {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg"}), 422))
-    ctx.check("…and stay within the limit", problem(ctx.request("POST", "/api/v2/uploads", tok,
-              {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 6 * 1024 ** 3}), 400))
+    too_big = ctx.request("POST", "/api/v2/uploads", tok,
+                          {"kind": "track", "filename": "x.mp3", "content_type": "audio/mpeg", "size_bytes": 6 * 1024 ** 3})
+    refused = json.loads(too_big[2]) if too_big[0] == 400 else {}
+    ctx.check("…and stay within the limit, saying so in words and in bytes", problem(too_big, 400, "bad_request")
+              and refused.get("size_bytes") == 6 * 1024 ** 3 and refused.get("max_bytes", 0) > 0
+              and "6.0 GB" in refused.get("detail", ""), str(refused)[:200])
     up = upload("track", f"new-{sfx}.mp3")
     ctx.check("an upload link", bool(up.get("upload_id")) and up.get("method") == "PUT" and bool(up.get("expires_at")), str(up)[:160])
     key = f"track-{sfx}"

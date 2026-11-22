@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 
 /// The v2 contract's revision: up by one with every addition, so a client can check for it.
 /// Counted from 2026-11-17 (revision 1). Changes are additive only (API_COMPATIBILITY.md §4).
-pub const V2_REVISION: u32 = 17;
+pub const V2_REVISION: u32 = 18;
 /// `stable` since 1.0.4-beta.1, the release that completed docs/api-v2-completion-plan.md; it was
 /// `draft` before, though additive only from revision 1 because the iPhone apps shipped on it.
 pub const V2_STATUS: &str = "stable";

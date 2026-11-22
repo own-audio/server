@@ -49,7 +49,7 @@ pub struct Upload {
     extensions(("x-permission" = json!("can_upload"))),
     request_body = UploadRequest,
     responses((status = 201, body = Upload),
-        (status = 400, description = "Unknown kind, missing type, or a size that is not positive or over 5 GiB", body = crate::v2::problem::ProblemBody),
+        (status = 400, description = "Unknown kind, missing type, or a size that is not positive or over 5 GiB; over it, `size_bytes` and `max_bytes` give both sizes in bytes (revision 18)", body = crate::v2::problem::ProblemBody),
         (status = 402, description = "`storage_refused`: the household has no room for it", body = crate::v2::problem::ProblemBody),
         (status = 403, description = "Not allowed to add to the library", body = crate::v2::problem::ProblemBody)))]
 pub async fn create_upload(family: FamilyContext, State(state): State<AppState>, Json(body): Json<UploadRequest>) -> Result<(StatusCode, Json<Upload>), Problem> {
@@ -71,6 +71,14 @@ pub async fn create_upload(family: FamilyContext, State(state): State<AppState>,
                 .field("/kind", "invalid", other.to_string()));
         }
     };
+    // Refused here rather than in v1's presign so the answer can carry the numbers; after
+    // the permission check, so someone who may not upload still hears that first.
+    family.require_can_upload()?;
+    if body.size_bytes > crate::uploads::MAX_UPLOAD_BYTES {
+        return Err(Problem::bad_request("bad_request", crate::uploads::too_large_detail(body.size_bytes))
+            .with("size_bytes", body.size_bytes)
+            .with("max_bytes", crate::uploads::MAX_UPLOAD_BYTES));
+    }
     let request = crate::uploads::PresignRequest {
         kind: kind.into(),
         filename: body.filename,

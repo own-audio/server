@@ -35,6 +35,37 @@ const UPLOAD_URL_EXPIRY_SECS: u64 = 6 * 3600;
 /// would lift this; nothing in the product needs it yet.
 pub const MAX_UPLOAD_BYTES: i64 = 5 * 1024 * 1024 * 1024;
 
+/// Why a file over [`MAX_UPLOAD_BYTES`] is refused, for a person: "The file is 6.0 GB; one
+/// upload can be at most 5 GB." Sizes are binary (GiB) with the units people know, the way
+/// file managers that count in 1024s show them; the exact bytes travel as fields where the
+/// answer has room for them (v2).
+pub fn too_large_detail(size_bytes: i64) -> String {
+    let limit = human_size(MAX_UPLOAD_BYTES, false);
+    let size = human_size(size_bytes, true);
+    // 5 GiB and one byte would round to "5.0 GB", which reads as allowed.
+    if size.trim_end_matches(" GB").parse::<f64>().ok() == limit.trim_end_matches(" GB").parse::<f64>().ok() {
+        return format!("The file is a little over {limit}; one upload can be at most {limit}.");
+    }
+    format!("The file is {size}; one upload can be at most {limit}.")
+}
+
+fn human_size(bytes: i64, tenths: bool) -> String {
+    const KIB: f64 = 1024.0;
+    let b = bytes as f64;
+    let (value, unit) = if b >= KIB * KIB * KIB {
+        (b / (KIB * KIB * KIB), "GB")
+    } else if b >= KIB * KIB {
+        (b / (KIB * KIB), "MB")
+    } else {
+        (b / KIB, "KB")
+    };
+    if !tenths && value.fract() == 0.0 {
+        format!("{value:.0} {unit}")
+    } else {
+        format!("{value:.1} {unit}")
+    }
+}
+
 pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new()
         .routes(routes!(presign))
@@ -105,9 +136,7 @@ pub(crate) async fn presign(
             return Err(AuthError::BadRequest("size_bytes must be positive".to_string()));
         }
         if size > MAX_UPLOAD_BYTES {
-            return Err(AuthError::BadRequest(format!(
-                "file is larger than the {MAX_UPLOAD_BYTES}-byte single-upload limit"
-            )));
+            return Err(AuthError::BadRequest(too_large_detail(size)));
         }
     }
     // Room for it (quota, credit) is checked now, before a link is handed
@@ -294,4 +323,23 @@ pub async fn register_object(
     size_bytes: i64,
 ) -> anyhow::Result<Uuid> {
     db::media::upsert_object(pool, storage.bucket(), object_key, content_type, Some(size_bytes)).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{MAX_UPLOAD_BYTES, too_large_detail};
+
+    #[test]
+    fn an_oversize_upload_is_refused_in_words() {
+        const GIB: i64 = 1024 * 1024 * 1024;
+        let cases = [
+            (6 * GIB, "The file is 6.0 GB; one upload can be at most 5 GB."),
+            (6 * GIB + GIB / 2, "The file is 6.5 GB; one upload can be at most 5 GB."),
+            (120 * GIB, "The file is 120.0 GB; one upload can be at most 5 GB."),
+            (MAX_UPLOAD_BYTES + 1, "The file is a little over 5 GB; one upload can be at most 5 GB."),
+        ];
+        for (size, want) in cases {
+            assert_eq!(too_large_detail(size), want, "{size}");
+        }
+    }
 }

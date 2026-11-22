@@ -7,6 +7,18 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- `POST /api/v2/uploads`: a file over the single-upload limit is refused with `size_bytes` and
+  `max_bytes` beside the problem's `detail`, so an app can show the sizes its own way. The
+  `code` stays `bad_request`. Contract change: API v2 revision 18.
+
+### Fixed
+
+- Uploads over the single-upload limit say so in words ("The file is 6.0 GB; one upload can be
+  at most 5 GB.") instead of "larger than the 5368709120-byte single-upload limit", on
+  `POST /api/v2/uploads` and `POST /api/v1/uploads/presign` alike.
+
 ## [1.0.5] - 2026-11-20
 
 Contract revision 28. API v2 revision 17.

@@ -12739,7 +12739,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.17"
+    "version": "2.18"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -34405,7 +34405,7 @@
                 }
               }
             },
-            "description": "Unknown kind, missing type, or a size that is not positive or over 5 GiB"
+            "description": "Unknown kind, missing type, or a size that is not positive or over 5 GiB; over it, `size_bytes` and `max_bytes` give both sizes in bytes (revision 18)"
           },
           "401": {
             "content": {
