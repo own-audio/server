@@ -41,6 +41,11 @@ semver. Each release states the **API contract revision** it serves
 
 ### Changed
 
+- `/api/v2` problem details keep every member of the refusal they were made from as an extension
+  member beside `code` (RFC 9457 §3.2): `409 daily_cap_reached` carries `daily_cap_micro` and
+  `spent_today_micro`, `409 too_many_jobs` `running` and `max_running`, `402 insufficient_credit`
+  `required_micro` and `available_micro`. Server errors still carry none. API v2 revision 20.
+
 - Web console: the narration wizard shows the cover as free, and says that the price shown is the
   most you pay and that a failed job costs the part already made.
 - Web console: a refused narration, book translation or episode translation is told by its code:

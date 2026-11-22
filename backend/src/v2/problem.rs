@@ -38,7 +38,8 @@ pub struct ProblemBody {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub errors: Vec<FieldError>,
     /// Members a particular problem adds: the token endpoint's OAuth `error` and
-    /// `error_description`, a two-factor challenge's `mfa_token`.
+    /// `error_description`, a two-factor challenge's `mfa_token`, a refusal's numbers
+    /// (`daily_cap_micro`, `max_running`…; revision 20).
     #[serde(flatten)]
     #[schema(ignore)]
     pub extra: serde_json::Map<String, Value>,
@@ -196,8 +197,8 @@ fn code_for(status: StatusCode) -> &'static str {
 
 /// Rewrites every error answer under `/api/v2` that is not problem details yet.
 /// The original's `code` (or its `error` when that is a code, like
-/// `account_locked`) is kept; its message becomes `detail`, except for server
-/// errors, whose text stays in the log.
+/// `account_locked`) is kept, its message becomes `detail` and its other members
+/// stay (`from_legacy`), except for server errors, whose text stays in the log.
 pub async fn middleware(request: Request, next: Next) -> Response {
     let response = next.run(request).await;
     let status = response.status();
@@ -214,8 +215,23 @@ pub async fn middleware(request: Request, next: Next) -> Response {
     }
     let (parts, body) = response.into_parts();
     let bytes = to_bytes(body, 64 * 1024).await.unwrap_or_default();
+    let mut answer = from_legacy(status, &bytes).into_response();
+    // Keep what the original said about retrying and authenticating.
+    for name in [header::RETRY_AFTER, header::WWW_AUTHENTICATE, header::ALLOW] {
+        if let Some(value) = parts.headers.get(&name) {
+            answer.headers_mut().insert(name, value.clone());
+        }
+    }
+    answer
+}
+
+/// The problem an older error body stands for: its `code` (or an `error` that is a code), its
+/// message as `detail`, and every other member it carried as an extension member beside them
+/// (RFC 9457 §3.2) — a refusal's numbers, such as `daily_cap_micro` or `max_running`, reach a
+/// v2 client as they reach a v1 one. A server error keeps none of it; its text stays in the log.
+fn from_legacy(status: StatusCode, bytes: &[u8]) -> Problem {
     let mut problem = Problem::new(status, code_for(status));
-    if let Ok(json) = serde_json::from_slice::<Value>(&bytes) {
+    if let Ok(json) = serde_json::from_slice::<Value>(bytes) {
         let message = json.get("error").and_then(Value::as_str).map(str::to_string);
         let is_code = |s: &str| !s.is_empty() && s.chars().all(|c| c.is_ascii_lowercase() || c == '_');
         if let Some(code) = json.get("code").and_then(Value::as_str) {
@@ -228,23 +244,28 @@ pub async fn middleware(request: Request, next: Next) -> Response {
                 problem.detail = Some(message);
             }
         }
+        if let Value::Object(members) = json {
+            for (key, value) in members {
+                if !RESERVED.contains(&key.as_str()) {
+                    problem.extra.insert(key, value);
+                }
+            }
+        }
     } else if !bytes.is_empty() && status.is_client_error() {
         // axum's own rejections are plain text ("Failed to deserialize the JSON body…").
-        let text = String::from_utf8_lossy(&bytes);
+        let text = String::from_utf8_lossy(bytes);
         problem.detail = Some(text.chars().take(300).collect());
     }
     if status.is_server_error() {
         problem.detail = None;
+        problem.extra.clear();
     }
-    let mut answer = problem.into_response();
-    // Keep what the original said about retrying and authenticating.
-    for name in [header::RETRY_AFTER, header::WWW_AUTHENTICATE, header::ALLOW] {
-        if let Some(value) = parts.headers.get(&name) {
-            answer.headers_mut().insert(name, value.clone());
-        }
-    }
-    answer
+    problem
 }
+
+/// The members a problem body defines itself, plus the older body's `error`, which becomes
+/// `code` or `detail`.
+const RESERVED: &[&str] = &["type", "title", "status", "code", "detail", "errors", "instance", "error"];
 
 /// Unknown paths under `/api/v2`. A path of the hosted edition's, on a server
 /// without it, is `501 feature_unavailable` with the feature named, as on v1.
@@ -279,6 +300,25 @@ mod tests {
         assert_eq!(v["status"], 400);
         assert_eq!(v["code"], "invalid_cursor");
         assert_eq!(v["errors"][0]["field"], "cursor");
+    }
+
+    #[test]
+    fn an_older_refusal_keeps_its_numbers() {
+        let body = br#"{"error":"Today's spending limit for paid work is reached.","code":"daily_cap_reached","spent_today_micro":1200,"daily_cap_micro":5000000}"#;
+        let v = serde_json::to_value(from_legacy(StatusCode::CONFLICT, body).body()).unwrap();
+        assert_eq!(v["code"], "daily_cap_reached");
+        assert_eq!(v["detail"], "Today's spending limit for paid work is reached.");
+        assert_eq!(v["daily_cap_micro"], 5_000_000);
+        assert_eq!(v["spent_today_micro"], 1200);
+        assert_eq!(v["status"], 409);
+        assert!(v.get("error").is_none());
+        let jobs = br#"{"error":"Too many running.","code":"too_many_jobs","running":2,"max_running":2,"status":"x","type":"y"}"#;
+        let v = serde_json::to_value(from_legacy(StatusCode::CONFLICT, jobs).body()).unwrap();
+        assert_eq!((v["max_running"].as_i64(), v["running"].as_i64()), (Some(2), Some(2)));
+        assert_eq!((v["status"].as_u64(), v["type"].as_str()), (Some(409), Some("urn:own-audio:problem:too_many_jobs")));
+        let broken = br#"{"error":"db exploded at 10.0.0.1","secret_hint":"x"}"#;
+        let v = serde_json::to_value(from_legacy(StatusCode::INTERNAL_SERVER_ERROR, broken).body()).unwrap();
+        assert!(v.get("detail").is_none() && v.get("secret_hint").is_none());
     }
 
     #[test]

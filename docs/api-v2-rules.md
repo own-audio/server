@@ -53,7 +53,8 @@ Until then v1 is served unchanged for the apps built on it and gets no new featu
 2. **Declare the permission** (`x-permission`: `public`, `user`, `member`, `family_admin`,
    `instance_admin`, `can_upload`, `can_generate`, `owner`). A route without one fails a test.
 3. **Errors are problem details** with a stable `code`. `404` means missing *or not visible to
-   you*, never "forbidden".
+   you*, never "forbidden". What a refusal says beyond that is an extension member beside `code`
+   (`daily_cap_micro`, `max_running`, `feature`…), never inside `detail` (revision 20).
 4. **Every list that can grow with the catalog is cursor-paged** (with the catalog, a history or
    time) and answered in SQL with an index; no `fetch_all` over a catalog table. Lists bounded by
    the household (members, invites, sessions, tokens, push devices, library folders, settings)
