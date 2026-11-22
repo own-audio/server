@@ -212,6 +212,7 @@ Status columns: **Mac** = what the Mac app has (from its plans, 2026-08-27);
 | Feature | API | Mac | Web now | Phase |
 |---|---|---|---|---|
 | AI narration wizard + status | `/audiobook-gen/*` | ✅ | ✅ | W8 restyle |
+| Translate and narrate a book (hosted, planned 2026-11-22; plan in the hosted repo, `docs/book-translation-plan.md`) | `/api/v2/narration/*` | ⬜ | ⬜ | — |
 | Instance admin: users, jobs | `/users`, `/jobs` — gated on `users.role == admin` | 🚧 | ✅ | W7 (add jobs) |
 | Family-admin gating on `my_role` from `GET /family`, never instance role | — | ✅ | ✅ | W6 |
 
