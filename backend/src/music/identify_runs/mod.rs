@@ -438,7 +438,11 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid) -> anyhow::
     )
     .await?;
     if !keep && proposed.disc_number.is_some() {
-        db::music::set_disc(pool, track.id, proposed.disc_number, None).await?;
+        // In the run's batch, so the history has it and a revert's undo of it is no change.
+        let mut tx = pool.begin().await?;
+        db::edits::mark(&mut tx, &db::edits::Edit::in_batch(user_id, "run", p.run_id)).await?;
+        db::music::set_disc(&mut *tx, track.id, proposed.disc_number, None).await?;
+        tx.commit().await?;
     }
     db::identify::set_decision(pool, proposal_id, "accepted").await?;
     Ok(AcceptOutcome::Accepted)

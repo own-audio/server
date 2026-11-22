@@ -257,8 +257,8 @@ pub struct Reverted {
     pub reverted: usize,
 }
 
-/// Undo every accept of this run that still stands. Its proposals become
-/// pending again.
+/// Undo every accept of this run that still stands, as `DELETE /tracks/{id}/identity`
+/// does for one. Its proposals become pending again.
 #[utoipa::path(post, path = "/identify/runs/{id}/revert", tag = "identify", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)),
@@ -605,9 +605,11 @@ pub async fn search_group(family: FamilyContext, State(state): State<AppState>, 
 }
 
 /// Undo one track's identify: its title, artist, album, album artist, genre, track
-/// number and MusicBrainz ids go back to what they were before it was first
-/// identified, by a run or on its own. A run's proposal for it is pending again.
-/// The file was never touched.
+/// and disc number and MusicBrainz ids go back to what they were before it was first
+/// identified, by a run or on its own, and the identify's edits in the history are
+/// marked undone. The MusicBrainz artist id the identify gave the song's artist goes
+/// too, unless another song credited to them still carries it. A run's proposal for
+/// it is pending again. The file was never touched.
 #[utoipa::path(delete, path = "/tracks/{id}/identity", tag = "identify", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
     params(("id" = Uuid, Path)),

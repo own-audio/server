@@ -375,8 +375,10 @@ pub async fn apply_musicbrainz_metadata(
     crate::db::edits::mark(&mut tx, &edit).await?;
     // What the track was before, kept for a revert. Locked so a concurrent edit
     // can't slip between the snapshot and the update.
+    // The disc too, which an accepted proposal may set; not in the tag snapshot, whose
+    // revert must not undo a disc the file was read for since.
     let before: Option<serde_json::Value> = sqlx::query_scalar(&format!(
-        "SELECT {IDENTITY_SNAPSHOT} FROM music_tracks_all
+        "SELECT {IDENTITY_SNAPSHOT} || jsonb_build_object('disc_number', disc_number) FROM music_tracks_all
           WHERE id = $1 AND user_id = $2 AND trashed_at IS NULL AND missing_at IS NULL FOR UPDATE"
     ))
     .bind(id)
@@ -448,6 +450,12 @@ const IDENTITY_SNAPSHOT: &str = "jsonb_build_object(
     'musicbrainz_release_group_id', musicbrainz_release_group_id,
     'release_checked_at', release_checked_at)";
 
+/// The track fields a revert puts back, as the history names them.
+const REVERTED_FIELDS: &[&str] = &[
+    "title", "artist", "album", "album_artist", "genre", "track_number", "disc_number",
+    "musicbrainz_recording_id", "musicbrainz_release_id", "musicbrainz_artist_id", "musicbrainz_release_group_id",
+];
+
 /// How a track got its MusicBrainz identity: `identify` (matched by this server),
 /// `mbid_tag` (read from the file), or `None` when it has none.
 pub async fn identity_source<'e, E: sqlx::PgExecutor<'e>>(
@@ -485,8 +493,8 @@ pub enum RevertOutcome {
 pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid, edit: &crate::db::edits::Edit) -> anyhow::Result<RevertOutcome> {
     let mut tx = pool.begin().await.context("db: begin revert")?;
     crate::db::edits::mark(&mut tx, edit).await?;
-    let row: Option<(Option<serde_json::Value>,)> = sqlx::query_as(
-        "SELECT i.before
+    let row: Option<(Option<serde_json::Value>, Option<String>)> = sqlx::query_as(
+        "SELECT i.before, NULLIF(trim(t.musicbrainz_artist_id), '')
            FROM music_track_identity i
            JOIN music_tracks_all t ON t.id = i.track_id
           WHERE i.track_id = $1 AND t.user_id = $2 AND t.trashed_at IS NULL AND t.missing_at IS NULL
@@ -497,7 +505,7 @@ pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid, edit: &crat
     .fetch_optional(&mut *tx)
     .await
     .context("db: read track identity")?;
-    let Some((before,)) = row else { return Ok(RevertOutcome::NotIdentified) };
+    let Some((before, identified_artist)) = row else { return Ok(RevertOutcome::NotIdentified) };
     let Some(before) = before else { return Ok(RevertOutcome::NothingRecorded) };
 
     sqlx::query(
@@ -511,6 +519,8 @@ pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid, edit: &crat
                 musicbrainz_artist_id = $2->>'musicbrainz_artist_id',
                 musicbrainz_release_group_id = $2->>'musicbrainz_release_group_id',
                 release_checked_at = ($2->>'release_checked_at')::timestamptz,
+                -- Kept since 1.0.7; an older snapshot has no disc to go back to.
+                disc_number = CASE WHEN $2 ? 'disc_number' THEN ($2->>'disc_number')::int ELSE disc_number END,
                 updated_at = now()
           WHERE id = $1",
     )
@@ -519,6 +529,24 @@ pub async fn revert_identity(pool: &PgPool, id: Uuid, user_id: Uuid, edit: &crat
     .execute(&mut *tx)
     .await
     .context("db: restore track before identify")?;
+    // The identify's changes to the song are undone, not merely overwritten: the
+    // history says so, and the organizer no longer counts the song as changed. A
+    // change in the same batch that this does not put back (the release's cover)
+    // stays as it is.
+    sqlx::query(
+        "UPDATE metadata_edits SET undone_at = now()
+          WHERE item_kind = 'track' AND item_id = $1 AND undone_at IS NULL AND source IN ('identify', 'run')
+            AND NOT EXISTS (SELECT 1 FROM jsonb_object_keys(after) k WHERE k <> ALL($2))",
+    )
+    .bind(id)
+    .bind(REVERTED_FIELDS)
+    .execute(&mut *tx)
+    .await
+    .context("db: identify edits undone")?;
+    let restored_artist = before.get("musicbrainz_artist_id").and_then(serde_json::Value::as_str).map(str::trim);
+    if let Some(mbid) = identified_artist.as_deref().filter(|m| restored_artist != Some(*m)) {
+        crate::db::edits::release_track_artist(&mut tx, id, mbid).await?;
+    }
     sqlx::query("DELETE FROM music_track_identity WHERE track_id = $1")
         .bind(id)
         .execute(&mut *tx)

@@ -1968,9 +1968,10 @@ async fn apply_track_metadata(
 }
 
 /// POST /api/v1/music/tracks/:id/metadata/revert — owner-only. Undoes an identify:
-/// the track's title, artist, album, album artist, genre and track number go back to
-/// what they were before it was first identified, and its MusicBrainz ids go with
-/// them. A track whose ids came from its own file goes back to having none.
+/// the track's title, artist, album, album artist, genre and track and disc number go
+/// back to what they were before it was first identified, and its MusicBrainz ids go
+/// with them — the artist's too, unless another song credited to them still carries
+/// it. A track whose ids came from its own file goes back to having none.
 ///
 /// The file is never involved: identifying never wrote to it, so undoing has nothing
 /// to undo there. A cover fetched with the match stays.

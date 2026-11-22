@@ -192,6 +192,119 @@ fn table(kind: &str) -> Option<(&'static str, &'static [&'static str])> {
     }
 }
 
+/// What [`release_identified_artist`] did with a contributor's MusicBrainz artist id.
+#[derive(Debug, PartialEq, Eq)]
+pub enum ArtistMbid {
+    /// Taken away: only an identify gave it, and no song credited to them carries it now.
+    /// The edits that gave it, now undone.
+    Released(Vec<Uuid>),
+    /// A song credited to them still carries it.
+    InUse,
+    /// Not given by an identify (a file's tags, a hand, an old server), or not theirs now.
+    Kept,
+}
+
+/// An identify that names a song's MusicBrainz artist also gives the id to the
+/// contributor the song is credited to (`music_contributor`, migration 0100), in the
+/// identify's batch. When the song's identity is undone, the contributor's id goes
+/// with it — unless another song credited to them still carries it, as the other
+/// songs of an album identified one by one do; the last one undone takes it.
+/// The `mb:` key goes too: left behind, it would point the next identify at this
+/// contributor without giving the id back. Call in a marked transaction.
+pub async fn release_identified_artist(conn: &mut PgConnection, contributor_id: Uuid, mbid: &str) -> anyhow::Result<ArtistMbid> {
+    let family: Option<Uuid> =
+        sqlx::query_scalar("SELECT family_id FROM contributors WHERE id = $1 AND musicbrainz_artist_id = $2 FOR UPDATE")
+            .bind(contributor_id)
+            .bind(mbid)
+            .fetch_optional(&mut *conn)
+            .await
+            .context("db: contributor's artist id")?;
+    let Some(family) = family else { return Ok(ArtistMbid::Kept) };
+    let given: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM metadata_edits
+          WHERE item_kind = 'contributor' AND item_id = $1 AND undone_at IS NULL
+            AND source IN ('identify', 'run')
+            AND after ->> 'musicbrainz_artist_id' = $2
+            AND before -> 'musicbrainz_artist_id' = 'null'::jsonb",
+    )
+    .bind(contributor_id)
+    .bind(mbid)
+    .fetch_all(&mut *conn)
+    .await
+    .context("db: identify gave the artist id")?;
+    if given.is_empty() {
+        return Ok(ArtistMbid::Kept);
+    }
+    let in_use: bool = sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM credits c JOIN music_tracks_all t ON t.id = c.item_id
+                         WHERE c.contributor_id = $1 AND c.item_kind = 'track' AND t.musicbrainz_artist_id = $2)",
+    )
+    .bind(contributor_id)
+    .bind(mbid)
+    .fetch_one(&mut *conn)
+    .await
+    .context("db: artist id still carried")?;
+    if in_use {
+        return Ok(ArtistMbid::InUse);
+    }
+    sqlx::query("UPDATE contributors SET musicbrainz_artist_id = NULL, updated_at = now() WHERE id = $1")
+        .bind(contributor_id)
+        .execute(&mut *conn)
+        .await
+        .context("db: release artist id")?;
+    sqlx::query("DELETE FROM contributor_keys WHERE family_id = $1 AND key = 'mb:' || $2 AND contributor_id = $3")
+        .bind(family)
+        .bind(mbid)
+        .bind(contributor_id)
+        .execute(&mut *conn)
+        .await
+        .context("db: forget artist id key")?;
+    sqlx::query("UPDATE metadata_edits SET undone_at = now() WHERE id = ANY($1)")
+        .bind(&given)
+        .execute(&mut *conn)
+        .await
+        .context("db: artist id edits undone")?;
+    Ok(ArtistMbid::Released(given))
+}
+
+/// After a song's MusicBrainz artist id went from `mbid` back to what it was: the
+/// contributor of the household who carries `mbid`, released if nothing else needs it.
+pub async fn release_track_artist(conn: &mut PgConnection, track_id: Uuid, mbid: &str) -> anyhow::Result<ArtistMbid> {
+    let holder: Option<Uuid> = sqlx::query_scalar(
+        "SELECT k.id FROM music_tracks_all t
+           JOIN contributors k ON k.family_id = music_owner_family(t.user_id) AND k.musicbrainz_artist_id = $2
+          WHERE t.id = $1",
+    )
+    .bind(track_id)
+    .bind(mbid)
+    .fetch_optional(&mut *conn)
+    .await
+    .context("db: who carries the artist id")?;
+    match holder {
+        Some(holder) => release_identified_artist(conn, holder, mbid).await,
+        None => Ok(ArtistMbid::Kept),
+    }
+}
+
+/// The MusicBrainz artist id a track edit took away, when it took one away.
+fn artist_id_taken(e: &EditRow) -> Option<&str> {
+    let from = e.after.get("musicbrainz_artist_id")?.as_str()?;
+    (e.item_kind == "track" && e.before.get("musicbrainz_artist_id").and_then(Value::as_str) != Some(from)).then_some(from)
+}
+
+/// A contributor's edit that only gave them a MusicBrainz artist id through an
+/// identify: the id, for [`release_identified_artist`].
+fn identified_artist_id(e: &EditRow) -> Option<&str> {
+    if e.item_kind != "contributor" || !matches!(e.source.as_str(), "identify" | "run") {
+        return None;
+    }
+    let after = e.after.as_object()?;
+    if after.len() != 1 || !e.before.get("musicbrainz_artist_id").is_some_and(Value::is_null) {
+        return None;
+    }
+    after.get("musicbrainz_artist_id")?.as_str()
+}
+
 #[derive(Debug, PartialEq)]
 pub enum UndoOutcome {
     /// How many items went back.
@@ -213,7 +326,25 @@ pub async fn undo(pool: &PgPool, edits: &[EditRow], by: Uuid) -> anyhow::Result<
     let mut tx = pool.begin().await.context("db: begin undo")?;
     mark(&mut tx, &edit).await?;
     let mut items = std::collections::HashSet::new();
+    // Artist id edits a song's undo already took back, in this batch or another.
+    let mut released = std::collections::HashSet::new();
     for e in edits.iter().filter(|e| e.undone_at.is_none()) {
+        // Newest first: the songs come back before the artist id an identify gave with them.
+        if let Some(mbid) = identified_artist_id(e) {
+            if released.contains(&e.id) {
+                items.insert((e.item_kind.clone(), e.item_id));
+                continue;
+            }
+            match release_identified_artist(&mut tx, e.item_id, mbid).await? {
+                ArtistMbid::Released(_) => {
+                    items.insert((e.item_kind.clone(), e.item_id));
+                    continue;
+                }
+                // Another song still names them so: the change stays, and stays undoable.
+                ArtistMbid::InUse => continue,
+                ArtistMbid::Kept => {}
+            }
+        }
         let Some((table, allowed)) = table(&e.item_kind) else { continue };
         let current: Option<Value> = sqlx::query_scalar(&format!("SELECT to_jsonb(t) FROM {table} t WHERE id = $1 FOR UPDATE"))
             .bind(e.item_id)
@@ -249,6 +380,11 @@ pub async fn undo(pool: &PgPool, edits: &[EditRow], by: Uuid) -> anyhow::Result<
         .execute(&mut *tx)
         .await
         .context("db: undo edit")?;
+        if let Some(mbid) = artist_id_taken(e) {
+            if let ArtistMbid::Released(ids) = release_track_artist(&mut tx, e.item_id, mbid).await? {
+                released.extend(ids);
+            }
+        }
         if e.item_kind == "track" && e.before.get("musicbrainz_recording_id").is_some_and(Value::is_null) {
             // The song is no longer identified: forget the identify, and a run's
             // accept of it is a decision to make again.
@@ -304,4 +440,53 @@ pub async fn record(
     .await
     .context("db: record edit")?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn row(kind: &str, source: &str, before: Value, after: Value) -> EditRow {
+        EditRow {
+            id: Uuid::new_v4(),
+            item_kind: kind.into(),
+            item_id: Uuid::new_v4(),
+            family_id: None,
+            user_id: None,
+            source: source.into(),
+            batch_id: Uuid::new_v4(),
+            before,
+            after,
+            at: Utc::now(),
+            undone_at: None,
+            item_label: None,
+            item_owner: None,
+        }
+    }
+
+    #[test]
+    fn only_an_identify_that_gave_an_artist_their_id_is_released_with_the_song() {
+        let given = |source| row("contributor", source, json!({"musicbrainz_artist_id": null}), json!({"musicbrainz_artist_id": "a1"}));
+        assert_eq!(identified_artist_id(&given("identify")), Some("a1"));
+        assert_eq!(identified_artist_id(&given("run")), Some("a1"));
+        assert_eq!(identified_artist_id(&given("manual")), None, "set by hand: undone like any edit");
+        let replaced = row("contributor", "identify", json!({"musicbrainz_artist_id": "a0"}), json!({"musicbrainz_artist_id": "a1"}));
+        assert_eq!(identified_artist_id(&replaced), None);
+        let more = row("contributor", "identify", json!({"musicbrainz_artist_id": null, "name": "A"}),
+                       json!({"musicbrainz_artist_id": "a1", "name": "B"}));
+        assert_eq!(identified_artist_id(&more), None);
+    }
+
+    #[test]
+    fn a_track_undo_names_the_artist_id_it_takes_away() {
+        let identify = row("track", "identify", json!({"musicbrainz_artist_id": null, "title": "x"}),
+                           json!({"musicbrainz_artist_id": "a1", "title": "y"}));
+        assert_eq!(artist_id_taken(&identify), Some("a1"));
+        let retitle = row("track", "manual", json!({"title": "x"}), json!({"title": "y"}));
+        assert_eq!(artist_id_taken(&retitle), None);
+        let cleared = row("track", "manual", json!({"musicbrainz_artist_id": "a1"}), json!({"musicbrainz_artist_id": null}));
+        assert_eq!(artist_id_taken(&cleared), None, "undoing a clear gives the id back, takes none");
+        let same = row("contributor", "identify", json!({"musicbrainz_artist_id": null}), json!({"musicbrainz_artist_id": "a1"}));
+        assert_eq!(artist_id_taken(&same), None);
+    }
 }

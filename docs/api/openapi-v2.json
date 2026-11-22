@@ -5663,7 +5663,7 @@
             ]
           },
           "edited": {
-            "description": "It has changes in the history.",
+            "description": "A change to it is in effect: one in the history that was not undone (an\nundone identify included) and was not overwritten since.",
             "type": "boolean"
           },
           "folder_id": {
@@ -22434,7 +22434,7 @@
     },
     "/api/v2/identify/runs/{id}/revert": {
       "post": {
-        "description": "Undo every accept of this run that still stands. Its proposals become\npending again.",
+        "description": "Undo every accept of this run that still stands, as `DELETE /tracks/{id}/identity`\ndoes for one. Its proposals become pending again.",
         "operationId": "identify_revert_run",
         "parameters": [
           {
@@ -22494,7 +22494,7 @@
             "bearer": []
           }
         ],
-        "summary": "Undo every accept of this run that still stands",
+        "summary": "Undo every accept of this run that still stands, as `DELETE /tracks/{id}/identity` does for one",
         "tags": [
           "identify"
         ],
@@ -27262,7 +27262,7 @@
             }
           },
           {
-            "description": "Songs with changes in the history.",
+            "description": "Songs with a change in effect (see `OrganizeTrack.edited`).",
             "in": "query",
             "name": "edited",
             "required": false,
@@ -33079,7 +33079,7 @@
     },
     "/api/v2/tracks/{id}/identity": {
       "delete": {
-        "description": "Undo one track's identify: its title, artist, album, album artist, genre, track\nnumber and MusicBrainz ids go back to what they were before it was first\nidentified, by a run or on its own. A run's proposal for it is pending again.\nThe file was never touched.",
+        "description": "Undo one track's identify: its title, artist, album, album artist, genre, track\nand disc number and MusicBrainz ids go back to what they were before it was first\nidentified, by a run or on its own, and the identify's edits in the history are\nmarked undone. The MusicBrainz artist id the identify gave the song's artist goes\ntoo, unless another song credited to them still carries it. A run's proposal for\nit is pending again. The file was never touched.",
         "operationId": "identify_revert_track",
         "parameters": [
           {
@@ -33159,7 +33159,7 @@
             "bearer": []
           }
         ],
-        "summary": "Undo one track's identify: its title, artist, album, album artist, genre, track number and MusicBrainz ids go back to what they were before it was first identified, by a run or on its own",
+        "summary": "Undo one track's identify: its title, artist, album, album artist, genre, track and disc number and MusicBrainz ids go back to what they were before it was first identified, by a run or on its own, and the identify's edits in the history are marked undone",
         "tags": [
           "identify"
         ],

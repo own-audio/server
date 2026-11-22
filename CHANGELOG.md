@@ -11,6 +11,14 @@ semver. Each release states the **API contract revision** it serves
 
 - `url` 2.5.9 for RUSTSEC-2026-0592 (a stack overflow in `Url::origin()` on nested `blob:` URLs);
   the `webpki-roots` exception in `deny.toml` is gone, the advisory no longer applies.
+- `DELETE /api/v2/tracks/{id}/identity`, `POST /api/v2/identify/runs/{id}/revert` and
+  `POST /api/v1/music/tracks/{id}/metadata/revert` undo everything the identify changed. The
+  MusicBrainz artist id it gave the song's artist goes too (it stayed, so a later run revert
+  found nothing left to undo), unless another song credited to that artist still carries it —
+  then the last song undone takes it. A disc number set by an accepted proposal goes back,
+  and the identify's entries in the edit history are marked undone. Undoing an identify's
+  batch from the history (`POST /api/v2/edits/batches/{id}/undo`) keeps the artist's id by
+  the same rule.
 
 ## [1.0.6] - 2026-11-22
 

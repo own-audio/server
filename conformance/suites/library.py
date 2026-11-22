@@ -232,7 +232,10 @@ def identify_run(ctx):
     _, _, other = ctx.make_user("stranger", "Stranger123!-long")
     try:
         if ctx.server["api"]["revision"] >= 13 and proposals:
-            own_words(ctx, proposals[0], other)
+            pick = own_words(ctx, proposals[0], other)
+            tracks = list(dict.fromkeys(p["track"]["id"] for p in proposals))[:2]
+            if pick and len(tracks) == 2 and ctx.server["api"]["revision"] >= 15:
+                artist_follows_identity(ctx, tracks, pick)
         if ctx.server["api"]["revision"] >= 14:
             album_in_own_words(ctx, proposals)
     except MusicBrainzBusy as busy:
@@ -244,7 +247,7 @@ def identify_run(ctx):
 
 def own_words(ctx, proposal, other):
     """Revision 13: search again with the owner's words, pick a recording by id
-    or link, and identify any track the same way, then undo it."""
+    or link, and identify any track the same way, then undo it. Returns the pick."""
     pid, tid = proposal["id"], proposal["track"]["id"]
     alts = ctx.call("GET", f"/api/v2/identify/proposals/{pid}/alternatives", ctx.admin_token)
     ctx.check("a proposal lists its other recordings", isinstance(alts.get("items"), list), str(alts)[:120])
@@ -295,6 +298,45 @@ def own_words(ctx, proposal, other):
         ctx.check("identifying and undoing it are in the song's history",
                   [e["source"] for e in hist[:2]] == ["revert", "identify"]
                   and hist[1]["after"].get("musicbrainz_recording_id") == pick["mb_recording_id"], str(hist[:2])[:300])
+        ctx.check("…the identify marked undone", bool(hist[1].get("undone_at")) and not hist[0].get("undone_at"),
+                  str([(e["source"], e.get("undone_at")) for e in hist[:2]]))
+        changed = {s["id"] for s in ctx.call("GET", "/api/v2/organize/tracks?edited=true&limit=500", ctx.admin_token)["items"]}
+        ctx.check("a song whose identify was undone is not changed in the organizer", tid not in changed)
+    return pick
+
+
+def artist_follows_identity(ctx, tids, pick):
+    """An identify gives the song's artist the MusicBrainz artist id; undoing it takes the id
+    away again, but only once no other song credited to them still carries it."""
+    first, second = tids
+    put = {"recording": pick["mb_recording_id"], "release": pick.get("mb_release_id"), "fetch_cover": False}
+    one = musicbrainz(ctx, "PUT", f"/api/v2/tracks/{first}/identity", ctx.admin_token, body=put)
+    artist = next((c["contributor_id"] for c in one.get("credits", []) if c["role"] == "artist"), None)
+    mbid = ctx.call("GET", f"/api/v2/contributors/{artist}", ctx.admin_token).get("musicbrainz_artist_id") if artist else None
+    given = [e for e in ctx.call("GET", f"/api/v2/edits?item_kind=contributor&item_id={artist}&limit=20", ctx.admin_token).get("items", [])
+             if e["source"] == "identify" and not e.get("undone_at") and e["after"].get("musicbrainz_artist_id") == mbid] if mbid else []
+    if not given:
+        ctx.call("DELETE", f"/api/v2/tracks/{first}/identity", ctx.admin_token)
+        ctx.skip("the artist's id and an undo", "the recording names no artist, or the artist had the id before")
+        return
+    two = musicbrainz(ctx, "PUT", f"/api/v2/tracks/{second}/identity", ctx.admin_token, body=put)
+    ctx.check("a second song of the artist is credited to them",
+              any(c["contributor_id"] == artist for c in two.get("credits", []) if c["role"] == "artist"), str(two.get("credits"))[:200])
+    ctx.call("DELETE", f"/api/v2/tracks/{first}/identity", ctx.admin_token)
+    kept = ctx.call("GET", f"/api/v2/contributors/{artist}", ctx.admin_token)
+    ctx.check("undoing one song keeps the artist's id while another identified song carries it",
+              kept.get("musicbrainz_artist_id") == mbid, str(kept.get("musicbrainz_artist_id")))
+    ctx.call("DELETE", f"/api/v2/tracks/{second}/identity", ctx.admin_token)
+    gone = ctx.call("GET", f"/api/v2/contributors/{artist}", ctx.admin_token, expect=(200, 404))
+    ctx.check("undoing the last one takes the artist's id away", gone.get("musicbrainz_artist_id") is None,
+              str(gone.get("musicbrainz_artist_id")))
+    hist = ctx.call("GET", f"/api/v2/edits?item_kind=contributor&item_id={artist}&limit=20", ctx.admin_token).get("items", [])
+    ctx.check("…and the history shows the artist's id given and undone",
+              any(e["id"] == given[0]["id"] and e.get("undone_at") for e in hist)
+              and any(e["source"] == "revert" and e["before"].get("musicbrainz_artist_id") == mbid for e in hist),
+              str([(e["source"], e["after"], bool(e.get("undone_at"))) for e in hist[:4]])[:300])
+    changed = {s["id"] for s in ctx.call("GET", "/api/v2/organize/tracks?edited=true&limit=500", ctx.admin_token)["items"]}
+    ctx.check("neither song counts as changed after both undos", not ({first, second} & changed))
 
 
 def album_in_own_words(ctx, proposals):
