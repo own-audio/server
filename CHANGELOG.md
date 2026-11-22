@@ -7,6 +7,14 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.8] - 2026-11-22
+
+Contract revision 29. API v2 revision 20.
+
+Books say their language and where they came from, so apps can mark a machine translation;
+v2 refusals keep their figures; the console gets a choice of voice, Translate a book, Made here
+and cover changes. The first start runs migration 0134 in seconds.
+
 ### Added
 
 - Books have a `language` and an `origin` (migration 0134): `language` and `origin` on v1's

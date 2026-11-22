@@ -35,6 +35,9 @@ artist and album ids change once: Subsonic clients re-sync their library, and
 stars, ratings and artist photos are carried over by the server. Authors and
 book tags are per household now (they were one list for the whole server).
 
+From 1.0.7 to 1.0.8: nothing to do. The first start runs migration 0134 (a book's language and
+origin) in seconds.
+
 From 1.0.6 to 1.0.7: nothing to do, no migrations.
 
 From 1.0.5 to 1.0.6: nothing to do, no migrations. A compose install now passes
