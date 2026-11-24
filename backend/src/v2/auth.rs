@@ -6,7 +6,9 @@
 //! refresh, the device code (RFC 8628), a provider's id token (RFC 7523's
 //! jwt-bearer), a provider's authorization code with PKCE (RFC 7636, the
 //! desktop apps' loopback sign-in), a refresh token exchanged for a second
-//! session (RFC 8693, a helper process) or a two-factor code. The work behind each grant is v1's —
+//! session (RFC 8693, a helper process), the code of Sign in with Apple run in a
+//! browser for apps without Apple's SDK (`auth::apple_web`, with PKCE) or a
+//! two-factor code. The work behind each grant is v1's —
 //! lockout, the trail, rotation with reuse detection, two-factor — called, not
 //! copied. Errors carry OAuth's `error` and `error_description` beside the
 //! problem-details members, so OAuth libraries and our clients both read them.
@@ -15,10 +17,10 @@ use crate::app::AppState;
 use crate::auth::audit::{self, RequestMeta};
 use crate::auth::error::AuthError;
 use crate::auth::middleware::AuthUser;
-use crate::auth::{LoginRequest, LoginResponse, RefreshRequest, device, oidc, totp};
+use crate::auth::{LoginRequest, LoginResponse, RefreshRequest, apple_web, device, oidc, totp};
 use crate::db;
 use crate::v2::problem::Problem;
-use axum::extract::{FromRequest, Path, Request, State};
+use axum::extract::{FromRequest, Path, Query, Request, State};
 use axum::http::{StatusCode, header};
 use axum::{Form, Json};
 use chrono::Utc;
@@ -33,6 +35,8 @@ pub const GRANT_ASSERTION: &str = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 pub const GRANT_MFA: &str = "urn:own-audio:params:oauth:grant-type:mfa-otp";
 pub const GRANT_TOKEN_EXCHANGE: &str = "urn:ietf:params:oauth:grant-type:token-exchange";
 pub const GRANT_CODE: &str = "authorization_code";
+/// The code `GET /auth/apple/start` … `/auth/apple/return` hands an app (`auth::apple_web`).
+pub const GRANT_APPLE_CODE: &str = "urn:own-audio:params:oauth:grant-type:apple-code";
 pub const TOKEN_TYPE_REFRESH: &str = "urn:ietf:params:oauth:token-type:refresh_token";
 pub const TOKEN_TYPE_ACCESS: &str = "urn:ietf:params:oauth:token-type:access_token";
 
@@ -160,7 +164,8 @@ fn oauth_from(e: AuthError) -> Problem {
 pub struct TokenRequest {
     /// `password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,
     /// `urn:ietf:params:oauth:grant-type:jwt-bearer`, `authorization_code`,
-    /// `urn:ietf:params:oauth:grant-type:token-exchange` or
+    /// `urn:ietf:params:oauth:grant-type:token-exchange`,
+    /// `urn:own-audio:params:oauth:grant-type:apple-code` or
     /// `urn:own-audio:params:oauth:grant-type:mfa-otp`. `auth.grants` in discovery lists
     /// those this server takes.
     pub grant_type: String,
@@ -177,12 +182,16 @@ pub struct TokenRequest {
     pub assertion: Option<String>,
     /// jwt-bearer, Apple only: the name Apple gives once, at the first sign-in.
     pub full_name: Option<String>,
-    /// jwt-bearer and authorization_code: an invitation, when the account is new.
+    /// jwt-bearer, authorization_code and apple-code: an invitation, when the account is new.
     pub invite_code: Option<String>,
     /// authorization_code: the code the provider sent to the app's loopback address, the
     /// PKCE verifier its challenge was made from, and that loopback address
     /// (`http://127.0.0.1:<port>/…`), exactly as sent to the provider. The desktop client ids
     /// are `auth.clients` in discovery.
+    ///
+    /// apple-code: the `code` this server sent to the app's return address after
+    /// `GET /auth/apple/start`, and the PKCE verifier of the `code_challenge` given there. Good
+    /// once, for five minutes; a wrong verifier spends it too.
     pub code: Option<String>,
     pub code_verifier: Option<String>,
     pub redirect_uri: Option<String>,
@@ -274,6 +283,7 @@ pub async fn token(
         GRANT_DEVICE => totp::SignIn::Tokens(StatusCode::OK, device_grant(&state, body.need(&body.device_code, "device_code")?).await?),
         GRANT_ASSERTION => provider_grant(&state, &body).await?,
         GRANT_CODE => code_grant(&state, &body).await?,
+        GRANT_APPLE_CODE => apple_code_grant(&state, &body).await?,
         GRANT_TOKEN_EXCHANGE => totp::SignIn::Tokens(StatusCode::OK, token_exchange(&state, &meta, &body).await?),
         other => {
             return Err(oauth(StatusCode::BAD_REQUEST, "unsupported_grant_type", format!("`{other}` is not a grant this server knows")));
@@ -437,6 +447,168 @@ async fn code_grant(state: &AppState, body: &TokenRequest) -> Result<totp::SignI
     crate::auth::sso_sign_in(state, provider, identity, body.device_name.as_deref(), body.device_kind.as_deref(), body.invite_code.as_deref())
         .await
         .map_err(oauth_from)
+}
+
+/// The code of a browser sign-in with Apple (`auth::apple_web`): spent once, then the PKCE
+/// verifier must make the challenge the app started with, and the account is found or made
+/// exactly as for Apple's id token in the jwt-bearer grant.
+async fn apple_code_grant(state: &AppState, body: &TokenRequest) -> Result<totp::SignIn, Problem> {
+    let code = body.need(&body.code, "code")?;
+    let verifier = body.need(&body.code_verifier, "code_verifier")?;
+    if !apple_web::verifier_valid(verifier) {
+        return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", "`code_verifier` is 43 to 128 characters of A-Z, a-z, 0-9, -, ., _ and ~ (RFC 7636)"));
+    }
+    if apple_web::configured(state.config()).is_none() {
+        return Err(oauth(StatusCode::BAD_REQUEST, "invalid_request", "this server does not run Sign in with Apple in a browser"));
+    }
+    let invalid = || oauth(StatusCode::BAD_REQUEST, "invalid_grant", "the code is unknown, expired or already used, or the verifier does not match it");
+    let taken = db::apple_web::take_code(state.db(), &db::apple_web::hash(code)).await?.ok_or_else(invalid)?;
+    if !apple_web::pkce_matches(verifier, &taken.code_challenge) {
+        tracing::info!("apple web sign-in: a code was presented with the wrong verifier and is spent");
+        return Err(invalid());
+    }
+    let identity = oidc::ProviderIdentity {
+        subject: taken.subject,
+        email: taken.email,
+        email_verified: taken.email_verified,
+        display_name: taken.full_name,
+    };
+    crate::auth::sso_sign_in(state, "apple", identity, body.device_name.as_deref(), body.device_kind.as_deref(), body.invite_code.as_deref())
+        .await
+        .map_err(oauth_from)
+}
+
+/// `GET /auth/apple/start`'s query.
+#[derive(Deserialize, utoipa::IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct AppleStartParams {
+    /// Where to send the app the answer: its own scheme, one of the server's allowed addresses
+    /// (`audio.own.musicplayer:/apple` and the other own.audio apps' by default).
+    pub redirect_uri: Option<String>,
+    /// The PKCE challenge (RFC 7636): base64url of the SHA-256 of the app's verifier.
+    pub code_challenge: Option<String>,
+    /// `S256`, the only method taken.
+    pub code_challenge_method: Option<String>,
+    /// The app's own state, handed back with the answer; up to 1024 characters.
+    pub state: Option<String>,
+}
+
+const APP_STATE_MAX: usize = 1024;
+
+fn apple_web_off() -> Problem {
+    Problem::new(StatusCode::NOT_IMPLEMENTED, "feature_unavailable")
+        .detail("this server does not run Sign in with Apple in a browser")
+        .with("feature", "apple_web")
+}
+
+/// A redirect no cache keeps and no page after it learns of.
+fn redirect(status: StatusCode, location: &str) -> axum::response::Response {
+    use axum::response::IntoResponse;
+    (
+        status,
+        [(header::LOCATION, location), (header::CACHE_CONTROL, "no-store"), (header::REFERRER_POLICY, "no-referrer")],
+    )
+        .into_response()
+}
+
+/// Sign in with Apple in a browser, for apps without Apple's SDK (Android): open this in a
+/// browser tab (a Custom Tab), and the person signs in at Apple. The app gets back
+/// `<redirect_uri>?code=…&state=…`, or `?error=access_denied|server_error&state=…`, and spends
+/// the code with the `urn:own-audio:params:oauth:grant-type:apple-code` grant and its PKCE
+/// verifier. `auth.apple_web` in discovery says whether this server runs it.
+#[utoipa::path(get, path = "/auth/apple/start", tag = "auth",
+    extensions(("x-permission" = json!("public"))),
+    params(AppleStartParams),
+    responses(
+        (status = 302, description = "To Apple's sign-in page (`Location`)"),
+        (status = 400, description = "`invalid_request`: a return address that is not allowed, or a missing or malformed PKCE challenge", body = crate::v2::problem::ProblemBody),
+        (status = 501, description = "`feature_unavailable` (`feature: apple_web`): Apple, its Services ID or the server's public address is not configured", body = crate::v2::problem::ProblemBody)))]
+pub async fn apple_start(State(state): State<AppState>, Query(params): Query<AppleStartParams>) -> Result<axum::response::Response, Problem> {
+    let Some((apple, client_id, base)) = apple_web::configured(state.config()) else {
+        return Err(apple_web_off());
+    };
+    let bad = |detail: &str| Problem::bad_request("invalid_request", detail);
+    let redirect_uri = params.redirect_uri.as_deref().map(str::trim).unwrap_or_default();
+    if !apple_web::redirect_allowed(apple, redirect_uri) {
+        return Err(bad("`redirect_uri` is not an app return address this server allows"));
+    }
+    if params.code_challenge_method.as_deref() != Some("S256") {
+        return Err(bad("`code_challenge_method` must be `S256`"));
+    }
+    let challenge = params.code_challenge.as_deref().unwrap_or_default();
+    if !apple_web::challenge_valid(challenge) {
+        return Err(bad("`code_challenge` is the base64url of a SHA-256, 43 characters (RFC 7636)"));
+    }
+    let app_state = params.state.as_deref().filter(|s| !s.is_empty());
+    if app_state.is_some_and(|s| s.len() > APP_STATE_MAX) {
+        return Err(bad("`state` is at most 1024 characters"));
+    }
+    let server_state = apple_web::secret();
+    let nonce = apple_web::secret();
+    db::apple_web::create(
+        state.db(),
+        &db::apple_web::NewSignIn {
+            state_hash: &db::apple_web::hash(&server_state),
+            nonce: &nonce,
+            code_challenge: challenge,
+            redirect_uri,
+            app_state,
+            expires_at: Utc::now() + chrono::Duration::seconds(apple_web::TTL_SECS),
+        },
+    )
+    .await?;
+    let to_apple = apple_web::authorize_url(client_id, &apple_web::return_url(base), &server_state, &nonce);
+    Ok(redirect(StatusCode::FOUND, &to_apple))
+}
+
+/// Where Apple posts its answer (the Services ID's Return URL): not for apps to call. A sign-in
+/// it knows ends in `303` to the app's return address, with a code or an error; an unknown,
+/// expired or finished one is `400`, with nowhere to send the browser.
+#[utoipa::path(post, path = "/auth/apple/return", tag = "auth",
+    extensions(("x-permission" = json!("public"))),
+    request_body(content = apple_web::AppleReturn, content_type = "application/x-www-form-urlencoded",
+        description = "Apple's form_post"),
+    responses(
+        (status = 303, description = "To the app: `<redirect_uri>?code=…&state=…`, or `?error=access_denied|server_error&state=…`"),
+        (status = 400, description = "`unknown_sign_in`: no started sign-in has this state (unknown, expired after five minutes, or already answered)", body = crate::v2::problem::ProblemBody),
+        (status = 501, description = "`feature_unavailable` (`feature: apple_web`)", body = crate::v2::problem::ProblemBody)))]
+pub async fn apple_return(State(state): State<AppState>, Form(answer): Form<apple_web::AppleReturn>) -> Result<axum::response::Response, Problem> {
+    let Some((apple, _, _)) = apple_web::configured(state.config()) else {
+        return Err(apple_web_off());
+    };
+    let unknown = || Problem::bad_request("unknown_sign_in", "this sign-in is unknown, expired or already finished; start again from the app");
+    let server_state = answer.state.as_deref().filter(|s| !s.is_empty()).ok_or_else(unknown)?;
+    let pool = state.db();
+    let pending = db::apple_web::take_state(pool, &db::apple_web::hash(server_state)).await?.ok_or_else(unknown)?;
+    let back = |pairs: &[(&str, &str)]| apple_web::back_to_app(&pending.redirect_uri, pairs, pending.app_state.as_deref());
+    let refused = |error: &str| back(&[("error", error)]);
+    let location = match apple_web::outcome(apple, &pending.nonce, &answer).await {
+        apple_web::Outcome::Signed(identity) => {
+            let code = apple_web::secret();
+            let signed = db::apple_web::Signed {
+                code_hash: &db::apple_web::hash(&code),
+                subject: &identity.subject,
+                email: &identity.email,
+                email_verified: identity.email_verified,
+                full_name: identity.display_name.as_deref(),
+                expires_at: Utc::now() + chrono::Duration::seconds(apple_web::TTL_SECS),
+            };
+            match db::apple_web::sign(pool, pending.id, &signed).await {
+                Ok(()) => back(&[("code", &code)]),
+                Err(e) => {
+                    tracing::error!("apple web sign-in: could not keep the sign-in: {e:#}");
+                    refused("server_error")
+                }
+            }
+        }
+        outcome => {
+            if let Err(e) = db::apple_web::delete(pool, pending.id).await {
+                tracing::warn!("apple web sign-in: could not delete a finished sign-in: {e:#}");
+            }
+            refused(if matches!(outcome, apple_web::Outcome::Denied) { "access_denied" } else { "server_error" })
+        }
+    };
+    Ok(redirect(StatusCode::SEE_OTHER, &location))
 }
 
 /// Whether a desktop client setting is there: compose hands an unset one over as empty.

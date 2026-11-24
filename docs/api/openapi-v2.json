@@ -596,6 +596,45 @@
         ],
         "type": "object"
       },
+      "AppleReturn": {
+        "description": "What Apple posts to the Return URL (form_post).",
+        "properties": {
+          "code": {
+            "description": "Apple's authorization code; not used: the id token says who signed in.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "description": "`user_cancelled_authorize` when the person cancelled.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id_token": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user": {
+            "description": "JSON, at a person's first sign-in only: `{\"name\":{\"firstName\",\"lastName\"},\"email\"}`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
       "ArtistFacet": {
         "properties": {
           "name": {
@@ -763,6 +802,10 @@
       },
       "AuthMethods": {
         "properties": {
+          "apple_web": {
+            "description": "Sign in with Apple in a browser, for apps without Apple's SDK (Android):\n`GET /api/v2/auth/apple/start`, then the `urn:own-audio:params:oauth:grant-type:apple-code`\ngrant. Show the button only when this is `true` (v2 revision 21).",
+            "type": "boolean"
+          },
           "clients": {
             "$ref": "#/components/schemas/AuthClients",
             "description": "The providers' public client ids an app needs to start their sign-in itself: the\ndesktop clients for the authorization-code grant, the web clients for a browser."
@@ -810,6 +853,7 @@
           "password_reset",
           "email_verification",
           "grants",
+          "apple_web",
           "clients"
         ],
         "type": "object"
@@ -11900,7 +11944,7 @@
             ]
           },
           "code": {
-            "description": "authorization_code: the code the provider sent to the app's loopback address, the\nPKCE verifier its challenge was made from, and that loopback address\n(`http://127.0.0.1:<port>/…`), exactly as sent to the provider. The desktop client ids\nare `auth.clients` in discovery.",
+            "description": "authorization_code: the code the provider sent to the app's loopback address, the\nPKCE verifier its challenge was made from, and that loopback address\n(`http://127.0.0.1:<port>/…`), exactly as sent to the provider. The desktop client ids\nare `auth.clients` in discovery.\n\napple-code: the `code` this server sent to the app's return address after\n`GET /auth/apple/start`, and the PKCE verifier of the `code_challenge` given there. Good\nonce, for five minutes; a wrong verifier spends it too.",
             "type": [
               "string",
               "null"
@@ -11940,11 +11984,11 @@
             ]
           },
           "grant_type": {
-            "description": "`password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,\n`urn:ietf:params:oauth:grant-type:jwt-bearer`, `authorization_code`,\n`urn:ietf:params:oauth:grant-type:token-exchange` or\n`urn:own-audio:params:oauth:grant-type:mfa-otp`. `auth.grants` in discovery lists\nthose this server takes.",
+            "description": "`password`, `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code`,\n`urn:ietf:params:oauth:grant-type:jwt-bearer`, `authorization_code`,\n`urn:ietf:params:oauth:grant-type:token-exchange`,\n`urn:own-audio:params:oauth:grant-type:apple-code` or\n`urn:own-audio:params:oauth:grant-type:mfa-otp`. `auth.grants` in discovery lists\nthose this server takes.",
             "type": "string"
           },
           "invite_code": {
-            "description": "jwt-bearer and authorization_code: an invitation, when the account is new.",
+            "description": "jwt-bearer, authorization_code and apple-code: an invitation, when the account is new.",
             "type": [
               "string",
               "null"
@@ -12816,7 +12860,7 @@
       "name": "AGPL-3.0-or-later"
     },
     "title": "own.audio API v2",
-    "version": "2.20"
+    "version": "2.21"
   },
   "openapi": "3.1.0",
   "paths": {
@@ -14614,6 +14658,153 @@
         ],
         "x-permission": "member",
         "x-scope": "library:read"
+      }
+    },
+    "/api/v2/auth/apple/return": {
+      "post": {
+        "description": "Where Apple posts its answer (the Services ID's Return URL): not for apps to call. A sign-in\nit knows ends in `303` to the app's return address, with a code or an error; an unknown,\nexpired or finished one is `400`, with nowhere to send the browser.",
+        "operationId": "auth_apple_return",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/AppleReturn"
+              }
+            }
+          },
+          "description": "Apple's form_post",
+          "required": true
+        },
+        "responses": {
+          "303": {
+            "description": "To the app: `<redirect_uri>?code=…&state=…`, or `?error=access_denied|server_error&state=…`"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`unknown_sign_in`: no started sign-in has this state (unknown, expired after five minutes, or already answered)"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`feature_unavailable` (`feature: apple_web`)"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Where Apple posts its answer (the Services ID's Return URL): not for apps to call",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
+      }
+    },
+    "/api/v2/auth/apple/start": {
+      "get": {
+        "description": "Sign in with Apple in a browser, for apps without Apple's SDK (Android): open this in a\nbrowser tab (a Custom Tab), and the person signs in at Apple. The app gets back\n`<redirect_uri>?code=…&state=…`, or `?error=access_denied|server_error&state=…`, and spends\nthe code with the `urn:own-audio:params:oauth:grant-type:apple-code` grant and its PKCE\nverifier. `auth.apple_web` in discovery says whether this server runs it.",
+        "operationId": "auth_apple_start",
+        "parameters": [
+          {
+            "description": "Where to send the app the answer: its own scheme, one of the server's allowed addresses\n(`audio.own.musicplayer:/apple` and the other own.audio apps' by default).",
+            "in": "query",
+            "name": "redirect_uri",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The PKCE challenge (RFC 7636): base64url of the SHA-256 of the app's verifier.",
+            "in": "query",
+            "name": "code_challenge",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "`S256`, the only method taken.",
+            "in": "query",
+            "name": "code_challenge_method",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "The app's own state, handed back with the answer; up to 1024 characters.",
+            "in": "query",
+            "name": "state",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "To Apple's sign-in page (`Location`)"
+          },
+          "400": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`invalid_request`: a return address that is not allowed, or a missing or malformed PKCE challenge"
+          },
+          "429": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "Rate limited; see `Retry-After`"
+          },
+          "501": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemBody"
+                }
+              }
+            },
+            "description": "`feature_unavailable` (`feature: apple_web`): Apple, its Services ID or the server's public address is not configured"
+          }
+        },
+        "security": [
+          {}
+        ],
+        "summary": "Sign in with Apple in a browser, for apps without Apple's SDK (Android): open this in a browser tab (a Custom Tab), and the person signs in at Apple",
+        "tags": [
+          "auth"
+        ],
+        "x-permission": "public"
       }
     },
     "/api/v2/auth/claim": {

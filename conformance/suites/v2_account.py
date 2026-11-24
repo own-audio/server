@@ -6,6 +6,12 @@ the server stores them; without database access those checks are skipped. A serv
 mail must say so: discovery's `auth.password_reset` and `auth.email_verification`, and `501
 feature_unavailable` from the routes that would mail. The per-address sign-in bucket on the new
 routes is proved by the server's handler tests (CI raises the limit for the whole suite).
+
+Sign in with Apple in a browser (`auth.apple_web`) is walked as far as a server goes without
+Apple: the start, Apple's answer for an unknown, cancelled, unverifiable or expired sign-in, and —
+with database access — the code grant, with Apple's verified answer put in the database the way
+the server keeps it. The app return address used is `audio.own.musicplayer:/apple` (the default
+allowlist), or `CONFORMANCE_APPLE_REDIRECT_URI`.
 """
 from __future__ import annotations
 
@@ -13,6 +19,7 @@ import base64
 import hashlib
 import hmac
 import json
+import os
 import struct
 import time
 import urllib.error
@@ -29,6 +36,8 @@ PROBLEM = "application/problem+json"
 EXCHANGE = "urn:ietf:params:oauth:grant-type:token-exchange"
 REFRESH_TYPE = "urn:ietf:params:oauth:token-type:refresh_token"
 ACCESS_TYPE = "urn:ietf:params:oauth:token-type:access_token"
+APPLE_CODE = "urn:own-audio:params:oauth:grant-type:apple-code"
+APPLE_REDIRECT = os.environ.get("CONFORMANCE_APPLE_REDIRECT_URI", "audio.own.musicplayer:/apple")
 
 
 def _problem(answer, status: int, code: str | None = None) -> bool:
@@ -103,6 +112,7 @@ def run(ctx: Ctx) -> None:
     deletion(ctx, a)
     exchange(ctx, a)
     code_grant(ctx, a, disco)
+    apple_web(ctx, a, disco)
     personal_tokens(ctx, a)
     everywhere(ctx, a)
 
@@ -499,6 +509,138 @@ def code_grant(ctx: Ctx, a: Account, disco: dict) -> None:
         ctx.check("code grant: a code the provider never issued is 400 invalid_grant",
                   a.oauth_error(a.token(good), 400, "invalid_grant"))
     ctx.skip("code grant: a real provider's code", "exchanged against a stub provider in the server's tests")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs):
+        return None
+
+
+def _no_follow(ctx: Ctx, method: str, path: str, form: dict | None = None):
+    """(status, Location, body) without following: Apple's page and the app's scheme are not ours."""
+    data = urllib.parse.urlencode(form).encode() if form is not None else None
+    req = urllib.request.Request(ctx.url(path), data=data, method=method,
+                                 headers={"Content-Type": "application/x-www-form-urlencoded"} if data else {})
+    try:
+        with urllib.request.build_opener(_NoRedirect()).open(req, timeout=ctx.timeout) as r:
+            ctx.note(method, path, r.status)
+            return r.status, r.headers.get("Location", ""), r.read()
+    except urllib.error.HTTPError as e:
+        ctx.note(method, path, e.code)
+        return e.code, e.headers.get("Location", ""), e.read()
+
+
+def _pkce() -> tuple[str, str]:
+    verifier = base64.urlsafe_b64encode(os.urandom(32)).rstrip(b"=").decode()
+    challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode()).digest()).rstrip(b"=").decode()
+    return verifier, challenge
+
+
+def _start(ctx: Ctx, challenge: str, app_state: str, redirect: str = APPLE_REDIRECT):
+    query = urllib.parse.urlencode({"redirect_uri": redirect, "code_challenge": challenge,
+                                    "code_challenge_method": "S256", "state": app_state})
+    return _no_follow(ctx, "GET", f"/api/v2/auth/apple/start?{query}")
+
+
+def _query(location: str) -> dict:
+    return dict(urllib.parse.parse_qsl(urllib.parse.urlsplit(location).query))
+
+
+def _back(location: str, **expected: str) -> bool:
+    """Whether a redirect goes to the app's return address with exactly these parameters."""
+    return location.split("?")[0] == APPLE_REDIRECT and _query(location) == expected
+
+
+def apple_web(ctx: Ctx, a: Account, disco: dict) -> None:
+    auth = disco.get("auth") or {}
+    on = auth.get("apple_web")
+    ctx.check("discovery says whether Apple runs in a browser, and lists its grant with it",
+              isinstance(on, bool) and (APPLE_CODE in (auth.get("grants") or [])) == on, str(auth.get("grants")))
+    verifier, challenge = _pkce()
+    if not on:
+        st, _loc, body = _start(ctx, challenge, "app-state")
+        ctx.check("Apple in a browser on a server without it: start is 501 feature_unavailable",
+                  st == 501 and _json((st, {}, body)).get("feature") == "apple_web", f"{st} {body[:200]!r}")
+        st, _loc, body = _no_follow(ctx, "POST", "/api/v2/auth/apple/return", {"state": "x", "error": "user_cancelled_authorize"})
+        ctx.check("…and so is Apple's return", st == 501, f"{st} {body[:200]!r}")
+        ctx.check("…and its grant is 400 invalid_request",
+                  a.oauth_error(a.token({"grant_type": APPLE_CODE, "code": "c", "code_verifier": verifier}), 400, "invalid_request"))
+        return
+
+    st, loc, _ = _start(ctx, challenge, "app-state", redirect="https://example.com/apple")
+    ctx.check("Apple in a browser: a web address to return to is 400", st == 400 and not loc, str(st))
+
+    st, loc, _ = _start(ctx, challenge, "app state 1")
+    q = _query(loc)
+    services_id = ((auth.get("clients") or {}).get("apple") or {}).get("web")
+    ctx.check("Apple in a browser: start sends the browser to Apple with the Services ID, the server's Return URL, a state and a nonce",
+              st == 302 and loc.startswith("https://appleid.apple.com/auth/authorize?")
+              and q.get("client_id") == services_id and q.get("redirect_uri", "").endswith("/api/v2/auth/apple/return")
+              and q.get("response_type") == "code id_token" and q.get("response_mode") == "form_post"
+              and q.get("scope") == "name email" and len(q.get("state", "")) >= 32 and len(q.get("nonce", "")) >= 32
+              and "app state 1" not in loc and challenge not in loc, f"{st} {loc[:300]}")
+    cancelled_state = q.get("state", "")
+
+    st, loc, body = _no_follow(ctx, "POST", "/api/v2/auth/apple/return", {"state": "f" * 43, "error": "user_cancelled_authorize"})
+    ctx.check("Apple's answer for a sign-in nobody started is 400, with no redirect",
+              st == 400 and not loc and _json((st, {}, body)).get("code") == "unknown_sign_in", f"{st} {loc}")
+    st, loc, _ = _no_follow(ctx, "POST", "/api/v2/auth/apple/return", {"state": cancelled_state, "error": "user_cancelled_authorize"})
+    ctx.check("a cancelled sign-in goes back to the app with access_denied and the app's state",
+              st == 303 and _back(loc, error="access_denied", state="app state 1"), f"{st} {loc}")
+    st, loc, _ = _no_follow(ctx, "POST", "/api/v2/auth/apple/return", {"state": cancelled_state, "error": "user_cancelled_authorize"})
+    ctx.check("…and its state is good once: a second answer is 400", st == 400 and not loc, f"{st} {loc}")
+
+    st, loc, _ = _start(ctx, challenge, "app-state-2")
+    st, loc, _ = _no_follow(ctx, "POST", "/api/v2/auth/apple/return",
+                            {"state": _query(loc).get("state", ""), "id_token": "not.a.token", "code": "apple-code"})
+    ctx.check("an id token that does not verify goes back to the app with server_error",
+              st == 303 and _back(loc, error="server_error", state="app-state-2"), f"{st} {loc}")
+
+    if not ctx.db_available:
+        ctx.skip("Apple in a browser: an expired sign-in and the code grant", "needs database access (--compose-dir)")
+        return
+
+    def started() -> tuple[str, str]:
+        _st, location, _ = _start(ctx, challenge, "app-state-3")
+        server_state = _query(location).get("state", "")
+        return server_state, hashlib.sha256(server_state.encode()).hexdigest()
+
+    server_state, state_hash = started()
+    ctx.sql(f"UPDATE apple_web_sign_ins SET expires_at = now() - interval '1 second' WHERE state_hash = '{state_hash}'")
+    st, loc, _ = _no_follow(ctx, "POST", "/api/v2/auth/apple/return", {"state": server_state, "error": "user_cancelled_authorize"})
+    ctx.check("Apple's answer after the sign-in expired (five minutes) is 400, with no redirect", st == 400 and not loc, f"{st} {loc}")
+
+    uid, email, _tok = ctx.make_user("v2acc-apple", PW)
+
+    def signed(code: str, *, expired: bool = False) -> None:
+        """Apple's verified answer, as `/auth/apple/return` keeps it."""
+        _state, h = started()
+        code_hash = hashlib.sha256(code.encode()).hexdigest()
+        ctx.sql("UPDATE apple_web_sign_ins SET status = 'signed', "
+                f"code_hash = '{code_hash}', subject = 'conformance-apple-{ctx.sfx}', email = '{email}', email_verified = true, "
+                f"expires_at = now() + interval '{'-1 second' if expired else '5 minutes'}' WHERE state_hash = '{h}'")
+
+    grant = {"grant_type": APPLE_CODE, "code_verifier": verifier, "device_name": "Conformance Android", "device_kind": "android"}
+    wrong, _ = _pkce()
+    signed(f"code-wrong-verifier-{ctx.sfx}")
+    ctx.check("apple-code grant: a wrong verifier is 400 invalid_grant",
+              a.oauth_error(a.token({**grant, "code": f"code-wrong-verifier-{ctx.sfx}", "code_verifier": wrong}), 400, "invalid_grant"))
+    ctx.check("…and spends the code: the right verifier is refused after it",
+              a.oauth_error(a.token({**grant, "code": f"code-wrong-verifier-{ctx.sfx}"}), 400, "invalid_grant"))
+    signed(f"code-expired-{ctx.sfx}", expired=True)
+    ctx.check("apple-code grant: an expired code is 400 invalid_grant",
+              a.oauth_error(a.token({**grant, "code": f"code-expired-{ctx.sfx}"}), 400, "invalid_grant"))
+    ctx.check("apple-code grant: a code never issued is 400 invalid_grant",
+              a.oauth_error(a.token({**grant, "code": f"code-never-{ctx.sfx}"}), 400, "invalid_grant"))
+    signed(f"code-good-{ctx.sfx}")
+    st, _h, raw = a.token({**grant, "code": f"code-good-{ctx.sfx}"})
+    tokens = _json((st, _h, raw))
+    me = ctx.call("GET", "/api/v2/me", tokens.get("access_token")) if st == 200 else {}
+    ctx.check("apple-code grant: the right verifier signs in to the account with Apple's verified email",
+              st == 200 and bool(tokens.get("refresh_token")) and me.get("id") == uid, f"{st} {raw[:200]!r}")
+    ctx.check("…and the code is good once", a.oauth_error(a.token({**grant, "code": f"code-good-{ctx.sfx}"}), 400, "invalid_grant"))
+    linked = ctx.sql(f"SELECT count(*) FROM auth_identities WHERE user_id = '{uid}' AND provider = 'apple'")
+    ctx.check("…and Apple's identity is linked to the account, as with Apple's id token", linked.strip() == "1", linked)
 
 
 def personal_tokens(ctx: Ctx, a: Account) -> None:

@@ -12,6 +12,7 @@ pub mod sessions;
 pub mod personal_tokens;
 pub mod refresh_tokens;
 pub mod device_auth;
+pub mod apple_web;
 pub mod families;
 pub mod gpodder;
 pub mod access;

@@ -73,6 +73,9 @@ pub fn router(limits: &Limiters) -> OpenApiRouter<AppState> {
         .routes(map(routes!(auth::token), |m| auth::limit_by_grant(limits, m)))
         .routes(routes!(auth::revoke))
         .routes(map(routes!(auth::device_authorization), |m| limits.device.apply(m)))
+        // Starting and finishing a browser sign-in with Apple cost what a sign-in costs.
+        .routes(map(routes!(auth::apple_start), |m| limits.login.apply(m)))
+        .routes(map(routes!(auth::apple_return), |m| limits.login.apply(m)))
         .routes(routes!(auth::describe_device))
         .routes(routes!(auth::approve_device))
         .routes(routes!(auth::deny_device))

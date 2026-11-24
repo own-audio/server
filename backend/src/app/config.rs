@@ -633,7 +633,35 @@ pub struct AppleAuthConfig {
     /// The Services ID the web app hands to Apple's JS SDK as `clientId`.
     /// Public by design, like `GoogleAuthConfig::web_client_id`, and must
     /// also appear in `client_ids`. Unset ⇒ no Apple button on the web.
+    ///
+    /// The same Services ID runs the browser sign-in for apps without Apple's SDK (Android:
+    /// `GET /api/v2/auth/apple/start`), whose Return URL is `<SERVER__BASE_URL>/api/v2/auth/apple/return`.
     pub web_client_id: Option<String>,
+
+    /// `AUTH__APPLE__APP_REDIRECT_URIS`: where that browser sign-in may send an app back to,
+    /// comma-separated, each an app's own scheme (`audio.own.musicplayer:/apple`), never an
+    /// `http(s)` address. Unset or blank ⇒ [`DEFAULT_APPLE_APP_REDIRECT_URIS`], the own.audio
+    /// apps'.
+    #[serde(default)]
+    pub app_redirect_uris: Option<String>,
+}
+
+/// The own.audio Android apps' return addresses for Sign in with Apple in a browser.
+pub const DEFAULT_APPLE_APP_REDIRECT_URIS: &str =
+    "audio.own.musicplayer:/apple,audio.own.bookplayer:/apple,audio.own.podcastplayer:/apple";
+
+impl AppleAuthConfig {
+    /// The app return addresses the browser sign-in accepts (see `app_redirect_uris`).
+    pub fn app_redirect_uris(&self) -> Vec<String> {
+        let listed = self.app_redirect_uris.as_deref().map(str::trim).filter(|s| !s.is_empty());
+        listed
+            .unwrap_or(DEFAULT_APPLE_APP_REDIRECT_URIS)
+            .split(',')
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(str::to_string)
+            .collect()
+    }
 }
 
 impl AppConfig {

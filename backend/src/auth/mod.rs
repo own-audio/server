@@ -3,6 +3,7 @@
 /// identity linking.
 pub mod at_rest;
 pub mod audit;
+pub mod apple_web;
 pub mod device;
 pub mod error;
 pub mod middleware;
@@ -1554,6 +1555,7 @@ mod tests {
             enabled: true,
             client_ids: "audio.own.mac,audio.own.web".into(),
             web_client_id: Some("audio.own.web".into()),
+            app_redirect_uris: None,
         });
         let resp = providers_response(&cfg);
         assert!(resp.apple.enabled);
@@ -1576,6 +1578,7 @@ mod tests {
             enabled: false,
             client_ids: "audio.own.mac".into(),
             web_client_id: None,
+            app_redirect_uris: None,
         });
         let resp = providers_response(&cfg);
         assert!(!resp.google.enabled, "credentials being set must not imply enabled");

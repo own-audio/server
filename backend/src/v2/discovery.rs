@@ -14,7 +14,7 @@ use utoipa::ToSchema;
 
 /// The v2 contract's revision: up by one with every addition, so a client can check for it.
 /// Counted from 2026-11-17 (revision 1). Changes are additive only (API_COMPATIBILITY.md §4).
-pub const V2_REVISION: u32 = 20;
+pub const V2_REVISION: u32 = 21;
 /// `stable` since 1.0.4-beta.1, the release that completed docs/api-v2-completion-plan.md; it was
 /// `draft` before, though additive only from revision 1 because the iPhone apps shipped on it.
 pub const V2_STATUS: &str = "stable";
@@ -85,6 +85,10 @@ pub struct AuthMethods {
     pub email_verification: bool,
     /// The `grant_type`s `POST /auth/token` takes here.
     pub grants: Vec<String>,
+    /// Sign in with Apple in a browser, for apps without Apple's SDK (Android):
+    /// `GET /api/v2/auth/apple/start`, then the `urn:own-audio:params:oauth:grant-type:apple-code`
+    /// grant. Show the button only when this is `true` (v2 revision 21).
+    pub apple_web: bool,
     /// The providers' public client ids an app needs to start their sign-in itself: the
     /// desktop clients for the authorization-code grant, the web clients for a browser.
     pub clients: AuthClients,
@@ -155,6 +159,10 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
     if google_desktop.is_some() || microsoft_desktop.is_some() {
         grants.push(crate::v2::auth::GRANT_CODE);
     }
+    let apple_web = crate::auth::apple_web::configured(cfg).is_some();
+    if apple_web {
+        grants.push(crate::v2::auth::GRANT_APPLE_CODE);
+    }
     let clients = AuthClients {
         google: providers.google.enabled.then(|| ProviderClients { desktop: google_desktop, web: providers.google.web_client_id.clone() }),
         microsoft: providers.microsoft.enabled.then_some(ProviderClients { desktop: microsoft_desktop, web: None }),
@@ -181,6 +189,7 @@ pub async fn well_known(State(state): State<AppState>) -> Json<Discovery> {
             password_reset: crate::auth::password_reset_offered(cfg),
             email_verification: crate::auth::verification::offered(cfg),
             grants: grants.into_iter().map(str::to_string).collect(),
+            apple_web,
             clients,
         },
         modules: {

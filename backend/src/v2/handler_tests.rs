@@ -672,3 +672,127 @@ async fn a_hosted_route_on_a_server_without_it_names_its_feature() {
     let (s, p) = send(&app, "POST", &format!("/api/v2/admin/families/{id}/credit"), json!({ "amount_minor": 500, "currency": "USD" }), false).await;
     assert_eq!((s, p["code"].as_str(), p["feature"].as_str()), (StatusCode::NOT_IMPLEMENTED, Some("feature_unavailable"), Some("billing")));
 }
+
+// Sign in with Apple in a browser (auth::apple_web). What needs a started sign-in in the database
+// — Apple's answer for it, the code and its verifier — is the conformance suite's (v2_account).
+
+fn apple_on() -> Value {
+    json!({
+        "server": { "base_url": "https://api.example.com" },
+        "auth": { "apple": { "enabled": true, "client_ids": "audio.own.musicplayer,audio.own.web", "web_client_id": "audio.own.web" } },
+    })
+}
+
+const CHALLENGE: &str = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+
+fn start_path(redirect_uri: &str, challenge: &str, method: &str, app_state: &str) -> String {
+    let query = form_urlencoded::Serializer::new(String::new())
+        .append_pair("redirect_uri", redirect_uri)
+        .append_pair("code_challenge", challenge)
+        .append_pair("code_challenge_method", method)
+        .append_pair("state", app_state)
+        .finish();
+    format!("/api/v2/auth/apple/start?{query}")
+}
+
+async fn get(app: &axum::Router, path: &str) -> (StatusCode, Value) {
+    let request = Request::builder().method("GET").uri(path).body(Body::empty()).unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status();
+    let content = response.headers().get(header::CONTENT_TYPE).and_then(|v| v.to_str().ok()).unwrap_or("").to_string();
+    assert!(response.headers().get(header::LOCATION).is_none(), "GET {path} redirected");
+    let raw = axum::body::to_bytes(response.into_body(), 1 << 20).await.unwrap();
+    assert!(content.starts_with(crate::v2::problem::CONTENT_TYPE), "GET {path} → {status} answered {content}");
+    (status, serde_json::from_slice(&raw).unwrap_or(Value::Null))
+}
+
+#[tokio::test]
+async fn apple_in_a_browser_is_unavailable_until_apple_its_services_id_and_the_address_are_set() {
+    let mut no_services_id = apple_on();
+    no_services_id["auth"]["apple"]["web_client_id"] = json!("");
+    let mut off = apple_on();
+    off["auth"]["apple"]["enabled"] = json!(false);
+    let mut no_address = apple_on();
+    no_address["server"] = json!({});
+    for overrides in [json!({}), off, no_services_id, no_address] {
+        let state = state(overrides.clone()).await;
+        let app = app(&state, &Limiters::disabled());
+        let (s, p) = get(&app, &start_path("audio.own.musicplayer:/apple", CHALLENGE, "S256", "x")).await;
+        assert_eq!((s, p["code"].as_str(), p["feature"].as_str()), (StatusCode::NOT_IMPLEMENTED, Some("feature_unavailable"), Some("apple_web")), "{overrides}");
+        let (s, p) = send(&app, "POST", "/api/v2/auth/apple/return", json!({ "state": "x", "error": "user_cancelled_authorize" }), true).await;
+        assert_eq!((s, p["feature"].as_str()), (StatusCode::NOT_IMPLEMENTED, Some("apple_web")), "{overrides}");
+        let (s, p) = send(&app, "POST", "/api/v2/auth/token", json!({
+            "grant_type": crate::v2::auth::GRANT_APPLE_CODE, "code": "c", "code_verifier": "v".repeat(43) }), true).await;
+        assert_eq!((s, p["error"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")), "the grant, {overrides}");
+        let axum::Json(d) = crate::v2::discovery::well_known(axum::extract::State(state)).await;
+        assert!(!d.auth.apple_web && !d.auth.grants.iter().any(|g| g == crate::v2::auth::GRANT_APPLE_CODE), "{overrides}");
+    }
+    let state = state(apple_on()).await;
+    let axum::Json(d) = crate::v2::discovery::well_known(axum::extract::State(state)).await;
+    assert!(d.auth.apple_web && d.auth.grants.iter().any(|g| g == crate::v2::auth::GRANT_APPLE_CODE));
+}
+
+#[tokio::test]
+async fn apple_in_a_browser_returns_only_to_an_allowed_app_with_a_s256_challenge() {
+    let state = state(apple_on()).await;
+    let app = app(&state, &Limiters::disabled());
+    for (redirect, challenge, method, app_state, why) in [
+        ("https://evil.example/apple", CHALLENGE, "S256", "x", "a web address"),
+        ("http://127.0.0.1:9/apple", CHALLENGE, "S256", "x", "a loopback address"),
+        ("evil.app:/apple", CHALLENGE, "S256", "x", "an app not on the list"),
+        ("audio.own.musicplayer:/elsewhere", CHALLENGE, "S256", "x", "another path of a listed app"),
+        ("", CHALLENGE, "S256", "x", "no return address"),
+        ("audio.own.musicplayer:/apple", CHALLENGE, "plain", "x", "the plain method"),
+        ("audio.own.musicplayer:/apple", CHALLENGE, "", "x", "no method"),
+        ("audio.own.musicplayer:/apple", "short", "S256", "x", "a malformed challenge"),
+        ("audio.own.musicplayer:/apple", CHALLENGE, "S256", &"s".repeat(1025), "a state too long"),
+    ] {
+        let (s, p) = get(&app, &start_path(redirect, challenge, method, app_state)).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")), "{why}");
+    }
+    let (s, p) = get(&app, "/api/v2/auth/apple/start").await;
+    assert_eq!((s, p["code"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")), "no parameters at all");
+}
+
+#[tokio::test]
+async fn apples_answer_without_a_state_has_nowhere_to_go() {
+    let state = state(apple_on()).await;
+    let app = app(&state, &Limiters::disabled());
+    for body in [json!({ "error": "user_cancelled_authorize" }), json!({ "state": "", "id_token": "x" })] {
+        let (s, p) = send(&app, "POST", "/api/v2/auth/apple/return", body, true).await;
+        assert_eq!((s, p["code"].as_str()), (StatusCode::BAD_REQUEST, Some("unknown_sign_in")));
+    }
+}
+
+#[tokio::test]
+async fn the_apple_code_grant_names_what_it_takes() {
+    let state = state(apple_on()).await;
+    let app = app(&state, &Limiters::disabled());
+    let grant = crate::v2::auth::GRANT_APPLE_CODE;
+    let (s, p) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": grant, "code_verifier": "v".repeat(43) }), true).await;
+    assert_eq!((s, p["error"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")));
+    assert!(p["error_description"].as_str().unwrap().contains("`code`"));
+    let (s, p) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": grant, "code": "c" }), true).await;
+    assert_eq!((s, p["error"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")));
+    assert!(p["error_description"].as_str().unwrap().contains("code_verifier"));
+    let (s, p) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": grant, "code": "c", "code_verifier": "short" }), true).await;
+    assert_eq!((s, p["error"].as_str()), (StatusCode::BAD_REQUEST, Some("invalid_request")), "a verifier outside RFC 7636");
+}
+
+#[tokio::test]
+async fn apple_in_a_browser_costs_what_a_sign_in_costs() {
+    let state = state(apple_on()).await;
+    let mut limits = Limiters::disabled();
+    limits.login = crate::http::rate_limit::Limiter::per_minute(2, false);
+    let app = app(&state, &limits);
+    let bad_start = start_path("https://evil.example/apple", CHALLENGE, "S256", "x");
+    for _ in 0..2 {
+        assert_ne!(get(&app, &bad_start).await.0, StatusCode::TOO_MANY_REQUESTS, "limited too early");
+    }
+    let (s, p) = get(&app, &bad_start).await;
+    assert_eq!((s, p["code"].as_str()), (StatusCode::TOO_MANY_REQUESTS, Some("rate_limited")));
+    let (s, _) = send(&app, "POST", "/api/v2/auth/apple/return", json!({ "error": "x" }), true).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "Apple's answer shares the bucket");
+    let (s, _) = send(&app, "POST", "/api/v2/auth/token", json!({ "grant_type": crate::v2::auth::GRANT_APPLE_CODE }), true).await;
+    assert_eq!(s, StatusCode::TOO_MANY_REQUESTS, "and so does the grant");
+}

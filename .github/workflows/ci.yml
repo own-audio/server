@@ -131,6 +131,9 @@ jobs:
           echo 'SERVER__RATE_LIMIT__API_PER_MINUTE=100000' >> .env
           echo 'SERVER__RATE_LIMIT__SEARCH_PER_MINUTE=10000' >> .env
           echo 'SERVER__RATE_LIMIT__OUTBOUND_PER_MINUTE=10000' >> .env
+          # Sign in with Apple in a browser, walked as far as it goes without Apple (v2_account);
+          # the Services ID is a placeholder Apple never sees.
+          printf 'APPLE_SIGN_IN=true\nAPPLE_CLIENT_IDS=org.example.conformance.web\nAPPLE_WEB_CLIENT_ID=org.example.conformance.web\n' >> .env
           # A second address of the server; the suite asks on it and checks the links follow.
           echo 'OTHER_URLS=http://127.0.0.1:8080' >> .env
           echo 'OTHER_URLS=http://127.0.0.1:8080' >> "$GITHUB_ENV"

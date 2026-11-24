@@ -43,7 +43,7 @@ and fails on any row that is missing or partly covered.
 | `POST /auth/fork` | `POST /auth/token` | covered | The token-exchange grant (RFC 8693), `subject_token_type` a refresh token. |
 | `GET /auth/me` | `GET /me` | covered |  |
 | `POST /auth/google` | `POST /auth/token` | covered | The jwt-bearer grant for an id token; the `authorization_code` grant with PKCE for the desktop's loopback code. |
-| `POST /auth/apple` | `POST /auth/token` | covered | Assertion grant, `full_name` included. |
+| `POST /auth/apple` | `POST /auth/token` | covered | Assertion grant, `full_name` included. Apps without Apple's SDK (Android) sign in through a browser instead: `GET /auth/apple/start`, then the `apple-code` grant. |
 | `POST /auth/microsoft` | `POST /auth/token` | covered | Same as Google. |
 | `GET /auth/providers` | `GET /.well-known/own-audio`, `AuthMethods.clients` | covered | `auth.providers` names them, `auth.clients` gives the desktop and web client ids, `auth.grants` the grants. |
 | `POST /auth/device/start` | `POST /auth/device` | covered | RFC 8628 wire format. |

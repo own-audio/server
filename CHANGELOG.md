@@ -9,6 +9,17 @@ semver. Each release states the **API contract revision** it serves
 
 ### Added
 
+- Sign in with Apple in a browser, for apps without Apple's SDK (Android): `GET
+  /api/v2/auth/apple/start` (the app's return address, a PKCE S256 challenge and its state) sends
+  the browser to Apple; Apple answers at `POST /api/v2/auth/apple/return`, which checks the id
+  token (the Services ID's audience, this sign-in's nonce) and sends the app a one-time code; the
+  new `urn:own-audio:params:oauth:grant-type:apple-code` grant on `POST /api/v2/auth/token`
+  spends it with the PKCE verifier and signs in or makes the account as Apple's id token does.
+  Discovery says so with `auth.apple_web` and the grant in `auth.grants` (API v2 revision 21).
+  Needs `AUTH__APPLE__WEB_CLIENT_ID` (compose: `APPLE_WEB_CLIENT_ID`), `SERVER__BASE_URL` and the
+  Return URL `<SERVER__BASE_URL>/api/v2/auth/apple/return` registered for the Services ID; app
+  return addresses come from `AUTH__APPLE__APP_REDIRECT_URIS` (compose:
+  `APPLE_APP_REDIRECT_URIS`; the own.audio apps' by default). Migration 0135; INSTALL.md says how.
 - Console: an "AI voice" badge on a book read by an AI voice in its own language (`origin.kind`
   `narrated`) — on cards, rows, the book's page (with "Read by the AI voice …"), the player and
   Made here. A machine translation keeps its own badge; an item never gets both.

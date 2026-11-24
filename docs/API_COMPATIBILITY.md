@@ -362,6 +362,30 @@ that sends no `If-None-Match` gets the full answer as before.
 - **Browsers may call `/api` only from the console's origins**
   (`SERVER__CORS_ORIGINS`, defaulting to `SERVER__APP_BASE_URL` and
   `SERVER__BASE_URL`); `/rest` allows any origin. Native apps are unaffected.
+- **Sign in with Apple in a browser** (v2 revision 21), for apps without Apple's
+  SDK (Android). Offered only where discovery says `auth.apple_web: true` (and
+  lists the grant below in `auth.grants`); show the button only then. The app:
+  1. makes a PKCE verifier and its S256 challenge (RFC 7636) and a state of its own;
+  2. opens `GET /api/v2/auth/apple/start?redirect_uri=<its return address>&code_challenge=<challenge>&code_challenge_method=S256&state=<state>`
+     in a browser tab. `redirect_uri` must be one the server allows
+     (`AUTH__APPLE__APP_REDIRECT_URIS`; by default `audio.own.musicplayer:/apple`,
+     `audio.own.bookplayer:/apple`, `audio.own.podcastplayer:/apple`), never an
+     `http(s)` address; otherwise `400 invalid_request`. A server without Apple, its
+     Services ID or `SERVER__BASE_URL` answers `501 feature_unavailable`
+     (`feature: apple_web`);
+  3. gets `<redirect_uri>?code=…&state=…` back, or `?error=access_denied&state=…`
+     (cancelled) or `?error=server_error&state=…`, and checks the state is its own;
+  4. sends `POST /api/v2/auth/token` with
+     `grant_type=urn:own-audio:params:oauth:grant-type:apple-code`, `code`,
+     `code_verifier`, `device_name`, `device_kind` (and `invite_code` for a new
+     account), and gets the usual token answer, or `403 mfa_required`, or `409
+     identity_conflict`, exactly as with Apple's id token in the jwt-bearer grant.
+     The code is good once and for five minutes, and a wrong verifier spends it:
+     `400 invalid_grant` for all of these. The whole sign-in must finish within five
+     minutes of the start.
+
+  Apple posts its answer to `POST /api/v2/auth/apple/return` (the Services ID's
+  Return URL, `<SERVER__BASE_URL>/api/v2/auth/apple/return`); apps never call it.
 
 ---
 

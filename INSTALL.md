@@ -70,6 +70,7 @@ link or QR code — there is no open sign-up unless you turn it on
 | `AUTH__ACCESS_TTL_SECS` | How long an access token lives. Apps refresh on their own; a shorter token limits what a stolen one is worth. | 3600 |
 | `SERVER__RATE_LIMIT__*` | Request limits per minute: `LOGIN` (sign-in, register, provider sign-in, every `/api/v2/auth/token` grant but the two below; 30), `REFRESH` (token refresh: v1 `/auth/refresh` and v2's `refresh_token` and token-exchange grants; 120), `DEVICE` (60), `JOIN` (30), `SETUP` (10) per address; `API` (everything, 1200), `SEARCH` (60) and `OUTBOUND` (feeds, identify, metadata lookups; 30) per signed-in device or address. `…__ENABLED=false` turns them all off; `…__TRUST_PROXY_HEADERS=true` when you are behind a proxy on a public address. | on |
 | `APPLE_SIGN_IN`, `APPLE_CLIENT_IDS`, `GOOGLE_SIGN_IN`, `GOOGLE_CLIENT_IDS` | Sign in with Apple or Google from the own.audio apps; see below. | off |
+| `APPLE_WEB_CLIENT_ID`, `APPLE_APP_REDIRECT_URIS` | Sign in with Apple in a browser: the web console's button and the Android apps'. Your own Services ID; see below. | off |
 | `SMTP_HOST`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_FROM` | Mail for invites, over SMTP submission: implicit TLS on 465 by default, `SMTP_SECURITY=starttls` for 587, `none` for a relay on your own network (no password is ever sent without TLS). Most providers only accept `MAIL_FROM` = the mailbox you sign in as. Off until set; invites work by link and QR without it. | off |
 | `MUSICBRAINZ__ENABLED`, `MUSICBRAINZ__CONTACT` | Identify music through the public MusicBrainz API (musicbrainz.org), when someone identifies a song or starts an identify run, at most once a second. `false` keeps the server from contacting it. The contact (an e-mail or URL) goes in the User-Agent, as MusicBrainz asks. | on |
 | `ITUNES__ENABLED` | Podcast search through Apple's public directory, when no metadata service is set. The search term goes to Apple; `false` turns search off. | on |
@@ -98,6 +99,27 @@ the email Apple or Google confirms; with no account for that email, the
 server makes one only if registration is open or the person has an invite.
 The web console's Apple and Google buttons need ids registered for your own
 domain, so they stay off with these.
+
+**Apple on Android and in the web console.** Apple's sign-in page answers only an
+`https` address registered with Apple, so these need a Services ID of your own
+(Apple Developer → Identifiers → Services IDs, with Sign in with Apple on):
+
+- Domains: your server's host (from `PUBLIC_URL`), and the console's if it has its own.
+- Return URLs: `<PUBLIC_URL>/api/v2/auth/apple/return` for the Android apps, and the
+  console's `<address>/auth/login`.
+
+```bash
+APPLE_SIGN_IN=true
+APPLE_WEB_CLIENT_ID=com.example.music.web          # the Services ID
+APPLE_CLIENT_IDS=com.example.music.web,audio.own.musicplayer
+```
+
+The Android apps open `<PUBLIC_URL>/api/v2/auth/apple/start` in a browser tab; the
+server sends the person to Apple, checks Apple's answer and hands the app a one-time
+code for its sign-in. The app return addresses allowed are the own.audio apps'
+(`audio.own.musicplayer:/apple`, `audio.own.bookplayer:/apple`,
+`audio.own.podcastplayer:/apple`); `APPLE_APP_REDIRECT_URIS` replaces the list,
+comma-separated, for apps of your own. Web addresses are never accepted there.
 
 ## Storage
 

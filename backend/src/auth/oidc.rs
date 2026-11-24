@@ -3,10 +3,12 @@
 //!
 //! Both providers publish their signing keys as a JWKS; verification is
 //! signature + `iss`/`aud`/`exp` checks against a short-lived in-process
-//! cache of that key set, no network round-trip on the hot path. There is no
-//! browser-redirect flow here — clients obtain an ID token themselves (Apple:
-//! native `ASAuthorizationController`; Google: the loopback+PKCE code
-//! exchange in [`exchange_google_code`]) and this module only verifies it.
+//! cache of that key set, no network round-trip on the hot path. Clients
+//! obtain an ID token themselves (Apple: native `ASAuthorizationController`;
+//! Google: the loopback+PKCE code exchange in [`exchange_google_code`]) and
+//! this module only verifies it. The one browser flow the server runs itself,
+//! Sign in with Apple for apps without Apple's SDK, is `auth::apple_web`; its
+//! token is checked here by [`verify_apple_web_id_token`].
 
 use crate::app::config::{AppleAuthConfig, GoogleAuthConfig, MicrosoftAuthConfig};
 use crate::auth::error::AuthError;
@@ -88,6 +90,40 @@ pub async fn verify_apple_id_token(
         email_verified: claims.email_verified,
         display_name: None,
     })
+}
+
+/// An id token Apple posted to `/auth/apple/return` (`auth::apple_web`): made for the Services
+/// ID (`web_client_id`) alone, not for any app's bundle id, and carrying the nonce this server
+/// put into that one sign-in — so a token minted for another sign-in cannot be replayed here.
+pub async fn verify_apple_web_id_token(
+    cfg: &AppleAuthConfig,
+    id_token: &str,
+    nonce: &str,
+) -> Result<ProviderIdentity, AuthError> {
+    let web_client_id = cfg
+        .web_client_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .ok_or(AuthError::ProviderNotConfigured)?;
+    let header = decode_header(id_token).map_err(|_| AuthError::InvalidCredentials)?;
+    let kid = header.kid.ok_or(AuthError::InvalidCredentials)?;
+    let jwk = find_key(APPLE_JWKS_URL, &APPLE_JWKS_CACHE, &kid).await?;
+    let claims = verify_claims(&jwk, &["https://appleid.apple.com"], &[web_client_id.to_string()], id_token)?;
+    if !nonce_matches(claims.nonce.as_deref(), nonce) {
+        return Err(AuthError::InvalidCredentials);
+    }
+    Ok(ProviderIdentity {
+        subject: claims.sub,
+        email: claims.email.unwrap_or_default(),
+        email_verified: claims.email_verified,
+        display_name: None,
+    })
+}
+
+/// Not a secret comparison: the nonce travels in the token itself.
+fn nonce_matches(claim: Option<&str>, expected: &str) -> bool {
+    !expected.is_empty() && claim == Some(expected)
 }
 
 /// Exchange a loopback authorization code for an ID token. Only the backend
@@ -246,6 +282,9 @@ struct IdTokenClaims {
     /// place one appears.
     #[serde(default)]
     preferred_username: Option<String>,
+    /// Apple's web flow: the nonce the authorization request carried, echoed unchanged.
+    #[serde(default)]
+    nonce: Option<String>,
 }
 
 fn bool_or_string<'de, D>(deserializer: D) -> Result<bool, D::Error>
@@ -446,31 +485,18 @@ pub async fn exchange_microsoft_code(
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod testing {
+    //! A key to sign test id tokens with, shared by this module's tests and the flows built on
+    //! it (`auth::apple_web`).
     use super::*;
     use jsonwebtoken::jwk::{CommonParameters, RSAKeyParameters, RSAKeyType};
     use jsonwebtoken::{EncodingKey, Header};
-    use serde_json::json;
-
-    #[test]
-    fn allowed_audiences_splits_and_trims() {
-        let ids = allowed_audiences("abc.apps.googleusercontent.com, def.apps.googleusercontent.com ,,");
-        assert_eq!(
-            ids,
-            vec!["abc.apps.googleusercontent.com", "def.apps.googleusercontent.com"]
-        );
-    }
-
-    #[test]
-    fn allowed_audiences_empty_string_is_empty_vec() {
-        assert!(allowed_audiences("").is_empty());
-    }
 
     // A throwaway 2048-bit RSA test keypair (never used for anything real) —
     // generated once with `openssl genrsa` so verify_claims can be exercised
     // against a real signature without a network call to a real provider.
-    const TEST_KID: &str = "test-kid";
-    const TEST_PRIVATE_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
+    pub const TEST_KID: &str = "test-kid";
+    pub const TEST_PRIVATE_KEY_PEM: &str = "-----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCLO/BCoJsAoncn
 zWapK93e215+8h6lNVWThYfYzzD7zsTnCU98EzzzvpWMoI/M0ypItZYbfxgGnMeJ
 Fdbqb+71vxe0EHmGvodTPeQQqex3S9kPwHrrzUmQ66PS4WSVNeRirdIhRwv2ZMzN
@@ -498,9 +524,9 @@ NfW0zJkkgmu8mJtoSStNJ0Lzx+NVElmVfPztjQwdc7cCp7WUN83RpfAHfkDNoB1l
 PbgjKtQj9H5Gi28j2Ijz8HHVqdagBoniKIA/z8gJgqQCoEuUtHQpvDGpKUvDchk2
 jOOAImuQv4B3/d5ozBlTQDQ=
 -----END PRIVATE KEY-----";
-    const TEST_N: &str = "izvwQqCbAKJ3J81mqSvd3ttefvIepTVVk4WH2M8w-87E5wlPfBM8876VjKCPzNMqSLWWG38YBpzHiRXW6m_u9b8XtBB5hr6HUz3kEKnsd0vZD8B6681JkOuj0uFklTXkYq3SIUcL9mTMzaoEwfTSlIcjfRoMXCMtiXi9P0kiI8mzqsz5OvzSbyIUveotLvbQ8zluQRNRX_fUO-ijBerUVEsutdIjmaGUHARvHZos2fSBupCMZ1vJ73DMH-GZjJuUNKQ_8f5Ob_BwbPvvYIwdgyH8bZLKIgwS53zQZW4qNzM0HczjaErGLCLNRfP8bk5sluP83cxNqPjE7wcQouL96w";
+    pub const TEST_N: &str = "izvwQqCbAKJ3J81mqSvd3ttefvIepTVVk4WH2M8w-87E5wlPfBM8876VjKCPzNMqSLWWG38YBpzHiRXW6m_u9b8XtBB5hr6HUz3kEKnsd0vZD8B6681JkOuj0uFklTXkYq3SIUcL9mTMzaoEwfTSlIcjfRoMXCMtiXi9P0kiI8mzqsz5OvzSbyIUveotLvbQ8zluQRNRX_fUO-ijBerUVEsutdIjmaGUHARvHZos2fSBupCMZ1vJ73DMH-GZjJuUNKQ_8f5Ob_BwbPvvYIwdgyH8bZLKIgwS53zQZW4qNzM0HczjaErGLCLNRfP8bk5sluP83cxNqPjE7wcQouL96w";
 
-    fn test_jwk() -> jsonwebtoken::jwk::Jwk {
+    pub fn test_jwk() -> jsonwebtoken::jwk::Jwk {
         jsonwebtoken::jwk::Jwk {
             common: CommonParameters {
                 key_id: Some(TEST_KID.to_string()),
@@ -514,12 +540,41 @@ jOOAImuQv4B3/d5ozBlTQDQ=
         }
     }
 
-    fn sign(claims: serde_json::Value) -> String {
+    pub fn sign(claims: serde_json::Value) -> String {
         let mut header = Header::new(Algorithm::RS256);
         header.kid = Some(TEST_KID.to_string());
         let key = EncodingKey::from_rsa_pem(TEST_PRIVATE_KEY_PEM.as_bytes()).unwrap();
         jsonwebtoken::encode(&header, &claims, &key).unwrap()
     }
+
+    /// Apple's key set as this process holds it, with the test key in it: Apple's verifiers then
+    /// check tokens from [`sign`] without asking Apple.
+    pub async fn seed_apple_jwks() {
+        let set = JwkSet { keys: vec![test_jwk()] };
+        APPLE_JWKS_CACHE.write().await.replace(CachedJwks { set, fetched_at: Instant::now() });
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::testing::{TEST_N, sign, test_jwk};
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn allowed_audiences_splits_and_trims() {
+        let ids = allowed_audiences("abc.apps.googleusercontent.com, def.apps.googleusercontent.com ,,");
+        assert_eq!(
+            ids,
+            vec!["abc.apps.googleusercontent.com", "def.apps.googleusercontent.com"]
+        );
+    }
+
+    #[test]
+    fn allowed_audiences_empty_string_is_empty_vec() {
+        assert!(allowed_audiences("").is_empty());
+    }
+
 
     fn valid_claims() -> serde_json::Value {
         json!({
@@ -720,5 +775,46 @@ jOOAImuQv4B3/d5ozBlTQDQ=
         no_secret.desktop_client_secret = None;
         let unconfigured = exchange_google_code_at(&url, &no_secret, "the-code", &"v".repeat(43), "http://127.0.0.1:53682/").await;
         assert!(matches!(unconfigured, Err(AuthError::BadRequest(_))));
+    }
+
+    fn apple_web() -> AppleAuthConfig {
+        AppleAuthConfig {
+            enabled: true,
+            client_ids: "audio.own.musicplayer,audio.own.web".into(),
+            web_client_id: Some("audio.own.web".into()),
+            app_redirect_uris: None,
+        }
+    }
+
+    fn apple_web_claims(aud: &str, nonce: Option<&str>) -> serde_json::Value {
+        json!({
+            "sub": "001234.apple-user",
+            "email": "person@privaterelay.appleid.com",
+            "email_verified": "true",
+            "iss": "https://appleid.apple.com",
+            "aud": aud,
+            "nonce": nonce,
+            "exp": (chrono::Utc::now() + chrono::Duration::minutes(10)).timestamp(),
+        })
+    }
+
+    #[tokio::test]
+    async fn an_apple_web_token_needs_the_services_id_and_this_sign_ins_nonce() {
+        testing::seed_apple_jwks().await;
+        let cfg = apple_web();
+        let good = sign(apple_web_claims("audio.own.web", Some("n-1")));
+        let identity = verify_apple_web_id_token(&cfg, &good, "n-1").await.expect("the right audience and nonce");
+        assert_eq!(identity.subject, "001234.apple-user");
+        assert!(identity.email_verified);
+
+        assert!(verify_apple_web_id_token(&cfg, &good, "n-2").await.is_err(), "another sign-in's nonce");
+        let no_nonce = sign(apple_web_claims("audio.own.web", None));
+        assert!(verify_apple_web_id_token(&cfg, &no_nonce, "n-1").await.is_err(), "no nonce at all");
+        // An app's token, valid for the jwt-bearer grant, is not one Apple posts to the web flow.
+        let app_token = sign(apple_web_claims("audio.own.musicplayer", Some("n-1")));
+        assert!(verify_apple_web_id_token(&cfg, &app_token, "n-1").await.is_err(), "a bundle id's audience");
+        let mut unconfigured = cfg.clone();
+        unconfigured.web_client_id = Some(" ".into());
+        assert!(matches!(verify_apple_web_id_token(&unconfigured, &good, "n-1").await, Err(AuthError::ProviderNotConfigured)));
     }
 }
