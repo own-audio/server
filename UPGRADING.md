@@ -35,6 +35,9 @@ artist and album ids change once: Subsonic clients re-sync their library, and
 stars, ratings and artist photos are carried over by the server. Authors and
 book tags are per household now (they were one list for the whole server).
 
+From 1.0.8 to 1.0.9: nothing to do. The first start runs migration 0135 (pending Sign in with Apple
+answers for the Android apps) in seconds. To offer it, see INSTALL.md (Sign in with Apple).
+
 From 1.0.7 to 1.0.8: nothing to do. The first start runs migration 0134 (a book's language and
 origin) in seconds.
 

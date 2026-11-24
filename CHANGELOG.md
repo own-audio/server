@@ -7,6 +7,13 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+## [1.0.9] - 2026-11-24
+
+Contract revision 29. API v2 revision 21.
+
+Sign in with Apple through a browser for the Android apps; the console marks books read by an AI
+voice and shows account amounts to four decimals. The first start runs migration 0135 in seconds.
+
 ### Added
 
 - Sign in with Apple in a browser, for apps without Apple's SDK (Android): `GET
