@@ -22,11 +22,24 @@ semver. Each release states the **API contract revision** it serves
   none; MusicBrainz ids are written either way. Without it, accepting replaces as before.
 - Console: "Only fill empty fields" on an identify run, on by default and remembered per
   browser.
+- Identify stores years. Accepting a proposal sets the album's release date and its release
+  group's first release date (MusicBrainz partial dates; a 2014 reissue of Freewheelin' gives
+  the release group 1963-05-27), where nobody set them by hand; the release group's only
+  where it has none. Before, no year was stored at all. v1 (revision 30) and v2 (revision 22):
+  `album_artist`, `mb_release_group_id`, `release_date` and `first_release_date` on a recording
+  candidate, the two dates on an album candidate and on a proposal. A song found on its own
+  now brings its release's album artist and release group too.
 
 ### Fixed
 
 - Accepting an identify proposal no longer replaces an album artist "Various Artists" with one
   performer's name.
+- Identify no longer proposes another song that only shares words with the file's title
+  ("Norwegian Sparks (live at Rockefeller …)" for "Yellow (Live @ Rockefeller …)"), nor
+  another performer's recording on another album when the match is weak (another orchestra's
+  Beethoven); both are `none` now instead of review.
+- Accepting keeps an edition the file's album names: "The Fall [Deluxe Edition]" stays, rather
+  than becoming MusicBrainz's "The Fall".
 
 ## [1.0.9] - 2026-11-24
 

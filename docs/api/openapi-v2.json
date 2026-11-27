@@ -4775,6 +4775,13 @@
               "null"
             ]
           },
+          "album_artist": {
+            "description": "The chosen release's artist credit and release group, its earliest date and\nthe release group's first, as MusicBrainz writes partial dates (\"1963-05-27\").\n`None` from a metadata service older than 2026-11-27, hence `default`.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "artist": {
             "type": [
               "string",
@@ -4796,6 +4803,12 @@
               "null"
             ]
           },
+          "first_release_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "genre": {
             "type": [
               "string",
@@ -4811,7 +4824,19 @@
           "mb_recording_id": {
             "type": "string"
           },
+          "mb_release_group_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "mb_release_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_date": {
             "type": [
               "string",
               "null"
@@ -10053,6 +10078,12 @@
               "null"
             ]
           },
+          "first_release_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "length_ms": {
             "format": "int64",
             "minimum": 0,
@@ -10077,6 +10108,13 @@
             ]
           },
           "mb_release_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_date": {
+            "description": "The release's date and its release group's first (\"1963-05-27\" for a 2014\nreissue of Freewheelin'), as MusicBrainz writes partial dates. Accepting\nfills the album's and the release group's where nobody set them by hand.",
             "type": [
               "string",
               "null"

@@ -504,3 +504,44 @@ pub async fn delete_run(pool: &PgPool, run_id: Uuid) -> anyhow::Result<()> {
         .context("db: delete identify run")?;
     Ok(())
 }
+
+/// The dates of the release and release group a track was just identified on. The
+/// album's release date is set where nobody corrected the album by hand (only where
+/// it has none, with `only_empty`); the release group's first release date only
+/// where it has none, because release groups keep no edit history to undo it by.
+pub async fn set_release_dates(
+    tx: &mut sqlx::Transaction<'_, sqlx::Postgres>,
+    track_id: Uuid,
+    release_date: Option<&str>,
+    first_release_date: Option<&str>,
+    only_empty: bool,
+) -> anyhow::Result<()> {
+    if let Some(date) = release_date {
+        sqlx::query(
+            "UPDATE albums a SET release_date = $2, updated_at = now()
+               FROM music_tracks_all t
+              WHERE t.id = $1 AND a.id = t.album_id AND a.edited_at IS NULL
+                AND a.release_date IS DISTINCT FROM $2 AND (NOT $3 OR a.release_date IS NULL)",
+        )
+        .bind(track_id)
+        .bind(date)
+        .bind(only_empty)
+        .execute(&mut **tx)
+        .await
+        .context("db: album release date")?;
+    }
+    if let Some(date) = first_release_date {
+        sqlx::query(
+            "UPDATE release_groups g SET first_release_date = $2
+               FROM music_tracks_all t JOIN albums a ON a.id = t.album_id
+              WHERE t.id = $1 AND g.id = a.release_group_id AND g.edited_at IS NULL
+                AND g.first_release_date IS NULL",
+        )
+        .bind(track_id)
+        .bind(date)
+        .execute(&mut **tx)
+        .await
+        .context("db: release group first release date")?;
+    }
+    Ok(())
+}

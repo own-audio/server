@@ -138,6 +138,17 @@ pub struct MetadataCandidate {
     /// check, used only for the single release chosen at apply time.
     pub cover_art_url: Option<String>,
     pub score: u8,
+    /// The chosen release's artist credit and release group, its earliest date and
+    /// the release group's first, as MusicBrainz writes partial dates ("1963-05-27").
+    /// `None` from a metadata service older than 2026-11-27, hence `default`.
+    #[serde(default)]
+    pub album_artist: Option<String>,
+    #[serde(default)]
+    pub mb_release_group_id: Option<String>,
+    #[serde(default)]
+    pub release_date: Option<String>,
+    #[serde(default)]
+    pub first_release_date: Option<String>,
 }
 
 /// One album a group of tracks could be, from the metadata service's
@@ -150,6 +161,12 @@ pub struct AlbumCandidate {
     pub title: String,
     pub artist: Option<String>,
     pub year: Option<i32>,
+    /// The release's earliest date and its release group's first. `None` from a
+    /// metadata service older than 2026-11-27.
+    #[serde(default)]
+    pub release_date: Option<String>,
+    #[serde(default)]
+    pub first_release_date: Option<String>,
     pub primary_type: Option<String>,
     pub secondary_types: Vec<String>,
     pub status: Option<String>,

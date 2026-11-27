@@ -507,7 +507,11 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid, mode: Write
     };
     let title = if fill && !track.title.trim().is_empty() && !title_is_name { &track.title } else { &proposed.title };
     let artist = if fill && has(&track.artist) { track.artist.as_deref() } else { proposed.artist.as_deref().or(track.artist.as_deref()) };
-    let album = if keep || (fill && has(&track.album)) { track.album.as_deref() } else { proposed.album.as_deref().or(track.album.as_deref()) };
+    let edition = match (track.album.as_deref(), proposed.album.as_deref()) {
+        (Some(mine), Some(theirs)) => matching::names_an_edition(mine, theirs),
+        _ => false,
+    };
+    let album = if keep || edition || (fill && has(&track.album)) { track.album.as_deref() } else { proposed.album.as_deref().or(track.album.as_deref()) };
     let track_number = if keep || (fill && track.track_number.is_some()) { track.track_number } else { proposed.track_number.or(track.track_number) };
     // A compilation's "Various Artists" is never replaced by one performer's name.
     let keep_album_artist = keep || (fill && has(&track.album_artist)) || track.album_artist.as_deref().is_some_and(is_various);
@@ -529,11 +533,25 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid, mode: Write
         None,
     )
     .await?;
-    if !keep && proposed.disc_number.is_some() && !(fill && track.disc_number.is_some()) {
+    let set_disc = !keep && proposed.disc_number.is_some() && !(fill && track.disc_number.is_some());
+    let set_dates = !keep && (proposed.release_date.is_some() || proposed.first_release_date.is_some());
+    if set_disc || set_dates {
         // In the run's batch, so the history has it and a revert's undo of it is no change.
         let mut tx = pool.begin().await?;
         db::edits::mark(&mut tx, &db::edits::Edit::in_batch(user_id, "run", p.run_id)).await?;
-        db::music::set_disc(&mut *tx, track.id, proposed.disc_number, None).await?;
+        if set_disc {
+            db::music::set_disc(&mut *tx, track.id, proposed.disc_number, None).await?;
+        }
+        if set_dates {
+            db::identify::set_release_dates(
+                &mut tx,
+                track.id,
+                proposed.release_date.as_deref(),
+                proposed.first_release_date.as_deref(),
+                fill,
+            )
+            .await?;
+        }
         tx.commit().await?;
     }
     db::identify::set_decision(pool, proposal_id, "accepted").await?;

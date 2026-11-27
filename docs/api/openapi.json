@@ -7,7 +7,7 @@
       "name": "AGPL-3.0-or-later",
       "identifier": "AGPL-3.0-or-later"
     },
-    "version": "1.29"
+    "version": "1.30"
   },
   "servers": [
     {
@@ -18692,6 +18692,31 @@
             "type": "integer",
             "format": "int32",
             "minimum": 0
+          },
+          "album_artist": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The chosen release's artist credit and release group, its earliest date and\nthe release group's first, as MusicBrainz writes partial dates (\"1963-05-27\").\n`None` from a metadata service older than 2026-11-27, hence `default`."
+          },
+          "mb_release_group_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "release_date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "first_release_date": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

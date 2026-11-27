@@ -63,6 +63,13 @@ pub struct ProposedTrack {
     pub length_ms: Option<u64>,
     /// 0–100, the source's confidence for a single track; 100 for an album match.
     pub score: u8,
+    /// The release's date and its release group's first ("1963-05-27" for a 2014
+    /// reissue of Freewheelin'), as MusicBrainz writes partial dates. Accepting
+    /// fills the album's and the release group's where nobody set them by hand.
+    #[serde(default)]
+    pub release_date: Option<String>,
+    #[serde(default)]
+    pub first_release_date: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -181,6 +188,8 @@ pub fn album_proposals(
                 year: c.year,
                 length_ms: m.duration_ms,
                 score: 100,
+                release_date: c.release_date.clone(),
+                first_release_date: c.first_release_date.clone(),
             }),
             keep_album: album_differs,
         });
@@ -198,7 +207,11 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
         proposal: None,
         keep_album: false,
     };
-    let Some(top) = found.first() else { return none() };
+    // The source's fuzzy search also returns other songs that share words with
+    // the title ("Norwegian Sparks (live at Rockefeller …)" for "Yellow (Live @
+    // Rockefeller …)"); only a title like the file's is a candidate at all.
+    let found: Vec<&MetadataCandidate> = found.iter().filter(|c| title_fits(&file.title, &c.title)).collect();
+    let Some(&top) = found.first() else { return none() };
     if top.score < 50 {
         return none();
     }
@@ -231,6 +244,11 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
     if album_differs {
         reasons.push("album_differs");
     }
+    // Weak, by someone else and on another album: another orchestra's take on the
+    // same symphony, another band's song of the same name. Not worth a review.
+    if reasons.contains(&"weak") && reasons.contains(&"artist_differs") && album_differs {
+        return none();
+    }
     // A song is never sure from a search alone when a near-equal rival exists:
     // the same recording title by the same artist on another release.
     if found.get(1).is_some_and(|second| top.score.saturating_sub(second.score) < 5
@@ -248,14 +266,16 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
             artist: top.artist.clone(),
             mb_artist_id: top.mb_artist_id.clone(),
             album: top.album.clone(),
-            album_artist: None,
+            album_artist: top.album_artist.clone(),
             mb_release_id: top.mb_release_id.clone(),
-            mb_release_group_id: None,
+            mb_release_group_id: top.mb_release_group_id.clone(),
             track_number: top.track_number,
             disc_number: None,
             year: top.year,
             length_ms: top.duration_ms,
             score: top.score,
+            release_date: top.release_date.clone(),
+            first_release_date: top.first_release_date.clone(),
         }),
         keep_album: album_differs,
     }
@@ -265,6 +285,10 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
 /// by id, with the year and length a search found for it where it did.
 pub fn chosen(recording: RecordingDetail, found: Option<&MetadataCandidate>) -> ProposedTrack {
     let found = found.filter(|c| c.mb_recording_id == recording.mb_recording_id);
+    // The release date only when the search found it on the same release.
+    let release_date = found
+        .filter(|c| c.mb_release_id.is_some() && c.mb_release_id == recording.mb_release_id)
+        .and_then(|c| c.release_date.clone());
     ProposedTrack {
         mb_recording_id: recording.mb_recording_id,
         title: recording.title,
@@ -279,6 +303,8 @@ pub fn chosen(recording: RecordingDetail, found: Option<&MetadataCandidate>) -> 
         year: found.and_then(|c| c.year),
         length_ms: found.and_then(|c| c.duration_ms),
         score: 100,
+        release_date,
+        first_release_date: found.and_then(|c| c.first_release_date.clone()),
     }
 }
 
@@ -304,9 +330,55 @@ fn same_artist(a: &str, b: &str) -> bool {
 /// Two album titles the same once case, punctuation and a trailing
 /// "(Remastered)" or "[Deluxe]" are set aside.
 fn same_title(a: &str, b: &str) -> bool {
-    let cut = |t: &str| normalize(t.find(['(', '[']).map_or(t, |i| &t[..i]));
     let (x, y) = (cut(a), cut(b));
     !x.is_empty() && x == y
+}
+
+fn cut(t: &str) -> String {
+    normalize(t.find(['(', '[']).map_or(t, |i| &t[..i]))
+}
+
+/// The file's album names an edition the proposed title leaves out: "The Fall
+/// [Deluxe Edition]" for "The Fall", "X&Y (Japanese Tour Special Edition)" for
+/// "X&Y". MusicBrainz puts the edition in a disambiguation, not the title, so
+/// writing its title would lose what the owner can still see in the file.
+pub fn names_an_edition(file_album: &str, proposed: &str) -> bool {
+    let suffix = |t: &str| t.find(['(', '[']).map(|i| normalize(&t[i..])).unwrap_or_default();
+    same_title(file_album, proposed) && !suffix(file_album).is_empty() && suffix(file_album) != suffix(proposed)
+}
+
+/// The same song title, give or take spelling: one inside the other, or most
+/// character pairs shared (Dice ≥ 0.5) once a trailing "(live)" is set aside.
+/// Lenient on purpose — typos, mojibake and "Talkin'" pass; another song doesn't.
+fn title_fits(file: &str, found: &str) -> bool {
+    let key = |t: &str| {
+        let c = cut(t);
+        if c.is_empty() { normalize(t) } else { c }
+    };
+    let (a, b) = (key(file), key(found));
+    if a.is_empty() || b.is_empty() {
+        return true;
+    }
+    if format!(" {a} ").contains(&format!(" {b} ")) || format!(" {b} ").contains(&format!(" {a} ")) {
+        return true;
+    }
+    let pairs = |s: &str| {
+        let c: Vec<char> = s.chars().filter(|c| !c.is_whitespace()).collect();
+        c.windows(2).map(|w| (w[0], w[1])).collect::<Vec<_>>()
+    };
+    let (x, mut y) = (pairs(&a), pairs(&b));
+    if x.is_empty() || y.is_empty() {
+        return a == b;
+    }
+    let total = x.len() + y.len();
+    let mut shared = 0;
+    for p in &x {
+        if let Some(i) = y.iter().position(|q| q == p) {
+            y.swap_remove(i);
+            shared += 1;
+        }
+    }
+    2 * shared * 10 >= total * 5
 }
 
 #[cfg(test)]
@@ -352,6 +424,8 @@ mod tests {
             title: "Blonde on Blonde".into(),
             artist: Some("Bob Dylan".into()),
             year: Some(1966),
+            release_date: None,
+            first_release_date: None,
             primary_type: Some("Album".into()),
             secondary_types: vec![],
             status: Some("Official".into()),
@@ -440,6 +514,10 @@ mod tests {
             year: Some(1971),
             cover_art_url: None,
             score,
+            album_artist: None,
+            mb_release_group_id: None,
+            release_date: None,
+            first_release_date: None,
         }
     }
 
@@ -456,6 +534,7 @@ mod tests {
         f.album = None;
         let mut other = found(100, "Industry", "a");
         other.artist = Some("Guy Boulanger".into());
+        other.title = "X 4".into();
         let p = track_proposal(&f, &[other]);
         assert_eq!(p.class, Class::Review);
         assert!(p.reasons.contains(&"artist_differs"));
@@ -490,6 +569,44 @@ mod tests {
         f.album = None;
         let p = track_proposal(&f, &[found(100, "A", "a"), found(98, "B", "b")]);
         assert!(p.reasons.contains(&"ambiguous"));
+    }
+
+    #[test]
+    fn another_song_sharing_words_is_no_candidate() {
+        let mut f = bluebird();
+        f.title = "Yellow (Live @ Rockefeller Music Hall)".into();
+        let mut other = found(100, "Trouble", "a");
+        other.title = "Norwegian Sparks (live at Rockefeller Music Hall)".into();
+        assert_eq!(track_proposal(&f, &[other]).class, Class::None);
+        assert!(title_fits("Talking World War III Blues", "Talkin’ World War III Blues"));
+        assert!(title_fits("Kцlner (Dicke)", "Kölner (Dicke)"));
+        assert!(title_fits("don t let the sun go down on me", "Don't Let the Sun Go Down on Me"));
+        assert!(title_fits("03 GUANO   BONUS", "Bonus"));
+        assert!(!title_fits("Symphony No. 4", "Sinfonie No. 6"));
+    }
+
+    #[test]
+    fn another_performer_on_another_album_is_not_found() {
+        // Beethoven's 4th tagged with the composer as artist, matched to
+        // another orchestra's recording on another album.
+        let mut f = bluebird();
+        f.artist = Some("Ludwig van Beethoven".into());
+        f.album = Some("Symphonies No.4 & 5".into());
+        let mut other = found(80, "Symphonien 1 - 9", "a");
+        other.artist = Some("Wiener Philharmoniker, Karl Böhm".into());
+        assert_eq!(track_proposal(&f, &[other.clone()]).class, Class::None);
+        // On no album to contradict it, it is still worth a look.
+        f.album = None;
+        assert_eq!(track_proposal(&f, &[other]).class, Class::Review);
+    }
+
+    #[test]
+    fn an_edition_in_the_files_album_is_kept() {
+        assert!(names_an_edition("The Fall [Deluxe Edition]", "The Fall"));
+        assert!(names_an_edition("X&Y (Japanese Tour Special Edition)", "X&Y"));
+        assert!(!names_an_edition("The Fall", "The Fall"));
+        assert!(!names_an_edition("Dekuji", "Děkuji"));
+        assert!(!names_an_edition("Greatest Hits (2004)", "Blonde on Blonde"));
     }
 
     #[test]

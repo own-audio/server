@@ -342,6 +342,8 @@ fn release_penalty(r: &ReleaseRef) -> u8 {
         primary_type: group.and_then(|g| g.primary_type.clone()),
         secondary_types: group.map(|g| g.secondary_types.clone()).unwrap_or_default(),
         year: None,
+        release_date: None,
+        first_release_date: None,
         track_count: 0,
         has_front: false,
         tracks: Vec::new(),
@@ -396,6 +398,9 @@ struct Recording {
     length: Option<u64>,
     #[serde(rename = "artist-credit", default)]
     artist_credit: Vec<Credit>,
+    /// The recording's earliest release: the search gives no release group's.
+    #[serde(rename = "first-release-date", default)]
+    first_release_date: Option<String>,
     #[serde(default)]
     releases: Vec<ReleaseRef>,
     #[serde(default)]
@@ -429,6 +434,10 @@ impl Recording {
             year: release.and_then(|r| year(r.date.as_deref())),
             cover_art_url: release.map(|r| front_cover_url(&r.id)),
             score,
+            album_artist: release.and_then(|r| credit_name(&r.artist_credit)),
+            mb_release_group_id: release.and_then(|r| r.release_group.as_ref()).map(|g| g.id.clone()),
+            release_date: release.and_then(|r| r.date.clone()).filter(|d| !d.is_empty()),
+            first_release_date: self.first_release_date.filter(|d| !d.is_empty()),
         }
     }
 }
@@ -456,6 +465,9 @@ struct Genre {
 #[derive(Deserialize)]
 struct ReleaseGroup {
     id: String,
+    /// Only on a release looked up with `inc=release-groups`, not in a search.
+    #[serde(rename = "first-release-date", default)]
+    first_release_date: Option<String>,
     #[serde(rename = "primary-type", default)]
     primary_type: Option<String>,
     #[serde(rename = "secondary-types", default)]
@@ -471,6 +483,8 @@ struct ReleaseRef {
     status: Option<String>,
     #[serde(default)]
     date: Option<String>,
+    #[serde(rename = "artist-credit", default)]
+    artist_credit: Vec<Credit>,
     #[serde(rename = "release-group", default)]
     release_group: Option<ReleaseGroup>,
     #[serde(rename = "track-count", default)]
@@ -561,6 +575,8 @@ struct ReleaseDetail {
     primary_type: Option<String>,
     secondary_types: Vec<String>,
     year: Option<i32>,
+    release_date: Option<String>,
+    first_release_date: Option<String>,
     track_count: i32,
     has_front: bool,
     tracks: Vec<ListedTrack>,
@@ -593,6 +609,8 @@ impl From<&Release> for ReleaseDetail {
             primary_type: group.and_then(|g| g.primary_type.clone()),
             secondary_types: group.map(|g| g.secondary_types.clone()).unwrap_or_default(),
             year: year(r.date.as_deref()),
+            release_date: r.date.clone().filter(|d| !d.is_empty()),
+            first_release_date: group.and_then(|g| g.first_release_date.clone()).filter(|d| !d.is_empty()),
             track_count: tracks.len() as i32,
             has_front: r.cover_art_archive.as_ref().is_some_and(|c| c.front),
             tracks,
@@ -681,6 +699,8 @@ fn rank_albums(mut scored: Vec<(ReleaseDetail, Vec<AlbumTrackMatch>)>, n: i32) -
             title: d.title,
             artist: d.artist,
             year: d.year,
+            release_date: d.release_date,
+            first_release_date: d.first_release_date,
             primary_type: d.primary_type,
             secondary_types: d.secondary_types,
             status: d.status,
