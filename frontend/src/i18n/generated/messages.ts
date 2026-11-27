@@ -1046,6 +1046,8 @@ export interface MessageParams {
   "music.identifyRuns.field.album": undefined;
   "music.identifyRuns.field.artist": undefined;
   "music.identifyRuns.field.title": undefined;
+  "music.identifyRuns.fillEmpty": undefined;
+  "music.identifyRuns.fillEmptyHint": undefined;
   "music.identifyRuns.identified": undefined;
   "music.identifyRuns.intro": undefined;
   "music.identifyRuns.keepAlbum": { "album": string | number };
@@ -1065,6 +1067,8 @@ export interface MessageParams {
   "music.identifyRuns.reason.artistDiffers": undefined;
   "music.identifyRuns.reason.chosen": undefined;
   "music.identifyRuns.reason.duplicate": undefined;
+  "music.identifyRuns.reason.fromNames": undefined;
+  "music.identifyRuns.reason.genericTitle": undefined;
   "music.identifyRuns.reason.incomplete": undefined;
   "music.identifyRuns.reason.layout": undefined;
   "music.identifyRuns.reason.notFound": undefined;

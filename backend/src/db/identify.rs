@@ -115,13 +115,38 @@ pub struct ScopeTrack {
     /// For a song from a library folder: its folder and the directory it sits
     /// in (`<folder id>/<dir>`), what a run clusters an album by. `None` for an upload.
     pub folder: Option<String>,
+    /// For a song from a library folder: its path in the folder, which names
+    /// the song when its tags don't. `None` for an upload.
+    pub file_path: Option<String>,
+    /// Title, artist or album were read from the file's or folder's name.
+    #[sqlx(skip)]
+    pub from_names: bool,
 }
 
 const SCOPE_COLS: &str = "t.id, t.title, t.artist, t.album, t.album_artist, t.track_number, t.disc_number,
     t.duration_secs, t.album_id,
     (SELECT lf.folder_id::text || '/' || CASE WHEN position('/' in lf.rel_path) > 0
                                          THEN regexp_replace(lf.rel_path, '/[^/]*$', '') ELSE '' END
-       FROM library_files lf WHERE lf.item_id = t.id AND lf.item_kind = 'track' LIMIT 1) AS folder";
+       FROM library_files lf WHERE lf.item_id = t.id AND lf.item_kind = 'track' LIMIT 1) AS folder,
+    (SELECT lf.rel_path FROM library_files lf WHERE lf.item_id = t.id AND lf.item_kind = 'track' LIMIT 1) AS file_path";
+
+/// A song's path in its library folder; `None` for an upload.
+pub async fn track_file_path(pool: &PgPool, track_id: Uuid) -> anyhow::Result<Option<String>> {
+    sqlx::query_scalar("SELECT rel_path FROM library_files WHERE item_id = $1 AND item_kind = 'track' LIMIT 1")
+        .bind(track_id)
+        .fetch_optional(pool)
+        .await
+        .context("db: track file path")
+}
+
+/// Which of these songs have a cover.
+pub async fn tracks_with_cover(pool: &PgPool, ids: &[Uuid]) -> anyhow::Result<Vec<Uuid>> {
+    sqlx::query_scalar("SELECT id FROM music_tracks WHERE id = ANY($1) AND cover_object_id IS NOT NULL")
+        .bind(ids)
+        .fetch_all(pool)
+        .await
+        .context("db: tracks with cover")
+}
 
 /// The owner's tracks in a run's scope that have no MusicBrainz identity yet —
 /// neither matched here nor carrying ids in their files.

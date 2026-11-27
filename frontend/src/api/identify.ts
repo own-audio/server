@@ -140,8 +140,23 @@ export async function revertRun(id: string): Promise<number> {
   return data.reverted;
 }
 
+/** How accepting writes (revision 22): `fill_empty` keeps what the song already has. */
+export type WriteMode = "fill_empty" | "replace";
+const WRITE_MODE_KEY = "identify.writeMode";
+
+/** The owner's choice, kept in this browser; "fill_empty" until they change it. */
+export function getWriteMode(): WriteMode {
+  return localStorage.getItem(WRITE_MODE_KEY) === "replace" ? "replace" : "fill_empty";
+}
+
+export function setWriteMode(mode: WriteMode): void {
+  localStorage.setItem(WRITE_MODE_KEY, mode);
+}
+
+const withMode = () => ({ ...v2, params: { mode: getWriteMode() } });
+
 export async function acceptSure(id: string): Promise<number> {
-  const { data } = await api.post<{ accepted: number }>(`/identify/runs/${id}/accept`, { class: "sure" }, v2);
+  const { data } = await api.post<{ accepted: number }>(`/identify/runs/${id}/accept`, { class: "sure" }, withMode());
   return data.accepted;
 }
 
@@ -158,7 +173,7 @@ export async function listProposals(
 }
 
 export async function acceptProposal(id: string): Promise<Proposal> {
-  const { data } = await api.post<Proposal>(`/identify/proposals/${id}/accept`, {}, v2);
+  const { data } = await api.post<Proposal>(`/identify/proposals/${id}/accept`, {}, withMode());
   return data;
 }
 
@@ -185,7 +200,7 @@ export async function searchProposal(id: string, search: RecordingSearch): Promi
 
 /** A recording by id or musicbrainz.org link becomes the proposal, accepted when `accept`. */
 export async function chooseRecording(id: string, recording: string, release: string | null | undefined, accept: boolean): Promise<Proposal> {
-  const { data } = await api.put<Proposal>(`/identify/proposals/${id}/recording`, { recording, release: release ?? null, accept }, v2);
+  const { data } = await api.put<Proposal>(`/identify/proposals/${id}/recording`, { recording, release: release ?? null, accept }, withMode());
   return data;
 }
 

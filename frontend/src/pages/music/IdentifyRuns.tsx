@@ -16,6 +16,7 @@ import {
   deleteRun,
   getGroup,
   getRun,
+  getWriteMode,
   identifyError,
   isActive,
   listLibraryFolders,
@@ -28,6 +29,7 @@ import {
   searchGroup,
   searchProposal,
   setKeepAlbum,
+  setWriteMode,
   type Decision,
   type IdentifyRun,
   type Proposal,
@@ -60,6 +62,8 @@ const REASONS = {
   not_found: "notFound",
   not_on_release: "notOnRelease",
   chosen: "chosen",
+  from_names: "fromNames",
+  generic_title: "genericTitle",
 } as const;
 type ReasonCode = keyof typeof REASONS;
 const isReason = (r: string): r is ReasonCode => r in REASONS;
@@ -286,6 +290,25 @@ function isTyping(el: EventTarget | null): boolean {
     || !!(el as HTMLElement | null)?.isContentEditable;
 }
 
+/** Whether accepting only fills what songs lack; remembered in this browser. */
+function FillEmptyToggle() {
+  const t = useT();
+  const [fill, setFill] = useState(() => getWriteMode() === "fill_empty");
+  return (
+    <label className="flex items-center gap-2 text-xs" title={t("music.identifyRuns.fillEmptyHint")}>
+      <input
+        type="checkbox"
+        checked={fill}
+        onChange={(e) => {
+          setFill(e.target.checked);
+          setWriteMode(e.target.checked ? "fill_empty" : "replace");
+        }}
+      />
+      {t("music.identifyRuns.fillEmpty")}
+    </label>
+  );
+}
+
 /** Songs a group's "accept album" takes: pending, with a match, not another artist's. */
 function acceptableInGroup(ps: Proposal[]): Proposal[] {
   // A song matched to another artist is probably a wrong match: decide it on its own.
@@ -400,6 +423,7 @@ function RunView({ run: r, title, tab, setTab, items, proposals, refresh, accept
         {pendingOrder.length > 0 && (
           <p className="hidden text-xs text-muted md:block">{t("music.identifyRuns.keys")}</p>
         )}
+        <FillEmptyToggle />
         {tab === "sure" && items.length > 0 && (
           <Button size="sm" icon={<Check className="h-4 w-4" />} loading={acceptAll.isPending} onClick={() => acceptAll.mutate()}>
             {t("music.identifyRuns.acceptAllSure", { count: items.length })}

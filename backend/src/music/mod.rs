@@ -4069,7 +4069,7 @@ fn trim_opt(value: Option<&str>) -> Option<&str> {
     value.map(str::trim).filter(|v| !v.is_empty())
 }
 
-fn infer_title(file_name: &str) -> String {
+pub(crate) fn infer_title(file_name: &str) -> String {
     StdPath::new(file_name)
         .file_stem()
         .and_then(|s| s.to_str())

@@ -11,6 +11,7 @@
 //! run with a growing delay instead of failing it.
 
 pub mod matching;
+pub mod names;
 
 use crate::app::AppConfig;
 use crate::db;
@@ -18,6 +19,7 @@ use crate::hooks::Hooks;
 use crate::metadata::{Identify, mirror::AlbumTrackQuery};
 use anyhow::Context;
 use matching::{Class, FileTrack, Proposal};
+use serde::Deserialize;
 use serde_json::json;
 use sqlx::PgPool;
 use std::collections::BTreeMap;
@@ -103,10 +105,61 @@ fn backoff(level: i16) -> Duration {
 
 /// Split the scope into groups and store them (see [`cluster`]).
 async fn plan_groups(pool: &PgPool, run: &db::identify::Run) -> anyhow::Result<()> {
-    let tracks = db::identify::scope_tracks(pool, run).await?;
+    let tracks: Vec<_> = db::identify::scope_tracks(pool, run).await?.into_iter().map(with_names).collect();
     let groups = cluster(&tracks);
     let groups: Vec<(&str, String, Vec<Uuid>)> = groups.iter().map(|(k, l, ids)| (*k, l.clone(), ids.clone())).collect();
     db::identify::insert_groups(pool, run.id, &groups, tracks.len() as i32).await
+}
+
+/// The songs of `ids` as a run reads them, names filled in (see [`with_names`]).
+async fn load(pool: &PgPool, user_id: Uuid, ids: &[Uuid]) -> anyhow::Result<Vec<db::identify::ScopeTrack>> {
+    Ok(db::identify::tracks_by_id(pool, user_id, ids).await?.into_iter().map(with_names).collect())
+}
+
+/// A song with no title tag (its title is its file name) gets what the file's
+/// and folder's names say: the title without its track number, the number,
+/// the artist, and from a folder named like a record ("(1986) Slayer - Reign
+/// In Blood") the album. Tags always win; this only fills what they lack.
+fn with_names(mut t: db::identify::ScopeTrack) -> db::identify::ScopeTrack {
+    let Some(path) = t.file_path.clone() else { return t };
+    if !names::title_is_file_name(&t.title, &path) {
+        return t;
+    }
+    let mut dirs: Vec<&str> = path.split('/').collect();
+    let file = dirs.pop().unwrap_or_default();
+    let stem = file.rsplit_once('.').map_or(file, |(s, _)| s);
+    let f = names::parse_file(stem);
+    // The album's folder: the song's own, or its parent when that is a disc's ("CD2").
+    let mut dir = dirs.pop();
+    if dir.is_some_and(|d| folder_norm(&format!("x/{d}")) == "x") {
+        dir = dirs.pop();
+    }
+    // A folder counts as a record's name only when it is written like one: an
+    // artist and a title, or a year. "unknown", "mix" or "Music" name nothing.
+    let d = dir.map(names::parse_folder).filter(|d| d.album_artist.is_some() || d.year.is_some()).unwrap_or_default();
+    let various = |a: &str| is_various(a);
+    t.from_names = true;
+    if let Some(title) = f.title {
+        t.title = title;
+    }
+    t.track_number = t.track_number.or(f.track_number);
+    if t.artist.is_none() {
+        t.artist = d.album_artist.clone().filter(|a| !various(a)).or(f.artist);
+    }
+    if t.album.is_none() {
+        t.album = d.album.filter(|a| !names::is_generic_title(a));
+    }
+    if t.album_artist.is_none() {
+        t.album_artist = d.album_artist;
+    }
+    t
+}
+
+/// "Various Artists", "VA", "Various": a compilation's album artist, never one
+/// performer's name to be replaced by another's.
+pub fn is_various(name: &str) -> bool {
+    let n = name.trim().to_lowercase();
+    matches!(n.as_str(), "various artists" | "various" | "va" | "v.a." | "v/a" | "různí interpreti" | "rôzni interpreti")
 }
 
 /// An album's name as files spell it, made comparable: case, "Disc 2" and
@@ -223,6 +276,7 @@ fn file_track(t: &db::identify::ScopeTrack) -> FileTrack {
         track_number: t.track_number,
         disc_number: t.disc_number,
         duration_ms: t.duration_secs.map(|s| s as u64 * 1000),
+        from_names: t.from_names,
     }
 }
 
@@ -233,7 +287,7 @@ async fn look_up(
     run: &db::identify::Run,
     group: &db::identify::Group,
 ) -> anyhow::Result<()> {
-    let found = db::identify::tracks_by_id(pool, run.user_id, &group.track_ids).await?;
+    let found = load(pool, run.user_id, &group.track_ids).await?;
     // The group's own order; a track deleted since the run started is left out.
     let files: Vec<FileTrack> = group
         .track_ids
@@ -269,6 +323,11 @@ async fn look_up(
     let mut alternatives: std::collections::HashMap<Uuid, serde_json::Value> = std::collections::HashMap::new();
     for i in singles {
         let f = &files[i];
+        // "Track 01" names nothing: a search finds recordings called "Track 01".
+        if names::is_generic_title(&f.title) {
+            proposals.push(Proposal { track_id: f.id, class: Class::None, reasons: vec!["generic_title"], proposal: None, keep_album: false });
+            continue;
+        }
         let found = source
             .identify(Some(&f.title), f.artist.as_deref(), f.album.as_deref(), f.duration_ms, TRACK_CANDIDATES)
             .await?;
@@ -276,6 +335,15 @@ async fn look_up(
         alternatives.insert(f.id, serde_json::to_value(&found)?);
     }
 
+    // Found from a file's name alone: worth a look, never one click.
+    for p in &mut proposals {
+        if files.iter().any(|f| f.id == p.track_id && f.from_names) && p.proposal.is_some() {
+            p.reasons.push("from_names");
+            if p.class == Class::Sure {
+                p.class = Class::Review;
+            }
+        }
+    }
     let stored: Vec<db::identify::NewProposal> = proposals
         .iter()
         .map(|p| db::identify::NewProposal {
@@ -331,7 +399,7 @@ pub async fn search_group(
     if group.run_id != run.id || group.kind != "album" {
         return Ok(None);
     }
-    let found = db::identify::tracks_by_id(pool, run.user_id, &group.track_ids).await?;
+    let found = load(pool, run.user_id, &group.track_ids).await?;
     let files = group_files(pool, run, &group).await?;
     let tagged = most_common(found.iter().map(|t| t.album_artist.as_deref().or(t.artist.as_deref())));
     let Some(artist) = artist.map(str::to_string).or(tagged) else { return Ok(Some(0)) };
@@ -347,7 +415,7 @@ pub async fn search_group(
 }
 
 async fn group_files(pool: &PgPool, run: &db::identify::Run, group: &db::identify::Group) -> anyhow::Result<Vec<FileTrack>> {
-    let found = db::identify::tracks_by_id(pool, run.user_id, &group.track_ids).await?;
+    let found = load(pool, run.user_id, &group.track_ids).await?;
     Ok(group
         .track_ids
         .iter()
@@ -390,6 +458,18 @@ async fn put_on_edition(
     db::identify::save_group(pool, group, &group.candidates, Some(index as i16), &stored).await
 }
 
+/// How an accept writes the song's own fields. MusicBrainz ids are written either way.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize, utoipa::ToSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum WriteMode {
+    /// Every field the proposal has replaces the song's (the behaviour before revision 22).
+    #[default]
+    Replace,
+    /// Only fields the song lacks are written: an empty one, or a title that is
+    /// only the file's name. What the owner's tags say stays.
+    FillEmpty,
+}
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum AcceptOutcome {
     Accepted,
@@ -401,7 +481,7 @@ pub enum AcceptOutcome {
 /// Apply one proposal: the same database write a single identify does, carrying
 /// the run so the run can be reverted as one. The file's genre and, for
 /// `keep_album`, its album, album artist and track number stay.
-pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid) -> anyhow::Result<AcceptOutcome> {
+pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid, mode: WriteMode) -> anyhow::Result<AcceptOutcome> {
     let Some(p) = db::identify::find_proposal(pool, proposal_id).await? else {
         return Ok(AcceptOutcome::NothingProposed);
     };
@@ -419,25 +499,37 @@ pub async fn accept(pool: &PgPool, user_id: Uuid, proposal_id: Uuid) -> anyhow::
         return Ok(AcceptOutcome::NothingProposed);
     };
     let keep = p.keep_album;
+    let fill = mode == WriteMode::FillEmpty;
+    let has = |v: &Option<String>| v.as_deref().is_some_and(|v| !v.trim().is_empty());
+    let title_is_name = match db::identify::track_file_path(pool, track.id).await? {
+        Some(path) => names::title_is_file_name(&track.title, &path),
+        None => false,
+    };
+    let title = if fill && !track.title.trim().is_empty() && !title_is_name { &track.title } else { &proposed.title };
+    let artist = if fill && has(&track.artist) { track.artist.as_deref() } else { proposed.artist.as_deref().or(track.artist.as_deref()) };
+    let album = if keep || (fill && has(&track.album)) { track.album.as_deref() } else { proposed.album.as_deref().or(track.album.as_deref()) };
+    let track_number = if keep || (fill && track.track_number.is_some()) { track.track_number } else { proposed.track_number.or(track.track_number) };
+    // A compilation's "Various Artists" is never replaced by one performer's name.
+    let keep_album_artist = keep || (fill && has(&track.album_artist)) || track.album_artist.as_deref().is_some_and(is_various);
     db::music::apply_musicbrainz_metadata(
         pool,
         track.id,
         user_id,
-        &proposed.title,
-        proposed.artist.as_deref().or(track.artist.as_deref()),
-        if keep { track.album.as_deref() } else { proposed.album.as_deref().or(track.album.as_deref()) },
+        title,
+        artist,
+        album,
         track.genre.as_deref(),
-        if keep { track.track_number } else { proposed.track_number.or(track.track_number) },
+        track_number,
         &proposed.mb_recording_id,
         if keep { None } else { proposed.mb_release_id.as_deref() },
         proposed.mb_artist_id.as_deref(),
-        if keep { None } else { proposed.album_artist.as_deref() },
+        if keep_album_artist { None } else { proposed.album_artist.as_deref() },
         if keep { None } else { proposed.mb_release_group_id.as_deref() },
         Some(p.run_id),
         None,
     )
     .await?;
-    if !keep && proposed.disc_number.is_some() {
+    if !keep && proposed.disc_number.is_some() && !(fill && track.disc_number.is_some()) {
         // In the run's batch, so the history has it and a revert's undo of it is no change.
         let mut tx = pool.begin().await?;
         db::edits::mark(&mut tx, &db::edits::Edit::in_batch(user_id, "run", p.run_id)).await?;
@@ -485,6 +577,8 @@ mod tests {
             duration_secs: Some(200),
             album_id: album_id.map(Uuid::from_u128),
             folder: folder.map(Into::into),
+            file_path: None,
+            from_names: false,
         }
     }
 

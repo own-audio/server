@@ -15,7 +15,7 @@ use crate::db;
 use crate::families::FamilyContext;
 use crate::hooks::IdentifyVerdict;
 use crate::metadata::{Identify, MetadataCandidate};
-use crate::music::identify_runs::{self, AcceptOutcome, matching::{self, ProposedTrack}};
+use crate::music::identify_runs::{self, AcceptOutcome, WriteMode, matching::{self, ProposedTrack}};
 use crate::v2::page::{Page, PageQuery};
 use crate::v2::problem::Problem;
 use axum::Json;
@@ -274,6 +274,29 @@ pub struct AcceptAll {
     pub class: String,
 }
 
+/// How an accept writes (revision 22). Absent: `replace`, as before.
+#[derive(Deserialize, IntoParams)]
+#[into_params(parameter_in = Query)]
+pub struct AcceptMode {
+    /// `replace` (default): the proposal's title, artist, album, album artist, track
+    /// and disc number replace the song's. `fill_empty`: only fields the song lacks
+    /// are written (an empty one, or a title that is only its file name), and a cover
+    /// only where it has none. MusicBrainz ids are written either way. An album artist
+    /// "Various Artists" is kept in both.
+    #[param(inline, value_type = Option<String>, example = "fill_empty")]
+    pub mode: Option<WriteMode>,
+}
+
+/// The songs among `rows` an accept in `mode` may put a release cover on.
+async fn cover_targets(state: &AppState, mode: WriteMode, rows: Vec<db::identify::ProposalRow>) -> anyhow::Result<Vec<db::identify::ProposalRow>> {
+    if mode != WriteMode::FillEmpty {
+        return Ok(rows);
+    }
+    let ids: Vec<Uuid> = rows.iter().map(|r| r.track_id).collect();
+    let covered = db::identify::tracks_with_cover(state.db(), &ids).await?;
+    Ok(rows.into_iter().filter(|r| !covered.contains(&r.track_id)).collect())
+}
+
 #[derive(Serialize, ToSchema)]
 pub struct Accepted {
     pub accepted: usize,
@@ -282,9 +305,10 @@ pub struct Accepted {
 /// Accept every pending sure proposal of a run.
 #[utoipa::path(post, path = "/identify/runs/{id}/accept", tag = "identify", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
-    params(("id" = Uuid, Path)), request_body = AcceptAll,
+    params(("id" = Uuid, Path), AcceptMode), request_body = AcceptAll,
     responses((status = 200, body = Accepted), (status = 400, body = crate::v2::problem::ProblemBody), (status = 404, body = crate::v2::problem::ProblemBody)))]
-pub async fn accept_all(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<AcceptAll>) -> Result<Json<Accepted>, Problem> {
+pub async fn accept_all(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Query(how): Query<AcceptMode>, Json(body): Json<AcceptAll>) -> Result<Json<Accepted>, Problem> {
+    let mode = how.mode.unwrap_or_default();
     let run = own_run(&state, &family, id).await?;
     if body.class != "sure" {
         return Err(Problem::bad_request("invalid_class", "only sure proposals are accepted in bulk").field("/class", "invalid", "sure"));
@@ -292,13 +316,14 @@ pub async fn accept_all(family: FamilyContext, State(state): State<AppState>, Pa
     let mut accepted = 0;
     let mut rows = Vec::new();
     for pid in db::identify::pending_ids(state.db(), run.id, "sure").await? {
-        if identify_runs::accept(state.db(), family.user_id, pid).await? == AcceptOutcome::Accepted {
+        if identify_runs::accept(state.db(), family.user_id, pid, mode).await? == AcceptOutcome::Accepted {
             accepted += 1;
             if let Some(row) = db::identify::find_proposal(state.db(), pid).await? {
                 rows.push(row);
             }
         }
     }
+    let rows = cover_targets(&state, mode, rows).await?;
     covers_after_accept(&state, &family, run.id, &rows);
     Ok(Json(Accepted { accepted }))
 }
@@ -335,7 +360,9 @@ pub struct Proposal {
     /// from the files'), `duplicate` (two files on one track), `ambiguous`
     /// (another release matches as well), `album_differs` (a compilation's
     /// song on its original album), `weak`, `not_found`, `not_on_release`,
-    /// `chosen` (the owner picked the recording).
+    /// `chosen` (the owner picked the recording), `from_names` (found from the
+    /// file's or folder's name, the song had no title tag; revision 22),
+    /// `generic_title` ("Track 01": not looked up; revision 22).
     /// Unknown values may appear.
     pub reasons: Vec<String>,
     /// What an accept writes; absent when nothing was found.
@@ -439,19 +466,21 @@ async fn own_proposal(state: &AppState, family: &FamilyContext, id: Uuid) -> Res
 /// Apply one proposal to its track.
 #[utoipa::path(post, path = "/identify/proposals/{id}/accept", tag = "identify", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
-    params(("id" = Uuid, Path)),
+    params(("id" = Uuid, Path), AcceptMode),
     responses((status = 200, body = Proposal),
         (status = 409, description = "Already decided, or nothing was found to apply", body = crate::v2::problem::ProblemBody),
         (status = 404, body = crate::v2::problem::ProblemBody)))]
-pub async fn accept(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>) -> Result<Json<Proposal>, Problem> {
+pub async fn accept(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Query(how): Query<AcceptMode>) -> Result<Json<Proposal>, Problem> {
+    let mode = how.mode.unwrap_or_default();
     own_proposal(&state, &family, id).await?;
-    match identify_runs::accept(state.db(), family.user_id, id).await? {
+    match identify_runs::accept(state.db(), family.user_id, id, mode).await? {
         AcceptOutcome::Accepted => {}
         AcceptOutcome::AlreadyDecided => return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was already accepted or rejected")),
         AcceptOutcome::NothingProposed => return Err(Problem::new(StatusCode::CONFLICT, "nothing_proposed").detail("nothing was found for this track")),
     }
     let row = own_proposal(&state, &family, id).await?;
-    covers_after_accept(&state, &family, row.run_id, std::slice::from_ref(&row));
+    let targets = cover_targets(&state, mode, vec![row.clone()]).await?;
+    covers_after_accept(&state, &family, row.run_id, &targets);
     Ok(Json(proposal_out(row)))
 }
 
@@ -743,11 +772,12 @@ pub struct ProposalRecording {
 /// proposal is undone first.
 #[utoipa::path(put, path = "/identify/proposals/{id}/recording", tag = "identify", security(("bearer" = [])),
     extensions(("x-permission" = json!("owner"))),
-    params(("id" = Uuid, Path)), request_body = ProposalRecording,
+    params(("id" = Uuid, Path), AcceptMode), request_body = ProposalRecording,
     responses((status = 200, body = Proposal), (status = 400, body = crate::v2::problem::ProblemBody),
         (status = 404, body = crate::v2::problem::ProblemBody),
         (status = 409, description = "`already_decided`: accepted; undo it first", body = crate::v2::problem::ProblemBody)))]
-pub async fn choose_recording(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Json(body): Json<ProposalRecording>) -> Result<Json<Proposal>, Problem> {
+pub async fn choose_recording(family: FamilyContext, State(state): State<AppState>, Path(id): Path<Uuid>, Query(how): Query<AcceptMode>, Json(body): Json<ProposalRecording>) -> Result<Json<Proposal>, Problem> {
+    let mode = how.mode.unwrap_or_default();
     let p = own_proposal(&state, &family, id).await?;
     if p.decision == "accepted" {
         return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was accepted; undo it first"));
@@ -761,11 +791,12 @@ pub async fn choose_recording(family: FamilyContext, State(state): State<AppStat
         return Err(Problem::new(StatusCode::CONFLICT, "already_decided").detail("this proposal was accepted; undo it first"));
     }
     if body.accept {
-        identify_runs::accept(state.db(), family.user_id, id).await?;
+        identify_runs::accept(state.db(), family.user_id, id, mode).await?;
     }
     let row = own_proposal(&state, &family, id).await?;
     if body.accept {
-        covers_after_accept(&state, &family, row.run_id, std::slice::from_ref(&row));
+        let targets = cover_targets(&state, mode, vec![row.clone()]).await?;
+        covers_after_accept(&state, &family, row.run_id, &targets);
     }
     Ok(Json(proposal_out(row)))
 }

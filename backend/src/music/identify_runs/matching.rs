@@ -23,6 +23,8 @@ pub struct FileTrack {
     pub track_number: Option<i32>,
     pub disc_number: Option<i32>,
     pub duration_ms: Option<u64>,
+    /// Title, artist or album came from the file's or folder's name.
+    pub from_names: bool,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -321,6 +323,7 @@ mod tests {
             track_number: Some(n),
             disc_number: None,
             duration_ms: None,
+            from_names: false,
         }
     }
 

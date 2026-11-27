@@ -2035,5 +2035,21 @@
   "music.merge.error": {
     "en": "The albums were not merged",
     "cs": "Alba se nesloučila"
+  },
+  "music.identifyRuns.reason.fromNames": {
+    "en": "From the file name",
+    "cs": "Z názvu souboru"
+  },
+  "music.identifyRuns.reason.genericTitle": {
+    "en": "No real title",
+    "cs": "Bez skutečného názvu"
+  },
+  "music.identifyRuns.fillEmpty": {
+    "en": "Only fill empty fields",
+    "cs": "Jen doplnit prázdná pole"
+  },
+  "music.identifyRuns.fillEmptyHint": {
+    "en": "Accepting keeps what your songs already have and adds only what is missing, the cover too. The MusicBrainz link is added either way.",
+    "cs": "Přijetí ponechá, co už skladby mají, a doplní jen chybějící údaje včetně obalu. Odkaz na MusicBrainz se přidá vždy."
   }
 }

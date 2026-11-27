@@ -7,6 +7,27 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Added
+
+- Identify runs read file and folder names for songs with no title tag. "01 - Angel Of
+  Death.mp3" in "(1986) Slayer - Reign In Blood" is looked up as Angel Of Death by Slayer on
+  Reign In Blood, track 1, instead of as the text "01   Angel Of Death". What is found this
+  way is reviewed, never sure (reason `from_names`). Generic titles ("Track 01", "Unknown")
+  are not looked up at all: they found recordings literally called "Track 01" (reason
+  `generic_title`, class `none`).
+- v2 (revision 22): `mode=fill_empty` on the three accept operations
+  (`POST /identify/runs/{id}/accept`, `POST /identify/proposals/{id}/accept`,
+  `PUT /identify/proposals/{id}/recording`). Only the fields a song lacks are written (an
+  empty one, or a title that is only its file name), and a release cover only where it has
+  none; MusicBrainz ids are written either way. Without it, accepting replaces as before.
+- Console: "Only fill empty fields" on an identify run, on by default and remembered per
+  browser.
+
+### Fixed
+
+- Accepting an identify proposal no longer replaces an album artist "Various Artists" with one
+  performer's name.
+
 ## [1.0.9] - 2026-11-24
 
 Contract revision 29. API v2 revision 21.
