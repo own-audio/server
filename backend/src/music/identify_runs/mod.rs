@@ -34,6 +34,8 @@ const STEP: i64 = 5;
 /// Backoff levels before a run gives up: 5 s doubling to the 5-minute cap is
 /// about half an hour of an unreachable source.
 const MAX_BACKOFF_LEVEL: i16 = 10;
+/// The AcoustID score above which the sound wins over a weak text match.
+const SOUND_OVER_TEXT: f32 = 0.8;
 /// Candidates per single-track search.
 const TRACK_CANDIDATES: usize = 5;
 
@@ -471,18 +473,24 @@ async fn by_sound(
         p.reasons.contains(&"generic_title")
             || files.iter().any(|f| f.id == id && (f.from_names || f.artist.as_deref().is_none_or(|a| a.trim().is_empty())))
     };
-    let unfound: Vec<Uuid> = proposals
+    // A weak text match for such a song is as good as none ("Aegis" for a file
+    // named after Alanis Morissette's song): the sound decides if it is sure.
+    let weak = |p: &Proposal| p.class == Class::Review && p.reasons.contains(&"weak");
+    let unfound: Vec<(Uuid, bool)> = proposals
         .iter()
-        .filter(|p| p.class == Class::None && knows_nothing(p.track_id, p))
-        .map(|p| p.track_id)
+        .filter(|p| (p.class == Class::None || weak(p)) && knows_nothing(p.track_id, p))
+        .map(|p| (p.track_id, weak(p)))
         .collect();
     if unfound.is_empty() {
         return Ok(());
     }
-    for (track_id, fingerprint, duration) in db::identify::fingerprints(pool, &unfound).await? {
+    let ids: Vec<Uuid> = unfound.iter().map(|(id, _)| *id).collect();
+    for (track_id, fingerprint, duration) in db::identify::fingerprints(pool, &ids).await? {
         let Some(file) = files.iter().find(|f| f.id == track_id) else { continue };
+        let replaces_weak = unfound.iter().any(|(id, w)| *id == track_id && *w);
         let best = match acoustid.lookup(pool, &fingerprint, duration).await {
-            Ok(m) => m.into_iter().next(),
+            // Over a text match, only a sure one: AcoustID's own "same recording".
+            Ok(m) => m.into_iter().next().filter(|m| !replaces_weak || m.score >= SOUND_OVER_TEXT),
             Err(e) => {
                 tracing::warn!(%track_id, "acoustid lookup failed: {e:#}");
                 None

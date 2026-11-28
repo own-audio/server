@@ -48,6 +48,8 @@ semver. Each release states the **API contract revision** it serves
   file's name, or no artist. On canary it also answered for tagged songs the text search had
   missed, and named the studio recording for live takes: 76 right fields rewritten in "accept
   all" instead of 35, for no song gained.
+- For such a song a weak text match no longer keeps AcoustID out: when the sound is sure (score
+  0.8 or more), its recording replaces the weak match ("Aegis" for a file of Alanis Morissette's).
 - A folder of untagged songs is one identify group (named after the folder). When its songs
   are found one by one — by AcoustID, a twin or their names — and at least half share an artist
   and one release, they are put on that release together, still for review. Folders where any
