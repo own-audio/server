@@ -41,6 +41,10 @@ semver. Each release states the **API contract revision** it serves
   The key and fingerprint go in a POST body, at most three lookups a second, counted per month
   (migration 0137) and capped by `ACOUSTID__MONTHLY_LIMIT`. An AcoustID that fails or refuses
   leaves the song as it was and does not pause the run.
+- A folder of untagged songs is one identify group (named after the folder). When its songs
+  are found one by one — by AcoustID, a twin or their names — and at least half share an artist
+  and one release, they are put on that release together, still for review. Folders where any
+  song names an album keep their own proposals.
 - Identify finds a song's twin by its sound: an unidentified song whose fingerprint matches an
   identified song's in the same library (lengths within 2 s, at least 80 % of bits alike) gets
   that recording, `sure`, without a lookup — "Track 01" files too (reason `fingerprint_twin`).

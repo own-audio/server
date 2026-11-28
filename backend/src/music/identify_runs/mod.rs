@@ -243,6 +243,11 @@ fn cluster(tracks: &[db::identify::ScopeTrack]) -> Vec<(&'static str, String, Ve
         let mut in_folder = albums.keys().filter(|k| k.starts_with(&prefix));
         match (in_folder.next().cloned(), in_folder.next()) {
             (Some(only), None) => albums.get_mut(&only).expect("listed").extend(songs),
+            // A folder of untagged songs alone is most likely one record: looked
+            // up song by song, then put on one release together (`one_release`).
+            (None, _) if songs.len() >= 2 => {
+                albums.entry(prefix.clone()).or_default().extend(songs);
+            }
             _ => singles.extend(songs),
         }
     }
@@ -255,7 +260,9 @@ fn cluster(tracks: &[db::identify::ScopeTrack]) -> Vec<(&'static str, String, Ve
         }
         let mut songs = songs;
         songs.sort_by(|a, b| (a.disc_number, a.track_number, &a.title).cmp(&(b.disc_number, b.track_number, &b.title)));
-        let album = most_common(songs.iter().map(|t| t.album.as_deref())).unwrap_or_default();
+        let album = most_common(songs.iter().map(|t| t.album.as_deref()))
+            .or_else(|| songs[0].folder.as_deref().map(|f| f.rsplit('/').next().unwrap_or(f).to_string()))
+            .unwrap_or_default();
         let by = most_common(songs.iter().map(|t| t.album_artist.as_deref().or(t.artist.as_deref())));
         let label = match by {
             Some(by) => format!("{album} — {by}"),
@@ -352,6 +359,21 @@ async fn look_up(
         by_sound(pool, source, acoustid, &files, &mut proposals).await?;
     }
 
+    // An untagged folder found song by song: one release for all of it.
+    // Only a folder nothing names an album for: a tagged album the lookup above
+    // did not settle (a compilation, a classical box) keeps its own proposals.
+    if group.kind == "album" && chosen.is_none() && files.iter().all(|f| f.album.is_none()) {
+        if let Some((c, props)) = one_release(source, &files, &proposals).await? {
+            candidates = c.0;
+            chosen = Some(c.1 as i16);
+            for p in props {
+                if let Some(slot) = proposals.iter_mut().find(|x| x.track_id == p.track_id) {
+                    *slot = p;
+                }
+            }
+        }
+    }
+
     // Found from a file's name alone: worth a look, never one click.
     for p in &mut proposals {
         if p.reasons.contains(&"fingerprint_twin") {
@@ -376,6 +398,59 @@ async fn look_up(
         })
         .collect();
     db::identify::save_group(pool, group, &serde_json::to_value(&candidates)?, chosen, &stored).await
+}
+
+/// One release for a folder whose songs were found one by one (by name, sound or
+/// twin): the album most of them share an artist with, asked for by the titles
+/// found. Only when it holds at least half the folder; every proposal stays for
+/// review and keeps the reason it was found by.
+#[allow(clippy::type_complexity)]
+async fn one_release(
+    source: &Identify<'_>,
+    files: &[FileTrack],
+    proposals: &[Proposal],
+) -> anyhow::Result<Option<((Vec<crate::metadata::AlbumCandidate>, usize), Vec<Proposal>)>> {
+    let found: Vec<(&FileTrack, &Proposal, &matching::ProposedTrack)> = files
+        .iter()
+        .filter_map(|f| {
+            let p = proposals.iter().find(|p| p.track_id == f.id)?;
+            Some((f, p, p.proposal.as_ref()?))
+        })
+        .collect();
+    if found.len() < 2 || found.len() * 2 < files.len() {
+        return Ok(None);
+    }
+    let Some(artist) = most_common(found.iter().map(|(_, _, x)| x.album_artist.as_deref().or(x.artist.as_deref()))) else {
+        return Ok(None);
+    };
+    let album = most_common(found.iter().map(|(_, _, x)| x.album.as_deref()));
+    // The files as the songs found: their titles, the file's own length and number.
+    let known: Vec<FileTrack> = found
+        .iter()
+        .map(|(f, _, x)| FileTrack { title: x.title.clone(), artist: x.artist.clone(), album: None, ..(*f).clone() })
+        .collect();
+    let queries: Vec<AlbumTrackQuery> = known.iter().map(|f| AlbumTrackQuery { title: &f.title, duration_ms: f.duration_ms }).collect();
+    let candidates = source.identify_album(&artist, album.as_deref(), queries).await?;
+    let Some(best) = matching::choose(&known, &candidates).filter(|c| candidates[*c].matched as usize * 2 >= files.len()) else {
+        return Ok(None);
+    };
+    let (mut props, _) = matching::album_proposals(&known, &candidates, best);
+    for p in &mut props {
+        let origin = found.iter().find(|(f, _, _)| f.id == p.track_id).map(|(_, o, _)| o.reasons.clone()).unwrap_or_default();
+        for r in origin {
+            if !p.reasons.contains(&r) {
+                p.reasons.push(r);
+            }
+        }
+        // Found by name or sound, then fitted: never one click.
+        p.class = Class::Review;
+        if let (Some(x), Some((_, _, o))) = (p.proposal.as_mut(), found.iter().find(|(f, _, _)| f.id == p.track_id)) {
+            x.artist = o.artist.clone();
+            x.mb_artist_id = o.mb_artist_id.clone();
+        }
+        p.keep_album = false;
+    }
+    Ok(Some(((candidates, best), props)))
 }
 
 /// Proposals of class `none` replaced by what AcoustID recognises in the song's
@@ -739,6 +814,20 @@ mod tests {
         // Two copies of "Same Name" (two entities) never merge; one of them is a single song.
         assert_eq!(kinds.iter().filter(|(k, n)| *k == "album" && *n == 2).count(), 1);
         assert_eq!(kinds.iter().filter(|(k, _)| *k == "track").count(), 3, "{kinds:?}");
+    }
+
+    #[test]
+    fn a_folder_of_untagged_songs_is_one_group_named_after_it() {
+        let songs = [
+            song("Track 01", None, Some("f/Rips/Unknown album"), None),
+            song("Track 02", None, Some("f/Rips/Unknown album"), None),
+            song("Track 03", None, Some("f/Rips/Unknown album"), None),
+            song("Alone", None, Some("f/Rips/Other"), None),
+        ];
+        let groups = cluster(&songs);
+        let kinds: Vec<(&str, &str, usize)> = groups.iter().map(|g| (g.0, g.1.as_str(), g.2.len())).collect();
+        assert!(kinds.contains(&("album", "Unknown album — Artist", 3)), "{kinds:?}");
+        assert!(kinds.contains(&("track", "Alone", 1)), "{kinds:?}");
     }
 
     #[test]
