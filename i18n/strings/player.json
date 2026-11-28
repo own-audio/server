@@ -1,316 +1,820 @@
 {
   "player.error.aborted": {
     "en": "Playback was interrupted.",
-    "cs": "Přehrávání bylo přerušeno."
+    "cs": "Přehrávání bylo přerušeno.",
+    "sk": "Prehrávanie bolo prerušené.",
+    "hu": "A lejátszás megszakadt.",
+    "de": "Die Wiedergabe wurde unterbrochen.",
+    "fr": "La lecture a été interrompue.",
+    "es": "La reproducción se ha interrumpido.",
+    "it": "La riproduzione è stata interrotta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.episodeNotes": {
     "en": "Episode notes",
     "cs": "Popis epizody",
-    "note": "Button and sheet title in the player: the episode's description from the feed."
+    "sk": "Popis epizódy",
+    "hu": "Epizód leírása",
+    "de": "Shownotes",
+    "fr": "Notes de l’épisode",
+    "es": "Notas del episodio",
+    "it": "Note dell’episodio",
+    "note": "Button and sheet title in the player: the episode's description from the feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.favorite.add": {
     "en": "Add to favorites",
-    "cs": "Přidat do oblíbených"
+    "cs": "Přidat do oblíbených",
+    "sk": "Pridať do obľúbených",
+    "hu": "Hozzáadás a kedvencekhez",
+    "de": "Zu Favoriten hinzufügen",
+    "fr": "Ajouter aux favoris",
+    "es": "Añadir a favoritos",
+    "it": "Aggiungi ai preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.favorite.remove": {
     "en": "Remove from favorites",
-    "cs": "Odebrat z oblíbených"
+    "cs": "Odebrat z oblíbených",
+    "sk": "Odobrať z obľúbených",
+    "hu": "Eltávolítás a kedvencek közül",
+    "de": "Aus Favoriten entfernen",
+    "fr": "Retirer des favoris",
+    "es": "Quitar de favoritos",
+    "it": "Rimuovi dai preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.lyrics": {
     "en": "Lyrics",
     "cs": "Text",
-    "note": "Button: the song's lyrics (glossary: Lyrics = Text)."
+    "sk": "Text",
+    "hu": "Dalszöveg",
+    "de": "Songtext",
+    "fr": "Paroles",
+    "es": "Letra",
+    "it": "Testo",
+    "note": "Button: the song's lyrics (glossary: Lyrics = Text).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.goToArtist": {
     "en": "Go to {artist}",
-    "cs": "Přejít na {artist}"
+    "cs": "Přejít na {artist}",
+    "sk": "Prejsť na {artist}",
+    "hu": "Ugrás az előadóhoz: {artist}",
+    "de": "Zu {artist}",
+    "fr": "Aller à {artist}",
+    "es": "Ir a {artist}",
+    "it": "Vai a {artist}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.goToAlbum": {
     "en": "Go to the album {album}",
-    "cs": "Přejít na album {album}"
+    "cs": "Přejít na album {album}",
+    "sk": "Prejsť na album {album}",
+    "hu": "Ugrás az albumhoz: {album}",
+    "de": "Zum Album {album}",
+    "fr": "Aller à l’album {album}",
+    "es": "Ir al álbum {album}",
+    "it": "Vai all’album {album}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.from.playlist": {
     "en": "Playing from playlist",
     "cs": "Hraje z playlistu",
-    "note": "Small caps above the playlist's name on Now Playing; the name is a link to it."
+    "sk": "Hrá z playlistu",
+    "hu": "Lejátszás a listából",
+    "de": "Wiedergabe aus Playlist",
+    "fr": "Lecture depuis la playlist",
+    "es": "Reproduciendo desde la playlist",
+    "it": "In riproduzione dalla playlist",
+    "note": "Small caps above the playlist's name on Now Playing; the name is a link to it.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.from.album": {
     "en": "Playing from album",
-    "cs": "Hraje z alba"
+    "cs": "Hraje z alba",
+    "sk": "Hrá z albumu",
+    "hu": "Lejátszás az albumból",
+    "de": "Wiedergabe aus Album",
+    "fr": "Lecture depuis l’album",
+    "es": "Reproduciendo desde el álbum",
+    "it": "In riproduzione dall’album",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.from.artist": {
     "en": "Playing from artist",
-    "cs": "Hraje od interpreta"
+    "cs": "Hraje od interpreta",
+    "sk": "Hrá od interpreta",
+    "hu": "Lejátszás az előadótól",
+    "de": "Wiedergabe von Künstler",
+    "fr": "Lecture depuis l’artiste",
+    "es": "Reproduciendo desde el artista",
+    "it": "In riproduzione dall’artista",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.from.genre": {
     "en": "Playing from genre",
-    "cs": "Hraje žánr"
+    "cs": "Hraje žánr",
+    "sk": "Hrá žáner",
+    "hu": "Lejátszás a műfajból",
+    "de": "Wiedergabe aus Genre",
+    "fr": "Lecture depuis le genre",
+    "es": "Reproduciendo desde el género",
+    "it": "In riproduzione dal genere",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.from.open": {
     "en": "Open {name}",
-    "cs": "Otevřít {name}"
+    "cs": "Otevřít {name}",
+    "sk": "Otvoriť {name}",
+    "hu": "Megnyitás: {name}",
+    "de": "{name} öffnen",
+    "fr": "Ouvrir {name}",
+    "es": "Abrir {name}",
+    "it": "Apri {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.network": {
     "en": "The connection dropped while loading it.",
-    "cs": "Při načítání vypadlo připojení."
+    "cs": "Při načítání vypadlo připojení.",
+    "sk": "Pri načítavaní vypadlo pripojenie.",
+    "hu": "Betöltés közben megszakadt a kapcsolat.",
+    "de": "Die Verbindung ist beim Laden abgebrochen.",
+    "fr": "La connexion a été perdue pendant le chargement.",
+    "es": "La conexión se ha cortado mientras se cargaba.",
+    "it": "La connessione si è interrotta durante il caricamento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.decode": {
     "en": "This file couldn't be decoded.",
-    "cs": "Tento soubor se nepodařilo dekódovat."
+    "cs": "Tento soubor se nepodařilo dekódovat.",
+    "sk": "Tento súbor sa nepodarilo dekódovať.",
+    "hu": "Ezt a fájlt nem sikerült dekódolni.",
+    "de": "Diese Datei konnte nicht decodiert werden.",
+    "fr": "Impossible de décoder ce fichier.",
+    "es": "No se ha podido decodificar este archivo.",
+    "it": "Impossibile decodificare questo file.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.format": {
     "en": "This browser can't play the file's format. Try another browser, such as Chrome or Firefox.",
     "cs": "Tento prohlížeč neumí formát souboru přehrát. Zkuste jiný prohlížeč, třeba Chrome nebo Firefox.",
-    "note": "The file loads, but its audio format (e.g. Ogg in Safari) is not supported by the browser."
+    "sk": "Tento prehliadač nevie formát súboru prehrať. Skúste iný prehliadač, napríklad Chrome alebo Firefox.",
+    "hu": "Ez a böngésző nem tudja lejátszani a fájl formátumát. Próbálkozzon egy másik böngészővel, például a Chrome-mal vagy a Firefoxszal.",
+    "de": "Dieser Browser kann das Format der Datei nicht abspielen. Versuch es mit einem anderen Browser, etwa Chrome oder Firefox.",
+    "fr": "Ce navigateur ne peut pas lire le format de ce fichier. Essayez un autre navigateur, comme Chrome ou Firefox.",
+    "es": "Este navegador no puede reproducir el formato del archivo. Prueba con otro navegador, como Chrome o Firefox.",
+    "it": "Questo browser non può riprodurre il formato del file. Prova un altro browser, come Chrome o Firefox.",
+    "note": "The file loads, but its audio format (e.g. Ogg in Safari) is not supported by the browser.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.source": {
     "en": "The link expired, or the file isn't on the server.",
-    "cs": "Platnost odkazu vypršela, nebo soubor na serveru není."
+    "cs": "Platnost odkazu vypršela, nebo soubor na serveru není.",
+    "sk": "Platnosť odkazu vypršala alebo súbor na serveri nie je.",
+    "hu": "A hivatkozás lejárt, vagy a fájl nincs a szerveren.",
+    "de": "Der Link ist abgelaufen oder die Datei ist nicht auf dem Server.",
+    "fr": "Le lien a expiré, ou le fichier n’est pas sur le serveur.",
+    "es": "El enlace ha caducado o el archivo no está en el servidor.",
+    "it": "Il link è scaduto, oppure il file non è sul server.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.generic": {
     "en": "Something went wrong loading it.",
-    "cs": "Při načítání se něco pokazilo."
+    "cs": "Při načítání se něco pokazilo.",
+    "sk": "Pri načítavaní sa niečo pokazilo.",
+    "hu": "Hiba történt a betöltés közben.",
+    "de": "Beim Laden ist etwas schiefgegangen.",
+    "fr": "Un problème est survenu pendant le chargement.",
+    "es": "Algo ha fallado al cargarlo.",
+    "it": "Qualcosa è andato storto durante il caricamento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.noFreshLink": {
     "en": "The server wouldn't give out a fresh link for it.",
-    "cs": "Server nevydal nový odkaz."
+    "cs": "Server nevydal nový odkaz.",
+    "sk": "Server nevydal nový odkaz.",
+    "hu": "A szerver nem adott új hivatkozást hozzá.",
+    "de": "Der Server hat keinen neuen Link dafür herausgegeben.",
+    "fr": "Le serveur n’a pas fourni de nouveau lien.",
+    "es": "El servidor no ha querido dar un enlace nuevo para esto.",
+    "it": "Il server non ha fornito un nuovo link.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.error.cantPlay": {
     "en": "Couldn't play this",
-    "cs": "Nepodařilo se přehrát"
+    "cs": "Nepodařilo se přehrát",
+    "sk": "Nepodarilo sa prehrať",
+    "hu": "Nem sikerült lejátszani",
+    "de": "Das konnte nicht abgespielt werden",
+    "fr": "Impossible de lire ceci",
+    "es": "No se ha podido reproducir",
+    "it": "Impossibile riprodurre questo elemento",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.partTitle": {
     "en": "Part {n}",
     "cs": "Část {n}",
-    "note": "Name of an audiobook file that has no title of its own."
+    "sk": "Časť {n}",
+    "hu": "{n}. rész",
+    "de": "Teil {n}",
+    "fr": "Partie {n}",
+    "es": "Parte {n}",
+    "it": "Parte {n}",
+    "note": "Name of an audiobook file that has no title of its own.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookPart": {
     "en": "{book} · Part {n}",
     "cs": "{book} · Část {n}",
-    "note": "Player subtitle: book title and file number."
+    "sk": "{book} · Časť {n}",
+    "hu": "{book} · {n}. rész",
+    "de": "{book} · Teil {n}",
+    "fr": "{book} · Partie {n}",
+    "es": "{book} · Parte {n}",
+    "it": "{book} · Parte {n}",
+    "note": "Player subtitle: book title and file number.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.songs": {
     "en": "Songs of the concert",
     "cs": "Skladby koncertu",
-    "note": "Button and list title in the player: the songs of a concert recorded as one file (its chapters)."
+    "sk": "Skladby koncertu",
+    "hu": "A koncert számai",
+    "de": "Titel des Konzerts",
+    "fr": "Morceaux du concert",
+    "es": "Canciones del concierto",
+    "it": "Brani del concerto",
+    "note": "Button and list title in the player: the songs of a concert recorded as one file (its chapters).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.songOf": {
     "en": "Song {n} of {total}",
     "cs": "Skladba {n} z {total}",
-    "note": "Player: which song of the concert is playing."
+    "sk": "Skladba {n} z {total}",
+    "hu": "{n}. szám / {total}",
+    "de": "Titel {n} von {total}",
+    "fr": "Morceau {n} sur {total}",
+    "es": "Canción {n} de {total}",
+    "it": "Brano {n} di {total}",
+    "note": "Player: which song of the concert is playing.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.editSongs": {
     "en": "Edit the songs",
     "cs": "Upravit skladby",
-    "note": "Dialog title: edit a concert's songs (chapters)."
+    "sk": "Upraviť skladby",
+    "hu": "Számok szerkesztése",
+    "de": "Titel bearbeiten",
+    "fr": "Modifier les morceaux",
+    "es": "Editar las canciones",
+    "it": "Modifica i brani",
+    "note": "Dialog title: edit a concert's songs (chapters).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.editHint": {
     "en": "Where each song of the concert starts. Saved, they stay as you set them, whatever the file says.",
     "cs": "Kde začíná každá skladba koncertu. Po uložení zůstanou tak, jak je nastavíte, ať soubor říká cokoli.",
-    "note": "Dialog description."
+    "sk": "Kde začína každá skladba koncertu. Po uložení zostanú tak, ako ich nastavíte, nech súbor hovorí čokoľvek.",
+    "hu": "Hol kezdődik a koncert egyes száma. Mentés után úgy maradnak, ahogy beállította, bármit is ír a fájl.",
+    "de": "Wo jeder Titel des Konzerts beginnt. Einmal gespeichert, bleiben sie so, wie du sie festlegst, egal was in der Datei steht.",
+    "fr": "L’endroit où commence chaque morceau du concert. Une fois enregistrés, ils restent tels que vous les avez définis, quoi qu’indique le fichier.",
+    "es": "Dónde empieza cada canción del concierto. Una vez guardadas, se quedan como las pongas, diga lo que diga el archivo.",
+    "it": "Dove inizia ogni brano del concerto. Una volta salvati, restano come li hai impostati, qualunque cosa dica il file.",
+    "note": "Dialog description.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.time": {
     "en": "Start",
     "cs": "Začátek",
-    "note": "Field: when a song starts, like 9:26."
+    "sk": "Začiatok",
+    "hu": "Kezdés",
+    "de": "Beginn",
+    "fr": "Début",
+    "es": "Inicio",
+    "it": "Inizio",
+    "note": "Field: when a song starts, like 9:26.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.song": {
     "en": "Song",
     "cs": "Skladba",
-    "note": "Field: the song's name."
+    "sk": "Skladba",
+    "hu": "Szám",
+    "de": "Titel",
+    "fr": "Morceau",
+    "es": "Canción",
+    "it": "Brano",
+    "note": "Field: the song's name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.startHere": {
     "en": "Start it here",
     "cs": "Začíná tady",
-    "note": "Button: set the song's start to where the player is now."
+    "sk": "Začína tu",
+    "hu": "Kezdés itt",
+    "de": "Hier beginnen lassen",
+    "fr": "Commencer ici",
+    "es": "Empezar aquí",
+    "it": "Inizia qui",
+    "note": "Button: set the song's start to where the player is now.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.addHere": {
     "en": "Add a song here",
     "cs": "Přidat skladbu sem",
-    "note": "Button: a new song starting where the player is now."
+    "sk": "Pridať skladbu sem",
+    "hu": "Szám hozzáadása itt",
+    "de": "Hier einen Titel hinzufügen",
+    "fr": "Ajouter un morceau ici",
+    "es": "Añadir una canción aquí",
+    "it": "Aggiungi un brano qui",
+    "note": "Button: a new song starting where the player is now.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.badTime": {
     "en": "“{time}” is not a time. Write it as 9:26 or 1:02:03.",
     "cs": "„{time}“ není čas. Zapište ho jako 9:26 nebo 1:02:03.",
-    "note": "Validation."
+    "sk": "„{time}“ nie je čas. Zapíšte ho ako 9:26 alebo 1:02:03.",
+    "hu": "Ez nem időpont: „{time}”. Így írja: 9:26 vagy 1:02:03.",
+    "de": "„{time}“ ist keine Zeitangabe. Schreib sie als 9:26 oder 1:02:03.",
+    "fr": "« {time} » n’est pas une durée valide. Écrivez-la sous la forme 9:26 ou 1:02:03.",
+    "es": "«{time}» no es una hora válida. Escríbela como 9:26 o 1:02:03.",
+    "it": "«{time}» non è un orario. Scrivilo come 9:26 o 1:02:03.",
+    "note": "Validation.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.needsName": {
     "en": "Every song needs a name.",
     "cs": "Každá skladba potřebuje název.",
-    "note": "Validation."
+    "sk": "Každá skladba potrebuje názov.",
+    "hu": "Minden számnak kell név.",
+    "de": "Jeder Titel braucht einen Namen.",
+    "fr": "Chaque morceau doit avoir un nom.",
+    "es": "Cada canción necesita un nombre.",
+    "it": "Ogni brano deve avere un nome.",
+    "note": "Validation.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.sameStart": {
     "en": "Two songs start at the same time.",
     "cs": "Dvě skladby začínají ve stejný čas.",
-    "note": "Validation."
+    "sk": "Dve skladby začínajú v rovnakom čase.",
+    "hu": "Két szám ugyanakkor kezdődik.",
+    "de": "Zwei Titel beginnen zur selben Zeit.",
+    "fr": "Deux morceaux commencent au même moment.",
+    "es": "Dos canciones empiezan a la misma hora.",
+    "it": "Due brani iniziano nello stesso momento.",
+    "note": "Validation.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.concert.saveFailed": {
     "en": "The songs could not be saved.",
     "cs": "Skladby se nepodařilo uložit.",
-    "note": "Error."
+    "sk": "Nepodarilo sa uložiť skladby.",
+    "hu": "Nem sikerült menteni a számokat.",
+    "de": "Die Titel konnten nicht gespeichert werden.",
+    "fr": "Impossible d’enregistrer les morceaux.",
+    "es": "No se han podido guardar las canciones.",
+    "it": "Impossibile salvare i brani.",
+    "note": "Error.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.skipBack": {
     "en": "{seconds, plural, one {Back # second} other {Back # seconds}}",
-    "cs": "{seconds, plural, one {Zpět o # sekundu} few {Zpět o # sekundy} other {Zpět o # sekund}}"
+    "cs": "{seconds, plural, one {Zpět o # sekundu} few {Zpět o # sekundy} other {Zpět o # sekund}}",
+    "sk": "{seconds, plural, one {Späť o # sekundu} few {Späť o # sekundy} other {Späť o # sekúnd}}",
+    "hu": "{seconds, plural, one {# másodperccel vissza} other {# másodperccel vissza}}",
+    "de": "{seconds, plural, one {# Sekunde zurück} other {# Sekunden zurück}}",
+    "fr": "{seconds, plural, one {Reculer de # seconde} many {Reculer de # de secondes} other {Reculer de # secondes}}",
+    "es": "{seconds, plural, one {Retroceder # segundo} many {Retroceder # de segundos} other {Retroceder # segundos}}",
+    "it": "{seconds, plural, one {Indietro di # secondo} many {Indietro di # di secondi} other {Indietro di # secondi}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.skipForward": {
     "en": "{seconds, plural, one {Forward # second} other {Forward # seconds}}",
-    "cs": "{seconds, plural, one {Vpřed o # sekundu} few {Vpřed o # sekundy} other {Vpřed o # sekund}}"
+    "cs": "{seconds, plural, one {Vpřed o # sekundu} few {Vpřed o # sekundy} other {Vpřed o # sekund}}",
+    "sk": "{seconds, plural, one {Dopredu o # sekundu} few {Dopredu o # sekundy} other {Dopredu o # sekúnd}}",
+    "hu": "{seconds, plural, one {# másodperccel előre} other {# másodperccel előre}}",
+    "de": "{seconds, plural, one {# Sekunde vor} other {# Sekunden vor}}",
+    "fr": "{seconds, plural, one {Avancer de # seconde} many {Avancer de # de secondes} other {Avancer de # secondes}}",
+    "es": "{seconds, plural, one {Avanzar # segundo} many {Avanzar # de segundos} other {Avanzar # segundos}}",
+    "it": "{seconds, plural, one {Avanti di # secondo} many {Avanti di # di secondi} other {Avanti di # secondi}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.shuffle": {
     "en": "Shuffle",
-    "cs": "Náhodně"
+    "cs": "Náhodně",
+    "sk": "Náhodne",
+    "hu": "Keverés",
+    "de": "Zufällig",
+    "fr": "Aléatoire",
+    "es": "Aleatorio",
+    "it": "Casuale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.repeat": {
     "en": "Repeat",
-    "cs": "Opakovat"
+    "cs": "Opakovat",
+    "sk": "Opakovať",
+    "hu": "Ismétlés",
+    "de": "Wiederholen",
+    "fr": "Répéter",
+    "es": "Repetir",
+    "it": "Ripeti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.repeatMode": {
     "en": "{mode, select, one {Repeat one} all {Repeat all} other {Repeat off}}",
     "cs": "{mode, select, one {Opakovat jednu} all {Opakovat vše} other {Neopakovat}}",
-    "note": "The repeat button's name, saying the current mode."
+    "sk": "{mode, select, one {Opakovať jednu} all {Opakovať všetko} other {Neopakovať}}",
+    "hu": "{mode, select, one {Egy szám ismétlése} all {Összes ismétlése} other {Ismétlés kikapcsolva}}",
+    "de": "{mode, select, one {Einen wiederholen} all {Alle wiederholen} other {Wiederholen aus}}",
+    "fr": "{mode, select, one {Répéter un morceau} all {Tout répéter} other {Répétition désactivée}}",
+    "es": "{mode, select, one {Repetir una} all {Repetir todo} other {Repetición desactivada}}",
+    "it": "{mode, select, one {Ripeti uno} all {Ripeti tutto} other {Ripetizione disattivata}}",
+    "note": "The repeat button's name, saying the current mode.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.minimize": {
     "en": "Minimize",
-    "cs": "Zmenšit"
+    "cs": "Zmenšit",
+    "sk": "Zmenšiť",
+    "hu": "Kis méret",
+    "de": "Minimieren",
+    "fr": "Réduire",
+    "es": "Minimizar",
+    "it": "Riduci",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.nowPlaying": {
     "en": "Now playing",
-    "cs": "Právě hraje"
+    "cs": "Právě hraje",
+    "sk": "Práve hrá",
+    "hu": "Most szól",
+    "de": "Läuft gerade",
+    "fr": "À l’écoute",
+    "es": "Reproduciendo",
+    "it": "In riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.queue.title": {
     "en": "Queue",
-    "cs": "Fronta"
+    "cs": "Fronta",
+    "sk": "Poradie",
+    "hu": "Lejátszási sor",
+    "de": "Warteschlange",
+    "fr": "File d’attente",
+    "es": "Cola",
+    "it": "Coda",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.expandPlayer": {
     "en": "Expand player",
-    "cs": "Rozbalit přehrávač"
+    "cs": "Rozbalit přehrávač",
+    "sk": "Rozbaliť prehrávač",
+    "hu": "Lejátszó kinagyítása",
+    "de": "Player maximieren",
+    "fr": "Agrandir le lecteur",
+    "es": "Ampliar reproductor",
+    "it": "Espandi il player",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.queue.close": {
     "en": "Close queue",
-    "cs": "Zavřít frontu"
+    "cs": "Zavřít frontu",
+    "sk": "Zavrieť poradie",
+    "hu": "Lejátszási sor bezárása",
+    "de": "Warteschlange schließen",
+    "fr": "Fermer la file d’attente",
+    "es": "Cerrar cola",
+    "it": "Chiudi la coda",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.queue.empty": {
     "en": "Queue is empty",
-    "cs": "Fronta je prázdná"
+    "cs": "Fronta je prázdná",
+    "sk": "Poradie je prázdne",
+    "hu": "A lejátszási sor üres",
+    "de": "Die Warteschlange ist leer",
+    "fr": "La file d’attente est vide",
+    "es": "La cola está vacía",
+    "it": "La coda è vuota",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.queue.remove": {
     "en": "Remove {title} from the queue",
-    "cs": "Odebrat z fronty: {title}"
+    "cs": "Odebrat z fronty: {title}",
+    "sk": "Odobrať z poradia: {title}",
+    "hu": "Eltávolítás a lejátszási sorból: {title}",
+    "de": "{title} aus der Warteschlange entfernen",
+    "fr": "Retirer {title} de la file d’attente",
+    "es": "Quitar {title} de la cola",
+    "it": "Rimuovi {title} dalla coda",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.seek": {
     "en": "Playback position",
     "cs": "Pozice přehrávání",
-    "note": "Accessible name of the seek bar."
+    "sk": "Pozícia prehrávania",
+    "hu": "Lejátszási pozíció",
+    "de": "Wiedergabeposition",
+    "fr": "Position de lecture",
+    "es": "Posición de reproducción",
+    "it": "Posizione di riproduzione",
+    "note": "Accessible name of the seek bar.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.mute": {
     "en": "Mute",
-    "cs": "Ztlumit"
+    "cs": "Ztlumit",
+    "sk": "Stlmiť",
+    "hu": "Némítás",
+    "de": "Stummschalten",
+    "fr": "Couper le son",
+    "es": "Silenciar",
+    "it": "Disattiva audio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.unmute": {
     "en": "Unmute",
-    "cs": "Zrušit ztlumení"
+    "cs": "Zrušit ztlumení",
+    "sk": "Zrušiť stlmenie",
+    "hu": "Némítás feloldása",
+    "de": "Stummschaltung aufheben",
+    "fr": "Rétablir le son",
+    "es": "Activar sonido",
+    "it": "Riattiva audio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.volume": {
     "en": "Volume",
-    "cs": "Hlasitost"
+    "cs": "Hlasitost",
+    "sk": "Hlasitosť",
+    "hu": "Hangerő",
+    "de": "Lautstärke",
+    "fr": "Volume",
+    "es": "Volumen",
+    "it": "Volume",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.speed.value": {
     "en": "{speed, number}×",
     "cs": "{speed, number}×",
-    "note": "Playback rate, e.g. 1.5×."
+    "sk": "{speed, number}×",
+    "hu": "{speed, number}×",
+    "de": "{speed, number}×",
+    "fr": "{speed, number}×",
+    "es": "{speed, number}×",
+    "it": "{speed, number}×",
+    "note": "Playback rate, e.g. 1.5×.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.speed.current": {
     "en": "Speed: {speed, number}×",
-    "cs": "Rychlost: {speed, number}×"
+    "cs": "Rychlost: {speed, number}×",
+    "sk": "Rýchlosť: {speed, number}×",
+    "hu": "Sebesség: {speed, number}×",
+    "de": "Tempo: {speed, number}×",
+    "fr": "Vitesse : {speed, number}×",
+    "es": "Velocidad: {speed, number}×",
+    "it": "Velocità: {speed, number}×",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.speed.title": {
     "en": "Playback speed",
-    "cs": "Rychlost přehrávání"
+    "cs": "Rychlost přehrávání",
+    "sk": "Rýchlosť prehrávania",
+    "hu": "Lejátszási sebesség",
+    "de": "Wiedergabegeschwindigkeit",
+    "fr": "Vitesse de lecture",
+    "es": "Velocidad de reproducción",
+    "it": "Velocità di riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.speed.heading": {
     "en": "Speed",
-    "cs": "Rychlost"
+    "cs": "Rychlost",
+    "sk": "Rýchlosť",
+    "hu": "Sebesség",
+    "de": "Tempo",
+    "fr": "Vitesse",
+    "es": "Velocidad",
+    "it": "Velocità",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.title": {
     "en": "Sleep timer",
-    "cs": "Časovač vypnutí"
+    "cs": "Časovač vypnutí",
+    "sk": "Časovač vypnutia",
+    "hu": "Elalvási időzítő",
+    "de": "Schlaftimer",
+    "fr": "Minuteur de veille",
+    "es": "Temporizador de apagado",
+    "it": "Timer di spegnimento",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.current": {
     "en": "Sleep timer: {remaining}",
     "cs": "Časovač vypnutí: {remaining}",
-    "note": "{remaining} is a clock like 12:34, or player.sleep.end."
+    "sk": "Časovač vypnutia: {remaining}",
+    "hu": "Elalvási időzítő: {remaining}",
+    "de": "Schlaftimer: {remaining}",
+    "fr": "Minuteur de veille : {remaining}",
+    "es": "Temporizador de apagado: {remaining}",
+    "it": "Timer di spegnimento: {remaining}",
+    "note": "{remaining} is a clock like 12:34, or player.sleep.end.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.end": {
     "en": "End",
     "cs": "Konec",
-    "note": "Short: the timer stops at the end of the current track."
+    "sk": "Koniec",
+    "hu": "Végén",
+    "de": "Ende",
+    "fr": "Fin",
+    "es": "Final",
+    "it": "Fine",
+    "note": "Short: the timer stops at the end of the current track.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.heading": {
     "en": "Stop playing in",
-    "cs": "Zastavit přehrávání za"
+    "cs": "Zastavit přehrávání za",
+    "sk": "Zastaviť prehrávanie o",
+    "hu": "Lejátszás leállítása",
+    "de": "Wiedergabe stoppen in",
+    "fr": "Arrêter la lecture dans",
+    "es": "Dejar de reproducir en",
+    "it": "Interrompi la riproduzione tra",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.endOfTrack": {
     "en": "End of this track",
     "cs": "Na konci této stopy",
-    "note": "For audiobooks and podcasts: the current file or episode."
+    "sk": "Na konci tejto stopy",
+    "hu": "Az aktuális rész végén",
+    "de": "Ende dieses Titels",
+    "fr": "À la fin de cette piste",
+    "es": "Al final de esta pista",
+    "it": "Alla fine di questa traccia",
+    "note": "For audiobooks and podcasts: the current file or episode.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.sleep.off": {
     "en": "Turn off",
-    "cs": "Vypnout"
+    "cs": "Vypnout",
+    "sk": "Vypnúť",
+    "hu": "Kikapcsolás",
+    "de": "Ausschalten",
+    "fr": "Désactiver",
+    "es": "Desactivar",
+    "it": "Disattiva",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.chapters": {
     "en": "Chapters",
-    "cs": "Kapitoly"
+    "cs": "Kapitoly",
+    "sk": "Kapitoly",
+    "hu": "Fejezetek",
+    "de": "Kapitel",
+    "fr": "Chapitres",
+    "es": "Capítulos",
+    "it": "Capitoli",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.parts": {
     "en": "Parts",
     "cs": "Části",
-    "note": "An audiobook's files."
+    "sk": "Časti",
+    "hu": "Részek",
+    "de": "Teile",
+    "fr": "Parties",
+    "es": "Partes",
+    "it": "Parti",
+    "note": "An audiobook's files.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.title": {
     "en": "Bookmarks",
-    "cs": "Záložky"
+    "cs": "Záložky",
+    "sk": "Záložky",
+    "hu": "Könyvjelzők",
+    "de": "Lesezeichen",
+    "fr": "Signets",
+    "es": "Marcadores",
+    "it": "Segnalibri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.added": {
     "en": "Bookmark added",
-    "cs": "Záložka přidána"
+    "cs": "Záložka přidána",
+    "sk": "Záložka pridaná",
+    "hu": "Könyvjelző hozzáadva",
+    "de": "Lesezeichen hinzugefügt",
+    "fr": "Signet ajouté",
+    "es": "Marcador añadido",
+    "it": "Segnalibro aggiunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.addFailed": {
     "en": "Couldn't add that bookmark",
-    "cs": "Záložku se nepodařilo přidat"
+    "cs": "Záložku se nepodařilo přidat",
+    "sk": "Nepodarilo sa pridať záložku",
+    "hu": "Nem sikerült hozzáadni a könyvjelzőt",
+    "de": "Das Lesezeichen konnte nicht hinzugefügt werden",
+    "fr": "Impossible d’ajouter ce signet",
+    "es": "No se ha podido añadir el marcador",
+    "it": "Impossibile aggiungere il segnalibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.addAt": {
     "en": "Add at {time}",
-    "cs": "Přidat v čase {time}"
+    "cs": "Přidat v čase {time}",
+    "sk": "Pridať v čase {time}",
+    "hu": "Hozzáadás itt: {time}",
+    "de": "Bei {time} hinzufügen",
+    "fr": "Ajouter à {time}",
+    "es": "Añadir en {time}",
+    "it": "Aggiungi a {time}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.empty": {
     "en": "No bookmarks in this book yet.",
-    "cs": "V této knize zatím nejsou žádné záložky."
+    "cs": "V této knize zatím nejsou žádné záložky.",
+    "sk": "V tejto knihe zatiaľ nie sú žiadne záložky.",
+    "hu": "Ebben a könyvben még nincs könyvjelző.",
+    "de": "In diesem Buch gibt es noch keine Lesezeichen.",
+    "fr": "Aucun signet dans ce livre pour l’instant.",
+    "es": "Aún no hay marcadores en este libro.",
+    "it": "Ancora nessun segnalibro in questo libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.untitled": {
     "en": "Bookmark",
     "cs": "Záložka",
-    "note": "A bookmark without a name of its own."
+    "sk": "Záložka",
+    "hu": "Könyvjelző",
+    "de": "Lesezeichen",
+    "fr": "Signet",
+    "es": "Marcador",
+    "it": "Segnalibro",
+    "note": "A bookmark without a name of its own.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.bookmarks.delete": {
     "en": "Delete bookmark",
-    "cs": "Smazat záložku"
+    "cs": "Smazat záložku",
+    "sk": "Zmazať záložku",
+    "hu": "Könyvjelző törlése",
+    "de": "Lesezeichen löschen",
+    "fr": "Supprimer le signet",
+    "es": "Eliminar marcador",
+    "it": "Elimina segnalibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.quality.mono": {
     "en": "mono",
-    "cs": "mono"
+    "cs": "mono",
+    "sk": "mono",
+    "hu": "mono",
+    "de": "Mono",
+    "fr": "mono",
+    "es": "mono",
+    "it": "mono",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.quality.channels": {
     "en": "{n, plural, one {# channel} other {# channels}}",
-    "cs": "{n, plural, one {# kanál} few {# kanály} other {# kanálů}}"
+    "cs": "{n, plural, one {# kanál} few {# kanály} other {# kanálů}}",
+    "sk": "{n, plural, one {# kanál} few {# kanály} other {# kanálov}}",
+    "hu": "{n, plural, one {# csatorna} other {# csatorna}}",
+    "de": "{n, plural, one {# Kanal} other {# Kanäle}}",
+    "fr": "{n, plural, one {# canal} many {# de canaux} other {# canaux}}",
+    "es": "{n, plural, one {# canal} many {# de canales} other {# canales}}",
+    "it": "{n, plural, one {# canale} many {# di canali} other {# canali}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.quality.converted": {
     "en": "playing as {format}, converted by the server",
-    "cs": "hraje jako {format}, převedeno serverem"
+    "cs": "hraje jako {format}, převedeno serverem",
+    "sk": "hrá ako {format}, prevedené serverom",
+    "hu": "lejátszás {format} formátumban, a szerver alakította át",
+    "de": "wird als {format} abgespielt, vom Server konvertiert",
+    "fr": "lu en {format}, converti par le serveur",
+    "es": "se reproduce como {format}, convertido por el servidor",
+    "it": "riprodotto come {format}, convertito dal server",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "player.quality.label": {
     "en": "Audio quality",
-    "cs": "Kvalita zvuku"
+    "cs": "Kvalita zvuku",
+    "sk": "Kvalita zvuku",
+    "hu": "Hangminőség",
+    "de": "Audioqualität",
+    "fr": "Qualité audio",
+    "es": "Calidad de audio",
+    "it": "Qualità audio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

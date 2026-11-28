@@ -36,13 +36,16 @@ export function languageName(code: string, locale: Locale = intlLocale()): strin
   return name ? name.charAt(0).toLocaleUpperCase(locale) + name.slice(1) : code.toUpperCase();
 }
 
-/** A language as it reads after "from … to …" — the genitive in Czech ("z češtiny do angličtiny"). */
+/** A language as it reads after "from … to …" — the genitive in Czech and Slovak ("z češtiny do
+ *  angličtiny"), the plain name in the other languages, whose sentences are built around it. */
 export function languageInSentence(code: string, locale: Locale = intlLocale()): string {
   const base = baseCode(code);
   const name = displayName(base, locale);
-  // The catalog knows the common ones; for another Czech name, "-ina" → "-iny" is the genitive
-  // of nearly every language (polština → polštiny). Otherwise the code, as the server does.
-  const fallback = !name ? code : locale === "cs" ? (name.endsWith("ina") ? `${name.slice(0, -1)}y` : code) : name;
+  // The catalog knows the common ones; for another Czech or Slovak name, "-ina" → "-iny" is the
+  // genitive of nearly every language (polština → polštiny, maďarčina → maďarčiny). Otherwise the
+  // code, as the server does.
+  const genitive = locale === "cs" || locale === "sk";
+  const fallback = !name ? code : genitive ? (name.endsWith("ina") ? `${name.slice(0, -1)}y` : code) : name;
   return t("common.languageInSentence", { code: base, name: fallback });
 }
 

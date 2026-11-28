@@ -1,906 +1,2457 @@
 {
   "audiobooks.field.title": {
     "en": "Title",
-    "cs": "Název"
+    "cs": "Název",
+    "sk": "Názov",
+    "hu": "Cím",
+    "de": "Titel",
+    "fr": "Titre",
+    "es": "Título",
+    "it": "Titolo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.author": {
     "en": "Author",
-    "cs": "Autor"
+    "cs": "Autor",
+    "sk": "Autor",
+    "hu": "Szerző",
+    "de": "Autor",
+    "fr": "Auteur",
+    "es": "Autor",
+    "it": "Autore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.narrator": {
     "en": "Narrator",
-    "cs": "Vypravěč"
+    "cs": "Vypravěč",
+    "sk": "Rozprávač",
+    "hu": "Felolvasó",
+    "de": "Sprecher",
+    "fr": "Narrateur",
+    "es": "Narrador",
+    "it": "Narratore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.description": {
     "en": "Description",
-    "cs": "Popis"
+    "cs": "Popis",
+    "sk": "Popis",
+    "hu": "Leírás",
+    "de": "Beschreibung",
+    "fr": "Description",
+    "es": "Descripción",
+    "it": "Descrizione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.publisher": {
     "en": "Publisher",
-    "cs": "Vydavatel"
+    "cs": "Vydavatel",
+    "sk": "Vydavateľ",
+    "hu": "Kiadó",
+    "de": "Verlag",
+    "fr": "Éditeur",
+    "es": "Editorial",
+    "it": "Editore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.year": {
     "en": "Year",
-    "cs": "Rok"
+    "cs": "Rok",
+    "sk": "Rok",
+    "hu": "Év",
+    "de": "Jahr",
+    "fr": "Année",
+    "es": "Año",
+    "it": "Anno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.isbn": {
     "en": "ISBN",
-    "cs": "ISBN"
+    "cs": "ISBN",
+    "sk": "ISBN",
+    "hu": "ISBN",
+    "de": "ISBN",
+    "fr": "ISBN",
+    "es": "ISBN",
+    "it": "ISBN",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.field.cover": {
     "en": "Cover",
-    "cs": "Obálka"
+    "cs": "Obálka",
+    "sk": "Obálka",
+    "hu": "Borító",
+    "de": "Cover",
+    "fr": "Couverture",
+    "es": "Portada",
+    "it": "Copertina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.optional": {
     "en": "Optional",
     "cs": "Nepovinné",
-    "note": "Placeholder of an optional field."
+    "sk": "Nepovinné",
+    "hu": "Nem kötelező",
+    "de": "Optional",
+    "fr": "Facultatif",
+    "es": "Opcional",
+    "it": "Facoltativo",
+    "note": "Placeholder of an optional field.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.unknownAuthor": {
     "en": "Unknown author",
-    "cs": "Neznámý autor"
+    "cs": "Neznámý autor",
+    "sk": "Neznámy autor",
+    "hu": "Ismeretlen szerző",
+    "de": "Unbekannter Autor",
+    "fr": "Auteur inconnu",
+    "es": "Autor desconocido",
+    "it": "Autore sconosciuto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.bookCount": {
     "en": "{count, plural, one {# book} other {# books}}",
-    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}}"
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}}",
+    "sk": "{count, plural, one {# kniha} few {# knihy} other {# kníh}}",
+    "hu": "{count, plural, one {# könyv} other {# könyv}}",
+    "de": "{count, plural, one {# Hörbuch} other {# Hörbücher}}",
+    "fr": "{count, plural, one {# livre} many {# de livres} other {# livres}}",
+    "es": "{count, plural, one {# libro} many {# de libros} other {# libros}}",
+    "it": "{count, plural, one {# libro} many {# di libri} other {# libri}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.sort.recent": {
     "en": "Recently added",
-    "cs": "Nedávno přidané"
+    "cs": "Nedávno přidané",
+    "sk": "Nedávno pridané",
+    "hu": "Legutóbb hozzáadva",
+    "de": "Zuletzt hinzugefügt",
+    "fr": "Ajoutés récemment",
+    "es": "Añadidos recientemente",
+    "it": "Aggiunti di recente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.sort.title": {
     "en": "Title",
-    "cs": "Název"
+    "cs": "Název",
+    "sk": "Názov",
+    "hu": "Cím",
+    "de": "Titel",
+    "fr": "Titre",
+    "es": "Título",
+    "it": "Titolo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.sort.author": {
     "en": "Author",
-    "cs": "Autor"
+    "cs": "Autor",
+    "sk": "Autor",
+    "hu": "Szerző",
+    "de": "Autor",
+    "fr": "Auteur",
+    "es": "Autor",
+    "it": "Autore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.sort.length": {
     "en": "Length",
-    "cs": "Délka"
+    "cs": "Délka",
+    "sk": "Dĺžka",
+    "hu": "Hossz",
+    "de": "Länge",
+    "fr": "Durée",
+    "es": "Duración",
+    "it": "Durata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.list.filter": {
     "en": "Filter books",
-    "cs": "Filtrovat knihy"
+    "cs": "Filtrovat knihy",
+    "sk": "Filtrovať knihy",
+    "hu": "Könyvek szűrése",
+    "de": "Hörbücher filtern",
+    "fr": "Filtrer les livres",
+    "es": "Filtrar libros",
+    "it": "Filtra libri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.owner.all": {
     "en": "Everything",
     "cs": "Vše",
-    "note": "Owner filter: every book, shared or not."
+    "sk": "Všetko",
+    "hu": "Minden",
+    "de": "Alles",
+    "fr": "Tout",
+    "es": "Todo",
+    "it": "Tutto",
+    "note": "Owner filter: every book, shared or not.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.owner.mine": {
     "en": "Mine",
     "cs": "Moje",
-    "note": "Owner filter: only books not shared with the family."
+    "sk": "Moje",
+    "hu": "Saját",
+    "de": "Meine",
+    "fr": "Les miens",
+    "es": "Míos",
+    "it": "Miei",
+    "note": "Owner filter: only books not shared with the family.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.group.all": {
     "en": "All",
     "cs": "Všechny",
-    "note": "Listening-state filter: all books."
+    "sk": "Všetky",
+    "hu": "Mind",
+    "de": "Alle",
+    "fr": "Tous",
+    "es": "Todos",
+    "it": "Tutti",
+    "note": "Listening-state filter: all books.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.group.inProgress": {
     "en": "Listening",
     "cs": "Rozposlouchané",
-    "note": "Filter: books started but not finished."
+    "sk": "Rozpočúvané",
+    "hu": "Folyamatban",
+    "de": "Am Hören",
+    "fr": "En cours",
+    "es": "Escuchando",
+    "it": "In ascolto",
+    "note": "Filter: books started but not finished.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.group.finished": {
     "en": "Finished",
     "cs": "Dokončené",
-    "note": "Filter: finished books."
+    "sk": "Dokončené",
+    "hu": "Befejezett",
+    "de": "Beendet",
+    "fr": "Terminés",
+    "es": "Terminados",
+    "it": "Finiti",
+    "note": "Filter: finished books.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.group.byAuthor": {
     "en": "By author",
-    "cs": "Podle autora"
+    "cs": "Podle autora",
+    "sk": "Podľa autora",
+    "hu": "Szerző szerint",
+    "de": "Nach Autor",
+    "fr": "Par auteur",
+    "es": "Por autor",
+    "it": "Per autore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.selection.clear": {
     "en": "Clear selection",
-    "cs": "Zrušit výběr"
+    "cs": "Zrušit výběr",
+    "sk": "Zrušiť výber",
+    "hu": "Kijelölés megszüntetése",
+    "de": "Auswahl aufheben",
+    "fr": "Effacer la sélection",
+    "es": "Borrar selección",
+    "it": "Annulla selezione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.selection.selectAll": {
     "en": "Select all",
-    "cs": "Vybrat vše"
+    "cs": "Vybrat vše",
+    "sk": "Vybrať všetko",
+    "hu": "Összes kijelölése",
+    "de": "Alle auswählen",
+    "fr": "Tout sélectionner",
+    "es": "Seleccionar todo",
+    "it": "Seleziona tutto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.list.addToCollection": {
     "en": "Add to collection",
-    "cs": "Přidat do sbírky"
+    "cs": "Přidat do sbírky",
+    "sk": "Pridať do zbierky",
+    "hu": "Hozzáadás gyűjteményhez",
+    "de": "Zur Sammlung hinzufügen",
+    "fr": "Ajouter à une collection",
+    "es": "Añadir a una colección",
+    "it": "Aggiungi a raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.status.finished": {
     "en": "Finished",
-    "cs": "Dokončeno"
+    "cs": "Dokončeno",
+    "sk": "Dokončené",
+    "hu": "Befejezve",
+    "de": "Beendet",
+    "fr": "Terminé",
+    "es": "Terminado",
+    "it": "Finito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.status.progress": {
     "en": "{progress, number, percent} · {remaining} left",
     "cs": "{progress, number, percent} · zbývá {remaining}",
-    "note": "A book's progress; remaining is a formatted duration such as 1 h 20 min."
+    "sk": "{progress, number, percent} · zostáva {remaining}",
+    "hu": "{progress, number, percent} · {remaining} van hátra",
+    "de": "{progress, number, percent} · noch {remaining}",
+    "fr": "{progress, number, percent} · reste {remaining}",
+    "es": "{progress, number, percent} · quedan {remaining}",
+    "it": "{progress, number, percent} · mancano {remaining}",
+    "note": "A book's progress; remaining is a formatted duration such as 1 h 20 min.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.status.new": {
     "en": "New",
     "cs": "Nové",
-    "note": "A book nobody has started."
+    "sk": "Nové",
+    "hu": "Új",
+    "de": "Neu",
+    "fr": "Nouveau",
+    "es": "Nuevo",
+    "it": "Nuovo",
+    "note": "A book nobody has started.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.open": {
     "en": "Open",
-    "cs": "Otevřít"
+    "cs": "Otevřít",
+    "sk": "Otvoriť",
+    "hu": "Megnyitás",
+    "de": "Öffnen",
+    "fr": "Ouvrir",
+    "es": "Abrir",
+    "it": "Apri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.select": {
     "en": "Select",
-    "cs": "Vybrat"
+    "cs": "Vybrat",
+    "sk": "Vybrať",
+    "hu": "Kijelölés",
+    "de": "Auswählen",
+    "fr": "Sélectionner",
+    "es": "Seleccionar",
+    "it": "Seleziona",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.edit": {
     "en": "Edit…",
-    "cs": "Upravit…"
+    "cs": "Upravit…",
+    "sk": "Upraviť…",
+    "hu": "Szerkesztés…",
+    "de": "Bearbeiten …",
+    "fr": "Modifier…",
+    "es": "Editar…",
+    "it": "Modifica…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.identify": {
     "en": "Identify…",
-    "cs": "Identifikovat…"
+    "cs": "Identifikovat…",
+    "sk": "Identifikovať…",
+    "hu": "Azonosítás…",
+    "de": "Identifizieren …",
+    "fr": "Identifier…",
+    "es": "Identificar…",
+    "it": "Identifica…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.moveToTrash": {
     "en": "Move to Trash",
-    "cs": "Přesunout do koše"
+    "cs": "Přesunout do koše",
+    "sk": "Presunúť do koša",
+    "hu": "Áthelyezés a Kukába",
+    "de": "In den Papierkorb legen",
+    "fr": "Placer dans la corbeille",
+    "es": "Mover a la papelera",
+    "it": "Sposta nel Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.menu.moveToTrashConfirm": {
     "en": "Move to Trash…",
     "cs": "Přesunout do koše…",
-    "note": "Opens a confirmation first."
+    "sk": "Presunúť do koša…",
+    "hu": "Áthelyezés a Kukába…",
+    "de": "In den Papierkorb legen …",
+    "fr": "Placer dans la corbeille…",
+    "es": "Mover a la papelera…",
+    "it": "Sposta nel Cestino…",
+    "note": "Opens a confirmation first.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.action.startOver": {
     "en": "Start over",
-    "cs": "Začít od začátku"
+    "cs": "Začít od začátku",
+    "sk": "Začať od začiatku",
+    "hu": "Újrakezdés",
+    "de": "Von vorne beginnen",
+    "fr": "Recommencer",
+    "es": "Empezar desde el principio",
+    "it": "Ricomincia dall’inizio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.action.makePrivate": {
     "en": "Make private",
-    "cs": "Nastavit jako soukromé"
+    "cs": "Nastavit jako soukromé",
+    "sk": "Nastaviť ako súkromné",
+    "hu": "Priváttá tétel",
+    "de": "Privat machen",
+    "fr": "Rendre privé",
+    "es": "Hacer privado",
+    "it": "Rendi privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.action.shareWithFamily": {
     "en": "Share with family",
-    "cs": "Sdílet s rodinou"
+    "cs": "Sdílet s rodinou",
+    "sk": "Zdieľať s rodinou",
+    "hu": "Megosztás a családdal",
+    "de": "Mit der Familie teilen",
+    "fr": "Partager avec la famille",
+    "es": "Compartir con la familia",
+    "it": "Condividi con la famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.visibility.shared": {
     "en": "Shared with the family",
-    "cs": "Sdíleno s rodinou"
+    "cs": "Sdíleno s rodinou",
+    "sk": "Zdieľané s rodinou",
+    "hu": "Megosztva a családdal",
+    "de": "Mit der Familie geteilt",
+    "fr": "Partagé avec la famille",
+    "es": "Compartido con la familia",
+    "it": "Condiviso con la famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.visibility.madePrivate": {
     "en": "Made private",
-    "cs": "Nastaveno jako soukromé"
+    "cs": "Nastaveno jako soukromé",
+    "sk": "Nastavené ako súkromné",
+    "hu": "Priváttá téve",
+    "de": "Privat gemacht",
+    "fr": "Rendu privé",
+    "es": "Ahora es privado",
+    "it": "Reso privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.toast.restarted": {
     "en": "Back to the beginning",
-    "cs": "Zpět na začátek"
+    "cs": "Zpět na začátek",
+    "sk": "Späť na začiatok",
+    "hu": "Vissza az elejére",
+    "de": "Zurück zum Anfang",
+    "fr": "Retour au début",
+    "es": "De vuelta al principio",
+    "it": "Di nuovo all’inizio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.toast.bookUpdated": {
     "en": "Book updated",
-    "cs": "Kniha upravena"
+    "cs": "Kniha upravena",
+    "sk": "Kniha upravená",
+    "hu": "Könyv frissítve",
+    "de": "Hörbuch aktualisiert",
+    "fr": "Livre mis à jour",
+    "es": "Libro actualizado",
+    "it": "Libro aggiornato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.error.visibility": {
     "en": "Couldn't change who can see that.",
-    "cs": "Nepodařilo se změnit, kdo to uvidí."
+    "cs": "Nepodařilo se změnit, kdo to uvidí.",
+    "sk": "Nepodarilo sa zmeniť, kto to uvidí.",
+    "hu": "Nem sikerült módosítani, ki láthatja.",
+    "de": "Wer das sehen kann, konnte nicht geändert werden.",
+    "fr": "Impossible de modifier qui peut voir cet élément.",
+    "es": "No se ha podido cambiar quién puede verlo.",
+    "it": "Impossibile modificare chi può vederlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.error.restart": {
     "en": "Couldn't reset that book.",
-    "cs": "Knihu se nepodařilo vrátit na začátek."
+    "cs": "Knihu se nepodařilo vrátit na začátek.",
+    "sk": "Nepodarilo sa vrátiť knihu na začiatok.",
+    "hu": "Nem sikerült visszaállítani a könyvet.",
+    "de": "Das Hörbuch konnte nicht zurückgesetzt werden.",
+    "fr": "Impossible de remettre ce livre à zéro.",
+    "es": "No se ha podido reiniciar el libro.",
+    "it": "Impossibile riportare il libro all’inizio.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.error.trash": {
     "en": "Couldn't move that to the trash.",
-    "cs": "Nepodařilo se to přesunout do koše."
+    "cs": "Nepodařilo se to přesunout do koše.",
+    "sk": "Nepodarilo sa to presunúť do koša.",
+    "hu": "Nem sikerült áthelyezni a Kukába.",
+    "de": "Das konnte nicht in den Papierkorb gelegt werden.",
+    "fr": "Impossible de placer cet élément dans la corbeille.",
+    "es": "No se ha podido mover a la papelera.",
+    "it": "Impossibile spostarlo nel Cestino.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.noMatch.title": {
     "en": "Nothing matches that",
-    "cs": "Nic tomu neodpovídá"
+    "cs": "Nic tomu neodpovídá",
+    "sk": "Nič tomu nezodpovedá",
+    "hu": "Nincs találat",
+    "de": "Keine Treffer",
+    "fr": "Aucun résultat",
+    "es": "No hay coincidencias",
+    "it": "Nessun risultato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.noMatch.description": {
     "en": "Try a different word.",
-    "cs": "Zkuste jiné slovo."
+    "cs": "Zkuste jiné slovo.",
+    "sk": "Skúste iné slovo.",
+    "hu": "Próbáljon más szót.",
+    "de": "Versuch es mit einem anderen Wort.",
+    "fr": "Essayez un autre mot.",
+    "es": "Prueba con otra palabra.",
+    "it": "Prova con un’altra parola.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.noPrivate.title": {
     "en": "No private books",
-    "cs": "Žádné soukromé knihy"
+    "cs": "Žádné soukromé knihy",
+    "sk": "Žiadne súkromné knihy",
+    "hu": "Nincsenek nem megosztott könyvek",
+    "de": "Keine privaten Hörbücher",
+    "fr": "Aucun livre privé",
+    "es": "No hay libros privados",
+    "it": "Nessun libro privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.noPrivate.description": {
     "en": "Everything you've uploaded is currently shared with the family.",
-    "cs": "Vše, co jste nahráli, je teď sdíleno s rodinou."
+    "cs": "Vše, co jste nahráli, je teď sdíleno s rodinou.",
+    "sk": "Všetko, čo ste nahrali, je teraz zdieľané s rodinou.",
+    "hu": "Minden feltöltése jelenleg meg van osztva a családdal.",
+    "de": "Alles, was du hochgeladen hast, ist gerade mit der Familie geteilt.",
+    "fr": "Tout ce que vous avez importé est actuellement partagé avec la famille.",
+    "es": "Todo lo que has subido está compartido con la familia.",
+    "it": "Tutto ciò che hai caricato è al momento condiviso con la famiglia.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.none.title": {
     "en": "No audiobooks yet",
-    "cs": "Zatím žádné audioknihy"
+    "cs": "Zatím žádné audioknihy",
+    "sk": "Zatiaľ žiadne audioknihy",
+    "hu": "Még nincsenek hangoskönyvek",
+    "de": "Noch keine Hörbücher",
+    "fr": "Aucun livre audio pour l’instant",
+    "es": "Aún no hay audiolibros",
+    "it": "Ancora nessun audiolibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.none.description": {
     "en": "Drop a file or a folder of chapters to add your first book.",
-    "cs": "Přetáhněte sem soubor nebo složku s kapitolami a přidejte svou první knihu."
+    "cs": "Přetáhněte sem soubor nebo složku s kapitolami a přidejte svou první knihu.",
+    "sk": "Presuňte sem súbor alebo priečinok s kapitolami a pridajte svoju prvú knihu.",
+    "hu": "Húzzon ide egy fájlt vagy egy fejezeteket tartalmazó mappát az első könyv hozzáadásához.",
+    "de": "Zieh eine Datei oder einen Ordner mit Kapiteln hierher, um dein erstes Hörbuch hinzuzufügen.",
+    "fr": "Déposez un fichier ou un dossier de chapitres pour ajouter votre premier livre.",
+    "es": "Arrastra un archivo o una carpeta de capítulos para añadir tu primer libro.",
+    "it": "Trascina qui un file o una cartella di capitoli per aggiungere il tuo primo libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.pickBook.title": {
     "en": "Pick a book",
-    "cs": "Vyberte knihu"
+    "cs": "Vyberte knihu",
+    "sk": "Vyberte knihu",
+    "hu": "Válasszon egy könyvet",
+    "de": "Wähl ein Hörbuch",
+    "fr": "Choisissez un livre",
+    "es": "Elige un libro",
+    "it": "Scegli un libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.empty.pickBook.description": {
     "en": "Its chapters, files and details show up here.",
-    "cs": "Zde se zobrazí její kapitoly, soubory a podrobnosti."
+    "cs": "Zde se zobrazí její kapitoly, soubory a podrobnosti.",
+    "sk": "Tu sa zobrazia jej kapitoly, súbory a podrobnosti.",
+    "hu": "A fejezetei, fájljai és adatai itt jelennek meg.",
+    "de": "Seine Kapitel, Dateien und Details erscheinen hier.",
+    "fr": "Ses chapitres, ses fichiers et ses détails s’affichent ici.",
+    "es": "Aquí aparecen sus capítulos, archivos y detalles.",
+    "it": "Qui compaiono i suoi capitoli, file e dettagli.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.part": {
     "en": "Part {n}",
     "cs": "Část {n}",
-    "note": "Fallback name of an untitled file in a book."
+    "sk": "Časť {n}",
+    "hu": "{n}. rész",
+    "de": "Teil {n}",
+    "fr": "Partie {n}",
+    "es": "Parte {n}",
+    "it": "Parte {n}",
+    "note": "Fallback name of an untitled file in a book.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.reorder": {
     "en": "Reorder {title}",
     "cs": "Změnit pořadí: {title}",
-    "note": "Accessible name of a drag handle."
+    "sk": "Zmeniť poradie: {title}",
+    "hu": "Átrendezés: {title}",
+    "de": "{title} verschieben",
+    "fr": "Déplacer {title}",
+    "es": "Cambiar el orden de {title}",
+    "it": "Riordina {title}",
+    "note": "Accessible name of a drag handle.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.rename": {
     "en": "Rename this file",
-    "cs": "Přejmenovat tento soubor"
+    "cs": "Přejmenovat tento soubor",
+    "sk": "Premenovať tento súbor",
+    "hu": "Fájl átnevezése",
+    "de": "Diese Datei umbenennen",
+    "fr": "Renommer ce fichier",
+    "es": "Renombrar este archivo",
+    "it": "Rinomina questo file",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.delete": {
     "en": "Delete this file",
-    "cs": "Smazat tento soubor"
+    "cs": "Smazat tento soubor",
+    "sk": "Zmazať tento súbor",
+    "hu": "Fájl törlése",
+    "de": "Diese Datei löschen",
+    "fr": "Supprimer ce fichier",
+    "es": "Eliminar este archivo",
+    "it": "Elimina questo file",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.play": {
     "en": "Play this file",
-    "cs": "Přehrát tento soubor"
+    "cs": "Přehrát tento soubor",
+    "sk": "Prehrať tento súbor",
+    "hu": "Fájl lejátszása",
+    "de": "Diese Datei abspielen",
+    "fr": "Lire ce fichier",
+    "es": "Reproducir este archivo",
+    "it": "Riproduci questo file",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.deleted": {
     "en": "File deleted",
-    "cs": "Soubor smazán"
+    "cs": "Soubor smazán",
+    "sk": "Súbor zmazaný",
+    "hu": "Fájl törölve",
+    "de": "Datei gelöscht",
+    "fr": "Fichier supprimé",
+    "es": "Archivo eliminado",
+    "it": "File eliminato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.errorRename": {
     "en": "Couldn't rename that file.",
-    "cs": "Soubor se nepodařilo přejmenovat."
+    "cs": "Soubor se nepodařilo přejmenovat.",
+    "sk": "Nepodarilo sa premenovať súbor.",
+    "hu": "Nem sikerült átnevezni a fájlt.",
+    "de": "Die Datei konnte nicht umbenannt werden.",
+    "fr": "Impossible de renommer ce fichier.",
+    "es": "No se ha podido renombrar el archivo.",
+    "it": "Impossibile rinominare il file.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.errorReorder": {
     "en": "Couldn't reorder those files.",
-    "cs": "Pořadí souborů se nepodařilo změnit."
+    "cs": "Pořadí souborů se nepodařilo změnit.",
+    "sk": "Nepodarilo sa zmeniť poradie súborov.",
+    "hu": "Nem sikerült átrendezni a fájlokat.",
+    "de": "Die Dateien konnten nicht neu angeordnet werden.",
+    "fr": "Impossible de réordonner ces fichiers.",
+    "es": "No se ha podido cambiar el orden de los archivos.",
+    "it": "Impossibile riordinare i file.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.errorDelete": {
     "en": "Couldn't delete that file.",
-    "cs": "Soubor se nepodařilo smazat."
+    "cs": "Soubor se nepodařilo smazat.",
+    "sk": "Nepodarilo sa zmazať súbor.",
+    "hu": "Nem sikerült törölni a fájlt.",
+    "de": "Die Datei konnte nicht gelöscht werden.",
+    "fr": "Impossible de supprimer ce fichier.",
+    "es": "No se ha podido eliminar el archivo.",
+    "it": "Impossibile eliminare il file.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.confirmDelete.title": {
     "en": "Delete \"{title}\"?",
-    "cs": "Smazat „{title}“?"
+    "cs": "Smazat „{title}“?",
+    "sk": "Zmazať „{title}“?",
+    "hu": "Törli ezt: „{title}”?",
+    "de": "„{title}“ löschen?",
+    "fr": "Supprimer « {title} » ?",
+    "es": "¿Eliminar «{title}»?",
+    "it": "Eliminare «{title}»?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.file.confirmDelete.body": {
     "en": "This removes just this file from the book. This cannot be undone.",
-    "cs": "Z knihy se smaže jen tento soubor. Tuto akci nelze vrátit."
+    "cs": "Z knihy se smaže jen tento soubor. Tuto akci nelze vrátit.",
+    "sk": "Z knihy sa zmaže iba tento súbor. Túto akciu nemožno vrátiť.",
+    "hu": "Ez csak ezt a fájlt távolítja el a könyvből. Nem vonható vissza.",
+    "de": "Damit wird nur diese Datei aus dem Hörbuch entfernt. Das lässt sich nicht rückgängig machen.",
+    "fr": "Seul ce fichier est supprimé du livre. Cette action est irréversible.",
+    "es": "Solo se elimina este archivo del libro. No se puede deshacer.",
+    "it": "Viene rimosso dal libro solo questo file. L’operazione non può essere annullata.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.narratedBy": {
     "en": "Narrated by {name}",
-    "cs": "Načetl(a) {name}"
+    "cs": "Načetl(a) {name}",
+    "sk": "Číta {name}",
+    "hu": "Felolvasó: {name}",
+    "de": "Gelesen von {name}",
+    "fr": "Lu par {name}",
+    "es": "Narrado por {name}",
+    "it": "Letto da {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.fileCount": {
     "en": "{count, plural, one {# file} other {# files}}",
-    "cs": "{count, plural, one {# soubor} few {# soubory} other {# souborů}}"
+    "cs": "{count, plural, one {# soubor} few {# soubory} other {# souborů}}",
+    "sk": "{count, plural, one {# súbor} few {# súbory} other {# súborov}}",
+    "hu": "{count, plural, one {# fájl} other {# fájl}}",
+    "de": "{count, plural, one {# Datei} other {# Dateien}}",
+    "fr": "{count, plural, one {# fichier} many {# de fichiers} other {# fichiers}}",
+    "es": "{count, plural, one {# archivo} many {# de archivos} other {# archivos}}",
+    "it": "{count, plural, one {# file} many {# di file} other {# file}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.addFavorite": {
     "en": "Add to favorites",
-    "cs": "Přidat k oblíbeným"
+    "cs": "Přidat k oblíbeným",
+    "sk": "Pridať do obľúbených",
+    "hu": "Hozzáadás a kedvencekhez",
+    "de": "Zu Favoriten hinzufügen",
+    "fr": "Ajouter aux favoris",
+    "es": "Añadir a favoritos",
+    "it": "Aggiungi ai preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.removeFavorite": {
     "en": "Remove from favorites",
-    "cs": "Odebrat z oblíbených"
+    "cs": "Odebrat z oblíbených",
+    "sk": "Odobrať z obľúbených",
+    "hu": "Eltávolítás a kedvencek közül",
+    "de": "Aus Favoriten entfernen",
+    "fr": "Retirer des favoris",
+    "es": "Quitar de favoritos",
+    "it": "Rimuovi dai preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.editDetails": {
     "en": "Edit details",
-    "cs": "Upravit údaje"
+    "cs": "Upravit údaje",
+    "sk": "Upraviť údaje",
+    "hu": "Adatok szerkesztése",
+    "de": "Details bearbeiten",
+    "fr": "Modifier les détails",
+    "es": "Editar detalles",
+    "it": "Modifica dettagli",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.whoCanHear": {
     "en": "Who can hear this",
     "cs": "Kdo to uslyší",
-    "note": "Title of the list of family members who can play a shared item."
+    "sk": "Kto to bude počuť",
+    "hu": "Ki hallhatja?",
+    "de": "Wer hört das?",
+    "fr": "Qui peut l’écouter",
+    "es": "¿Quién puede escucharlo?",
+    "it": "Chi può ascoltarlo?",
+    "note": "Title of the list of family members who can play a shared item.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.isbn": {
     "en": "ISBN {isbn}",
-    "cs": "ISBN {isbn}"
+    "cs": "ISBN {isbn}",
+    "sk": "ISBN {isbn}",
+    "hu": "ISBN {isbn}",
+    "de": "ISBN {isbn}",
+    "fr": "ISBN {isbn}",
+    "es": "ISBN {isbn}",
+    "it": "ISBN {isbn}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.files": {
     "en": "Files",
-    "cs": "Soubory"
+    "cs": "Soubory",
+    "sk": "Súbory",
+    "hu": "Fájlok",
+    "de": "Dateien",
+    "fr": "Fichiers",
+    "es": "Archivos",
+    "it": "File",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.chapters": {
     "en": "Chapters",
-    "cs": "Kapitoly"
+    "cs": "Kapitoly",
+    "sk": "Kapitoly",
+    "hu": "Fejezetek",
+    "de": "Kapitel",
+    "fr": "Chapitres",
+    "es": "Capítulos",
+    "it": "Capitoli",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.dragHint": {
     "en": "Drag to reorder — this is the order it plays in.",
-    "cs": "Přetažením změníte pořadí — v tomto pořadí se kniha přehrává."
+    "cs": "Přetažením změníte pořadí — v tomto pořadí se kniha přehrává.",
+    "sk": "Presunutím zmeníte poradie — v tomto poradí sa kniha prehráva.",
+    "hu": "Húzással átrendezheti — ebben a sorrendben játssza le.",
+    "de": "Zum Neuordnen ziehen – in dieser Reihenfolge wird abgespielt.",
+    "fr": "Faites glisser pour réordonner : c’est l’ordre de lecture.",
+    "es": "Arrastra para cambiar el orden: es el orden en que se reproduce.",
+    "it": "Trascina per riordinare: è l’ordine di riproduzione.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.detail.noFiles": {
     "en": "No files attached to this book.",
-    "cs": "Kniha nemá žádné soubory."
+    "cs": "Kniha nemá žádné soubory.",
+    "sk": "Kniha nemá žiadne súbory.",
+    "hu": "Ehhez a könyvhöz nem tartozik fájl.",
+    "de": "Zu diesem Hörbuch gehören keine Dateien.",
+    "fr": "Aucun fichier associé à ce livre.",
+    "es": "Este libro no tiene archivos.",
+    "it": "Nessun file associato a questo libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.title": {
     "en": "Identify this book",
-    "cs": "Identifikovat tuto knihu"
+    "cs": "Identifikovat tuto knihu",
+    "sk": "Identifikovať túto knihu",
+    "hu": "Könyv azonosítása",
+    "de": "Dieses Hörbuch identifizieren",
+    "fr": "Identifier ce livre",
+    "es": "Identificar este libro",
+    "it": "Identifica questo libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.confirmTitle": {
     "en": "What should this change?",
-    "cs": "Co se má změnit?"
+    "cs": "Co se má změnit?",
+    "sk": "Čo sa má zmeniť?",
+    "hu": "Mit módosítson?",
+    "de": "Was soll sich ändern?",
+    "fr": "Que faut-il modifier ?",
+    "es": "¿Qué debe cambiar?",
+    "it": "Cosa deve cambiare?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.searchDescription": {
     "en": "Searches Google Books for the printed edition and fills in what it finds.",
-    "cs": "Vyhledá tištěné vydání v Google Books a doplní, co najde."
+    "cs": "Vyhledá tištěné vydání v Google Books a doplní, co najde.",
+    "sk": "Vyhľadá tlačené vydanie v Google Books a doplní, čo nájde.",
+    "hu": "Megkeresi a nyomtatott kiadást a Google Booksban, és kitölti, amit talál.",
+    "de": "Sucht in Google Books nach der gedruckten Ausgabe und übernimmt, was es findet.",
+    "fr": "Recherche l’édition imprimée dans Google Books et complète avec ce qui est trouvé.",
+    "es": "Busca la edición impresa en Google Books y rellena lo que encuentra.",
+    "it": "Cerca l’edizione stampata su Google Books e compila ciò che trova.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.searchDescriptionOpenLibrary": {
     "en": "Searches Open Library for the book and fills in what it finds.",
-    "cs": "Vyhledá knihu v Open Library a doplní, co najde."
+    "cs": "Vyhledá knihu v Open Library a doplní, co najde.",
+    "sk": "Vyhľadá knihu v Open Library a doplní, čo nájde.",
+    "hu": "Megkeresi a könyvet az Open Libraryben, és kitölti, amit talál.",
+    "de": "Sucht in Open Library nach dem Buch und übernimmt, was es findet.",
+    "fr": "Recherche le livre dans Open Library et complète avec ce qui est trouvé.",
+    "es": "Busca el libro en Open Library y rellena lo que encuentra.",
+    "it": "Cerca il libro su Open Library e compila ciò che trova.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.searchDescriptionApple": {
     "en": "Searches Apple's audiobook catalog and fills in what it finds.",
-    "cs": "Vyhledá audioknihu v katalogu Apple a doplní, co najde."
+    "cs": "Vyhledá audioknihu v katalogu Apple a doplní, co najde.",
+    "sk": "Vyhľadá audioknihu v katalógu Apple a doplní, čo nájde.",
+    "hu": "Keres az Apple hangoskönyv-katalógusában, és kitölti, amit talál.",
+    "de": "Sucht im Hörbuchkatalog von Apple und übernimmt, was es findet.",
+    "fr": "Recherche dans le catalogue de livres audio d’Apple et complète avec ce qui est trouvé.",
+    "es": "Busca en el catálogo de audiolibros de Apple y rellena lo que encuentra.",
+    "it": "Cerca nel catalogo di audiolibri di Apple e compila ciò che trova.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.confirmDescription": {
     "en": "Only the ticked fields are written. Everything else keeps what it has.",
-    "cs": "Zapíší se jen zaškrtnutá pole. Vše ostatní zůstane, jak je."
+    "cs": "Zapíší se jen zaškrtnutá pole. Vše ostatní zůstane, jak je.",
+    "sk": "Zapíšu sa iba zaškrtnuté polia. Všetko ostatné zostane, ako je.",
+    "hu": "Csak a bejelölt mezők íródnak felül. Minden más változatlan marad.",
+    "de": "Nur die angehakten Felder werden geschrieben. Alles andere bleibt, wie es ist.",
+    "fr": "Seuls les champs cochés sont écrits. Tout le reste garde sa valeur.",
+    "es": "Solo se escriben los campos marcados. Todo lo demás se queda como está.",
+    "it": "Vengono scritti solo i campi spuntati. Tutto il resto rimane com’è.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.apply": {
     "en": "Apply",
-    "cs": "Použít"
+    "cs": "Použít",
+    "sk": "Použiť",
+    "hu": "Alkalmazás",
+    "de": "Übernehmen",
+    "fr": "Appliquer",
+    "es": "Aplicar",
+    "it": "Applica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.pages": {
     "en": "{count, plural, one {# page} other {# pages}}",
-    "cs": "{count, plural, one {# stránka} few {# stránky} other {# stránek}}"
+    "cs": "{count, plural, one {# stránka} few {# stránky} other {# stránek}}",
+    "sk": "{count, plural, one {# strana} few {# strany} other {# strán}}",
+    "hu": "{count, plural, one {# oldal} other {# oldal}}",
+    "de": "{count, plural, one {# Seite} other {# Seiten}}",
+    "fr": "{count, plural, one {# page} many {# de pages} other {# pages}}",
+    "es": "{count, plural, one {# página} many {# de páginas} other {# páginas}}",
+    "it": "{count, plural, one {# pagina} many {# di pagine} other {# pagine}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.score": {
     "en": "{score}% match",
-    "cs": "shoda {score} %"
+    "cs": "shoda {score} %",
+    "sk": "zhoda {score} %",
+    "hu": "{score}% egyezés",
+    "de": "{score} % Übereinstimmung",
+    "fr": "Correspondance à {score} %",
+    "es": "Coincidencia del {score} %",
+    "it": "Corrispondenza {score}%",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.newCover": {
     "en": "New cover art",
-    "cs": "Nová obálka"
+    "cs": "Nová obálka",
+    "sk": "Nová obálka",
+    "hu": "Új borító",
+    "de": "Neues Cover",
+    "fr": "Nouvelle couverture",
+    "es": "Nueva portada",
+    "it": "Nuova copertina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.currentCover": {
     "en": "Current cover",
-    "cs": "Současná obálka"
+    "cs": "Současná obálka",
+    "sk": "Súčasná obálka",
+    "hu": "Jelenlegi borító",
+    "de": "Aktuelles Cover",
+    "fr": "Couverture actuelle",
+    "es": "Portada actual",
+    "it": "Copertina attuale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.nothingHere": {
     "en": "Not in this match",
-    "cs": "V této shodě chybí"
+    "cs": "V této shodě chybí",
+    "sk": "V tejto zhode chýba",
+    "hu": "Ebben a találatban nincs",
+    "de": "Nicht in diesem Treffer",
+    "fr": "Absent de ce résultat",
+    "es": "No está en esta coincidencia",
+    "it": "Assente in questo risultato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.now": {
     "en": "Now: {value}",
     "cs": "Teď: {value}",
-    "note": "The field's current value, beside the proposed one."
+    "sk": "Teraz: {value}",
+    "hu": "Jelenleg: {value}",
+    "de": "Jetzt: {value}",
+    "fr": "Actuellement : {value}",
+    "es": "Ahora: {value}",
+    "it": "Ora: {value}",
+    "note": "The field's current value, beside the proposed one.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.narratorNote": {
     "en": "Narrator and file titles are left alone — none of the sources has the narration to match against.",
-    "cs": "Vypravěč ani názvy souborů se nikdy nemění — žádný zdroj o nahrávce nic neví."
+    "cs": "Vypravěč ani názvy souborů se nikdy nemění — žádný zdroj o nahrávce nic neví.",
+    "sk": "Rozprávač ani názvy súborov sa nemenia — žiadny zdroj o nahrávke nič nevie.",
+    "hu": "A felolvasó és a fájlcímek változatlanok maradnak — egyik forrás sem tartalmazza a felolvasást, amellyel össze lehetne vetni.",
+    "de": "Sprecher und Dateititel bleiben unverändert – keine der Quellen hat die Lesung, mit der sie sich abgleichen ließen.",
+    "fr": "Le narrateur et les titres des fichiers restent inchangés : aucune source ne contient la narration à comparer.",
+    "es": "El narrador y los títulos de los archivos no se tocan: ninguna fuente tiene la grabación con la que compararlos.",
+    "it": "Il narratore e i titoli dei file non vengono toccati: nessuna fonte ha la registrazione con cui confrontarli.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.noResults": {
     "en": "Nothing matched. Try just the title, or drop a subtitle and any series number.",
-    "cs": "Žádné shody. Zkuste jen název, případně vynechte podtitul a číslo série."
+    "cs": "Žádné shody. Zkuste jen název, případně vynechte podtitul a číslo série.",
+    "sk": "Žiadne zhody. Skúste iba názov, prípadne vynechajte podtitul a číslo série.",
+    "hu": "Nincs találat. Próbálja csak a címmel, vagy hagyja el az alcímet és a sorozatszámot.",
+    "de": "Keine Treffer. Versuch es nur mit dem Titel oder lass Untertitel und Bandnummer weg.",
+    "fr": "Aucun résultat. Essayez le titre seul, ou retirez le sous-titre et le numéro dans la série.",
+    "es": "No hay coincidencias. Prueba solo con el título, o quita el subtítulo y el número de la serie.",
+    "it": "Nessuna corrispondenza. Prova solo con il titolo, oppure togli il sottotitolo e l’eventuale numero della serie.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.errorSearch": {
     "en": "The lookup didn't work. Try again in a moment.",
-    "cs": "Vyhledávání se nezdařilo. Zkuste to za chvíli znovu."
+    "cs": "Vyhledávání se nezdařilo. Zkuste to za chvíli znovu.",
+    "sk": "Vyhľadávanie zlyhalo. Skúste to o chvíľu znova.",
+    "hu": "A keresés nem sikerült. Próbálja újra egy kis idő múlva.",
+    "de": "Die Suche hat nicht funktioniert. Versuch es gleich noch einmal.",
+    "fr": "La recherche n’a pas abouti. Réessayez dans un instant.",
+    "es": "La búsqueda no ha funcionado. Vuelve a intentarlo en un momento.",
+    "it": "La ricerca non è riuscita. Riprova tra un momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.identify.errorApply": {
     "en": "Couldn't apply that match.",
-    "cs": "Shodu se nepodařilo použít."
+    "cs": "Shodu se nepodařilo použít.",
+    "sk": "Nepodarilo sa použiť túto zhodu.",
+    "hu": "Nem sikerült alkalmazni a találatot.",
+    "de": "Der Treffer konnte nicht übernommen werden.",
+    "fr": "Impossible d’appliquer ce résultat.",
+    "es": "No se ha podido aplicar esa coincidencia.",
+    "it": "Impossibile applicare la corrispondenza.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.title": {
     "en": "Add to a collection",
-    "cs": "Přidat do sbírky"
+    "cs": "Přidat do sbírky",
+    "sk": "Pridať do zbierky",
+    "hu": "Hozzáadás gyűjteményhez",
+    "de": "Zu einer Sammlung hinzufügen",
+    "fr": "Ajouter à une collection",
+    "es": "Añadir a una colección",
+    "it": "Aggiungi a una raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.selected": {
     "en": "{count, plural, one {# book selected} other {# books selected}}",
-    "cs": "{count, plural, one {Vybrána # kniha} few {Vybrány # knihy} other {Vybráno # knih}}"
+    "cs": "{count, plural, one {Vybrána # kniha} few {Vybrány # knihy} other {Vybráno # knih}}",
+    "sk": "{count, plural, one {Vybraná # kniha} few {Vybrané # knihy} other {Vybraných # kníh}}",
+    "hu": "{count, plural, one {# könyv kijelölve} other {# könyv kijelölve}}",
+    "de": "{count, plural, one {# Hörbuch ausgewählt} other {# Hörbücher ausgewählt}}",
+    "fr": "{count, plural, one {# livre sélectionné} many {# de livres sélectionnés} other {# livres sélectionnés}}",
+    "es": "{count, plural, one {# libro seleccionado} many {# de libros seleccionados} other {# libros seleccionados}}",
+    "it": "{count, plural, one {# libro selezionato} many {# di libri selezionati} other {# libri selezionati}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.addedOne": {
     "en": "Added to {name}",
-    "cs": "Přidáno do sbírky {name}"
+    "cs": "Přidáno do sbírky {name}",
+    "sk": "Pridané do zbierky {name}",
+    "hu": "Hozzáadva ehhez: {name}",
+    "de": "Zu {name} hinzugefügt",
+    "fr": "Ajouté à {name}",
+    "es": "Añadido a {name}",
+    "it": "Aggiunto a {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.addedMany": {
     "en": "{count, plural, one {# book added to {name}} other {# books added to {name}}}",
-    "cs": "{count, plural, one {# kniha přidána do sbírky {name}} few {# knihy přidány do sbírky {name}} other {# knih přidáno do sbírky {name}}}"
+    "cs": "{count, plural, one {# kniha přidána do sbírky {name}} few {# knihy přidány do sbírky {name}} other {# knih přidáno do sbírky {name}}}",
+    "sk": "{count, plural, one {# kniha pridaná do zbierky {name}} few {# knihy pridané do zbierky {name}} other {# kníh pridaných do zbierky {name}}}",
+    "hu": "{count, plural, one {# könyv hozzáadva ehhez: {name}} other {# könyv hozzáadva ehhez: {name}}}",
+    "de": "{count, plural, one {# Hörbuch zu {name} hinzugefügt} other {# Hörbücher zu {name} hinzugefügt}}",
+    "fr": "{count, plural, one {# livre ajouté à {name}} many {# de livres ajoutés à {name}} other {# livres ajoutés à {name}}}",
+    "es": "{count, plural, one {# libro añadido a {name}} many {# de libros añadidos a {name}} other {# libros añadidos a {name}}}",
+    "it": "{count, plural, one {# libro aggiunto a {name}} many {# di libri aggiunti a {name}} other {# libri aggiunti a {name}}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.partial": {
     "en": "{added, number} of {total, number} added",
-    "cs": "Přidáno {added, number} z {total, number}"
+    "cs": "Přidáno {added, number} z {total, number}",
+    "sk": "Pridané {added, number} z {total, number}",
+    "hu": "{added, number}/{total, number} hozzáadva",
+    "de": "{added, number} von {total, number} hinzugefügt",
+    "fr": "{added, number} sur {total, number} ajoutés",
+    "es": "Añadidos {added, number} de {total, number}",
+    "it": "Aggiunti {added, number} su {total, number}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.partialHint": {
     "en": "Some books couldn't be added — try those again.",
-    "cs": "Některé knihy se nepodařilo přidat — zkuste je přidat znovu."
+    "cs": "Některé knihy se nepodařilo přidat — zkuste je přidat znovu.",
+    "sk": "Niektoré knihy sa nepodarilo pridať — skúste ich pridať znova.",
+    "hu": "Néhány könyvet nem sikerült hozzáadni — próbálja újra ezeket.",
+    "de": "Einige Hörbücher konnten nicht hinzugefügt werden – versuch es bei diesen noch einmal.",
+    "fr": "Certains livres n’ont pas pu être ajoutés. Réessayez pour ceux-là.",
+    "es": "No se han podido añadir algunos libros: vuelve a intentarlo con ellos.",
+    "it": "Non è stato possibile aggiungere alcuni libri: riprova con quelli.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.errorCreate": {
     "en": "Couldn't create that collection.",
-    "cs": "Sbírku se nepodařilo vytvořit."
+    "cs": "Sbírku se nepodařilo vytvořit.",
+    "sk": "Nepodarilo sa vytvoriť zbierku.",
+    "hu": "Nem sikerült létrehozni a gyűjteményt.",
+    "de": "Die Sammlung konnte nicht erstellt werden.",
+    "fr": "Impossible de créer cette collection.",
+    "es": "No se ha podido crear la colección.",
+    "it": "Impossibile creare la raccolta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.newPlaceholder": {
     "en": "Bedtime stories",
     "cs": "Pohádky na dobrou noc",
-    "note": "Example name of a new collection."
+    "sk": "Rozprávky na dobrú noc",
+    "hu": "Esti mesék",
+    "de": "Gutenachtgeschichten",
+    "fr": "Histoires du soir",
+    "es": "Cuentos para dormir",
+    "it": "Storie della buonanotte",
+    "note": "Example name of a new collection.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.createAndAdd": {
     "en": "Create and add",
-    "cs": "Vytvořit a přidat"
+    "cs": "Vytvořit a přidat",
+    "sk": "Vytvoriť a pridať",
+    "hu": "Létrehozás és hozzáadás",
+    "de": "Erstellen und hinzufügen",
+    "fr": "Créer et ajouter",
+    "es": "Crear y añadir",
+    "it": "Crea e aggiungi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.orPick": {
     "en": "or pick one",
-    "cs": "nebo vyberte existující"
+    "cs": "nebo vyberte existující",
+    "sk": "alebo vyberte existujúcu",
+    "hu": "vagy válasszon egyet",
+    "de": "oder eine auswählen",
+    "fr": "ou choisissez-en une",
+    "es": "o elige una",
+    "it": "oppure scegline una",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.find": {
     "en": "Find a collection",
-    "cs": "Najít sbírku"
+    "cs": "Najít sbírku",
+    "sk": "Nájsť zbierku",
+    "hu": "Gyűjtemény keresése",
+    "de": "Sammlung suchen",
+    "fr": "Rechercher une collection",
+    "es": "Buscar una colección",
+    "it": "Trova una raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.emptyHint": {
     "en": "Name one above and these books go straight into it.",
-    "cs": "Pojmenujte ji výše a knihy se do ní rovnou přidají."
+    "cs": "Pojmenujte ji výše a knihy se do ní rovnou přidají.",
+    "sk": "Pomenujte ju vyššie a knihy sa do nej rovno pridajú.",
+    "hu": "Adjon nevet egynek fent, és ezek a könyvek egyből bekerülnek.",
+    "de": "Gib oben einen Namen ein, und diese Hörbücher landen direkt darin.",
+    "fr": "Donnez-lui un nom ci-dessus et ces livres y seront ajoutés directement.",
+    "es": "Ponle nombre arriba y estos libros irán directamente a ella.",
+    "it": "Dai un nome a una raccolta qui sopra e questi libri ci finiscono subito dentro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.allPresent": {
     "en": "{count, plural, one {# book} other {# books}} · already in here",
-    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · vybrané už tu jsou"
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · vybrané už tu jsou",
+    "sk": "{count, plural, one {# kniha} few {# knihy} other {# kníh}} · vybrané už tu sú",
+    "hu": "{count, plural, one {# könyv} other {# könyv}} · már benne van",
+    "de": "{count, plural, one {# Hörbuch} other {# Hörbücher}} · schon hier drin",
+    "fr": "{count, plural, one {# livre} many {# de livres} other {# livres}} · déjà ici",
+    "es": "{count, plural, one {# libro} many {# de libros} other {# libros}} · ya están aquí",
+    "it": "{count, plural, one {# libro} many {# di libri} other {# libri}} · già presenti qui",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.somePresent": {
     "en": "{count, plural, one {# book} other {# books}} · {already, number} already in here",
-    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · {already, number} z vybraných už tu je"
+    "cs": "{count, plural, one {# kniha} few {# knihy} other {# knih}} · {already, number} z vybraných už tu je",
+    "sk": "{count, plural, one {# kniha} few {# knihy} other {# kníh}} · {already, number} z vybraných už tu je",
+    "hu": "{count, plural, one {# könyv} other {# könyv}} · {already, number} már benne van",
+    "de": "{count, plural, one {# Hörbuch} other {# Hörbücher}} · {already, number} schon hier drin",
+    "fr": "{count, plural, one {# livre} many {# de livres} other {# livres}} · {already, number} déjà ici",
+    "es": "{count, plural, one {# libro} many {# de libros} other {# libros}} · {already, number} ya están aquí",
+    "it": "{count, plural, one {# libro} many {# di libri} other {# libri}} · {already, number} già presenti qui",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.addToCollection.adding": {
     "en": "Adding…",
-    "cs": "Přidávání…"
+    "cs": "Přidávání…",
+    "sk": "Pridáva sa…",
+    "hu": "Hozzáadás…",
+    "de": "Wird hinzugefügt …",
+    "fr": "Ajout…",
+    "es": "Añadiendo…",
+    "it": "Aggiunta in corso…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.title": {
     "en": "Add an audiobook",
-    "cs": "Přidat audioknihu"
+    "cs": "Přidat audioknihu",
+    "sk": "Pridať audioknihu",
+    "hu": "Hangoskönyv hozzáadása",
+    "de": "Hörbuch hinzufügen",
+    "fr": "Ajouter un livre audio",
+    "es": "Añadir un audiolibro",
+    "it": "Aggiungi un audiolibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.description": {
     "en": "One file, or a folder of chapters. Track order follows the file names.",
-    "cs": "Jeden soubor, nebo složka s kapitolami. Pořadí se řídí názvy souborů."
+    "cs": "Jeden soubor, nebo složka s kapitolami. Pořadí se řídí názvy souborů.",
+    "sk": "Jeden súbor alebo priečinok s kapitolami. Poradie sa riadi názvami súborov.",
+    "hu": "Egy fájl vagy egy fejezeteket tartalmazó mappa. A sorrend a fájlnevekhez igazodik.",
+    "de": "Eine Datei oder ein Ordner mit Kapiteln. Die Reihenfolge folgt den Dateinamen.",
+    "fr": "Un fichier, ou un dossier de chapitres. L’ordre des pistes suit les noms de fichiers.",
+    "es": "Un archivo o una carpeta de capítulos. El orden sigue los nombres de los archivos.",
+    "it": "Un file, oppure una cartella di capitoli. L’ordine delle tracce segue i nomi dei file.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.defaultTitle": {
     "en": "Audiobook",
     "cs": "Audiokniha",
-    "note": "Title given to a book uploaded with no title and no usable file name."
+    "sk": "Audiokniha",
+    "hu": "Hangoskönyv",
+    "de": "Hörbuch",
+    "fr": "Livre audio",
+    "es": "Audiolibro",
+    "it": "Audiolibro",
+    "note": "Title given to a book uploaded with no title and no usable file name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.noAudio": {
     "en": "No audio files in that drop.",
-    "cs": "Mezi přetaženými soubory není žádný zvukový."
+    "cs": "Mezi přetaženými soubory není žádný zvukový.",
+    "sk": "Medzi presunutými súbormi nie je žiadny zvukový.",
+    "hu": "Nincs hangfájl a behúzott elemek között.",
+    "de": "Unter den abgelegten Dateien ist keine Audiodatei.",
+    "fr": "Aucun fichier audio dans ce dépôt.",
+    "es": "No hay archivos de audio en lo que has arrastrado.",
+    "it": "Tra i file trascinati non c’è nessun file audio.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.statusCover": {
     "en": "Uploading cover…",
-    "cs": "Nahrávání obálky…"
+    "cs": "Nahrávání obálky…",
+    "sk": "Nahráva sa obálka…",
+    "hu": "Borító feltöltése…",
+    "de": "Cover wird hochgeladen …",
+    "fr": "Importation de la couverture…",
+    "es": "Subiendo la portada…",
+    "it": "Caricamento della copertina…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.statusFiles": {
     "en": "{count, plural, one {Uploading # file…} other {Uploading # files…}}",
-    "cs": "{count, plural, one {Nahrávání # souboru…} few {Nahrávání # souborů…} other {Nahrávání # souborů…}}"
+    "cs": "{count, plural, one {Nahrávání # souboru…} few {Nahrávání # souborů…} other {Nahrávání # souborů…}}",
+    "sk": "{count, plural, one {Nahráva sa # súbor…} few {Nahrávajú sa # súbory…} other {Nahráva sa # súborov…}}",
+    "hu": "{count, plural, one {# fájl feltöltése…} other {# fájl feltöltése…}}",
+    "de": "{count, plural, one {# Datei wird hochgeladen …} other {# Dateien werden hochgeladen …}}",
+    "fr": "{count, plural, one {Importation de # fichier…} many {Importation de # de fichiers…} other {Importation de # fichiers…}}",
+    "es": "{count, plural, one {Subiendo # archivo…} many {Subiendo # de archivos…} other {Subiendo # archivos…}}",
+    "it": "{count, plural, one {Caricamento di # file…} many {Caricamento di # di file…} other {Caricamento di # file…}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.statusProgress": {
     "en": "Uploaded {done, number} of {total, number}…",
-    "cs": "Nahráno {done, number} z {total, number}…"
+    "cs": "Nahráno {done, number} z {total, number}…",
+    "sk": "Nahrané {done, number} z {total, number}…",
+    "hu": "{done, number}/{total, number} feltöltve…",
+    "de": "{done, number} von {total, number} hochgeladen …",
+    "fr": "{done, number} sur {total, number} importés…",
+    "es": "Subidos {done, number} de {total, number}…",
+    "it": "Caricati {done, number} su {total, number}…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.statusCreating": {
     "en": "Creating the book…",
-    "cs": "Vytváření knihy…"
+    "cs": "Vytváření knihy…",
+    "sk": "Vytvára sa kniha…",
+    "hu": "A könyv létrehozása…",
+    "de": "Hörbuch wird erstellt …",
+    "fr": "Création du livre…",
+    "es": "Creando el libro…",
+    "it": "Creazione del libro…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.added": {
     "en": "Book added",
-    "cs": "Kniha přidána"
+    "cs": "Kniha přidána",
+    "sk": "Kniha pridaná",
+    "hu": "Könyv hozzáadva",
+    "de": "Hörbuch hinzugefügt",
+    "fr": "Livre ajouté",
+    "es": "Libro añadido",
+    "it": "Libro aggiunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.queueFailed": {
     "en": "Didn't finish",
     "cs": "Nedokončeno",
-    "note": "Status of a failed job in the uploads indicator."
+    "sk": "Nedokončené",
+    "hu": "Nem fejeződött be",
+    "de": "Nicht abgeschlossen",
+    "fr": "Inachevé",
+    "es": "No ha terminado",
+    "it": "Non completato",
+    "note": "Status of a failed job in the uploads indicator.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.error": {
     "en": "The upload didn't finish. A failed upload starts over from the beginning.",
-    "cs": "Nahrávání se nedokončilo. Neúspěšné nahrávání začíná znovu od začátku."
+    "cs": "Nahrávání se nedokončilo. Neúspěšné nahrávání začíná znovu od začátku.",
+    "sk": "Nahrávanie sa nedokončilo. Neúspešné nahrávanie začína znova od začiatku.",
+    "hu": "A feltöltés nem fejeződött be. A sikertelen feltöltés elölről kezdődik.",
+    "de": "Das Hochladen wurde nicht abgeschlossen. Ein abgebrochener Upload beginnt wieder von vorne.",
+    "fr": "L’importation n’a pas abouti. Une importation échouée reprend depuis le début.",
+    "es": "La subida no ha terminado. Una subida fallida vuelve a empezar desde el principio.",
+    "it": "Il caricamento non è stato completato. Un caricamento non riuscito riparte dall’inizio.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.submit": {
     "en": "{count, plural, one {Upload # file} other {Upload # files}}",
-    "cs": "{count, plural, one {Nahrát # soubor} few {Nahrát # soubory} other {Nahrát # souborů}}"
+    "cs": "{count, plural, one {Nahrát # soubor} few {Nahrát # soubory} other {Nahrát # souborů}}",
+    "sk": "{count, plural, one {Nahrať # súbor} few {Nahrať # súbory} other {Nahrať # súborov}}",
+    "hu": "{count, plural, one {# fájl feltöltése} other {# fájl feltöltése}}",
+    "de": "{count, plural, one {# Datei hochladen} other {# Dateien hochladen}}",
+    "fr": "{count, plural, one {Importer # fichier} many {Importer # de fichiers} other {Importer # fichiers}}",
+    "es": "{count, plural, one {Subir # archivo} many {Subir # de archivos} other {Subir # archivos}}",
+    "it": "{count, plural, one {Carica # file} many {Carica # di file} other {Carica # file}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.dropTitle": {
     "en": "Drop a file or a whole folder",
-    "cs": "Přetáhněte sem soubor nebo celou složku"
+    "cs": "Přetáhněte sem soubor nebo celou složku",
+    "sk": "Presuňte sem súbor alebo celý priečinok",
+    "hu": "Húzzon ide egy fájlt vagy egy teljes mappát",
+    "de": "Datei oder ganzen Ordner hierher ziehen",
+    "fr": "Déposez un fichier ou un dossier entier",
+    "es": "Arrastra un archivo o una carpeta entera",
+    "it": "Trascina qui un file o un’intera cartella",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.dropHint": {
     "en": "Nested folders keep their order. An image named cover, folder or front becomes the artwork.",
     "cs": "Vnořené složky si zachovají pořadí. Obrázek s názvem cover, folder nebo front se stane obálkou.",
-    "note": "cover, folder, front are literal file names — do not translate them."
+    "sk": "Vnorené priečinky si zachovajú poradie. Obrázok s názvom cover, folder alebo front sa stane obálkou.",
+    "hu": "A beágyazott mappák megtartják a sorrendjüket. A cover, folder vagy front nevű képből lesz a borító.",
+    "de": "Unterordner behalten ihre Reihenfolge. Ein Bild namens cover, folder oder front wird zum Cover.",
+    "fr": "Les sous-dossiers gardent leur ordre. Une image nommée cover, folder ou front devient la couverture.",
+    "es": "Las carpetas anidadas mantienen su orden. Una imagen llamada cover, folder o front se convierte en la portada.",
+    "it": "Le cartelle annidate mantengono il loro ordine. Un’immagine chiamata cover, folder o front diventa la copertina.",
+    "note": "cover, folder, front are literal file names — do not translate them.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.chooseFiles": {
     "en": "Choose files",
-    "cs": "Vybrat soubory"
+    "cs": "Vybrat soubory",
+    "sk": "Vybrať súbory",
+    "hu": "Fájlok kiválasztása",
+    "de": "Dateien auswählen",
+    "fr": "Choisir des fichiers",
+    "es": "Elegir archivos",
+    "it": "Scegli file",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.chooseFolder": {
     "en": "Choose folder",
-    "cs": "Vybrat složku"
+    "cs": "Vybrat složku",
+    "sk": "Vybrať priečinok",
+    "hu": "Mappa kiválasztása",
+    "de": "Ordner auswählen",
+    "fr": "Choisir un dossier",
+    "es": "Elegir carpeta",
+    "it": "Scegli cartella",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.ready": {
     "en": "{count, plural, one {# file ready} other {# files ready}}",
-    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}}"
+    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}}",
+    "sk": "{count, plural, one {# súbor pripravený} few {# súbory pripravené} other {# súborov pripravených}}",
+    "hu": "{count, plural, one {# fájl kész} other {# fájl kész}}",
+    "de": "{count, plural, one {# Datei bereit} other {# Dateien bereit}}",
+    "fr": "{count, plural, one {# fichier prêt} many {# de fichiers prêts} other {# fichiers prêts}}",
+    "es": "{count, plural, one {# archivo listo} many {# de archivos listos} other {# archivos listos}}",
+    "it": "{count, plural, one {# file pronto} many {# di file pronti} other {# file pronti}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.readyWithCover": {
     "en": "{count, plural, one {# file ready} other {# files ready}} · cover: {name}",
-    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}} · obálka: {name}"
+    "cs": "{count, plural, one {# soubor připraven} few {# soubory připraveny} other {# souborů připraveno}} · obálka: {name}",
+    "sk": "{count, plural, one {# súbor pripravený} few {# súbory pripravené} other {# súborov pripravených}} · obálka: {name}",
+    "hu": "{count, plural, one {# fájl kész} other {# fájl kész}} · borító: {name}",
+    "de": "{count, plural, one {# Datei bereit} other {# Dateien bereit}} · Cover: {name}",
+    "fr": "{count, plural, one {# fichier prêt} many {# de fichiers prêts} other {# fichiers prêts}} · couverture : {name}",
+    "es": "{count, plural, one {# archivo listo} many {# de archivos listos} other {# archivos listos}} · portada: {name}",
+    "it": "{count, plural, one {# file pronto} many {# di file pronti} other {# file pronti}} · copertina: {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.clear": {
     "en": "Clear",
-    "cs": "Vymazat"
+    "cs": "Vymazat",
+    "sk": "Vymazať",
+    "hu": "Törlés",
+    "de": "Leeren",
+    "fr": "Effacer",
+    "es": "Borrar",
+    "it": "Cancella",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.orNarrate": {
     "en": "No recording? Have a book narrated",
-    "cs": "Nemáte nahrávku? Vytvořte audioknihu z e-knihy"
+    "cs": "Nemáte nahrávku? Vytvořte audioknihu z e-knihy",
+    "sk": "Nemáte nahrávku? Nechajte knihu nahovoriť",
+    "hu": "Nincs felvétele? Olvastasson fel egy könyvet",
+    "de": "Keine Aufnahme? Lass ein Buch vertonen",
+    "fr": "Pas d’enregistrement ? Faites narrer un livre",
+    "es": "¿No tienes grabación? Haz que narren un libro",
+    "it": "Nessuna registrazione? Fai narrare un libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.narrate.title": {
     "en": "Narrate an ebook",
-    "cs": "Namluvit e-knihu"
+    "cs": "Namluvit e-knihu",
+    "sk": "Nahovoriť e-knihu",
+    "hu": "E-könyv felolvastatása",
+    "de": "E-Book vertonen",
+    "fr": "Narrer un livre numérique",
+    "es": "Narrar un libro electrónico",
+    "it": "Narra un ebook",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.narrate.body": {
     "en": "EPUB, MOBI or TXT, read aloud by a voice you choose.",
-    "cs": "Nahrajte EPUB, MOBI nebo TXT a vyberte hlas, který ji namluví."
+    "cs": "Nahrajte EPUB, MOBI nebo TXT a vyberte hlas, který ji namluví.",
+    "sk": "EPUB, MOBI alebo TXT, ktoré nahlas prečíta hlas podľa vášho výberu.",
+    "hu": "EPUB, MOBI vagy TXT, az Ön által választott hangon felolvasva.",
+    "de": "EPUB, MOBI oder TXT, vorgelesen von einer Stimme deiner Wahl.",
+    "fr": "EPUB, MOBI ou TXT, lu à voix haute par la voix de votre choix.",
+    "es": "EPUB, MOBI o TXT, leído en voz alta por la voz que elijas.",
+    "it": "EPUB, MOBI o TXT, letto ad alta voce da una voce a tua scelta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.translate.title": {
     "en": "Translate and narrate",
-    "cs": "Přeložit a namluvit"
+    "cs": "Přeložit a namluvit",
+    "sk": "Preložiť a nahovoriť",
+    "hu": "Fordítás és felolvastatás",
+    "de": "Übersetzen und vertonen",
+    "fr": "Traduire et narrer",
+    "es": "Traducir y narrar",
+    "it": "Traduci e narra",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.translate.body": {
     "en": "An ebook in another language, translated and read aloud in yours.",
-    "cs": "E-knihu v jiném jazyce přeložíme a namluvíme ve vašem jazyce."
+    "cs": "E-knihu v jiném jazyce přeložíme a namluvíme ve vašem jazyce.",
+    "sk": "E-kniha v inom jazyku, preložená a nahlas prečítaná vo vašom jazyku.",
+    "hu": "Egy más nyelvű e-könyv, lefordítva és felolvasva az Ön nyelvén.",
+    "de": "Ein E-Book in einer anderen Sprache, übersetzt und in deiner vorgelesen.",
+    "fr": "Un livre numérique dans une autre langue, traduit et lu à voix haute dans la vôtre.",
+    "es": "Un libro electrónico en otro idioma, traducido y leído en voz alta en el tuyo.",
+    "it": "Un ebook in un’altra lingua, tradotto e letto ad alta voce nella tua.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.titlePlaceholder": {
     "en": "The Hobbit",
     "cs": "Hobit",
-    "note": "Example book title."
+    "sk": "Hobit",
+    "hu": "A hobbit",
+    "de": "Der Hobbit",
+    "fr": "Le Hobbit",
+    "es": "El hobbit",
+    "it": "Lo Hobbit",
+    "note": "Example book title.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.authorPlaceholder": {
     "en": "J.R.R. Tolkien",
     "cs": "J. R. R. Tolkien",
-    "note": "Example author."
+    "sk": "J. R. R. Tolkien",
+    "hu": "J.R.R. Tolkien",
+    "de": "J.R.R. Tolkien",
+    "fr": "J.R.R. Tolkien",
+    "es": "J. R. R. Tolkien",
+    "it": "J.R.R. Tolkien",
+    "note": "Example author.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.upload.narratorPlaceholder": {
     "en": "Andy Serkis",
     "cs": "Andy Serkis",
-    "note": "Example narrator."
+    "sk": "Andy Serkis",
+    "hu": "Andy Serkis",
+    "de": "Andy Serkis",
+    "fr": "Andy Serkis",
+    "es": "Andy Serkis",
+    "it": "Andy Serkis",
+    "note": "Example narrator.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.edit.title": {
     "en": "Edit book",
-    "cs": "Upravit knihu"
+    "cs": "Upravit knihu",
+    "sk": "Upraviť knihu",
+    "hu": "Könyv szerkesztése",
+    "de": "Hörbuch bearbeiten",
+    "fr": "Modifier le livre",
+    "es": "Editar libro",
+    "it": "Modifica libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.edit.chooseImage": {
     "en": "Choose an image…",
-    "cs": "Vybrat obrázek…"
+    "cs": "Vybrat obrázek…",
+    "sk": "Vybrať obrázok…",
+    "hu": "Kép kiválasztása…",
+    "de": "Bild auswählen …",
+    "fr": "Choisir une image…",
+    "es": "Elegir una imagen…",
+    "it": "Scegli un’immagine…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.edit.order": {
     "en": "Order",
     "cs": "Pořadí",
-    "note": "Play order of the book's files."
+    "sk": "Poradie",
+    "hu": "Sorrend",
+    "de": "Reihenfolge",
+    "fr": "Ordre",
+    "es": "Orden",
+    "it": "Ordine",
+    "note": "Play order of the book's files.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.edit.errorSave": {
     "en": "Couldn't save those changes.",
-    "cs": "Změny se nepodařilo uložit."
+    "cs": "Změny se nepodařilo uložit.",
+    "sk": "Nepodarilo sa uložiť zmeny.",
+    "hu": "Nem sikerült menteni a módosításokat.",
+    "de": "Die Änderungen konnten nicht gespeichert werden.",
+    "fr": "Impossible d’enregistrer ces modifications.",
+    "es": "No se han podido guardar los cambios.",
+    "it": "Impossibile salvare le modifiche.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.edit.errorTrash": {
     "en": "Couldn't move that book to the trash.",
-    "cs": "Knihu se nepodařilo přesunout do koše."
+    "cs": "Knihu se nepodařilo přesunout do koše.",
+    "sk": "Nepodarilo sa presunúť knihu do koša.",
+    "hu": "Nem sikerült áthelyezni a könyvet a Kukába.",
+    "de": "Das Hörbuch konnte nicht in den Papierkorb gelegt werden.",
+    "fr": "Impossible de placer ce livre dans la corbeille.",
+    "es": "No se ha podido mover el libro a la papelera.",
+    "it": "Impossibile spostare il libro nel Cestino.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.title": {
     "en": "Credits",
     "cs": "Tvůrci",
-    "note": "People credited on a book: author, narrator, editor."
+    "sk": "Tvorcovia",
+    "hu": "Közreműködők",
+    "de": "Mitwirkende",
+    "fr": "Intervenants",
+    "es": "Participantes",
+    "it": "Partecipanti",
+    "note": "People credited on a book: author, narrator, editor.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.hint": {
     "en": "Who wrote it, who read it. The same person can hold more than one role.",
-    "cs": "Kdo knihu napsal a kdo ji načetl. Jedna osoba může mít víc rolí."
+    "cs": "Kdo knihu napsal a kdo ji načetl. Jedna osoba může mít víc rolí.",
+    "sk": "Kto knihu napísal a kto ju číta. Jedna osoba môže mať viac rolí.",
+    "hu": "Ki írta, ki olvasta fel. Ugyanaz a személy több szerepet is betölthet.",
+    "de": "Wer es geschrieben hat, wer es liest. Eine Person kann mehrere Rollen haben.",
+    "fr": "Qui l’a écrit, qui l’a lu. Une même personne peut avoir plusieurs rôles.",
+    "es": "Quién lo escribió y quién lo leyó. Una misma persona puede tener más de un papel.",
+    "it": "Chi l’ha scritto, chi l’ha letto. La stessa persona può avere più di un ruolo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.none": {
     "en": "Nobody credited yet.",
-    "cs": "Zatím nikdo neuveden."
+    "cs": "Zatím nikdo neuveden.",
+    "sk": "Zatiaľ nikto neuvedený.",
+    "hu": "Még nincs megadva közreműködő.",
+    "de": "Noch keine Mitwirkenden.",
+    "fr": "Aucun intervenant pour l’instant.",
+    "es": "Aún no hay participantes.",
+    "it": "Ancora nessun partecipante.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.name": {
     "en": "Name",
     "cs": "Jméno",
-    "note": "A person's name."
+    "sk": "Meno",
+    "hu": "Név",
+    "de": "Name",
+    "fr": "Nom",
+    "es": "Nombre",
+    "it": "Nome",
+    "note": "A person's name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.role": {
     "en": "Role",
-    "cs": "Role"
+    "cs": "Role",
+    "sk": "Rola",
+    "hu": "Szerep",
+    "de": "Rolle",
+    "fr": "Rôle",
+    "es": "Papel",
+    "it": "Ruolo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.add": {
     "en": "Add a credit",
-    "cs": "Přidat tvůrce"
+    "cs": "Přidat tvůrce",
+    "sk": "Pridať tvorcu",
+    "hu": "Közreműködő hozzáadása",
+    "de": "Mitwirkende hinzufügen",
+    "fr": "Ajouter un intervenant",
+    "es": "Añadir participante",
+    "it": "Aggiungi partecipante",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.remove": {
     "en": "Remove {name} as {role}",
-    "cs": "Odebrat: {name} ({role})"
+    "cs": "Odebrat: {name} ({role})",
+    "sk": "Odobrať: {name} ({role})",
+    "hu": "{name} eltávolítása ebből a szerepből: {role}",
+    "de": "{name} als {role} entfernen",
+    "fr": "Retirer {name} en tant que {role}",
+    "es": "Quitar a {name} como {role}",
+    "it": "Rimuovi {name} come {role}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.errorAdd": {
     "en": "Couldn't add that person.",
-    "cs": "Osobu se nepodařilo přidat."
+    "cs": "Osobu se nepodařilo přidat.",
+    "sk": "Nepodarilo sa pridať osobu.",
+    "hu": "Nem sikerült hozzáadni a személyt.",
+    "de": "Die Person konnte nicht hinzugefügt werden.",
+    "fr": "Impossible d’ajouter cette personne.",
+    "es": "No se ha podido añadir a esa persona.",
+    "it": "Impossibile aggiungere la persona.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.credits.errorRemove": {
     "en": "Couldn't remove that credit.",
-    "cs": "Tvůrce se nepodařilo odebrat."
+    "cs": "Tvůrce se nepodařilo odebrat.",
+    "sk": "Nepodarilo sa odobrať tvorcu.",
+    "hu": "Nem sikerült eltávolítani a közreműködőt.",
+    "de": "Der Eintrag konnte nicht entfernt werden.",
+    "fr": "Impossible de retirer cet intervenant.",
+    "es": "No se ha podido quitar ese participante.",
+    "it": "Impossibile rimuovere il partecipante.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.role.author": {
     "en": "author",
     "cs": "autor",
-    "note": "Credit role, shown in lower case beside the name."
+    "sk": "autor",
+    "hu": "szerző",
+    "de": "Autor",
+    "fr": "auteur",
+    "es": "autor",
+    "it": "autore",
+    "note": "Credit role, shown in lower case beside the name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.role.narrator": {
     "en": "narrator",
     "cs": "vypravěč",
-    "note": "Credit role, shown in lower case beside the name."
+    "sk": "rozprávač",
+    "hu": "felolvasó",
+    "de": "Sprecher",
+    "fr": "narrateur",
+    "es": "narrador",
+    "it": "narratore",
+    "note": "Credit role, shown in lower case beside the name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.role.editor": {
     "en": "editor",
     "cs": "editor",
-    "note": "Credit role, shown in lower case beside the name."
+    "sk": "editor",
+    "hu": "szerkesztő",
+    "de": "Herausgeber",
+    "fr": "éditeur",
+    "es": "editor",
+    "it": "curatore",
+    "note": "Credit role, shown in lower case beside the name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.title": {
     "en": "Tags",
     "cs": "Štítky",
-    "note": "The user's own labels on a book — not file metadata tags."
+    "sk": "Štítky",
+    "hu": "Címkék",
+    "de": "Tags",
+    "fr": "Étiquettes",
+    "es": "Etiquetas",
+    "it": "Etichette",
+    "note": "The user's own labels on a book — not file metadata tags.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.hint": {
     "en": "Your own words for it — \"bedtime\", \"re-read\", whatever helps you find it.",
-    "cs": "Vlastní slova pro knihu — „na dobrou noc“, „znovu přečíst“, cokoli, co vám ji pomůže najít."
+    "cs": "Vlastní slova pro knihu — „na dobrou noc“, „znovu přečíst“, cokoli, co vám ji pomůže najít.",
+    "sk": "Vlastné slová pre knihu — „na dobrú noc“, „prečítať znova“, čokoľvek, čo vám ju pomôže nájsť.",
+    "hu": "Saját szavai rá — „esti mese”, „újraolvasni”, bármi, ami segít megtalálni.",
+    "de": "Deine eigenen Wörter dafür – „Gutenacht“, „nochmal hören“, was dir beim Finden hilft.",
+    "fr": "Vos propres mots pour le retrouver : « au lit », « à relire », tout ce qui vous aide.",
+    "es": "Tus propias palabras para él: «para dormir», «releer», lo que te ayude a encontrarlo.",
+    "it": "Parole tue per descriverlo, come «buonanotte» o «da rileggere», qualsiasi cosa ti aiuti a ritrovarlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.none": {
     "en": "No tags yet.",
-    "cs": "Zatím žádné štítky."
+    "cs": "Zatím žádné štítky.",
+    "sk": "Zatiaľ žiadne štítky.",
+    "hu": "Még nincsenek címkék.",
+    "de": "Noch keine Tags.",
+    "fr": "Aucune étiquette pour l’instant.",
+    "es": "Aún no hay etiquetas.",
+    "it": "Ancora nessuna etichetta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.add": {
     "en": "Add a tag",
-    "cs": "Přidat štítek"
+    "cs": "Přidat štítek",
+    "sk": "Pridať štítok",
+    "hu": "Címke hozzáadása",
+    "de": "Tag hinzufügen",
+    "fr": "Ajouter une étiquette",
+    "es": "Añadir una etiqueta",
+    "it": "Aggiungi un’etichetta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.remove": {
     "en": "Remove tag {name}",
-    "cs": "Odebrat štítek {name}"
+    "cs": "Odebrat štítek {name}",
+    "sk": "Odobrať štítok {name}",
+    "hu": "Címke eltávolítása: {name}",
+    "de": "Tag {name} entfernen",
+    "fr": "Retirer l’étiquette {name}",
+    "es": "Quitar la etiqueta {name}",
+    "it": "Rimuovi etichetta {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.tags.errorSave": {
     "en": "Couldn't save those tags.",
-    "cs": "Štítky se nepodařilo uložit."
+    "cs": "Štítky se nepodařilo uložit.",
+    "sk": "Nepodarilo sa uložiť štítky.",
+    "hu": "Nem sikerült menteni a címkéket.",
+    "de": "Die Tags konnten nicht gespeichert werden.",
+    "fr": "Impossible d’enregistrer ces étiquettes.",
+    "es": "No se han podido guardar las etiquetas.",
+    "it": "Impossibile salvare le etichette.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.mode.collections": {
     "en": "Collections",
-    "cs": "Sbírky"
+    "cs": "Sbírky",
+    "sk": "Zbierky",
+    "hu": "Gyűjtemények",
+    "de": "Sammlungen",
+    "fr": "Collections",
+    "es": "Colecciones",
+    "it": "Raccolte",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.mode.series": {
     "en": "Series",
-    "cs": "Série"
+    "cs": "Série",
+    "sk": "Série",
+    "hu": "Sorozatok",
+    "de": "Reihen",
+    "fr": "Séries",
+    "es": "Series",
+    "it": "Serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.mode.authors": {
     "en": "Authors",
-    "cs": "Autoři"
+    "cs": "Autoři",
+    "sk": "Autori",
+    "hu": "Szerzők",
+    "de": "Autoren",
+    "fr": "Auteurs",
+    "es": "Autores",
+    "it": "Autori",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.mode.favorites": {
     "en": "Favorites",
-    "cs": "Oblíbené"
+    "cs": "Oblíbené",
+    "sk": "Obľúbené",
+    "hu": "Kedvencek",
+    "de": "Favoriten",
+    "fr": "Favoris",
+    "es": "Favoritos",
+    "it": "Preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.filter": {
     "en": "Filter",
-    "cs": "Filtrovat"
+    "cs": "Filtrovat",
+    "sk": "Filtrovať",
+    "hu": "Szűrés",
+    "de": "Filtern",
+    "fr": "Filtrer",
+    "es": "Filtrar",
+    "it": "Filtra",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.new": {
     "en": "New",
     "cs": "Nová",
-    "note": "Button: new collection or new series (both feminine in Czech)."
+    "sk": "Nová",
+    "hu": "Új",
+    "de": "Neu",
+    "fr": "Nouvelle",
+    "es": "Nueva",
+    "it": "Nuova",
+    "note": "Button: new collection or new series (both feminine in Czech).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptyCollections": {
     "en": "No collections yet",
-    "cs": "Zatím žádné sbírky"
+    "cs": "Zatím žádné sbírky",
+    "sk": "Zatiaľ žiadne zbierky",
+    "hu": "Még nincsenek gyűjtemények",
+    "de": "Noch keine Sammlungen",
+    "fr": "Aucune collection pour l’instant",
+    "es": "Aún no hay colecciones",
+    "it": "Ancora nessuna raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptySeries": {
     "en": "No series yet",
-    "cs": "Zatím žádné série"
+    "cs": "Zatím žádné série",
+    "sk": "Zatiaľ žiadne série",
+    "hu": "Még nincsenek sorozatok",
+    "de": "Noch keine Reihen",
+    "fr": "Aucune série pour l’instant",
+    "es": "Aún no hay series",
+    "it": "Ancora nessuna serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptyAuthors": {
     "en": "No authors yet",
-    "cs": "Zatím žádní autoři"
+    "cs": "Zatím žádní autoři",
+    "sk": "Zatiaľ žiadni autori",
+    "hu": "Még nincsenek szerzők",
+    "de": "Noch keine Autoren",
+    "fr": "Aucun auteur pour l’instant",
+    "es": "Aún no hay autores",
+    "it": "Ancora nessun autore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptyFavorites": {
     "en": "No favorites yet",
-    "cs": "Zatím žádné oblíbené"
+    "cs": "Zatím žádné oblíbené",
+    "sk": "Zatiaľ žiadne obľúbené",
+    "hu": "Még nincsenek kedvencek",
+    "de": "Noch keine Favoriten",
+    "fr": "Aucun favori pour l’instant",
+    "es": "Aún no hay favoritos",
+    "it": "Ancora nessun preferito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptyFavoritesHint": {
     "en": "Tap the heart on a book to keep it here.",
-    "cs": "Klepnutím na srdce u knihy si ji sem uložíte."
+    "cs": "Klepnutím na srdce u knihy si ji sem uložíte.",
+    "sk": "Ťuknutím na srdce pri knihe si ju sem uložíte.",
+    "hu": "Koppintson egy könyv szív ikonjára, hogy itt tartsa.",
+    "de": "Tippe bei einem Hörbuch auf das Herz, um es hier zu behalten.",
+    "fr": "Touchez le cœur d’un livre pour le garder ici.",
+    "es": "Toca el corazón de un libro para guardarlo aquí.",
+    "it": "Tocca il cuore su un libro per tenerlo qui.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.emptyHint": {
     "en": "Create one to group your books.",
-    "cs": "Vytvořte si první a seskupte své knihy."
+    "cs": "Vytvořte si první a seskupte své knihy.",
+    "sk": "Vytvorte si prvú a zoskupte svoje knihy.",
+    "hu": "Hozzon létre egyet a könyvei csoportosításához.",
+    "de": "Erstelle eine, um deine Hörbücher zu gruppieren.",
+    "fr": "Créez-en une pour regrouper vos livres.",
+    "es": "Crea una para agrupar tus libros.",
+    "it": "Creane una per raggruppare i tuoi libri.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.pickGroup": {
     "en": "Pick a group",
-    "cs": "Vyberte skupinu"
+    "cs": "Vyberte skupinu",
+    "sk": "Vyberte skupinu",
+    "hu": "Válasszon egy csoportot",
+    "de": "Wähl eine Gruppe",
+    "fr": "Choisissez un groupe",
+    "es": "Elige un grupo",
+    "it": "Scegli un gruppo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.pickGroupHint": {
     "en": "Its books show up here.",
-    "cs": "Zde se zobrazí její knihy."
+    "cs": "Zde se zobrazí její knihy.",
+    "sk": "Tu sa zobrazia jej knihy.",
+    "hu": "A könyvei itt jelennek meg.",
+    "de": "Ihre Hörbücher erscheinen hier.",
+    "fr": "Ses livres s’affichent ici.",
+    "es": "Aquí aparecen sus libros.",
+    "it": "Qui compaiono i suoi libri.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.name": {
     "en": "Name",
     "cs": "Název",
-    "note": "Name of a collection or series."
+    "sk": "Názov",
+    "hu": "Név",
+    "de": "Name",
+    "fr": "Nom",
+    "es": "Nombre",
+    "it": "Nome",
+    "note": "Name of a collection or series.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.create": {
     "en": "Create",
-    "cs": "Vytvořit"
+    "cs": "Vytvořit",
+    "sk": "Vytvoriť",
+    "hu": "Létrehozás",
+    "de": "Erstellen",
+    "fr": "Créer",
+    "es": "Crear",
+    "it": "Crea",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.saved": {
     "en": "Saved",
-    "cs": "Uloženo"
+    "cs": "Uloženo",
+    "sk": "Uložené",
+    "hu": "Mentve",
+    "de": "Gespeichert",
+    "fr": "Enregistré",
+    "es": "Guardado",
+    "it": "Salvato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.added": {
     "en": "Added",
-    "cs": "Přidáno"
+    "cs": "Přidáno",
+    "sk": "Pridané",
+    "hu": "Hozzáadva",
+    "de": "Hinzugefügt",
+    "fr": "Ajouté",
+    "es": "Añadido",
+    "it": "Aggiunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.errorCreate": {
     "en": "Couldn't create that.",
-    "cs": "Nepodařilo se to vytvořit."
+    "cs": "Nepodařilo se to vytvořit.",
+    "sk": "Nepodarilo sa to vytvoriť.",
+    "hu": "Nem sikerült létrehozni.",
+    "de": "Das konnte nicht erstellt werden.",
+    "fr": "Impossible de créer cet élément.",
+    "es": "No se ha podido crear.",
+    "it": "Impossibile crearlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.errorSave": {
     "en": "Couldn't save that.",
-    "cs": "Nepodařilo se to uložit."
+    "cs": "Nepodařilo se to uložit.",
+    "sk": "Nepodarilo sa to uložiť.",
+    "hu": "Nem sikerült menteni.",
+    "de": "Das konnte nicht gespeichert werden.",
+    "fr": "Impossible d’enregistrer cet élément.",
+    "es": "No se ha podido guardar.",
+    "it": "Impossibile salvarlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.editNamed": {
     "en": "Edit {name}",
-    "cs": "Upravit: {name}"
+    "cs": "Upravit: {name}",
+    "sk": "Upraviť: {name}",
+    "hu": "Szerkesztés: {name}",
+    "de": "{name} bearbeiten",
+    "fr": "Modifier {name}",
+    "es": "Editar {name}",
+    "it": "Modifica {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.removeNamed": {
     "en": "Remove {name}",
-    "cs": "Odebrat: {name}"
+    "cs": "Odebrat: {name}",
+    "sk": "Odobrať: {name}",
+    "hu": "Eltávolítás: {name}",
+    "de": "{name} entfernen",
+    "fr": "Retirer {name}",
+    "es": "Quitar {name}",
+    "it": "Rimuovi {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.organize.booksUntouched": {
     "en": "The books themselves are untouched.",
-    "cs": "Samotných knih se to nijak nedotklo."
+    "cs": "Samotných knih se to nijak nedotklo.",
+    "sk": "Samotných kníh sa to nijako nedotklo.",
+    "hu": "Maguk a könyvek érintetlenek maradnak.",
+    "de": "Die Hörbücher selbst bleiben unverändert.",
+    "fr": "Les livres eux-mêmes ne sont pas modifiés.",
+    "es": "Los libros en sí no se tocan.",
+    "it": "I libri in sé non vengono toccati.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.new": {
     "en": "New collection",
-    "cs": "Nová sbírka"
+    "cs": "Nová sbírka",
+    "sk": "Nová zbierka",
+    "hu": "Új gyűjtemény",
+    "de": "Neue Sammlung",
+    "fr": "Nouvelle collection",
+    "es": "Nueva colección",
+    "it": "Nuova raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.edit": {
     "en": "Edit collection",
-    "cs": "Upravit sbírku"
+    "cs": "Upravit sbírku",
+    "sk": "Upraviť zbierku",
+    "hu": "Gyűjtemény szerkesztése",
+    "de": "Sammlung bearbeiten",
+    "fr": "Modifier la collection",
+    "es": "Editar colección",
+    "it": "Modifica raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.about": {
     "en": "A collection is any grouping you like — a shelf, a mood, a road trip.",
-    "cs": "Sbírka je jakékoli seskupení, které se vám hodí — polička, nálada, cesta autem."
+    "cs": "Sbírka je jakékoli seskupení, které se vám hodí — polička, nálada, cesta autem.",
+    "sk": "Zbierka je akékoľvek zoskupenie, ktoré vám vyhovuje — polička, nálada, cesta autom.",
+    "hu": "A gyűjtemény bármilyen csoportosítás lehet — egy polc, egy hangulat, egy autós út.",
+    "de": "Eine Sammlung ist jede Gruppierung, die du willst – ein Regal, eine Stimmung, ein Roadtrip.",
+    "fr": "Une collection, c’est le regroupement de votre choix : une étagère, une humeur, un road trip.",
+    "es": "Una colección es cualquier agrupación que quieras: una estantería, un estado de ánimo, un viaje en coche.",
+    "it": "Una raccolta è un qualsiasi raggruppamento a tuo piacere: uno scaffale, un umore, un viaggio in auto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.created": {
     "en": "Collection created",
-    "cs": "Sbírka vytvořena"
+    "cs": "Sbírka vytvořena",
+    "sk": "Zbierka vytvorená",
+    "hu": "Gyűjtemény létrehozva",
+    "de": "Sammlung erstellt",
+    "fr": "Collection créée",
+    "es": "Colección creada",
+    "it": "Raccolta creata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.deleted": {
     "en": "Collection deleted",
-    "cs": "Sbírka smazána"
+    "cs": "Sbírka smazána",
+    "sk": "Zbierka zmazaná",
+    "hu": "Gyűjtemény törölve",
+    "de": "Sammlung gelöscht",
+    "fr": "Collection supprimée",
+    "es": "Colección eliminada",
+    "it": "Raccolta eliminata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.delete": {
     "en": "Delete collection",
-    "cs": "Smazat sbírku"
+    "cs": "Smazat sbírku",
+    "sk": "Zmazať zbierku",
+    "hu": "Gyűjtemény törlése",
+    "de": "Sammlung löschen",
+    "fr": "Supprimer la collection",
+    "es": "Eliminar colección",
+    "it": "Elimina raccolta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.addBooks": {
     "en": "Add books",
-    "cs": "Přidat knihy"
+    "cs": "Přidat knihy",
+    "sk": "Pridať knihy",
+    "hu": "Könyvek hozzáadása",
+    "de": "Hörbücher hinzufügen",
+    "fr": "Ajouter des livres",
+    "es": "Añadir libros",
+    "it": "Aggiungi libri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.emptyTitle": {
     "en": "Nothing here yet",
-    "cs": "Zatím je tu prázdno"
+    "cs": "Zatím je tu prázdno",
+    "sk": "Zatiaľ je tu prázdno",
+    "hu": "Itt még nincs semmi",
+    "de": "Hier ist noch nichts",
+    "fr": "Rien ici pour l’instant",
+    "es": "Aún no hay nada aquí",
+    "it": "Ancora niente qui",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.emptyHint": {
     "en": "Add books to build this collection.",
-    "cs": "Přidejte do této sbírky knihy."
+    "cs": "Přidejte do této sbírky knihy.",
+    "sk": "Pridajte do tejto zbierky knihy.",
+    "hu": "Adjon hozzá könyveket a gyűjtemény összeállításához.",
+    "de": "Füge Hörbücher hinzu, um diese Sammlung aufzubauen.",
+    "fr": "Ajoutez des livres pour constituer cette collection.",
+    "es": "Añade libros para formar esta colección.",
+    "it": "Aggiungi libri per comporre questa raccolta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.searchBooks": {
     "en": "Search your books",
-    "cs": "Hledat v knihách"
+    "cs": "Hledat v knihách",
+    "sk": "Hľadať v knihách",
+    "hu": "Keresés a könyvei között",
+    "de": "Deine Hörbücher durchsuchen",
+    "fr": "Rechercher dans vos livres",
+    "es": "Buscar en tus libros",
+    "it": "Cerca nei tuoi libri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.added": {
     "en": "Added",
     "cs": "Přidáno",
-    "note": "Button state: the book is already in the collection."
+    "sk": "Pridané",
+    "hu": "Hozzáadva",
+    "de": "Hinzugefügt",
+    "fr": "Ajouté",
+    "es": "Añadido",
+    "it": "Aggiunto",
+    "note": "Button state: the book is already in the collection.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.collection.errorAddBook": {
     "en": "Couldn't add that book.",
-    "cs": "Knihu se nepodařilo přidat."
+    "cs": "Knihu se nepodařilo přidat.",
+    "sk": "Nepodarilo sa pridať knihu.",
+    "hu": "Nem sikerült hozzáadni a könyvet.",
+    "de": "Das Hörbuch konnte nicht hinzugefügt werden.",
+    "fr": "Impossible d’ajouter ce livre.",
+    "es": "No se ha podido añadir el libro.",
+    "it": "Impossibile aggiungere il libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.new": {
     "en": "New series",
-    "cs": "Nová série"
+    "cs": "Nová série",
+    "sk": "Nová séria",
+    "hu": "Új sorozat",
+    "de": "Neue Reihe",
+    "fr": "Nouvelle série",
+    "es": "Nueva serie",
+    "it": "Nuova serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.edit": {
     "en": "Edit series",
-    "cs": "Upravit sérii"
+    "cs": "Upravit sérii",
+    "sk": "Upraviť sériu",
+    "hu": "Sorozat szerkesztése",
+    "de": "Reihe bearbeiten",
+    "fr": "Modifier la série",
+    "es": "Editar serie",
+    "it": "Modifica serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.about": {
     "en": "A series is books in reading order, like a trilogy.",
-    "cs": "Série jsou knihy v pořadí čtení, třeba trilogie."
+    "cs": "Série jsou knihy v pořadí čtení, třeba trilogie.",
+    "sk": "Séria sú knihy v poradí čítania, napríklad trilógia.",
+    "hu": "A sorozat olvasási sorrendbe rendezett könyvek, például egy trilógia.",
+    "de": "Eine Reihe sind Bücher in Lesereihenfolge, wie eine Trilogie.",
+    "fr": "Une série, ce sont des livres dans l’ordre de lecture, comme une trilogie.",
+    "es": "Una serie son libros en orden de lectura, como una trilogía.",
+    "it": "Una serie è un insieme di libri in ordine di lettura, come una trilogia.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.created": {
     "en": "Series created",
-    "cs": "Série vytvořena"
+    "cs": "Série vytvořena",
+    "sk": "Séria vytvorená",
+    "hu": "Sorozat létrehozva",
+    "de": "Reihe erstellt",
+    "fr": "Série créée",
+    "es": "Serie creada",
+    "it": "Serie creata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.deleted": {
     "en": "Series deleted",
-    "cs": "Série smazána"
+    "cs": "Série smazána",
+    "sk": "Séria zmazaná",
+    "hu": "Sorozat törölve",
+    "de": "Reihe gelöscht",
+    "fr": "Série supprimée",
+    "es": "Serie eliminada",
+    "it": "Serie eliminata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.delete": {
     "en": "Delete series",
-    "cs": "Smazat sérii"
+    "cs": "Smazat sérii",
+    "sk": "Zmazať sériu",
+    "hu": "Sorozat törlése",
+    "de": "Reihe löschen",
+    "fr": "Supprimer la série",
+    "es": "Eliminar serie",
+    "it": "Elimina serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.countInOrder": {
     "en": "{count, plural, one {# book, in order} other {# books, in order}}",
-    "cs": "{count, plural, one {# kniha, v pořadí} few {# knihy, v pořadí} other {# knih, v pořadí}}"
+    "cs": "{count, plural, one {# kniha, v pořadí} few {# knihy, v pořadí} other {# knih, v pořadí}}",
+    "sk": "{count, plural, one {# kniha, v poradí} few {# knihy, v poradí} other {# kníh, v poradí}}",
+    "hu": "{count, plural, one {# könyv, sorrendben} other {# könyv, sorrendben}}",
+    "de": "{count, plural, one {# Hörbuch, in Reihenfolge} other {# Hörbücher, in Reihenfolge}}",
+    "fr": "{count, plural, one {# livre, dans l’ordre} many {# de livres, dans l’ordre} other {# livres, dans l’ordre}}",
+    "es": "{count, plural, one {# libro, en orden} many {# de libros, en orden} other {# libros, en orden}}",
+    "it": "{count, plural, one {# libro, in ordine} many {# di libri, in ordine} other {# libri, in ordine}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.emptyTitle": {
     "en": "No books in this series",
-    "cs": "V této sérii nejsou žádné knihy"
+    "cs": "V této sérii nejsou žádné knihy",
+    "sk": "V tejto sérii nie sú žiadne knihy",
+    "hu": "Ebben a sorozatban nincsenek könyvek",
+    "de": "Keine Hörbücher in dieser Reihe",
+    "fr": "Aucun livre dans cette série",
+    "es": "No hay libros en esta serie",
+    "it": "Nessun libro in questa serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.series.emptyHint": {
     "en": "Add books to it from a book's own menu.",
-    "cs": "Knihy do ní přidáte z nabídky dané knihy."
+    "cs": "Knihy do ní přidáte z nabídky dané knihy.",
+    "sk": "Knihy do nej pridáte z ponuky danej knihy.",
+    "hu": "Könyveket egy könyv saját menüjéből adhat hozzá.",
+    "de": "Füge sie über das Menü eines Hörbuchs hinzu.",
+    "fr": "Ajoutez-y des livres depuis le menu d’un livre.",
+    "es": "Añádelos desde el menú de cada libro.",
+    "it": "Aggiungili dal menu di ciascun libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.add": {
     "en": "Add a person",
-    "cs": "Přidat osobu"
+    "cs": "Přidat osobu",
+    "sk": "Pridať osobu",
+    "hu": "Személy hozzáadása",
+    "de": "Person hinzufügen",
+    "fr": "Ajouter une personne",
+    "es": "Añadir una persona",
+    "it": "Aggiungi una persona",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.edit": {
     "en": "Edit person",
-    "cs": "Upravit osobu"
+    "cs": "Upravit osobu",
+    "sk": "Upraviť osobu",
+    "hu": "Személy szerkesztése",
+    "de": "Person bearbeiten",
+    "fr": "Modifier la personne",
+    "es": "Editar persona",
+    "it": "Modifica persona",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.about": {
     "en": "Authors and narrators share one list — a role is set per book.",
-    "cs": "Autoři a vypravěči sdílejí jeden seznam — roli určuje každá kniha zvlášť."
+    "cs": "Autoři a vypravěči sdílejí jeden seznam — roli určuje každá kniha zvlášť.",
+    "sk": "Autori a rozprávači zdieľajú jeden zoznam — rolu určuje každá kniha zvlášť.",
+    "hu": "A szerzők és a felolvasók egy közös listán szerepelnek — a szerepet könyvenként kell megadni.",
+    "de": "Autoren und Sprecher teilen sich eine Liste – die Rolle wird pro Hörbuch festgelegt.",
+    "fr": "Auteurs et narrateurs partagent une seule liste : le rôle se définit pour chaque livre.",
+    "es": "Autores y narradores comparten una lista: el papel se fija en cada libro.",
+    "it": "Autori e narratori condividono un unico elenco: il ruolo si imposta per ogni libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.namePlaceholder": {
     "en": "Isaac Asimov",
     "cs": "Isaac Asimov",
-    "note": "Example author name."
+    "sk": "Isaac Asimov",
+    "hu": "Isaac Asimov",
+    "de": "Isaac Asimov",
+    "fr": "Isaac Asimov",
+    "es": "Isaac Asimov",
+    "it": "Isaac Asimov",
+    "note": "Example author name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.sortAs": {
     "en": "Sort as",
-    "cs": "Řadit jako"
+    "cs": "Řadit jako",
+    "sk": "Radiť ako",
+    "hu": "Rendezési név",
+    "de": "Sortieren als",
+    "fr": "Trier comme",
+    "es": "Ordenar como",
+    "it": "Ordina come",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.sortAsPlaceholder": {
     "en": "Asimov, Isaac",
-    "cs": "Asimov, Isaac"
+    "cs": "Asimov, Isaac",
+    "sk": "Asimov, Isaac",
+    "hu": "Asimov, Isaac",
+    "de": "Asimov, Isaac",
+    "fr": "Asimov, Isaac",
+    "es": "Asimov, Isaac",
+    "it": "Asimov, Isaac",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.sortAsHint": {
     "en": "Optional — how they file on a shelf.",
-    "cs": "Nepovinné — jak se řadí v knihovničce."
+    "cs": "Nepovinné — jak se řadí v knihovničce.",
+    "sk": "Nepovinné — ako sa radí v knižnici na poličke.",
+    "hu": "Nem kötelező — hogyan szerepel a polcon.",
+    "de": "Optional – wie die Person im Regal einsortiert wird.",
+    "fr": "Facultatif : comment la personne se range sur une étagère.",
+    "es": "Opcional: cómo se ordena en una estantería.",
+    "it": "Facoltativo: come va ordinato su uno scaffale.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.bio": {
     "en": "About",
     "cs": "Medailonek",
-    "note": "A short biography of an author or narrator."
+    "sk": "Medailón",
+    "hu": "Bemutatkozás",
+    "de": "Über",
+    "fr": "Biographie",
+    "es": "Biografía",
+    "it": "Biografia",
+    "note": "A short biography of an author or narrator.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.sortsAs": {
     "en": "Sorts as {name}",
-    "cs": "Řadí se jako {name}"
+    "cs": "Řadí se jako {name}",
+    "sk": "Radí sa ako {name}",
+    "hu": "Rendezési név: {name}",
+    "de": "Sortiert als {name}",
+    "fr": "Trié comme {name}",
+    "es": "Se ordena como {name}",
+    "it": "Ordinato come {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.useAutomaticPhoto": {
     "en": "Use the automatic photo instead",
-    "cs": "Použít automatickou fotku"
+    "cs": "Použít automatickou fotku",
+    "sk": "Použiť automatickú fotku",
+    "hu": "Inkább az automatikus fénykép",
+    "de": "Stattdessen das automatische Foto verwenden",
+    "fr": "Utiliser plutôt la photo automatique",
+    "es": "Usar la foto automática",
+    "it": "Usa invece la foto automatica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.removed": {
     "en": "Removed from the list",
-    "cs": "Odebráno ze seznamu"
+    "cs": "Odebráno ze seznamu",
+    "sk": "Odobrané zo zoznamu",
+    "hu": "Eltávolítva a listáról",
+    "de": "Aus der Liste entfernt",
+    "fr": "Retiré de la liste",
+    "es": "Quitado de la lista",
+    "it": "Rimosso dall’elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.photoReset": {
     "en": "Back to the automatic photo",
-    "cs": "Zpět k automatické fotce"
+    "cs": "Zpět k automatické fotce",
+    "sk": "Späť k automatickej fotke",
+    "hu": "Vissza az automatikus fényképre",
+    "de": "Zurück zum automatischen Foto",
+    "fr": "Retour à la photo automatique",
+    "es": "De vuelta a la foto automática",
+    "it": "Di nuovo con la foto automatica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.errorRemove": {
     "en": "Couldn't remove that person.",
-    "cs": "Osobu se nepodařilo odebrat."
+    "cs": "Osobu se nepodařilo odebrat.",
+    "sk": "Nepodarilo sa odobrať osobu.",
+    "hu": "Nem sikerült eltávolítani a személyt.",
+    "de": "Die Person konnte nicht entfernt werden.",
+    "fr": "Impossible de retirer cette personne.",
+    "es": "No se ha podido quitar a esa persona.",
+    "it": "Impossibile rimuovere la persona.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.errorPhoto": {
     "en": "Couldn't set that photo.",
-    "cs": "Fotku se nepodařilo nastavit."
+    "cs": "Fotku se nepodařilo nastavit.",
+    "sk": "Nepodarilo sa nastaviť fotku.",
+    "hu": "Nem sikerült beállítani a fényképet.",
+    "de": "Das Foto konnte nicht festgelegt werden.",
+    "fr": "Impossible de définir cette photo.",
+    "es": "No se ha podido poner esa foto.",
+    "it": "Impossibile impostare la foto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.errorPhotoReset": {
     "en": "Couldn't reset that photo.",
-    "cs": "Fotku se nepodařilo obnovit."
+    "cs": "Fotku se nepodařilo obnovit.",
+    "sk": "Nepodarilo sa obnoviť fotku.",
+    "hu": "Nem sikerült visszaállítani a fényképet.",
+    "de": "Das Foto konnte nicht zurückgesetzt werden.",
+    "fr": "Impossible de réinitialiser cette photo.",
+    "es": "No se ha podido restablecer la foto.",
+    "it": "Impossibile ripristinare la foto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.noBooks": {
     "en": "No books credited",
-    "cs": "Žádné knihy"
+    "cs": "Žádné knihy",
+    "sk": "Žiadne knihy",
+    "hu": "Nincs hozzá rendelt könyv",
+    "de": "Keine Hörbücher eingetragen",
+    "fr": "Aucun livre associé",
+    "es": "No hay libros",
+    "it": "Nessun libro associato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "audiobooks.person.noBooksHint": {
     "en": "Add a credit from a book's own editor.",
-    "cs": "Tvůrce přidáte v úpravách knihy."
+    "cs": "Tvůrce přidáte v úpravách knihy.",
+    "sk": "Tvorcu pridáte v úpravách knihy.",
+    "hu": "Közreműködőt egy könyv saját szerkesztőjében adhat hozzá.",
+    "de": "Füge im Editor eines Hörbuchs Mitwirkende hinzu.",
+    "fr": "Ajoutez un intervenant depuis l’éditeur d’un livre.",
+    "es": "Añade un participante desde el editor de un libro.",
+    "it": "Aggiungi un partecipante dall’editor di un libro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-
-  "audiobooks.detail.machineTranslated": {"en": "Machine-translated by Google from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.", "note": "Book detail, under the badge. {source}/{target} from common.languageInSentence; {voice} the voice's name. Same as the line the server writes into the description."},
-  "audiobooks.detail.machineTranslatedNeutral": {"en": "Machine-translated from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.", "note": "The same line when the translator is not Google (none today)."},
-  "audiobooks.detail.aiVoice": {"en": "Read by the AI voice {voice}.", "cs": "Čte hlas AI {voice}.", "note": "Book detail, under the AI voice badge, for a book narrated in its own language. {voice} the voice's name."}
+  "audiobooks.detail.machineTranslated": {
+    "en": "Machine-translated by Google from {source} to {target}, read by {voice}.",
+    "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.",
+    "sk": "Strojovo preložené Googlom z {source} do {target}, číta {voice}.",
+    "hu": "Gépi fordítás (Google), {source} → {target}, felolvassa: {voice}.",
+    "de": "Maschinell übersetzt von Google ({source} → {target}), gelesen von {voice}.",
+    "fr": "Traduction automatique par Google ({source} → {target}), lue par {voice}.",
+    "es": "Traducido automáticamente por Google del {source} al {target}, con la voz de {voice}.",
+    "it": "Traduzione automatica di Google ({source} → {target}), letta da {voice}.",
+    "note": "Book detail, under the badge. {source}/{target} from common.languageInSentence; {voice} the voice's name. Same as the line the server writes into the description.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "audiobooks.detail.machineTranslatedNeutral": {
+    "en": "Machine-translated from {source} to {target}, read by {voice}.",
+    "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.",
+    "sk": "Strojovo preložené z {source} do {target}, číta {voice}.",
+    "hu": "Gépi fordítás, {source} → {target}, felolvassa: {voice}.",
+    "de": "Maschinell übersetzt ({source} → {target}), gelesen von {voice}.",
+    "fr": "Traduction automatique ({source} → {target}), lue par {voice}.",
+    "es": "Traducido automáticamente del {source} al {target}, con la voz de {voice}.",
+    "it": "Traduzione automatica ({source} → {target}), letta da {voice}.",
+    "note": "The same line when the translator is not Google (none today).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "audiobooks.detail.aiVoice": {
+    "en": "Read by the AI voice {voice}.",
+    "cs": "Čte hlas AI {voice}.",
+    "sk": "Číta hlas AI {voice}.",
+    "hu": "Felolvassa az MI-hang: {voice}.",
+    "de": "Gelesen von der KI-Stimme {voice}.",
+    "fr": "Lu par la voix IA {voice}.",
+    "es": "Con la voz de IA {voice}.",
+    "it": "Letto dalla voce IA {voice}.",
+    "note": "Book detail, under the AI voice badge, for a book narrated in its own language. {voice} the voice's name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  }
 }

@@ -11,7 +11,6 @@ import { initLibraryCache } from './lib/libraryCache'
 import { initI18n } from './i18n'
 
 initTheme()
-initI18n()
 initHomeScreenIcon()
 
 const queryClient = new QueryClient({
@@ -33,10 +32,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   })
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <Localized />
-    </QueryClientProvider>
-  </StrictMode>,
-)
+// A language other than English or Czech is fetched first, so the first paint is in it.
+void initI18n().finally(() => {
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <QueryClientProvider client={queryClient}>
+        <Localized />
+      </QueryClientProvider>
+    </StrictMode>,
+  )
+})

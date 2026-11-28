@@ -1,172 +1,459 @@
 {
   "library.visibility.title": {
     "en": "Who can see this",
-    "cs": "Kdo to uvidí"
+    "cs": "Kdo to uvidí",
+    "sk": "Kto to uvidí",
+    "hu": "Ki láthatja?",
+    "de": "Wer sieht das?",
+    "fr": "Qui peut le voir ?",
+    "es": "¿Quién puede verlo?",
+    "it": "Chi può vederlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.visibility.private": {
     "en": "Just me",
     "cs": "Jen já",
-    "note": "Not shared with the family. Not 'private' — nothing is locked."
+    "sk": "Len ja",
+    "hu": "Csak én",
+    "de": "Nur ich",
+    "fr": "Moi uniquement",
+    "es": "Solo yo",
+    "it": "Solo io",
+    "note": "Not shared with the family. Not 'private' — nothing is locked.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.visibility.privateHint": {
     "en": "Nobody else sees it",
-    "cs": "Nikdo jiný to neuvidí"
+    "cs": "Nikdo jiný to neuvidí",
+    "sk": "Nikto iný to neuvidí",
+    "hu": "Senki más nem látja",
+    "de": "Niemand sonst sieht es",
+    "fr": "Personne d’autre ne le voit",
+    "es": "Nadie más lo ve",
+    "it": "Nessun altro lo vede",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.visibility.family": {
     "en": "My family",
-    "cs": "Moje rodina"
+    "cs": "Moje rodina",
+    "sk": "Moja rodina",
+    "hu": "A családom",
+    "de": "Meine Familie",
+    "fr": "Ma famille",
+    "es": "Mi familia",
+    "it": "La mia famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.visibility.familyHint": {
     "en": "Everyone in the family sees it",
-    "cs": "Uvidí to celá rodina"
+    "cs": "Uvidí to celá rodina",
+    "sk": "Uvidí to celá rodina",
+    "hu": "A családban mindenki látja",
+    "de": "Alle in der Familie sehen es",
+    "fr": "Toute la famille le voit",
+    "es": "Lo ve toda la familia",
+    "it": "Tutti in famiglia lo vedono",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.visibility.ownerOnly": {
     "en": "Only the person who added this can change it.",
-    "cs": "Změnit to může jen ten, kdo to přidal."
+    "cs": "Změnit to může jen ten, kdo to přidal.",
+    "sk": "Zmeniť to môže len ten, kto to pridal.",
+    "hu": "Csak az módosíthatja, aki hozzáadta.",
+    "de": "Nur die Person, die das hinzugefügt hat, kann es ändern.",
+    "fr": "Seule la personne qui l’a ajouté peut le modifier.",
+    "es": "Solo puede cambiarlo quien lo añadió.",
+    "it": "Solo chi l’ha aggiunto può modificarlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.confirmTrash.title": {
     "en": "Move “{title}” to the trash?",
-    "cs": "Přesunout „{title}“ do koše?"
+    "cs": "Přesunout „{title}“ do koše?",
+    "sk": "Presunúť „{title}“ do koša?",
+    "hu": "„{title}” áthelyezése a kukába?",
+    "de": "„{title}“ in den Papierkorb legen?",
+    "fr": "Placer « {title} » dans la corbeille ?",
+    "es": "¿Mover «{title}» a la papelera?",
+    "it": "Spostare «{title}» nel cestino?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.confirmTrash.description": {
     "en": "This belongs to another family member. It disappears for everyone, they're notified, and they can restore it for 30 days.",
-    "cs": "Patří jinému členovi rodiny. Zmizí všem, dostane o tom oznámení a může ji 30 dnů obnovit."
+    "cs": "Patří jinému členovi rodiny. Zmizí všem, dostane o tom oznámení a může ji 30 dnů obnovit.",
+    "sk": "Patrí inému členovi rodiny. Zmizne všetkým, dostane o tom oznámenie a môže to 30 dní obnoviť.",
+    "hu": "Ez egy másik családtagé. Mindenki számára eltűnik, a tulajdonosa értesítést kap, és 30 napig visszaállíthatja.",
+    "de": "Das gehört einem anderen Familienmitglied. Es verschwindet für alle, das Mitglied wird benachrichtigt und kann es 30 Tage lang wiederherstellen.",
+    "fr": "Cet élément appartient à un autre membre de la famille. Il disparaît pour tout le monde, la personne est prévenue et peut le restaurer pendant 30 jours.",
+    "es": "Pertenece a otro miembro de la familia. Desaparece para todos, se le avisa y puede restaurarlo durante 30 días.",
+    "it": "Appartiene a un altro membro della famiglia. Scompare per tutti, il proprietario riceve una notifica e può ripristinarlo per 30 giorni.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.confirmTrash.failed": {
     "en": "Couldn't move that to the trash",
-    "cs": "Přesun do koše se nezdařil"
+    "cs": "Přesun do koše se nezdařil",
+    "sk": "Nepodarilo sa presunúť do koša",
+    "hu": "Nem sikerült áthelyezni a kukába",
+    "de": "Das konnte nicht in den Papierkorb gelegt werden",
+    "fr": "Impossible de placer cet élément dans la corbeille",
+    "es": "No se ha podido mover a la papelera",
+    "it": "Impossibile spostarlo nel cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.view.grid": {
     "en": "Grid",
-    "cs": "Mřížka"
+    "cs": "Mřížka",
+    "sk": "Mriežka",
+    "hu": "Rács",
+    "de": "Raster",
+    "fr": "Grille",
+    "es": "Cuadrícula",
+    "it": "Griglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.view.list": {
     "en": "List",
-    "cs": "Seznam"
+    "cs": "Seznam",
+    "sk": "Zoznam",
+    "hu": "Lista",
+    "de": "Liste",
+    "fr": "Liste",
+    "es": "Lista",
+    "it": "Elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.sort": {
     "en": "Sort",
-    "cs": "Řadit"
+    "cs": "Řadit",
+    "sk": "Zoradiť",
+    "hu": "Rendezés",
+    "de": "Sortieren",
+    "fr": "Trier",
+    "es": "Ordenar",
+    "it": "Ordina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.filter": {
     "en": "Filter",
     "cs": "Filtrovat",
-    "note": "Placeholder of a field that narrows the list."
+    "sk": "Filtrovať",
+    "hu": "Szűrés",
+    "de": "Filtern",
+    "fr": "Filtrer",
+    "es": "Filtrar",
+    "it": "Filtra",
+    "note": "Placeholder of a field that narrows the list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.show": {
     "en": "Show",
     "cs": "Zobrazit",
-    "note": "Accessible name of a row of filter chips above a library list."
+    "sk": "Zobraziť",
+    "hu": "Megjelenítés",
+    "de": "Anzeigen",
+    "fr": "Afficher",
+    "es": "Mostrar",
+    "it": "Mostra",
+    "note": "Accessible name of a row of filter chips above a library list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.text.more": {
     "en": "More",
     "cs": "Více",
-    "note": "Expands a description cut to a few lines."
+    "sk": "Viac",
+    "hu": "Több",
+    "de": "Mehr",
+    "fr": "Plus",
+    "es": "Más",
+    "it": "Altro",
+    "note": "Expands a description cut to a few lines.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.text.less": {
     "en": "Less",
     "cs": "Méně",
-    "note": "Collapses an expanded description."
+    "sk": "Menej",
+    "hu": "Kevesebb",
+    "de": "Weniger",
+    "fr": "Moins",
+    "es": "Menos",
+    "it": "Meno",
+    "note": "Collapses an expanded description.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.card.play": {
     "en": "Play {title}",
-    "cs": "Přehrát {title}"
+    "cs": "Přehrát {title}",
+    "sk": "Prehrať {title}",
+    "hu": "Lejátszás: {title}",
+    "de": "{title} abspielen",
+    "fr": "Lire {title}",
+    "es": "Reproducir {title}",
+    "it": "Riproduci {title}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.card.pause": {
     "en": "Pause {title}",
-    "cs": "Pozastavit {title}"
+    "cs": "Pozastavit {title}",
+    "sk": "Pozastaviť {title}",
+    "hu": "Szünet: {title}",
+    "de": "{title} pausieren",
+    "fr": "Mettre en pause {title}",
+    "es": "Pausar {title}",
+    "it": "Metti in pausa {title}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.summary": {
     "en": "{listeners, number} of {total, number} in the family. Sharing decides who it reaches; each person's own permissions can still hold it back.",
-    "cs": "V rodině: {listeners, number} z {total, number}. Komu se dostane, určuje sdílení; oprávnění jednotlivých členů ho přesto mohou zadržet."
+    "cs": "V rodině: {listeners, number} z {total, number}. Komu se dostane, určuje sdílení; oprávnění jednotlivých členů ho přesto mohou zadržet.",
+    "sk": "V rodine: {listeners, number} z {total, number}. Ku komu sa dostane, určuje zdieľanie; oprávnenia jednotlivých členov ho aj tak môžu zadržať.",
+    "hu": "{listeners, number} / {total, number} fő a családból. A megosztás dönti el, kihez jut el; az egyes személyek saját jogosultságai ettől még visszatarthatják.",
+    "de": "{listeners, number} von {total, number} in der Familie. Das Teilen entscheidet, wen es erreicht; die eigenen Berechtigungen einer Person können es trotzdem zurückhalten.",
+    "fr": "{listeners, number} sur {total, number} dans la famille. Le partage décide qui y a accès ; les autorisations de chaque personne peuvent quand même le bloquer.",
+    "es": "{listeners, number} de {total, number} en la familia. Compartir decide a quién llega; los permisos de cada persona aún pueden impedírselo.",
+    "it": "{listeners, number} di {total, number} in famiglia. La condivisione decide chi raggiunge; le autorizzazioni di ciascuno possono comunque escludere qualcuno.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.locked": {
     "en": "{count, plural, one {{names} always has access} other {{names} always have access}} — the owner and family admins can't be held back from their own family's content.",
     "cs": "{count, plural, one {{names} má vždy přístup} few {{names} mají vždy přístup} other {{names} mají vždy přístup}} — vlastníkovi a správcům rodiny nelze obsah jejich vlastní rodiny odepřít.",
-    "note": "{names} is a list of people, already joined with 'and'."
+    "sk": "{count, plural, one {{names} má vždy prístup} few {{names} majú vždy prístup} other {{names} majú vždy prístup}} — vlastníkovi a správcom rodiny nemožno obsah ich vlastnej rodiny odoprieť.",
+    "hu": "{count, plural, one {{names} mindig hozzáfér} other {{names} mindig hozzáférnek}} – a tulajdonos és a család adminisztrátorai elől a saját családjuk tartalma nem zárható el.",
+    "de": "{count, plural, one {{names} hat immer Zugriff} other {{names} haben immer Zugriff}} – Inhaber und Familienadministratoren können von den Inhalten der eigenen Familie nicht ausgeschlossen werden.",
+    "fr": "{count, plural, one {{names} y a toujours accès} many {{names} y ont toujours accès} other {{names} y ont toujours accès}} — le propriétaire et les administrateurs de la famille ne peuvent pas être privés du contenu de leur propre famille.",
+    "es": "{count, plural, one {{names} siempre tiene acceso} many {{names} siempre tienen acceso} other {{names} siempre tienen acceso}}: al propietario y a los administradores de la familia no se les puede quitar el contenido de su propia familia.",
+    "it": "{count, plural, one {{names} ha sempre accesso} many {{names} hanno sempre accesso} other {{names} hanno sempre accesso}}: il proprietario e gli amministratori della famiglia non possono essere esclusi dai contenuti della propria famiglia.",
+    "note": "{names} is a list of people, already joined with 'and'.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.everyone": {
     "en": "Everyone",
-    "cs": "Všichni"
+    "cs": "Všichni",
+    "sk": "Všetci",
+    "hu": "Mindenki",
+    "de": "Alle",
+    "fr": "Tout le monde",
+    "es": "Todos",
+    "it": "Tutti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.some": {
     "en": "Just some people",
-    "cs": "Jen někteří"
+    "cs": "Jen někteří",
+    "sk": "Len niektorí",
+    "hu": "Csak néhányan",
+    "de": "Nur bestimmte Personen",
+    "fr": "Seulement certaines personnes",
+    "es": "Solo algunas personas",
+    "it": "Solo alcune persone",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.let": {
     "en": "Let {name} hear this",
-    "cs": "Povolit poslech: {name}"
+    "cs": "Povolit poslech: {name}",
+    "sk": "Povoliť počúvanie: {name}",
+    "hu": "{name} is hallhassa",
+    "de": "{name} das hören lassen",
+    "fr": "Autoriser {name} à l’écouter",
+    "es": "Dejar que {name} lo escuche",
+    "it": "Consenti a {name} di ascoltarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.audience.failed": {
     "en": "Could not change who this is for.",
-    "cs": "Nepodařilo se změnit, pro koho to je."
+    "cs": "Nepodařilo se změnit, pro koho to je.",
+    "sk": "Nepodarilo sa zmeniť, pre koho to je.",
+    "hu": "Nem sikerült módosítani, hogy kinek szól.",
+    "de": "Es konnte nicht geändert werden, für wen das ist.",
+    "fr": "Impossible de modifier les destinataires.",
+    "es": "No se ha podido cambiar para quién es.",
+    "it": "Impossibile cambiare a chi è destinato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.selected": {
     "en": "{count, plural, one {# selected} other {# selected}}",
-    "cs": "{count, plural, one {# vybraná} few {# vybrané} other {# vybraných}}"
+    "cs": "{count, plural, one {# vybraná} few {# vybrané} other {# vybraných}}",
+    "sk": "{count, plural, one {# vybraná} few {# vybrané} other {# vybraných}}",
+    "hu": "{count, plural, one {# kijelölve} other {# kijelölve}}",
+    "de": "{count, plural, one {# ausgewählt} other {# ausgewählt}}",
+    "fr": "{count, plural, one {# sélectionné} many {# sélectionnés} other {# sélectionnés}}",
+    "es": "{count, plural, one {# seleccionado} many {# seleccionados} other {# seleccionados}}",
+    "it": "{count, plural, one {# selezionato} many {# selezionati} other {# selezionati}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.notYours": {
     "en": "({count, number} not yours)",
-    "cs": "(nepatří vám: {count, number})"
+    "cs": "(nepatří vám: {count, number})",
+    "sk": "(nepatrí vám: {count, number})",
+    "hu": "({count, number} nem az Öné)",
+    "de": "({count, number} nicht von dir)",
+    "fr": "({count, number} pas à vous)",
+    "es": "({count, number} no son tuyos)",
+    "it": "({count, number} non tuoi)",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.makePrivate": {
     "en": "Make private",
-    "cs": "Nastavit jako soukromé"
+    "cs": "Nastavit jako soukromé",
+    "sk": "Nastaviť ako súkromné",
+    "hu": "Priváttá tétel",
+    "de": "Privat machen",
+    "fr": "Rendre privé",
+    "es": "Hacer privado",
+    "it": "Rendi privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.clearSelection": {
     "en": "Clear selection",
-    "cs": "Zrušit výběr"
+    "cs": "Zrušit výběr",
+    "sk": "Zrušiť výber",
+    "hu": "Kijelölés törlése",
+    "de": "Auswahl aufheben",
+    "fr": "Effacer la sélection",
+    "es": "Borrar selección",
+    "it": "Annulla selezione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.movedToTrash": {
     "en": "{count, plural, one {# moved to Trash} other {# moved to Trash}}",
-    "cs": "{count, plural, one {# položka přesunuta do koše} few {# položky přesunuty do koše} other {# položek přesunuto do koše}}"
+    "cs": "{count, plural, one {# položka přesunuta do koše} few {# položky přesunuty do koše} other {# položek přesunuto do koše}}",
+    "sk": "{count, plural, one {# položka presunutá do koša} few {# položky presunuté do koša} other {# položiek presunutých do koša}}",
+    "hu": "{count, plural, one {# áthelyezve a kukába} other {# áthelyezve a kukába}}",
+    "de": "{count, plural, one {# in den Papierkorb gelegt} other {# in den Papierkorb gelegt}}",
+    "fr": "{count, plural, one {# élément placé dans la corbeille} many {# d’éléments placés dans la corbeille} other {# éléments placés dans la corbeille}}",
+    "es": "{count, plural, one {# movido a la papelera} many {# movidos a la papelera} other {# movidos a la papelera}}",
+    "it": "{count, plural, one {# spostato nel Cestino} many {# spostati nel Cestino} other {# spostati nel Cestino}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.partlyMoved": {
     "en": "{ok, number} of {total, number} moved to Trash",
-    "cs": "Do koše přesunuto {ok, number} z {total, number}"
+    "cs": "Do koše přesunuto {ok, number} z {total, number}",
+    "sk": "Do koša presunuté: {ok, number} z {total, number}",
+    "hu": "{ok, number} / {total, number} áthelyezve a kukába",
+    "de": "{ok, number} von {total, number} in den Papierkorb gelegt",
+    "fr": "{ok, number} sur {total, number} placés dans la corbeille",
+    "es": "{ok, number} de {total, number} movidos a la papelera",
+    "it": "{ok, number} di {total, number} spostati nel Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.partlyDone": {
     "en": "{ok, number} of {total, number} done",
-    "cs": "Hotovo {ok, number} z {total, number}"
+    "cs": "Hotovo {ok, number} z {total, number}",
+    "sk": "Hotovo: {ok, number} z {total, number}",
+    "hu": "{ok, number} / {total, number} kész",
+    "de": "{ok, number} von {total, number} erledigt",
+    "fr": "{ok, number} sur {total, number} effectués",
+    "es": "{ok, number} de {total, number} hechos",
+    "it": "{ok, number} di {total, number} completati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.failedFor": {
     "en": "Didn't work for: {names}",
-    "cs": "Nepodařilo se u: {names}"
+    "cs": "Nepodařilo se u: {names}",
+    "sk": "Nepodarilo sa pri: {names}",
+    "hu": "Nem sikerült: {names}",
+    "de": "Hat nicht geklappt bei: {names}",
+    "fr": "Échec pour : {names}",
+    "es": "No ha funcionado para: {names}",
+    "it": "Non riuscito per: {names}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.failedForMore": {
     "en": "Didn't work for: {names} and {more, number} more",
-    "cs": "Nepovedlo se u: {names} a {more, plural, one {# další} few {# dalších} other {# dalších}}"
+    "cs": "Nepovedlo se u: {names} a {more, plural, one {# další} few {# dalších} other {# dalších}}",
+    "sk": "Nepodarilo sa pri: {names} a {more, plural, one {# ďalšej} few {# ďalších} other {# ďalších}}",
+    "hu": "Nem sikerült: {names} és további {more, number}",
+    "de": "Hat nicht geklappt bei: {names} und {more, number} weiteren",
+    "fr": "Échec pour : {names} et {more, number} autres",
+    "es": "No ha funcionado para: {names} y {more, number} más",
+    "it": "Non riuscito per: {names} e altri {more, number}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.shared": {
     "en": "{count, plural, one {# shared with the family} other {# shared with the family}}",
-    "cs": "{count, plural, one {# položka sdílena s rodinou} few {# položky sdíleny s rodinou} other {# položek sdíleno s rodinou}}"
+    "cs": "{count, plural, one {# položka sdílena s rodinou} few {# položky sdíleny s rodinou} other {# položek sdíleno s rodinou}}",
+    "sk": "{count, plural, one {# položka zdieľaná s rodinou} few {# položky zdieľané s rodinou} other {# položiek zdieľaných s rodinou}}",
+    "hu": "{count, plural, one {# megosztva a családdal} other {# megosztva a családdal}}",
+    "de": "{count, plural, one {# mit der Familie geteilt} other {# mit der Familie geteilt}}",
+    "fr": "{count, plural, one {# élément partagé avec la famille} many {# d’éléments partagés avec la famille} other {# éléments partagés avec la famille}}",
+    "es": "{count, plural, one {# compartido con la familia} many {# compartidos con la familia} other {# compartidos con la familia}}",
+    "it": "{count, plural, one {# condiviso con la famiglia} many {# condivisi con la famiglia} other {# condivisi con la famiglia}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.madePrivate": {
     "en": "{count, plural, one {# made private} other {# made private}}",
-    "cs": "{count, plural, one {# položka nastavena jako soukromá} few {# položky nastaveny jako soukromé} other {# položek nastaveno jako soukromé}}"
+    "cs": "{count, plural, one {# položka nastavena jako soukromá} few {# položky nastaveny jako soukromé} other {# položek nastaveno jako soukromé}}",
+    "sk": "{count, plural, one {# položka nastavená ako súkromná} few {# položky nastavené ako súkromné} other {# položiek nastavených ako súkromné}}",
+    "hu": "{count, plural, one {# priváttá téve} other {# priváttá téve}}",
+    "de": "{count, plural, one {# privat gemacht} other {# privat gemacht}}",
+    "fr": "{count, plural, one {# élément rendu privé} many {# d’éléments rendus privés} other {# éléments rendus privés}}",
+    "es": "{count, plural, one {# hecho privado} many {# hechos privados} other {# hechos privados}}",
+    "it": "{count, plural, one {# reso privato} many {# resi privati} other {# resi privati}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.deleted": {
     "en": "{count, plural, one {# deleted} other {# deleted}}",
-    "cs": "{count, plural, one {# položka smazána} few {# položky smazány} other {# položek smazáno}}"
+    "cs": "{count, plural, one {# položka smazána} few {# položky smazány} other {# položek smazáno}}",
+    "sk": "{count, plural, one {# položka zmazaná} few {# položky zmazané} other {# položiek zmazaných}}",
+    "hu": "{count, plural, one {# törölve} other {# törölve}}",
+    "de": "{count, plural, one {# gelöscht} other {# gelöscht}}",
+    "fr": "{count, plural, one {# élément supprimé} many {# d’éléments supprimés} other {# éléments supprimés}}",
+    "es": "{count, plural, one {# eliminado} many {# eliminados} other {# eliminados}}",
+    "it": "{count, plural, one {# eliminato} many {# eliminati} other {# eliminati}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.trashTitle": {
     "en": "{count, plural, one {Move # item to the trash?} other {Move # items to the trash?}}",
-    "cs": "{count, plural, one {Přesunout # položku do koše?} few {Přesunout # položky do koše?} other {Přesunout # položek do koše?}}"
+    "cs": "{count, plural, one {Přesunout # položku do koše?} few {Přesunout # položky do koše?} other {Přesunout # položek do koše?}}",
+    "sk": "{count, plural, one {Presunúť # položku do koša?} few {Presunúť # položky do koša?} other {Presunúť # položiek do koša?}}",
+    "hu": "{count, plural, one {Áthelyez # elemet a kukába?} other {Áthelyez # elemet a kukába?}}",
+    "de": "{count, plural, one {# Objekt in den Papierkorb legen?} other {# Objekte in den Papierkorb legen?}}",
+    "fr": "{count, plural, one {Placer # élément dans la corbeille ?} many {Placer # d’éléments dans la corbeille ?} other {Placer # éléments dans la corbeille ?}}",
+    "es": "{count, plural, one {¿Mover # elemento a la papelera?} many {¿Mover # de elementos a la papelera?} other {¿Mover # elementos a la papelera?}}",
+    "it": "{count, plural, one {Spostare # elemento nel cestino?} many {Spostare # di elementi nel cestino?} other {Spostare # elementi nel cestino?}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.trashBody": {
     "en": "They disappear for everyone they're shared with. You can restore them from the trash for 30 days.",
-    "cs": "Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit."
+    "cs": "Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit.",
+    "sk": "Zmiznú všetkým, s ktorými sú zdieľané. Z koša ich môžete 30 dní obnoviť.",
+    "hu": "Mindenki számára eltűnnek, akivel meg vannak osztva. 30 napig visszaállíthatja őket a kukából.",
+    "de": "Sie verschwinden für alle, mit denen sie geteilt sind. Du kannst sie 30 Tage lang aus dem Papierkorb wiederherstellen.",
+    "fr": "Ils disparaissent pour toutes les personnes avec qui ils sont partagés. Vous pouvez les restaurer depuis la corbeille pendant 30 jours.",
+    "es": "Desaparecen para todas las personas con quienes se comparten. Puedes restaurarlos desde la papelera durante 30 días.",
+    "it": "Scompaiono per tutte le persone con cui sono condivisi. Puoi ripristinarli dal cestino per 30 giorni.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.trashBodyOthers": {
     "en": "{count, plural, one {They disappear for everyone they're shared with. You can restore them from the trash for 30 days. One of them belongs to another family member, who will be notified.} other {They disappear for everyone they're shared with. You can restore them from the trash for 30 days. # of them belong to other family members, who will be notified.}}",
-    "cs": "{count, plural, one {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. Jedna z nich patří jinému členovi rodiny, který dostane oznámení.} few {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.} other {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.}}"
+    "cs": "{count, plural, one {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. Jedna z nich patří jinému členovi rodiny, který dostane oznámení.} few {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.} other {Zmizí všem, s nimiž jsou sdílené. Z koše je můžete 30 dnů obnovit. # z nich patří jiným členům rodiny, kteří dostanou oznámení.}}",
+    "sk": "{count, plural, one {Zmiznú všetkým, s ktorými sú zdieľané. Z koša ich môžete 30 dní obnoviť. Jedna z nich patrí inému členovi rodiny, ktorý dostane oznámenie.} few {Zmiznú všetkým, s ktorými sú zdieľané. Z koša ich môžete 30 dní obnoviť. # z nich patria iným členom rodiny, ktorí dostanú oznámenie.} other {Zmiznú všetkým, s ktorými sú zdieľané. Z koša ich môžete 30 dní obnoviť. # z nich patrí iným členom rodiny, ktorí dostanú oznámenie.}}",
+    "hu": "{count, plural, one {Mindenki számára eltűnnek, akivel meg vannak osztva. 30 napig visszaállíthatja őket a kukából. Az egyik egy másik családtagé, aki értesítést kap.} other {Mindenki számára eltűnnek, akivel meg vannak osztva. 30 napig visszaállíthatja őket a kukából. Közülük # más családtagoké, akik értesítést kapnak.}}",
+    "de": "{count, plural, one {Sie verschwinden für alle, mit denen sie geteilt sind. Du kannst sie 30 Tage lang aus dem Papierkorb wiederherstellen. Eines davon gehört einem anderen Familienmitglied, das benachrichtigt wird.} other {Sie verschwinden für alle, mit denen sie geteilt sind. Du kannst sie 30 Tage lang aus dem Papierkorb wiederherstellen. # davon gehören anderen Familienmitgliedern, die benachrichtigt werden.}}",
+    "fr": "{count, plural, one {Ils disparaissent pour toutes les personnes avec qui ils sont partagés. Vous pouvez les restaurer depuis la corbeille pendant 30 jours. L’un d’eux appartient à un autre membre de la famille, qui sera prévenu.} many {Ils disparaissent pour toutes les personnes avec qui ils sont partagés. Vous pouvez les restaurer depuis la corbeille pendant 30 jours. # d’entre eux appartiennent à d’autres membres de la famille, qui seront prévenus.} other {Ils disparaissent pour toutes les personnes avec qui ils sont partagés. Vous pouvez les restaurer depuis la corbeille pendant 30 jours. # d’entre eux appartiennent à d’autres membres de la famille, qui seront prévenus.}}",
+    "es": "{count, plural, one {Desaparecen para todas las personas con quienes se comparten. Puedes restaurarlos desde la papelera durante 30 días. Uno de ellos pertenece a otro miembro de la familia, al que se avisará.} many {Desaparecen para todas las personas con quienes se comparten. Puedes restaurarlos desde la papelera durante 30 días. # de ellos pertenecen a otros miembros de la familia, a los que se avisará.} other {Desaparecen para todas las personas con quienes se comparten. Puedes restaurarlos desde la papelera durante 30 días. # de ellos pertenecen a otros miembros de la familia, a los que se avisará.}}",
+    "it": "{count, plural, one {Scompaiono per tutte le persone con cui sono condivisi. Puoi ripristinarli dal cestino per 30 giorni. Uno di essi appartiene a un altro membro della famiglia, che riceverà una notifica.} many {Scompaiono per tutte le persone con cui sono condivisi. Puoi ripristinarli dal cestino per 30 giorni. # di essi appartengono ad altri membri della famiglia, che riceveranno una notifica.} other {Scompaiono per tutte le persone con cui sono condivisi. Puoi ripristinarli dal cestino per 30 giorni. # di essi appartengono ad altri membri della famiglia, che riceveranno una notifica.}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.deleteTitle": {
     "en": "{count, plural, one {Delete # item?} other {Delete # items?}}",
-    "cs": "{count, plural, one {Smazat # položku?} few {Smazat # položky?} other {Smazat # položek?}}"
+    "cs": "{count, plural, one {Smazat # položku?} few {Smazat # položky?} other {Smazat # položek?}}",
+    "sk": "{count, plural, one {Zmazať # položku?} few {Zmazať # položky?} other {Zmazať # položiek?}}",
+    "hu": "{count, plural, one {Töröl # elemet?} other {Töröl # elemet?}}",
+    "de": "{count, plural, one {# Objekt löschen?} other {# Objekte löschen?}}",
+    "fr": "{count, plural, one {Supprimer # élément ?} many {Supprimer # d’éléments ?} other {Supprimer # éléments ?}}",
+    "es": "{count, plural, one {¿Eliminar # elemento?} many {¿Eliminar # de elementos?} other {¿Eliminar # elementos?}}",
+    "it": "{count, plural, one {Eliminare # elemento?} many {Eliminare # di elementi?} other {Eliminare # elementi?}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "library.batch.deleteBody": {
     "en": "This removes them from the library for everyone they're shared with. It can't be undone.",
-    "cs": "Odebere je z knihovny všem, s nimiž jsou sdílené. Nelze to vrátit."
+    "cs": "Odebere je z knihovny všem, s nimiž jsou sdílené. Nelze to vrátit.",
+    "sk": "Odoberie ich to z knižnice všetkým, s ktorými sú zdieľané. Nedá sa to vrátiť.",
+    "hu": "Ezzel eltávolítja őket a könyvtárból mindenki számára, akivel meg vannak osztva. Ez nem vonható vissza.",
+    "de": "Damit werden sie für alle, mit denen sie geteilt sind, aus der Mediathek entfernt. Das lässt sich nicht rückgängig machen.",
+    "fr": "Ils seront retirés de la bibliothèque pour toutes les personnes avec qui ils sont partagés. Cette action est irréversible.",
+    "es": "Esto los quita de la biblioteca para todas las personas con quienes se comparten. No se puede deshacer.",
+    "it": "Vengono rimossi dalla libreria per tutte le persone con cui sono condivisi. Non si può annullare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

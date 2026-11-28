@@ -1,387 +1,1038 @@
 {
   "stats.page.title": {
     "en": "Stats",
-    "cs": "Statistiky"
+    "cs": "Statistiky",
+    "sk": "Štatistiky",
+    "hu": "Statisztika",
+    "de": "Statistik",
+    "fr": "Statistiques",
+    "es": "Estadísticas",
+    "it": "Statistiche",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.range.week": {
     "en": "Week",
-    "cs": "Týden"
+    "cs": "Týden",
+    "sk": "Týždeň",
+    "hu": "Hét",
+    "de": "Woche",
+    "fr": "Semaine",
+    "es": "Semana",
+    "it": "Settimana",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.range.month": {
     "en": "Month",
-    "cs": "Měsíc"
+    "cs": "Měsíc",
+    "sk": "Mesiac",
+    "hu": "Hónap",
+    "de": "Monat",
+    "fr": "Mois",
+    "es": "Mes",
+    "it": "Mese",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.range.quarter": {
     "en": "Quarter",
-    "cs": "Čtvrtletí"
+    "cs": "Čtvrtletí",
+    "sk": "Štvrťrok",
+    "hu": "Negyedév",
+    "de": "Quartal",
+    "fr": "Trimestre",
+    "es": "Trimestre",
+    "it": "Trimestre",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.range.year": {
     "en": "Year",
-    "cs": "Rok"
+    "cs": "Rok",
+    "sk": "Rok",
+    "hu": "Év",
+    "de": "Jahr",
+    "fr": "Année",
+    "es": "Año",
+    "it": "Anno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.range.all": {
     "en": "All time",
     "cs": "Celou dobu",
-    "note": "Range picker segment; also shown as the hint under Listened."
+    "sk": "Celý čas",
+    "hu": "Mindenkori",
+    "de": "Gesamt",
+    "fr": "Depuis le début",
+    "es": "Desde siempre",
+    "it": "Sempre",
+    "note": "Range picker segment; also shown as the hint under Listened.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.listened": {
     "en": "Listened",
-    "cs": "Poslech"
+    "cs": "Poslech",
+    "sk": "Počúvanie",
+    "hu": "Hallgatva",
+    "de": "Gehört",
+    "fr": "Écouté",
+    "es": "Escuchado",
+    "it": "Ascoltato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.streak": {
     "en": "Streak",
-    "cs": "Série"
+    "cs": "Série",
+    "sk": "Séria",
+    "hu": "Sorozat",
+    "de": "Serie",
+    "fr": "Série",
+    "es": "Racha",
+    "it": "Serie",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.streakValue": {
     "en": "{count, plural, one {# day} other {# days}}",
-    "cs": "{count, plural, one {# den} few {# dny} other {# dní}}"
+    "cs": "{count, plural, one {# den} few {# dny} other {# dní}}",
+    "sk": "{count, plural, one {# deň} few {# dni} other {# dní}}",
+    "hu": "{count, plural, one {# nap} other {# nap}}",
+    "de": "{count, plural, one {# Tag} other {# Tage}}",
+    "fr": "{count, plural, one {# jour} many {# de jours} other {# jours}}",
+    "es": "{count, plural, one {# día} many {# de días} other {# días}}",
+    "it": "{count, plural, one {# giorno} many {# di giorni} other {# giorni}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.streakHint": {
     "en": "Days in a row with any listening",
-    "cs": "Dny v řadě s jakýmkoli poslechem"
+    "cs": "Dny v řadě s jakýmkoli poslechem",
+    "sk": "Dni za sebou s akýmkoľvek počúvaním",
+    "hu": "Egymást követő napok, amikor hallgatott valamit",
+    "de": "Tage in Folge, an denen du etwas gehört hast",
+    "fr": "Jours d’affilée avec au moins une écoute",
+    "es": "Días seguidos con alguna escucha",
+    "it": "Giorni di fila con almeno un ascolto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.booksFinished": {
     "en": "Books finished",
-    "cs": "Dokončené knihy"
+    "cs": "Dokončené knihy",
+    "sk": "Dokončené knihy",
+    "hu": "Befejezett könyvek",
+    "de": "Beendete Bücher",
+    "fr": "Livres terminés",
+    "es": "Libros terminados",
+    "it": "Libri finiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.stat.booksFinishedHint": {
     "en": "All time, whatever range is picked",
-    "cs": "Za celou dobu, bez ohledu na zvolené období"
+    "cs": "Za celou dobu, bez ohledu na zvolené období",
+    "sk": "Za celý čas, bez ohľadu na zvolené obdobie",
+    "hu": "Mindenkori, a választott időszaktól függetlenül",
+    "de": "Gesamt, unabhängig vom gewählten Zeitraum",
+    "fr": "Depuis le début, quelle que soit la période choisie",
+    "es": "Desde siempre, sea cual sea el periodo elegido",
+    "it": "Da sempre, qualunque sia il periodo scelto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrappedCard.title": {
     "en": "Your year, wrapped",
-    "cs": "Váš rok v kostce"
+    "cs": "Váš rok v kostce",
+    "sk": "Váš rok v kocke",
+    "hu": "Az Ön éve dióhéjban",
+    "de": "Dein Jahr im Rückblick",
+    "fr": "Votre année en bref",
+    "es": "Tu año en resumen",
+    "it": "Il tuo anno in breve",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrappedCard.description": {
     "en": "The last 12 months as a story: favorites, records, your rhythm and your family.",
-    "cs": "Posledních 12 měsíců jako příběh: oblíbené, rekordy, váš rytmus a vaše rodina."
+    "cs": "Posledních 12 měsíců jako příběh: oblíbené, rekordy, váš rytmus a vaše rodina.",
+    "sk": "Posledných 12 mesiacov ako príbeh: obľúbené, rekordy, váš rytmus a vaša rodina.",
+    "hu": "Az elmúlt 12 hónap történetként: kedvencek, rekordok, az Ön ritmusa és a családja.",
+    "de": "Die letzten 12 Monate als Geschichte: Favoriten, Rekorde, dein Rhythmus und deine Familie.",
+    "fr": "Les 12 derniers mois racontés comme une histoire : favoris, records, votre rythme et votre famille.",
+    "es": "Los últimos 12 meses como una historia: favoritos, récords, tu ritmo y tu familia.",
+    "it": "Gli ultimi 12 mesi come una storia: preferiti, record, il tuo ritmo e la tua famiglia.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.empty.title": {
     "en": "Nothing here yet",
-    "cs": "Zatím je tu prázdno"
+    "cs": "Zatím je tu prázdno",
+    "sk": "Zatiaľ je tu prázdno",
+    "hu": "Itt még nincs semmi",
+    "de": "Hier ist noch nichts",
+    "fr": "Rien ici pour l’instant",
+    "es": "Aún no hay nada aquí",
+    "it": "Ancora niente qui",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.empty.description": {
     "en": "Play something and it shows up here — the numbers come from what you actually listened to, not what you opened.",
-    "cs": "Pusťte si něco a objeví se to tady — čísla vycházejí z toho, co jste opravdu poslouchali, ne z toho, co jste otevřeli."
+    "cs": "Pusťte si něco a objeví se to tady — čísla vycházejí z toho, co jste opravdu poslouchali, ne z toho, co jste otevřeli.",
+    "sk": "Pustite si niečo a objaví sa to tu — čísla vychádzajú z toho, čo ste naozaj počúvali, nie z toho, čo ste otvorili.",
+    "hu": "Játsszon le valamit, és itt megjelenik — a számok abból jönnek, amit ténylegesen meghallgatott, nem abból, amit megnyitott.",
+    "de": "Spiel etwas ab, und es erscheint hier – die Zahlen beruhen auf dem, was du wirklich gehört hast, nicht auf dem, was du geöffnet hast.",
+    "fr": "Lisez quelque chose et cela apparaîtra ici : les chiffres viennent de ce que vous avez réellement écouté, pas de ce que vous avez ouvert.",
+    "es": "Reproduce algo y aparecerá aquí: las cifras salen de lo que has escuchado de verdad, no de lo que has abierto.",
+    "it": "Riproduci qualcosa e comparirà qui: i numeri vengono da ciò che hai davvero ascoltato, non da ciò che hai aperto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.kinds.title": {
     "en": "What you listened to",
-    "cs": "Co jste poslouchali"
+    "cs": "Co jste poslouchali",
+    "sk": "Čo ste počúvali",
+    "hu": "Mit hallgatott",
+    "de": "Was du gehört hast",
+    "fr": "Ce que vous avez écouté",
+    "es": "Lo que has escuchado",
+    "it": "Cosa hai ascoltato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.top.title": {
     "en": "Most listened",
-    "cs": "Nejposlouchanější"
+    "cs": "Nejposlouchanější",
+    "sk": "Najpočúvanejšie",
+    "hu": "A legtöbbet hallgatott",
+    "de": "Am meisten gehört",
+    "fr": "Les plus écoutés",
+    "es": "Lo más escuchado",
+    "it": "I più ascoltati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.deletedItem": {
     "en": "Deleted item",
-    "cs": "Smazaná položka"
+    "cs": "Smazaná položka",
+    "sk": "Zmazaná položka",
+    "hu": "Törölt elem",
+    "de": "Gelöschter Eintrag",
+    "fr": "Élément supprimé",
+    "es": "Elemento eliminado",
+    "it": "Elemento eliminato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.lastYear.title": {
     "en": "Last 12 months",
-    "cs": "Posledních 12 měsíců"
+    "cs": "Posledních 12 měsíců",
+    "sk": "Posledných 12 mesiacov",
+    "hu": "Az elmúlt 12 hónap",
+    "de": "Letzte 12 Monate",
+    "fr": "12 derniers mois",
+    "es": "Últimos 12 meses",
+    "it": "Ultimi 12 mesi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.history.title": {
     "en": "History",
-    "cs": "Historie"
+    "cs": "Historie",
+    "sk": "História",
+    "hu": "Előzmények",
+    "de": "Verlauf",
+    "fr": "Historique",
+    "es": "Historial",
+    "it": "Cronologia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.history.empty": {
     "en": "Nothing recorded yet.",
-    "cs": "Zatím nic nezaznamenáno."
+    "cs": "Zatím nic nezaznamenáno.",
+    "sk": "Zatiaľ nič nezaznamenané.",
+    "hu": "Még nincs rögzítve semmi.",
+    "de": "Noch nichts aufgezeichnet.",
+    "fr": "Rien d’enregistré pour l’instant.",
+    "es": "Aún no hay nada registrado.",
+    "it": "Ancora niente di registrato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.history.line": {
     "en": "{when} · {device}",
-    "cs": "{when} · {device}"
+    "cs": "{when} · {device}",
+    "sk": "{when} · {device}",
+    "hu": "{when} · {device}",
+    "de": "{when} · {device}",
+    "fr": "{when} · {device}",
+    "es": "{when} · {device}",
+    "it": "{when} · {device}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.history.lineEstimated": {
     "en": "{when} · {device} · estimated",
     "cs": "{when} · {device} · odhad",
-    "note": "The server inferred this session from a saved position."
+    "sk": "{when} · {device} · odhad",
+    "hu": "{when} · {device} · becsült",
+    "de": "{when} · {device} · geschätzt",
+    "fr": "{when} · {device} · estimé",
+    "es": "{when} · {device} · estimado",
+    "it": "{when} · {device} · stimato",
+    "note": "The server inferred this session from a saved position.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.family.title": {
     "en": "Your family",
-    "cs": "Vaše rodina"
+    "cs": "Vaše rodina",
+    "sk": "Vaša rodina",
+    "hu": "Az Ön családja",
+    "de": "Deine Familie",
+    "fr": "Votre famille",
+    "es": "Tu familia",
+    "it": "La tua famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.family.keepsPrivate": {
     "en": "Keeps their listening private",
-    "cs": "Poslech má soukromý"
+    "cs": "Poslech má soukromý",
+    "sk": "Počúvanie má súkromné",
+    "hu": "Nem osztja meg a hallgatási adatait",
+    "de": "Behält das eigene Hören für sich",
+    "fr": "Garde ses écoutes privées",
+    "es": "Mantiene su escucha en privado",
+    "it": "Tiene privati i propri ascolti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.family.nothingYet": {
     "en": "Nothing yet",
-    "cs": "Zatím nic"
+    "cs": "Zatím nic",
+    "sk": "Zatiaľ nič",
+    "hu": "Még semmi",
+    "de": "Noch nichts",
+    "fr": "Rien pour l’instant",
+    "es": "Aún nada",
+    "it": "Ancora niente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.family.kindTime": {
     "en": "{kind} {time}",
     "cs": "{kind} {time}",
-    "note": "One kind in a member's row, e.g. Music 3 h 20 min."
+    "sk": "{kind} {time}",
+    "hu": "{kind} {time}",
+    "de": "{kind} {time}",
+    "fr": "{kind} {time}",
+    "es": "{kind} {time}",
+    "it": "{kind} {time}",
+    "note": "One kind in a member's row, e.g. Music 3 h 20 min.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.family.private": {
     "en": "Private",
-    "cs": "Soukromé"
+    "cs": "Soukromé",
+    "sk": "Súkromné",
+    "hu": "Nem megosztott",
+    "de": "Privat",
+    "fr": "Privé",
+    "es": "Privado",
+    "it": "Privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.title": {
     "en": "Who can see your listening",
-    "cs": "Kdo vidí váš poslech"
+    "cs": "Kdo vidí váš poslech",
+    "sk": "Kto vidí vaše počúvanie",
+    "hu": "Ki láthatja a hallgatási adatait",
+    "de": "Wer sieht, was du hörst?",
+    "fr": "Qui peut voir vos écoutes",
+    "es": "Quién puede ver lo que escuchas",
+    "it": "Chi può vedere i tuoi ascolti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.description": {
     "en": "Family admins can see totals, never what you played. Turn this off and they see a row with no numbers.",
-    "cs": "Správci rodiny vidí jen součty, nikdy ne to, co jste přehráli. Když to vypnete, uvidí řádek bez čísel."
+    "cs": "Správci rodiny vidí jen součty, nikdy ne to, co jste přehráli. Když to vypnete, uvidí řádek bez čísel.",
+    "sk": "Správcovia rodiny vidia iba súčty, nikdy nie to, čo ste prehrali. Keď to vypnete, uvidia riadok bez čísel.",
+    "hu": "A család adminisztrátorai az összesítéseket látják, azt soha, hogy mit játszott le. Ha ezt kikapcsolja, egy számok nélküli sort látnak.",
+    "de": "Administratoren der Familie sehen Summen, nie, was du gespielt hast. Schaltest du das aus, sehen sie eine Zeile ohne Zahlen.",
+    "fr": "Les administrateurs de la famille voient les totaux, jamais ce que vous avez écouté. Désactivez ceci et ils verront une ligne sans chiffres.",
+    "es": "Los administradores de la familia pueden ver los totales, nunca lo que has reproducido. Si lo desactivas, verán una fila sin cifras.",
+    "it": "Gli amministratori della famiglia vedono i totali, mai cosa hai riprodotto. Se lo disattivi, vedono una riga senza numeri.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.share": {
     "en": "Share totals",
-    "cs": "Sdílet součty"
+    "cs": "Sdílet součty",
+    "sk": "Zdieľať súčty",
+    "hu": "Összesítések megosztása",
+    "de": "Summen teilen",
+    "fr": "Partager les totaux",
+    "es": "Compartir totales",
+    "it": "Condividi i totali",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.keepPrivate": {
     "en": "Keep private",
-    "cs": "Nechat soukromé"
+    "cs": "Nechat soukromé",
+    "sk": "Nechať súkromné",
+    "hu": "Priváttá tétel",
+    "de": "Privat halten",
+    "fr": "Garder privé",
+    "es": "Mantener en privado",
+    "it": "Mantieni privati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.nowPrivate": {
     "en": "Your listening is private",
-    "cs": "Váš poslech je soukromý"
+    "cs": "Váš poslech je soukromý",
+    "sk": "Vaše počúvanie je súkromné",
+    "hu": "A hallgatási adatait nem osztja meg",
+    "de": "Was du hörst, ist jetzt privat",
+    "fr": "Vos écoutes sont privées",
+    "es": "Tu escucha es privada",
+    "it": "I tuoi ascolti sono privati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.nowShared": {
     "en": "Family admins can see your totals",
-    "cs": "Správci rodiny vidí vaše součty"
+    "cs": "Správci rodiny vidí vaše součty",
+    "sk": "Správcovia rodiny vidia vaše súčty",
+    "hu": "A család adminisztrátorai látják az összesítéseit",
+    "de": "Administratoren der Familie sehen deine Summen",
+    "fr": "Les administrateurs de la famille peuvent voir vos totaux",
+    "es": "Los administradores de la familia pueden ver tus totales",
+    "it": "Gli amministratori della famiglia possono vedere i tuoi totali",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.visibility.error": {
     "en": "Couldn't change that",
-    "cs": "Nepodařilo se to změnit"
+    "cs": "Nepodařilo se to změnit",
+    "sk": "Nepodarilo sa to zmeniť",
+    "hu": "Nem sikerült módosítani",
+    "de": "Das konnte nicht geändert werden",
+    "fr": "Impossible de modifier ce réglage",
+    "es": "No se ha podido cambiar",
+    "it": "Impossibile modificarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.web": {
     "en": "the web",
     "cs": "Web",
-    "note": "Device a session was played on, shown in a list."
+    "sk": "web",
+    "hu": "web",
+    "de": "Web",
+    "fr": "le web",
+    "es": "la web",
+    "it": "il web",
+    "note": "Device a session was played on, shown in a list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.ios": {
     "en": "iPhone",
-    "cs": "iPhone"
+    "cs": "iPhone",
+    "sk": "iPhone",
+    "hu": "iPhone",
+    "de": "iPhone",
+    "fr": "iPhone",
+    "es": "iPhone",
+    "it": "iPhone",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.android": {
     "en": "Android",
-    "cs": "Android"
+    "cs": "Android",
+    "sk": "Android",
+    "hu": "Android",
+    "de": "Android",
+    "fr": "Android",
+    "es": "Android",
+    "it": "Android",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.macos": {
     "en": "Mac",
-    "cs": "Mac"
+    "cs": "Mac",
+    "sk": "Mac",
+    "hu": "Mac",
+    "de": "Mac",
+    "fr": "Mac",
+    "es": "Mac",
+    "it": "Mac",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.windows": {
     "en": "Windows",
-    "cs": "Windows"
+    "cs": "Windows",
+    "sk": "Windows",
+    "hu": "Windows",
+    "de": "Windows",
+    "fr": "Windows",
+    "es": "Windows",
+    "it": "Windows",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.tvos": {
     "en": "Apple TV",
-    "cs": "Apple TV"
+    "cs": "Apple TV",
+    "sk": "Apple TV",
+    "hu": "Apple TV",
+    "de": "Apple TV",
+    "fr": "Apple TV",
+    "es": "Apple TV",
+    "it": "Apple TV",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.subsonic": {
     "en": "a Subsonic app",
-    "cs": "Aplikace Subsonic"
+    "cs": "Aplikace Subsonic",
+    "sk": "aplikácia Subsonic",
+    "hu": "Subsonic-alkalmazás",
+    "de": "eine Subsonic-App",
+    "fr": "une app Subsonic",
+    "es": "una app Subsonic",
+    "it": "un’app Subsonic",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.device.other": {
     "en": "unrecognized apps",
-    "cs": "Nerozpoznané aplikace"
+    "cs": "Nerozpoznané aplikace",
+    "sk": "nerozpoznané aplikácie",
+    "hu": "ismeretlen alkalmazások",
+    "de": "nicht erkannte Apps",
+    "fr": "des apps non reconnues",
+    "es": "apps no reconocidas",
+    "it": "app non riconosciute",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.unavailable": {
     "en": "Listening figures aren't available right now.",
-    "cs": "Údaje o poslechu teď nejsou k dispozici."
+    "cs": "Údaje o poslechu teď nejsou k dispozici.",
+    "sk": "Údaje o počúvaní teraz nie sú k dispozícii.",
+    "hu": "A hallgatási adatok jelenleg nem érhetők el.",
+    "de": "Hörzahlen sind gerade nicht verfügbar.",
+    "fr": "Les chiffres d’écoute ne sont pas disponibles pour le moment.",
+    "es": "Los datos de escucha no están disponibles ahora mismo.",
+    "it": "I dati di ascolto non sono disponibili al momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.perDay": {
     "en": "{time} a day on average",
-    "cs": "{time} denně v průměru"
+    "cs": "{time} denně v průměru",
+    "sk": "{time} denne v priemere",
+    "hu": "naponta átlagosan {time}",
+    "de": "{time} pro Tag im Schnitt",
+    "fr": "{time} par jour en moyenne",
+    "es": "{time} al día de media",
+    "it": "{time} al giorno in media",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.legend": {
     "en": "Legend",
-    "cs": "Legenda"
+    "cs": "Legenda",
+    "sk": "Legenda",
+    "hu": "Jelmagyarázat",
+    "de": "Legende",
+    "fr": "Légende",
+    "es": "Leyenda",
+    "it": "Legenda",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.listening": {
     "en": "Listening",
     "cs": "Poslech",
-    "note": "The one series when the server sends no split by kind."
+    "sk": "Počúvanie",
+    "hu": "Hallgatás",
+    "de": "Hören",
+    "fr": "Écoute",
+    "es": "Escucha",
+    "it": "Ascolto",
+    "note": "The one series when the server sends no split by kind.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.weekOf": {
     "en": "Week of {date}",
-    "cs": "Týden od {date}"
+    "cs": "Týden od {date}",
+    "sk": "Týždeň od {date}",
+    "hu": "{date} kezdetű hét",
+    "de": "Woche vom {date}",
+    "fr": "Semaine du {date}",
+    "es": "Semana del {date}",
+    "it": "Settimana del {date}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.total": {
     "en": "Total",
-    "cs": "Celkem"
+    "cs": "Celkem",
+    "sk": "Celkom",
+    "hu": "Összesen",
+    "de": "Gesamt",
+    "fr": "Total",
+    "es": "Total",
+    "it": "Totale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.none": {
     "en": "none",
-    "cs": "nic"
+    "cs": "nic",
+    "sk": "nič",
+    "hu": "nincs",
+    "de": "nichts",
+    "fr": "aucune",
+    "es": "nada",
+    "it": "niente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.barPart": {
     "en": "{kind} {time}",
-    "cs": "{kind} {time}"
+    "cs": "{kind} {time}",
+    "sk": "{kind} {time}",
+    "hu": "{kind} {time}",
+    "de": "{kind} {time}",
+    "fr": "{kind} {time}",
+    "es": "{kind} {time}",
+    "it": "{kind} {time}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.barLabel": {
     "en": "{title}: {parts}; total {total}",
     "cs": "{title}: {parts}; celkem {total}",
-    "note": "Screen-reader label of one bar; parts is a list like Music 20 min, Podcasts none."
+    "sk": "{title}: {parts}; celkom {total}",
+    "hu": "{title}: {parts}; összesen {total}",
+    "de": "{title}: {parts}; gesamt {total}",
+    "fr": "{title} : {parts} ; total {total}",
+    "es": "{title}: {parts}; total {total}",
+    "it": "{title}: {parts}; totale {total}",
+    "note": "Screen-reader label of one bar; parts is a list like Music 20 min, Podcasts none.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.axisMinutes": {
     "en": "{n}m",
     "cs": "{n}m",
-    "note": "Y-axis tick, minutes; the axis is very narrow."
+    "sk": "{n}m",
+    "hu": "{n}p",
+    "de": "{n}min",
+    "fr": "{n} min",
+    "es": "{n} min",
+    "it": "{n}m",
+    "note": "Y-axis tick, minutes; the axis is very narrow.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.chart.axisHours": {
     "en": "{n}h",
     "cs": "{n}h",
-    "note": "Y-axis tick, hours; the axis is very narrow."
+    "sk": "{n}h",
+    "hu": "{n}ó",
+    "de": "{n}h",
+    "fr": "{n} h",
+    "es": "{n} h",
+    "it": "{n}h",
+    "note": "Y-axis tick, hours; the axis is very narrow.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.title": {
     "en": "Your listening, wrapped",
     "cs": "Váš poslech v kostce",
-    "note": "Hidden dialog title for screen readers."
+    "sk": "Vaše počúvanie v kocke",
+    "hu": "Az Ön hallgatásai dióhéjban",
+    "de": "Dein Hören im Rückblick",
+    "fr": "Vos écoutes en bref",
+    "es": "Lo que has escuchado, en resumen",
+    "it": "I tuoi ascolti in breve",
+    "note": "Hidden dialog title for screen readers.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.brand": {
     "en": "own.audio wrapped",
-    "cs": "own.audio v kostce"
+    "cs": "own.audio v kostce",
+    "sk": "own.audio v kocke",
+    "hu": "own.audio dióhéjban",
+    "de": "own.audio im Rückblick",
+    "fr": "own.audio en bref",
+    "es": "own.audio en resumen",
+    "it": "own.audio in breve",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.loading": {
     "en": "Putting your year together…",
-    "cs": "Skládáme váš rok…"
+    "cs": "Skládáme váš rok…",
+    "sk": "Skladáme váš rok…",
+    "hu": "Összeállítjuk az évét…",
+    "de": "Dein Jahr wird zusammengestellt …",
+    "fr": "Préparation de votre année…",
+    "es": "Preparando tu año…",
+    "it": "Stiamo mettendo insieme il tuo anno…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.counter": {
     "en": "{index, number} / {total, number}",
-    "cs": "{index, number} / {total, number}"
+    "cs": "{index, number} / {total, number}",
+    "sk": "{index, number} / {total, number}",
+    "hu": "{index, number} / {total, number}",
+    "de": "{index, number} / {total, number}",
+    "fr": "{index, number} / {total, number}",
+    "es": "{index, number} / {total, number}",
+    "it": "{index, number} / {total, number}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.lastYear": {
     "en": "Your last 12 months",
-    "cs": "Vašich posledních 12 měsíců"
+    "cs": "Vašich posledních 12 měsíců",
+    "sk": "Vašich posledných 12 mesiacov",
+    "hu": "Az Ön elmúlt 12 hónapja",
+    "de": "Deine letzten 12 Monate",
+    "fr": "Vos 12 derniers mois",
+    "es": "Tus últimos 12 meses",
+    "it": "I tuoi ultimi 12 mesi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.empty": {
     "en": "Nothing to wrap yet. Play something, and come back when there's a story to tell.",
-    "cs": "Zatím není co shrnout. Pusťte si něco a vraťte se, až bude o čem vyprávět."
+    "cs": "Zatím není co shrnout. Pusťte si něco a vraťte se, až bude o čem vyprávět.",
+    "sk": "Zatiaľ nie je čo zhrnúť. Pustite si niečo a vráťte sa, keď bude o čom rozprávať.",
+    "hu": "Még nincs miről összefoglalót készíteni. Játsszon le valamit, és jöjjön vissza, amikor már van mit mesélni.",
+    "de": "Noch nichts für einen Rückblick. Spiel etwas ab und komm wieder, wenn es eine Geschichte zu erzählen gibt.",
+    "fr": "Rien à résumer pour l’instant. Écoutez quelque chose, et revenez quand il y aura une histoire à raconter.",
+    "es": "Aún no hay nada que resumir. Reproduce algo y vuelve cuando haya una historia que contar.",
+    "it": "Ancora niente da riassumere. Riproduci qualcosa e torna quando ci sarà una storia da raccontare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.totalKinds": {
     "en": "of audiobooks, podcasts and music.",
     "cs": "audioknih, podcastů a hudby.",
-    "note": "Follows a big figure like 120 h."
+    "sk": "audiokníh, podcastov a hudby.",
+    "hu": "hangoskönyv, podcast és zene.",
+    "de": "Hörbücher, Podcasts und Musik.",
+    "fr": "de livres audio, de podcasts et de musique.",
+    "es": "de audiolibros, pódcasts y música.",
+    "it": "di audiolibri, podcast e musica.",
+    "note": "Follows a big figure like 120 h.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.totalKindsDays": {
     "en": "of audiobooks, podcasts and music — {days, plural, one {# whole day} other {# whole days}} without a break.",
     "cs": "audioknih, podcastů a hudby — {days, plural, one {# celý den} few {# celé dny} other {# celých dní}} v kuse.",
-    "note": "Follows a big figure like 120 h."
+    "sk": "audiokníh, podcastov a hudby — {days, plural, one {# celý deň} few {# celé dni} other {# celých dní}} v kuse.",
+    "hu": "hangoskönyv, podcast és zene — {days, plural, one {# teljes nap} other {# teljes nap}} megszakítás nélkül.",
+    "de": "Hörbücher, Podcasts und Musik – {days, plural, one {# ganzer Tag} other {# ganze Tage}} am Stück.",
+    "fr": "de livres audio, de podcasts et de musique, soit {days, plural, one {# journée entière} many {# de journées entières} other {# journées entières}} sans interruption.",
+    "es": "de audiolibros, pódcasts y música: {days, plural, one {# día entero} many {# de días enteros} other {# días enteros}} sin parar.",
+    "it": "di audiolibri, podcast e musica: {days, plural, one {# giorno intero} many {# di giorni interi} other {# giorni interi}} senza pause.",
+    "note": "Follows a big figure like 120 h.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.mix.eyebrow": {
     "en": "What you listened to",
-    "cs": "Co jste poslouchali"
+    "cs": "Co jste poslouchali",
+    "sk": "Čo ste počúvali",
+    "hu": "Mit hallgatott",
+    "de": "Was du gehört hast",
+    "fr": "Ce que vous avez écouté",
+    "es": "Lo que has escuchado",
+    "it": "Cosa hai ascoltato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.mix.mostly": {
     "en": "Mostly {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}.",
-    "cs": "Hlavně {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}."
+    "cs": "Hlavně {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}.",
+    "sk": "Hlavne {kind, select, audiobook {audioknihy} podcast {podcasty} other {hudbu}}.",
+    "hu": "Főleg {kind, select, audiobook {hangoskönyveket} podcast {podcastokat} other {zenét}}.",
+    "de": "Vor allem {kind, select, audiobook {Hörbücher} podcast {Podcasts} other {Musik}}.",
+    "fr": "Surtout {kind, select, audiobook {des livres audio} podcast {des podcasts} other {de la musique}}.",
+    "es": "Sobre todo {kind, select, audiobook {audiolibros} podcast {pódcasts} other {música}}.",
+    "it": "Soprattutto {kind, select, audiobook {audiolibri} podcast {podcast} other {musica}}.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.share": {
     "en": "{share, number, percent}",
-    "cs": "{share, number, percent}"
+    "cs": "{share, number, percent}",
+    "sk": "{share, number, percent}",
+    "hu": "{share, number, percent}",
+    "de": "{share, number, percent}",
+    "fr": "{share, number, percent}",
+    "es": "{share, number, percent}",
+    "it": "{share, number, percent}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.timeShare": {
     "en": "{time} · {share, number, percent}",
-    "cs": "{time} · {share, number, percent}"
+    "cs": "{time} · {share, number, percent}",
+    "sk": "{time} · {share, number, percent}",
+    "hu": "{time} · {share, number, percent}",
+    "de": "{time} · {share, number, percent}",
+    "fr": "{time} · {share, number, percent}",
+    "es": "{time} · {share, number, percent}",
+    "it": "{time} · {share, number, percent}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.eyebrow": {
     "en": "Your favorites",
-    "cs": "Vaše oblíbené"
+    "cs": "Vaše oblíbené",
+    "sk": "Vaše obľúbené",
+    "hu": "Az Ön kedvencei",
+    "de": "Deine Favoriten",
+    "fr": "Vos favoris",
+    "es": "Tus favoritos",
+    "it": "I tuoi preferiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.book": {
     "en": "Your book",
-    "cs": "Vaše kniha"
+    "cs": "Vaše kniha",
+    "sk": "Vaša kniha",
+    "hu": "Az Ön könyve",
+    "de": "Dein Buch",
+    "fr": "Votre livre",
+    "es": "Tu libro",
+    "it": "Il tuo libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.show": {
     "en": "Your show",
-    "cs": "Váš pořad"
+    "cs": "Váš pořad",
+    "sk": "Vaša relácia",
+    "hu": "Az Ön műsora",
+    "de": "Deine Sendung",
+    "fr": "Votre émission",
+    "es": "Tu programa",
+    "it": "Il tuo programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.song": {
     "en": "Your song",
-    "cs": "Vaše skladba"
+    "cs": "Vaše skladba",
+    "sk": "Vaša skladba",
+    "hu": "Az Ön száma",
+    "de": "Dein Titel",
+    "fr": "Votre morceau",
+    "es": "Tu canción",
+    "it": "Il tuo brano",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.deleted": {
     "en": "Something since deleted",
-    "cs": "Něco, co už je smazané"
+    "cs": "Něco, co už je smazané",
+    "sk": "Niečo, čo je už zmazané",
+    "hu": "Valami, ami azóta törölve lett",
+    "de": "Etwas inzwischen Gelöschtes",
+    "fr": "Un élément supprimé depuis",
+    "es": "Algo que ya se ha eliminado",
+    "it": "Qualcosa che nel frattempo è stato eliminato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.favourites.sessions": {
     "en": "{time} over {count, plural, one {# session} other {# sessions}}",
-    "cs": "{time} během {count, plural, one {# poslechu} few {# poslechů} other {# poslechů}}"
+    "cs": "{time} během {count, plural, one {# poslechu} few {# poslechů} other {# poslechů}}",
+    "sk": "{time} počas {count, plural, one {# počúvania} few {# počúvaní} other {# počúvaní}}",
+    "hu": "{time}, {count, plural, one {# hallgatás} other {# hallgatás}} alatt",
+    "de": "{time} in {count, plural, one {# Hörsitzung} other {# Hörsitzungen}}",
+    "fr": "{time} en {count, plural, one {# écoute} many {# d’écoutes} other {# écoutes}}",
+    "es": "{time} en {count, plural, one {# escucha} many {# de escuchas} other {# escuchas}}",
+    "it": "{time} in {count, plural, one {# ascolto} many {# di ascolti} other {# ascolti}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.eyebrow": {
     "en": "Your records",
-    "cs": "Vaše rekordy"
+    "cs": "Vaše rekordy",
+    "sk": "Vaše rekordy",
+    "hu": "Az Ön rekordjai",
+    "de": "Deine Rekorde",
+    "fr": "Vos records",
+    "es": "Tus récords",
+    "it": "I tuoi record",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.busiestDay": {
     "en": "Busiest day",
-    "cs": "Rekordní den"
+    "cs": "Rekordní den",
+    "sk": "Rekordný deň",
+    "hu": "A legaktívabb nap",
+    "de": "Stärkster Tag",
+    "fr": "Journée la plus chargée",
+    "es": "El día con más escucha",
+    "it": "Giorno record",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.inOneDay": {
     "en": "{time} in one day",
-    "cs": "{time} za jediný den"
+    "cs": "{time} za jediný den",
+    "sk": "{time} za jediný deň",
+    "hu": "{time} egyetlen nap alatt",
+    "de": "{time} an einem Tag",
+    "fr": "{time} en une journée",
+    "es": "{time} en un solo día",
+    "it": "{time} in un solo giorno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.bestMonth": {
     "en": "Best month",
-    "cs": "Nejlepší měsíc"
+    "cs": "Nejlepší měsíc",
+    "sk": "Najlepší mesiac",
+    "hu": "A legjobb hónap",
+    "de": "Bester Monat",
+    "fr": "Meilleur mois",
+    "es": "El mejor mes",
+    "it": "Mese migliore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.longestStreak": {
     "en": "Longest streak",
-    "cs": "Nejdelší série"
+    "cs": "Nejdelší série",
+    "sk": "Najdlhšia séria",
+    "hu": "A leghosszabb sorozat",
+    "de": "Längste Serie",
+    "fr": "Plus longue série",
+    "es": "La racha más larga",
+    "it": "Serie più lunga",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.inARow": {
     "en": "{count, plural, one {# day in a row} other {# days in a row}}",
-    "cs": "{count, plural, one {# den v řadě} few {# dny v řadě} other {# dní v řadě}}"
+    "cs": "{count, plural, one {# den v řadě} few {# dny v řadě} other {# dní v řadě}}",
+    "sk": "{count, plural, one {# deň za sebou} few {# dni za sebou} other {# dní za sebou}}",
+    "hu": "{count, plural, one {# nap zsinórban} other {# nap zsinórban}}",
+    "de": "{count, plural, one {# Tag in Folge} other {# Tage in Folge}}",
+    "fr": "{count, plural, one {# jour d’affilée} many {# de jours d’affilée} other {# jours d’affilée}}",
+    "es": "{count, plural, one {# día seguido} many {# de días seguidos} other {# días seguidos}}",
+    "it": "{count, plural, one {# giorno di fila} many {# di giorni di fila} other {# giorni di fila}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.currentStreak": {
     "en": "Current streak: {count, plural, one {# day} other {# days}}",
-    "cs": "Aktuální série: {count, plural, one {# den} few {# dny} other {# dní}}"
+    "cs": "Aktuální série: {count, plural, one {# den} few {# dny} other {# dní}}",
+    "sk": "Aktuálna séria: {count, plural, one {# deň} few {# dni} other {# dní}}",
+    "hu": "Jelenlegi sorozat: {count, plural, one {# nap} other {# nap}}",
+    "de": "Aktuelle Serie: {count, plural, one {# Tag} other {# Tage}}",
+    "fr": "Série en cours : {count, plural, one {# jour} many {# de jours} other {# jours}}",
+    "es": "Racha actual: {count, plural, one {# día} many {# de días} other {# días}}",
+    "it": "Serie attuale: {count, plural, one {# giorno} many {# di giorni} other {# giorni}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.records.booksFinished": {
     "en": "Books finished",
-    "cs": "Dokončené knihy"
+    "cs": "Dokončené knihy",
+    "sk": "Dokončené knihy",
+    "hu": "Befejezett könyvek",
+    "de": "Beendete Bücher",
+    "fr": "Livres terminés",
+    "es": "Libros terminados",
+    "it": "Libri finiti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.rhythm.eyebrow": {
     "en": "Your rhythm",
-    "cs": "Váš rytmus"
+    "cs": "Váš rytmus",
+    "sk": "Váš rytmus",
+    "hu": "Az Ön ritmusa",
+    "de": "Dein Rhythmus",
+    "fr": "Votre rythme",
+    "es": "Tu ritmo",
+    "it": "Il tuo ritmo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.rhythm.weekday": {
     "en": "{day, select, mon {Mondays} tue {Tuesdays} wed {Wednesdays} thu {Thursdays} fri {Fridays} sat {Saturdays} other {Sundays}} are for listening.",
-    "cs": "{day, select, mon {Pondělky} tue {Úterky} wed {Středy} thu {Čtvrtky} fri {Pátky} sat {Soboty} other {Neděle}} patří poslechu."
+    "cs": "{day, select, mon {Pondělky} tue {Úterky} wed {Středy} thu {Čtvrtky} fri {Pátky} sat {Soboty} other {Neděle}} patří poslechu.",
+    "sk": "{day, select, mon {Pondelky} tue {Utorky} wed {Stredy} thu {Štvrtky} fri {Piatky} sat {Soboty} other {Nedele}} patria počúvaniu.",
+    "hu": "{day, select, mon {A hétfő} tue {A kedd} wed {A szerda} thu {A csütörtök} fri {A péntek} sat {A szombat} other {A vasárnap}} a hallgatás napja.",
+    "de": "{day, select, mon {Montage} tue {Dienstage} wed {Mittwoche} thu {Donnerstage} fri {Freitage} sat {Samstage} other {Sonntage}} sind zum Hören da.",
+    "fr": "{day, select, mon {Le lundi} tue {Le mardi} wed {Le mercredi} thu {Le jeudi} fri {Le vendredi} sat {Le samedi} other {Le dimanche}}, c’est pour écouter.",
+    "es": "{day, select, mon {Los lunes son} tue {Los martes son} wed {Los miércoles son} thu {Los jueves son} fri {Los viernes son} sat {Los sábados son} other {Los domingos son}} para escuchar.",
+    "it": "{day, select, mon {Il lunedì} tue {Il martedì} wed {Il mercoledì} thu {Il giovedì} fri {Il venerdì} sat {Il sabato} other {La domenica}} è fatto per ascoltare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.rhythm.dayPart": {
     "en": "Most of it <b>{part, select, Morning {in the morning} Afternoon {in the afternoon} Evening {in the evening} other {at night}}</b>.",
-    "cs": "Nejvíc <b>{part, select, Morning {ráno} Afternoon {odpoledne} Evening {večer} other {v noci}}</b>."
+    "cs": "Nejvíc <b>{part, select, Morning {ráno} Afternoon {odpoledne} Evening {večer} other {v noci}}</b>.",
+    "sk": "Najviac <b>{part, select, Morning {ráno} Afternoon {popoludní} Evening {večer} other {v noci}}</b>.",
+    "hu": "Többnyire <b>{part, select, Morning {reggel} Afternoon {délután} Evening {este} other {éjjel}}</b>.",
+    "de": "Das meiste <b>{part, select, Morning {morgens} Afternoon {nachmittags} Evening {abends} other {nachts}}</b>.",
+    "fr": "Surtout <b>{part, select, Morning {le matin} Afternoon {l’après-midi} Evening {le soir} other {la nuit}}</b>.",
+    "es": "Sobre todo <b>{part, select, Morning {por la mañana} Afternoon {por la tarde} Evening {al anochecer} other {por la noche}}</b>.",
+    "it": "Per lo più <b>{part, select, Morning {di mattina} Afternoon {di pomeriggio} Evening {di sera} other {di notte}}</b>.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.rhythm.device": {
     "en": "{lead, select, mostly {Mostly} other {Most often}} on <b>{device, select, web {the web} ios {iPhone} android {Android} macos {Mac} windows {Windows} tvos {Apple TV} subsonic {a Subsonic app} other {{name}}}</b>.",
     "cs": "{lead, select, mostly {Většinou} other {Nejčastěji}} <b>{device, select, web {na webu} ios {na iPhonu} android {na Androidu} macos {na Macu} windows {ve Windows} tvos {na Apple TV} subsonic {v aplikaci Subsonic} other {na {name}}}</b>.",
-    "note": "lead is mostly when this device is also the largest share; name is a raw device kind the app doesn't know."
+    "sk": "{lead, select, mostly {Väčšinou} other {Najčastejšie}} <b>{device, select, web {na webe} ios {na iPhone} android {na Androide} macos {na Macu} windows {vo Windows} tvos {na Apple TV} subsonic {v aplikácii Subsonic} other {na {name}}}</b>.",
+    "hu": "{lead, select, mostly {Főleg} other {Leggyakrabban}} <b>{device, select, web {a weben} ios {iPhone-on} android {Androidon} macos {Macen} windows {Windowson} tvos {Apple TV-n} subsonic {Subsonic-alkalmazásban} other {ezen: {name}}}</b>.",
+    "de": "{lead, select, mostly {Meistens} other {Am häufigsten}} <b>{device, select, web {im Web} ios {auf dem iPhone} android {auf Android} macos {auf dem Mac} windows {unter Windows} tvos {auf Apple TV} subsonic {in einer Subsonic-App} other {auf {name}}}</b>.",
+    "fr": "{lead, select, mostly {Surtout} other {Le plus souvent}} sur <b>{device, select, web {le web} ios {iPhone} android {Android} macos {Mac} windows {Windows} tvos {Apple TV} subsonic {une app Subsonic} other {{name}}}</b>.",
+    "es": "{lead, select, mostly {Sobre todo} other {Casi siempre}} <b>{device, select, web {en la web} ios {en el iPhone} android {en Android} macos {en el Mac} windows {en Windows} tvos {en el Apple TV} subsonic {en una app Subsonic} other {en {name}}}</b>.",
+    "it": "{lead, select, mostly {Soprattutto} other {Più spesso}} <b>{device, select, web {sul web} ios {su iPhone} android {su Android} macos {su Mac} windows {su Windows} tvos {su Apple TV} subsonic {in un’app Subsonic} other {su {name}}}</b>.",
+    "note": "lead is mostly when this device is also the largest share; name is a raw device kind the app doesn't know.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.rhythm.footnote": {
     "en": "{count, plural, one {Time of day and devices from your last session.} other {Time of day and devices from your last # sessions.}}",
-    "cs": "{count, plural, one {Denní doba a zařízení podle vašeho posledního poslechu.} few {Denní doba a zařízení podle vašich posledních # poslechů.} other {Denní doba a zařízení podle vašich posledních # poslechů.}}"
+    "cs": "{count, plural, one {Denní doba a zařízení podle vašeho posledního poslechu.} few {Denní doba a zařízení podle vašich posledních # poslechů.} other {Denní doba a zařízení podle vašich posledních # poslechů.}}",
+    "sk": "{count, plural, one {Denná doba a zariadenia podľa vášho posledného počúvania.} few {Denná doba a zariadenia podľa vašich posledných # počúvaní.} other {Denná doba a zariadenia podľa vašich posledných # počúvaní.}}",
+    "hu": "{count, plural, one {Napszak és eszközök az utolsó hallgatásból.} other {Napszak és eszközök az utolsó # hallgatásból.}}",
+    "de": "{count, plural, one {Tageszeit und Geräte aus deiner letzten Hörsitzung.} other {Tageszeit und Geräte aus deinen letzten # Hörsitzungen.}}",
+    "fr": "{count, plural, one {Moment de la journée et appareils d’après votre dernière écoute.} many {Moment de la journée et appareils d’après vos # dernières écoutes.} other {Moment de la journée et appareils d’après vos # dernières écoutes.}}",
+    "es": "{count, plural, one {Hora del día y dispositivos de tu última escucha.} many {Hora del día y dispositivos de tus últimas # de escuchas.} other {Hora del día y dispositivos de tus últimas # escuchas.}}",
+    "it": "{count, plural, one {Momento della giornata e dispositivi dal tuo ultimo ascolto.} many {Momento della giornata e dispositivi dai tuoi ultimi # di ascolti.} other {Momento della giornata e dispositivi dai tuoi ultimi # ascolti.}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.family.eyebrow": {
     "en": "Your family",
-    "cs": "Vaše rodina"
+    "cs": "Vaše rodina",
+    "sk": "Vaša rodina",
+    "hu": "Az Ön családja",
+    "de": "Deine Familie",
+    "fr": "Votre famille",
+    "es": "Tu familia",
+    "it": "La tua famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.family.together": {
     "en": "{count, plural, one {together, from # person sharing their totals.} other {together, across # people sharing their totals.}}",
     "cs": "{count, plural, one {dohromady — # člen sdílí svůj poslech.} few {dohromady — # členové sdílejí svůj poslech.} other {dohromady — # členů sdílí svůj poslech.}}",
-    "note": "Follows a big figure like 300 h."
+    "sk": "{count, plural, one {spolu — # člen zdieľa svoje počúvanie.} few {spolu — # členovia zdieľajú svoje počúvanie.} other {spolu — # členov zdieľa svoje počúvanie.}}",
+    "hu": "{count, plural, one {együtt, # személy megosztott összesítése alapján.} other {együtt, # személy megosztott összesítései alapján.}}",
+    "de": "{count, plural, one {zusammen, von # Person, die ihre Summen teilt.} other {zusammen, von # Personen, die ihre Summen teilen.}}",
+    "fr": "{count, plural, one {ensemble, pour # personne qui partage ses totaux.} many {ensemble, pour # de personnes qui partagent leurs totaux.} other {ensemble, pour # personnes qui partagent leurs totaux.}}",
+    "es": "{count, plural, one {en total, de # persona que comparte sus totales.} many {en total, entre # de personas que comparten sus totales.} other {en total, entre # personas que comparten sus totales.}}",
+    "it": "{count, plural, one {in tutto, da # persona che condivide i propri totali.} many {in tutto, tra # di persone che condividono i propri totali.} other {in tutto, tra # persone che condividono i propri totali.}}",
+    "note": "Follows a big figure like 300 h.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.family.leader": {
     "en": "Most {kind, select, audiobook {audiobooks} podcast {podcasts} other {music}}: <b>{name}</b>",
-    "cs": "Nejvíc {kind, select, audiobook {audioknih} podcast {podcastů} other {hudby}}: <b>{name}</b>"
+    "cs": "Nejvíc {kind, select, audiobook {audioknih} podcast {podcastů} other {hudby}}: <b>{name}</b>",
+    "sk": "Najviac {kind, select, audiobook {audiokníh} podcast {podcastov} other {hudby}}: <b>{name}</b>",
+    "hu": "A legtöbb {kind, select, audiobook {hangoskönyv} podcast {podcast} other {zene}}: <b>{name}</b>",
+    "de": "Am meisten {kind, select, audiobook {Hörbücher} podcast {Podcasts} other {Musik}}: <b>{name}</b>",
+    "fr": "Le plus {kind, select, audiobook {de livres audio} podcast {de podcasts} other {de musique}} : <b>{name}</b>",
+    "es": "Más {kind, select, audiobook {audiolibros} podcast {pódcasts} other {música}}: <b>{name}</b>",
+    "it": "Più {kind, select, audiobook {audiolibri} podcast {podcast} other {musica}}: <b>{name}</b>",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.family.private": {
     "en": "{count, plural, one {# person keeps their listening private and isn't counted.} other {# people keep their listening private and aren't counted.}}",
-    "cs": "{count, plural, one {Poslech # člena je soukromý a nezapočítává se.} few {Poslech # členů je soukromý a nezapočítává se.} other {Poslech # členů je soukromý a nezapočítává se.}}"
+    "cs": "{count, plural, one {Poslech # člena je soukromý a nezapočítává se.} few {Poslech # členů je soukromý a nezapočítává se.} other {Poslech # členů je soukromý a nezapočítává se.}}",
+    "sk": "{count, plural, one {Počúvanie # člena je súkromné a nezapočítava sa.} few {Počúvanie # členov je súkromné a nezapočítava sa.} other {Počúvanie # členov je súkromné a nezapočítava sa.}}",
+    "hu": "{count, plural, one {# személy nem osztja meg a hallgatási adatait, így nem számít bele.} other {# személy nem osztja meg a hallgatási adatait, így nem számít bele.}}",
+    "de": "{count, plural, one {# Person behält ihr Hören für sich und wird nicht mitgezählt.} other {# Personen behalten ihr Hören für sich und werden nicht mitgezählt.}}",
+    "fr": "{count, plural, one {# personne garde ses écoutes privées et n’est pas comptée.} many {# de personnes gardent leurs écoutes privées et ne sont pas comptées.} other {# personnes gardent leurs écoutes privées et ne sont pas comptées.}}",
+    "es": "{count, plural, one {# persona mantiene su escucha en privado y no se cuenta.} many {# de personas mantienen su escucha en privado y no se cuentan.} other {# personas mantienen su escucha en privado y no se cuentan.}}",
+    "it": "{count, plural, one {# persona tiene privati i propri ascolti e non viene contata.} many {# di persone tengono privati i propri ascolti e non vengono contate.} other {# persone tengono privati i propri ascolti e non vengono contate.}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.end.eyebrow": {
     "en": "That was your year",
-    "cs": "To byl váš rok"
+    "cs": "To byl váš rok",
+    "sk": "To bol váš rok",
+    "hu": "Ez volt az Ön éve",
+    "de": "Das war dein Jahr",
+    "fr": "C’était votre année",
+    "es": "Así ha sido tu año",
+    "it": "Questo è stato il tuo anno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.end.hours": {
     "en": "Thanks for listening. Here's to the next {hours, plural, one {hour} other {# hours}}.",
-    "cs": "Díky za poslech. Na {hours, plural, one {další hodinu} few {další # hodiny} other {dalších # hodin}}!"
+    "cs": "Díky za poslech. Na {hours, plural, one {další hodinu} few {další # hodiny} other {dalších # hodin}}!",
+    "sk": "Vďaka za počúvanie. Na {hours, plural, one {ďalšiu hodinu} few {ďalšie # hodiny} other {ďalších # hodín}}.",
+    "hu": "Köszönjük, hogy hallgatott. Jöjjön a következő {hours, plural, one {óra} other {# óra}}.",
+    "de": "Danke fürs Zuhören. Auf die {hours, plural, one {nächste Stunde} other {nächsten # Stunden}}.",
+    "fr": "Merci de votre écoute. Vivement {hours, plural, one {la prochaine heure} many {les # prochaines heures} other {les # prochaines heures}}.",
+    "es": "Gracias por escuchar. Por {hours, plural, one {la próxima hora} many {las próximas # de horas} other {las próximas # horas}}.",
+    "it": "Grazie per l’ascolto. {hours, plural, one {Alla prossima ora} many {Alle prossime # di ore} other {Alle prossime # ore}}.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "stats.wrapped.end.one": {
     "en": "Thanks for listening. Here's to the next one.",
-    "cs": "Díky za poslech. A na další!"
+    "cs": "Díky za poslech. A na další!",
+    "sk": "Vďaka za počúvanie. A na ďalší.",
+    "hu": "Köszönjük, hogy hallgatott. Jöjjön a következő.",
+    "de": "Danke fürs Zuhören. Auf das nächste.",
+    "fr": "Merci de votre écoute. Vivement la prochaine.",
+    "es": "Gracias por escuchar. Por el próximo.",
+    "it": "Grazie per l’ascolto. Alla prossima.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

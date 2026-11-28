@@ -1,4 +1,26 @@
 {
-  "badge.machineTranslation": {"en": "Machine translation", "cs": "Strojový překlad", "note": "Small neutral badge on a machine-translated book or a translated episode (lists, detail, player). Describes the item; not a warning."},
-  "badge.aiVoice": {"en": "AI voice", "cs": "Hlas AI", "note": "Small neutral badge on a book narrated by an AI voice in its own language (not translated). Describes the item; not a warning."}
+  "badge.machineTranslation": {
+    "en": "Machine translation",
+    "cs": "Strojový překlad",
+    "sk": "Strojový preklad",
+    "hu": "Gépi fordítás",
+    "de": "Maschinelle Übersetzung",
+    "fr": "Traduction automatique",
+    "es": "Traducción automática",
+    "it": "Traduzione automatica",
+    "note": "Small neutral badge on a machine-translated book or a translated episode (lists, detail, player). Describes the item; not a warning.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "badge.aiVoice": {
+    "en": "AI voice",
+    "cs": "Hlas AI",
+    "sk": "Hlas AI",
+    "hu": "MI-hang",
+    "de": "KI-Stimme",
+    "fr": "Voix IA",
+    "es": "Voz IA",
+    "it": "Voce IA",
+    "note": "Small neutral badge on a book narrated by an AI voice in its own language (not translated). Describes the item; not a warning.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  }
 }

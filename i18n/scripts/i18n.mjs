@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 // The audio2 string catalog: check it, and generate each platform's files.
 //
-//   node scripts/i18n.mjs check          validate every string in every locale
-//   node scripts/i18n.mjs web <outdir>   en.json, cs.json and messages.ts for the web app
+//   node scripts/i18n.mjs check            validate every string in every locale
+//   node scripts/i18n.mjs web <outdir>     <locale>.json per locale and messages.ts for the web app
+//   node scripts/i18n.mjs review [locale]  list the machine translations nobody has checked yet
 //
 // Rules are in ../README.md. Everything here reads strings/*.json and nothing
 // else: the catalog is the single source, generated files are never edited.
@@ -14,10 +15,27 @@ import { parse, TYPE } from "@formatjs/icu-messageformat-parser";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const STRINGS = join(ROOT, "strings");
-export const LOCALES = ["en", "cs"];
+export const LOCALES = ["en", "cs", "sk", "hu", "de", "fr", "es", "it"];
 const SOURCE = "en";
-/** Plural categories a message must cover for whole numbers, per locale (CLDR). */
-const PLURALS = { en: ["one", "other"], cs: ["one", "few", "other"] };
+/** Locales every string must have. The others may lack a key for a while (a new string
+ *  before its translations land); the app shows the English for it, and `check` counts
+ *  the gaps. */
+const REQUIRED = ["en", "cs"];
+/** Fields an entry may carry besides its locales. */
+const FIELDS = new Set(["note", "machine"]);
+
+/** Plural categories a message must cover for whole numbers, per locale, from CLDR as
+ *  `Intl.PluralRules` ships it. Only whole numbers count: Czech and Slovak `many` is for
+ *  fractions, which no message counts; French, Spanish and Italian `many` is for round
+ *  millions ("1 000 000 de morceaux"), so those three need it. */
+function pluralCategories(locale) {
+  const rules = new Intl.PluralRules(locale);
+  const seen = new Set();
+  for (let n = 0; n <= 1100; n++) seen.add(rules.select(n));
+  for (const n of [1e6, 2e6, 1e7]) seen.add(rules.select(n));
+  return rules.resolvedOptions().pluralCategories.filter((c) => seen.has(c));
+}
+const PLURALS = Object.fromEntries(LOCALES.map((l) => [l, pluralCategories(l)]));
 const KEY = /^[a-z][a-zA-Z0-9]*(\.[a-zA-Z0-9]+)+$/;
 
 function load() {
@@ -78,11 +96,29 @@ function argsOf(ast, out = new Map(), tags = new Set(), plurals = []) {
 function analyse() {
   const { entries, errors } = load();
   const parsed = new Map();
+  const missing = new Map();
   for (const [key, entry] of entries) {
     const where = `${entry.file} ${key}`;
+    for (const field of Object.keys(entry)) {
+      if (field !== "file" && !FIELDS.has(field) && !LOCALES.includes(field)) errors.push(`${where}: unknown field "${field}"`);
+    }
+    if (entry.machine !== undefined) {
+      const m = entry.machine;
+      if (!Array.isArray(m) || m.some((l) => typeof l !== "string")) errors.push(`${where}: "machine" must be a list of locales`);
+      else
+        for (const l of m) {
+          if (l === SOURCE || !LOCALES.includes(l)) errors.push(`${where}: "machine" lists "${l}", which is not a translated locale`);
+          if (m.indexOf(l) !== m.lastIndexOf(l)) errors.push(`${where}: "machine" lists "${l}" twice`);
+        }
+    }
     const perLocale = {};
     for (const locale of LOCALES) {
       const text = entry[locale];
+      if (text === undefined && !REQUIRED.includes(locale)) {
+        missing.set(locale, (missing.get(locale) ?? 0) + 1);
+        if (entry.machine?.includes(locale)) errors.push(`${where}: "machine" lists ${locale}, which has no text`);
+        continue;
+      }
       if (typeof text !== "string" || text.trim() === "") {
         errors.push(`${where}: no ${locale} text`);
         continue;
@@ -108,22 +144,52 @@ function analyse() {
       for (const pl of p.plurals) {
         if (pl.ordinal) continue;
         const missing = PLURALS[locale].filter((c) => !pl.options.includes(c));
-        if (missing.length) errors.push(`${where} [${locale}]: plural {${pl.name}} lacks ${missing.join(", ")}`);
+        if (missing.length) errors.push(`${where} [${locale}]: plural {${pl.name}} lacks ${missing.join(", ")} (${locale} needs ${PLURALS[locale].join(", ")})`);
       }
     }
     if (src) parsed.set(key, src);
   }
-  return { entries, parsed, errors };
+  return { entries, parsed, errors, missing };
 }
 
 function check() {
-  const { entries, errors } = analyse();
+  const { entries, errors, missing } = analyse();
   if (errors.length) {
     console.error(errors.join("\n"));
     console.error(`\n${errors.length} problem(s) in ${entries.size} strings.`);
     process.exit(1);
   }
   console.log(`${entries.size} strings, ${LOCALES.join(" + ")}: all good.`);
+  if (missing.size) console.log(`Not translated yet (shown in English): ${[...missing].map(([l, n]) => `${l} ${n}`).join(", ")}.`);
+  const unchecked = machineCounts(entries);
+  if (unchecked.length) console.log(`Machine translations not yet reviewed: ${unchecked.join(", ")} (npm run review).`);
+}
+
+function machineCounts(entries) {
+  const counts = new Map();
+  for (const entry of entries.values()) for (const l of entry.machine ?? []) counts.set(l, (counts.get(l) ?? 0) + 1);
+  return LOCALES.filter((l) => counts.has(l)).map((l) => `${l} ${counts.get(l)}`);
+}
+
+/** Every key whose text in a locale is still a machine translation, with the English beside it. */
+function review(locale) {
+  const { entries, errors } = load();
+  if (errors.length) {
+    console.error(errors.join("\n"));
+    process.exit(1);
+  }
+  const locales = locale ? [locale] : LOCALES.filter((l) => l !== SOURCE);
+  if (locale && !LOCALES.includes(locale)) {
+    console.error(`unknown locale "${locale}"; the catalog has ${LOCALES.join(", ")}`);
+    process.exit(2);
+  }
+  for (const l of locales) {
+    const keys = [...entries].filter(([, e]) => e.machine?.includes(l));
+    if (!keys.length) continue;
+    console.log(`## ${l}: ${keys.length} unreviewed`);
+    if (!locale) continue;
+    for (const [key, e] of keys) console.log(`${key}\n  en: ${e.en}\n  ${l}: ${e[l]}`);
+  }
 }
 
 const TS_TYPE = { text: "string | number", number: "number", date: "Date | number", select: "string" };
@@ -137,7 +203,8 @@ function web(outdir) {
   mkdirSync(outdir, { recursive: true });
   const keys = [...entries.keys()].sort();
   for (const locale of LOCALES) {
-    const out = Object.fromEntries(keys.map((k) => [k, entries.get(k)[locale]]));
+    // A key a locale lacks is left out, and the app falls back to English for it.
+    const out = Object.fromEntries(keys.filter((k) => entries.get(k)[locale] !== undefined).map((k) => [k, entries.get(k)[locale]]));
     writeFileSync(join(outdir, `${locale}.json`), JSON.stringify(out, null, 2) + "\n");
   }
   const lines = [
@@ -165,7 +232,8 @@ function web(outdir) {
 const [cmd, arg] = process.argv.slice(2);
 if (cmd === "check") check();
 else if (cmd === "web" && arg) web(arg);
+else if (cmd === "review") review(arg);
 else {
-  console.error("usage: i18n.mjs check | web <outdir>");
+  console.error("usage: i18n.mjs check | web <outdir> | review [locale]");
   process.exit(2);
 }

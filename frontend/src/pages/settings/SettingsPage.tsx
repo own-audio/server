@@ -19,8 +19,8 @@ import {
 import { clearTrackFeedback, listTrackFeedback, listTracks } from "../../api/music";
 import { useAuthStore } from "../../store/authStore";
 import { Page } from "../../components/shell/SplitView";
-import { Button, Dialog, DialogContent, IconButton, Input, Pill, SegmentedControl, Skeleton, toast } from "../../components/ui";
-import { useI18n, useT, type LocalePreference } from "../../i18n";
+import { Button, Dialog, DialogContent, IconButton, Input, Pill, Select, Skeleton, toast } from "../../components/ui";
+import { allLocales, useI18n, useT, type LocalePreference } from "../../i18n";
 import { apiErrorMessage } from "../../lib/apiError";
 import { timeAgo } from "../../lib/format";
 import { cn } from "../../lib/cn";
@@ -415,21 +415,26 @@ function DeleteAccount() {
 }
 
 /* The choice is stored per browser, like the theme: the same account may be
-   read in Czech on one device and English on another. */
+   read in Czech on one device and English on another. A list, not segments:
+   eight languages do not fit a row. */
 function Language() {
   const { t } = useT();
   const preference = useI18n((s) => s.preference);
   const setPreference = useI18n((s) => s.setPreference);
   return (
-    <SegmentedControl<LocalePreference>
+    <Select
+      aria-label={t("common.language.title")}
+      className="max-w-xs"
       value={preference}
-      onChange={setPreference}
-      segments={[
-        { value: "system", label: t("common.language.system") },
-        { value: "en", label: t("common.language.en") },
-        { value: "cs", label: t("common.language.cs") },
-      ]}
-    />
+      onChange={(e) => setPreference(e.target.value as LocalePreference)}
+    >
+      <option value="system">{t("common.language.system")}</option>
+      {allLocales.map((l) => (
+        <option key={l} value={l} lang={l}>
+          {t(`common.language.${l}`)}
+        </option>
+      ))}
+    </Select>
   );
 }
 

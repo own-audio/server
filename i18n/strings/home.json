@@ -2,348 +2,936 @@
   "home.greeting.night": {
     "en": "Still up",
     "cs": "Ještě vzhůru",
-    "note": "Home title between midnight and 5 am, no name."
+    "sk": "Ešte hore",
+    "hu": "Még ébren van",
+    "de": "Noch wach",
+    "fr": "Encore debout",
+    "es": "Aún despierto",
+    "it": "Ancora in piedi",
+    "note": "Home title between midnight and 5 am, no name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.nightName": {
     "en": "Still up, {name}",
     "cs": "Ještě vzhůru, {name}",
-    "note": "Home title between midnight and 5 am; name is the first name."
+    "sk": "Ešte hore, {name}",
+    "hu": "Még ébren van, {name}",
+    "de": "Noch wach, {name}",
+    "fr": "Encore debout, {name}",
+    "es": "Aún despierto, {name}",
+    "it": "Ancora in piedi, {name}",
+    "note": "Home title between midnight and 5 am; name is the first name.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.morning": {
     "en": "Good morning",
-    "cs": "Dobré ráno"
+    "cs": "Dobré ráno",
+    "sk": "Dobré ráno",
+    "hu": "Jó reggelt",
+    "de": "Guten Morgen",
+    "fr": "Bonjour",
+    "es": "Buenos días",
+    "it": "Buongiorno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.morningName": {
     "en": "Good morning, {name}",
-    "cs": "Dobré ráno, {name}"
+    "cs": "Dobré ráno, {name}",
+    "sk": "Dobré ráno, {name}",
+    "hu": "Jó reggelt, {name}",
+    "de": "Guten Morgen, {name}",
+    "fr": "Bonjour, {name}",
+    "es": "Buenos días, {name}",
+    "it": "Buongiorno, {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.afternoon": {
     "en": "Good afternoon",
-    "cs": "Dobré odpoledne"
+    "cs": "Dobré odpoledne",
+    "sk": "Dobré popoludnie",
+    "hu": "Jó napot",
+    "de": "Guten Tag",
+    "fr": "Bon après-midi",
+    "es": "Buenas tardes",
+    "it": "Buon pomeriggio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.afternoonName": {
     "en": "Good afternoon, {name}",
-    "cs": "Dobré odpoledne, {name}"
+    "cs": "Dobré odpoledne, {name}",
+    "sk": "Dobré popoludnie, {name}",
+    "hu": "Jó napot, {name}",
+    "de": "Guten Tag, {name}",
+    "fr": "Bon après-midi, {name}",
+    "es": "Buenas tardes, {name}",
+    "it": "Buon pomeriggio, {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.evening": {
     "en": "Good evening",
-    "cs": "Dobrý večer"
+    "cs": "Dobrý večer",
+    "sk": "Dobrý večer",
+    "hu": "Jó estét",
+    "de": "Guten Abend",
+    "fr": "Bonsoir",
+    "es": "Buenas noches",
+    "it": "Buonasera",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.greeting.eveningName": {
     "en": "Good evening, {name}",
-    "cs": "Dobrý večer, {name}"
+    "cs": "Dobrý večer, {name}",
+    "sk": "Dobrý večer, {name}",
+    "hu": "Jó estét, {name}",
+    "de": "Guten Abend, {name}",
+    "fr": "Bonsoir, {name}",
+    "es": "Buenas noches, {name}",
+    "it": "Buonasera, {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.empty.title": {
     "en": "Nothing shown",
-    "cs": "Nic se nezobrazuje"
+    "cs": "Nic se nezobrazuje",
+    "sk": "Nič sa nezobrazuje",
+    "hu": "Nincs megjelenítve semmi",
+    "de": "Nichts angezeigt",
+    "fr": "Rien à afficher",
+    "es": "No se muestra nada",
+    "it": "Niente da mostrare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.empty.description": {
     "en": "Add a widget to see your library here.",
-    "cs": "Přidejte widget a uvidíte tu svou knihovnu."
+    "cs": "Přidejte widget a uvidíte tu svou knihovnu.",
+    "sk": "Pridajte widget a uvidíte tu svoju knižnicu.",
+    "hu": "Adjon hozzá egy widgetet, hogy itt lássa a könyvtárát.",
+    "de": "Füge ein Widget hinzu, um deine Mediathek hier zu sehen.",
+    "fr": "Ajoutez un widget pour voir votre bibliothèque ici.",
+    "es": "Añade un widget para ver aquí tu biblioteca.",
+    "it": "Aggiungi un widget per vedere qui la tua libreria.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.empty.chooseWidgets": {
     "en": "Choose widgets",
-    "cs": "Vybrat widgety"
+    "cs": "Vybrat widgety",
+    "sk": "Vybrať widgety",
+    "hu": "Widgetek kiválasztása",
+    "de": "Widgets auswählen",
+    "fr": "Choisir des widgets",
+    "es": "Elegir widgets",
+    "it": "Scegli i widget",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.settings.title": {
     "en": "Home widgets",
     "cs": "Widgety na kartě Domů",
-    "note": "Sheet title and the Home toolbar button's label."
+    "sk": "Widgety na karte Domov",
+    "hu": "Kezdőlap-widgetek",
+    "de": "Home-Widgets",
+    "fr": "Widgets de l’accueil",
+    "es": "Widgets de Inicio",
+    "it": "Widget di Home",
+    "note": "Sheet title and the Home toolbar button's label.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.settings.description": {
     "en": "Choose what shows on Home, and in what order.",
-    "cs": "Vyberte, co se na kartě Domů zobrazí a v jakém pořadí."
+    "cs": "Vyberte, co se na kartě Domů zobrazí a v jakém pořadí.",
+    "sk": "Vyberte, čo sa na karte Domov zobrazí a v akom poradí.",
+    "hu": "Válassza ki, mi jelenjen meg a Kezdőlapon, és milyen sorrendben.",
+    "de": "Wähl aus, was auf Home angezeigt wird und in welcher Reihenfolge.",
+    "fr": "Choisissez ce qui s’affiche sur l’accueil, et dans quel ordre.",
+    "es": "Elige qué se muestra en Inicio y en qué orden.",
+    "it": "Scegli cosa mostrare in Home e in che ordine.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.settings.notOnHome": {
     "en": "Not on Home",
     "cs": "Není na kartě Domů",
-    "note": "Small heading above the hidden widgets."
+    "sk": "Nie je na karte Domov",
+    "hu": "Nincs a Kezdőlapon",
+    "de": "Nicht auf Home",
+    "fr": "Pas sur l’accueil",
+    "es": "No están en Inicio",
+    "it": "Non in Home",
+    "note": "Small heading above the hidden widgets.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.settings.moveUp": {
     "en": "Move up",
-    "cs": "Posunout nahoru"
+    "cs": "Posunout nahoru",
+    "sk": "Posunúť nahor",
+    "hu": "Mozgatás felfelé",
+    "de": "Nach oben",
+    "fr": "Monter",
+    "es": "Subir",
+    "it": "Sposta su",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.settings.moveDown": {
     "en": "Move down",
-    "cs": "Posunout dolů"
+    "cs": "Posunout dolů",
+    "sk": "Posunúť nadol",
+    "hu": "Mozgatás lefelé",
+    "de": "Nach unten",
+    "fr": "Descendre",
+    "es": "Bajar",
+    "it": "Sposta giù",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.quickLinks.label": {
     "en": "Quick links",
-    "cs": "Rychlé odkazy"
+    "cs": "Rychlé odkazy",
+    "sk": "Rýchle odkazy",
+    "hu": "Gyorshivatkozások",
+    "de": "Schnellzugriff",
+    "fr": "Accès rapides",
+    "es": "Accesos rápidos",
+    "it": "Link rapidi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.quickLinks.description": {
     "en": "Three big buttons to Audiobooks, Podcasts and Music.",
-    "cs": "Tři velká tlačítka do Audioknih, Podcastů a Hudby."
+    "cs": "Tři velká tlačítka do Audioknih, Podcastů a Hudby.",
+    "sk": "Tri veľké tlačidlá do Audiokníh, Podcastov a Hudby.",
+    "hu": "Három nagy gomb: Hangoskönyvek, Podcastok és Zene.",
+    "de": "Drei große Buttons zu Hörbüchern, Podcasts und Musik.",
+    "fr": "Trois grands boutons vers les livres audio, les podcasts et la musique.",
+    "es": "Tres botones grandes a Audiolibros, Pódcasts y Música.",
+    "it": "Tre grandi pulsanti per Audiolibri, Podcast e Musica.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.weekSummary.label": {
     "en": "This week",
-    "cs": "Tento týden"
+    "cs": "Tento týden",
+    "sk": "Tento týždeň",
+    "hu": "Ez a hét",
+    "de": "Diese Woche",
+    "fr": "Cette semaine",
+    "es": "Esta semana",
+    "it": "Questa settimana",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.weekSummary.description": {
     "en": "Your average day of audiobooks, podcasts and music over the last 7 days.",
-    "cs": "Váš průměrný den audioknih, podcastů a hudby za posledních 7 dní."
+    "cs": "Váš průměrný den audioknih, podcastů a hudby za posledních 7 dní.",
+    "sk": "Váš priemerný deň audiokníh, podcastov a hudby za posledných 7 dní.",
+    "hu": "Az Ön átlagos napja hangoskönyvekkel, podcastokkal és zenével az elmúlt 7 napban.",
+    "de": "Dein durchschnittlicher Tag mit Hörbüchern, Podcasts und Musik in den letzten 7 Tagen.",
+    "fr": "Votre journée moyenne de livres audio, de podcasts et de musique sur les 7 derniers jours.",
+    "es": "Tu día medio de audiolibros, pódcasts y música en los últimos 7 días.",
+    "it": "La tua giornata media di audiolibri, podcast e musica negli ultimi 7 giorni.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.continue.label": {
     "en": "Continue listening",
-    "cs": "Pokračovat v poslechu"
+    "cs": "Pokračovat v poslechu",
+    "sk": "Pokračovať v počúvaní",
+    "hu": "Hallgatás folytatása",
+    "de": "Weiterhören",
+    "fr": "Reprendre l’écoute",
+    "es": "Seguir escuchando",
+    "it": "Continua ad ascoltare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.continue.description": {
     "en": "Audiobooks and episodes you're partway through.",
-    "cs": "Rozposlouchané audioknihy a epizody."
+    "cs": "Rozposlouchané audioknihy a epizody.",
+    "sk": "Rozpočúvané audioknihy a epizódy.",
+    "hu": "Félbehagyott hangoskönyvek és epizódok.",
+    "de": "Hörbücher und Folgen, die du angefangen hast.",
+    "fr": "Les livres audio et les épisodes que vous avez commencés.",
+    "es": "Audiolibros y episodios que has empezado.",
+    "it": "Audiolibri ed episodi che hai lasciato a metà.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.storage.label": {
     "en": "Storage & credit",
-    "cs": "Úložiště a kredit"
+    "cs": "Úložiště a kredit",
+    "sk": "Úložisko a kredit",
+    "hu": "Tárhely és egyenleg",
+    "de": "Speicher und Guthaben",
+    "fr": "Stockage et crédit",
+    "es": "Almacenamiento y saldo",
+    "it": "Spazio e credito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.storage.description": {
     "en": "What the library is using, and how long the credit lasts.",
-    "cs": "Kolik knihovna zabírá a na jak dlouho vystačí kredit."
+    "cs": "Kolik knihovna zabírá a na jak dlouho vystačí kredit.",
+    "sk": "Koľko knižnica zaberá a na ako dlho vystačí kredit.",
+    "hu": "Mennyi tárhelyet használ a könyvtár, és meddig elég az egyenleg.",
+    "de": "Was die Mediathek belegt und wie lange das Guthaben reicht.",
+    "fr": "Ce qu’occupe la bibliothèque, et combien de temps dure le crédit.",
+    "es": "Lo que ocupa la biblioteca y cuánto dura el saldo.",
+    "it": "Quanto spazio usa la libreria e quanto dura il credito.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentSongs.label": {
     "en": "Recent songs",
-    "cs": "Nedávné skladby"
+    "cs": "Nedávné skladby",
+    "sk": "Nedávne skladby",
+    "hu": "Legutóbbi számok",
+    "de": "Zuletzt gehörte Titel",
+    "fr": "Morceaux récents",
+    "es": "Canciones recientes",
+    "it": "Brani recenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentSongs.description": {
     "en": "Songs from your listening history.",
-    "cs": "Skladby z vaší historie poslechu."
+    "cs": "Skladby z vaší historie poslechu.",
+    "sk": "Skladby z vašej histórie počúvania.",
+    "hu": "Számok a hallgatási előzményeiből.",
+    "de": "Titel aus deinem Hörverlauf.",
+    "fr": "Des morceaux de votre historique d’écoute.",
+    "es": "Canciones de tu historial de escucha.",
+    "it": "Brani dalla tua cronologia di ascolto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentAlbums.label": {
     "en": "Recent albums",
-    "cs": "Nedávná alba"
+    "cs": "Nedávná alba",
+    "sk": "Nedávne albumy",
+    "hu": "Legutóbbi albumok",
+    "de": "Zuletzt gehörte Alben",
+    "fr": "Albums récents",
+    "es": "Álbumes recientes",
+    "it": "Album recenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentAlbums.description": {
     "en": "Albums those songs came from.",
-    "cs": "Alba, ze kterých ty skladby pocházejí."
+    "cs": "Alba, ze kterých ty skladby pocházejí.",
+    "sk": "Albumy, z ktorých tie skladby pochádzajú.",
+    "hu": "Az albumok, amelyekről ezek a számok származnak.",
+    "de": "Die Alben, aus denen diese Titel stammen.",
+    "fr": "Les albums d’où viennent ces morceaux.",
+    "es": "Los álbumes de esas canciones.",
+    "it": "Gli album da cui provengono quei brani.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentPlaylists.label": {
     "en": "Recent playlists",
-    "cs": "Nedávné playlisty"
+    "cs": "Nedávné playlisty",
+    "sk": "Nedávne playlisty",
+    "hu": "Legutóbbi listák",
+    "de": "Letzte Playlists",
+    "fr": "Playlists récentes",
+    "es": "Playlists recientes",
+    "it": "Playlist recenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentPlaylists.description": {
     "en": "Playlists by last edit — a play session never records which playlist it came from.",
-    "cs": "Playlisty podle poslední úpravy — poslech si nepamatuje, ze kterého playlistu byl spuštěn."
+    "cs": "Playlisty podle poslední úpravy — poslech si nepamatuje, ze kterého playlistu byl spuštěn.",
+    "sk": "Playlisty podľa poslednej úpravy — počúvanie si nepamätá, z ktorého playlistu bolo spustené.",
+    "hu": "Lejátszási listák az utolsó módosítás szerint — a hallgatás nem rögzíti, melyik listából indult.",
+    "de": "Playlists nach letzter Bearbeitung – eine Hörsitzung speichert nie, aus welcher Playlist sie kam.",
+    "fr": "Les playlists par dernière modification : une écoute n’enregistre jamais de quelle playlist elle provient.",
+    "es": "Playlists por última edición: una escucha nunca registra de qué playlist venía.",
+    "it": "Playlist in base all’ultima modifica: un ascolto non registra mai da quale playlist è partito.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.booksInProgress.label": {
     "en": "Audiobooks in progress",
-    "cs": "Rozposlouchané audioknihy"
+    "cs": "Rozposlouchané audioknihy",
+    "sk": "Rozpočúvané audioknihy",
+    "hu": "Folyamatban lévő hangoskönyvek",
+    "de": "Angefangene Hörbücher",
+    "fr": "Livres audio en cours",
+    "es": "Audiolibros empezados",
+    "it": "Audiolibri in corso",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.booksInProgress.description": {
     "en": "Books you stopped partway through.",
-    "cs": "Knihy, které jste nedoposlouchali."
+    "cs": "Knihy, které jste nedoposlouchali.",
+    "sk": "Knihy, ktoré ste nedopočúvali.",
+    "hu": "Könyvek, amelyeket félbehagyott.",
+    "de": "Bücher, die du mittendrin unterbrochen hast.",
+    "fr": "Les livres que vous avez arrêtés en cours de route.",
+    "es": "Libros que dejaste a medias.",
+    "it": "Libri che hai interrotto a metà.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.newBooks.label": {
     "en": "New audiobooks",
-    "cs": "Nové audioknihy"
+    "cs": "Nové audioknihy",
+    "sk": "Nové audioknihy",
+    "hu": "Új hangoskönyvek",
+    "de": "Neue Hörbücher",
+    "fr": "Nouveaux livres audio",
+    "es": "Audiolibros nuevos",
+    "it": "Nuovi audiolibri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.newBooks.description": {
     "en": "Books added to the library most recently.",
-    "cs": "Knihy naposledy přidané do knihovny."
+    "cs": "Knihy naposledy přidané do knihovny.",
+    "sk": "Knihy naposledy pridané do knižnice.",
+    "hu": "A könyvtárhoz legutóbb hozzáadott könyvek.",
+    "de": "Die zuletzt zur Mediathek hinzugefügten Bücher.",
+    "fr": "Les livres ajoutés le plus récemment à la bibliothèque.",
+    "es": "Los últimos libros añadidos a la biblioteca.",
+    "it": "I libri aggiunti più di recente alla libreria.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentBooks.label": {
     "en": "Recent audiobooks",
-    "cs": "Nedávné audioknihy"
+    "cs": "Nedávné audioknihy",
+    "sk": "Nedávne audioknihy",
+    "hu": "Legutóbbi hangoskönyvek",
+    "de": "Zuletzt gehörte Hörbücher",
+    "fr": "Livres audio récents",
+    "es": "Audiolibros recientes",
+    "it": "Audiolibri recenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.recentBooks.description": {
     "en": "Books you listened to most recently.",
-    "cs": "Knihy, které jste poslouchali naposledy."
+    "cs": "Knihy, které jste poslouchali naposledy.",
+    "sk": "Knihy, ktoré ste počúvali naposledy.",
+    "hu": "A legutóbb hallgatott könyvek.",
+    "de": "Die Bücher, die du zuletzt gehört hast.",
+    "fr": "Les livres que vous avez écoutés le plus récemment.",
+    "es": "Los libros que has escuchado más recientemente.",
+    "it": "I libri che hai ascoltato più di recente.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.latestEpisodes.label": {
     "en": "Latest podcast episodes",
-    "cs": "Nejnovější epizody"
+    "cs": "Nejnovější epizody",
+    "sk": "Najnovšie epizódy",
+    "hu": "Legújabb podcastepizódok",
+    "de": "Neueste Podcastfolgen",
+    "fr": "Derniers épisodes de podcasts",
+    "es": "Últimos episodios de pódcast",
+    "it": "Ultimi episodi dei podcast",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.latestEpisodes.description": {
     "en": "The newest episodes of the shows you follow.",
-    "cs": "Nejnovější epizody pořadů, které odebíráte."
+    "cs": "Nejnovější epizody pořadů, které odebíráte.",
+    "sk": "Najnovšie epizódy relácií, ktoré odoberáte.",
+    "hu": "A követett műsorok legújabb epizódjai.",
+    "de": "Die neuesten Folgen der Sendungen, denen du folgst.",
+    "fr": "Les épisodes les plus récents des émissions que vous suivez.",
+    "es": "Los episodios más nuevos de los programas que sigues.",
+    "it": "Gli episodi più recenti dei programmi che segui.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.listeningChart.label": {
     "en": "Listening time",
-    "cs": "Doba poslechu"
+    "cs": "Doba poslechu",
+    "sk": "Čas počúvania",
+    "hu": "Hallgatási idő",
+    "de": "Hörzeit",
+    "fr": "Temps d’écoute",
+    "es": "Tiempo de escucha",
+    "it": "Tempo di ascolto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.listeningChart.description": {
     "en": "The last 7 days as a bar chart, split into audiobooks, podcasts and music.",
-    "cs": "Posledních 7 dní ve sloupcovém grafu, rozdělených na audioknihy, podcasty a hudbu."
+    "cs": "Posledních 7 dní ve sloupcovém grafu, rozdělených na audioknihy, podcasty a hudbu.",
+    "sk": "Posledných 7 dní v stĺpcovom grafe, rozdelených na audioknihy, podcasty a hudbu.",
+    "hu": "Az elmúlt 7 nap oszlopdiagramon, hangoskönyvekre, podcastokra és zenére bontva.",
+    "de": "Die letzten 7 Tage als Balkendiagramm, aufgeteilt in Hörbücher, Podcasts und Musik.",
+    "fr": "Les 7 derniers jours en histogramme, répartis entre livres audio, podcasts et musique.",
+    "es": "Los últimos 7 días en un gráfico de barras, divididos en audiolibros, pódcasts y música.",
+    "it": "Gli ultimi 7 giorni in un grafico a barre, suddivisi in audiolibri, podcast e musica.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.activity.label": {
     "en": "Listening activity",
-    "cs": "Aktivita poslechu"
+    "cs": "Aktivita poslechu",
+    "sk": "Aktivita počúvania",
+    "hu": "Hallgatási aktivitás",
+    "de": "Höraktivität",
+    "fr": "Activité d’écoute",
+    "es": "Actividad de escucha",
+    "it": "Attività di ascolto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.widget.activity.description": {
     "en": "Every day of the last 12 months, for audiobooks, podcasts and music.",
-    "cs": "Každý den posledních 12 měsíců, pro audioknihy, podcasty a hudbu."
+    "cs": "Každý den posledních 12 měsíců, pro audioknihy, podcasty a hudbu.",
+    "sk": "Každý deň posledných 12 mesiacov, pre audioknihy, podcasty a hudbu.",
+    "hu": "Az elmúlt 12 hónap minden napja, hangoskönyvekre, podcastokra és zenére.",
+    "de": "Jeder Tag der letzten 12 Monate, für Hörbücher, Podcasts und Musik.",
+    "fr": "Chaque jour des 12 derniers mois, pour les livres audio, les podcasts et la musique.",
+    "es": "Cada día de los últimos 12 meses, para audiolibros, pódcasts y música.",
+    "it": "Ogni giorno degli ultimi 12 mesi, per audiolibri, podcast e musica.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.continue.nothing": {
     "en": "Nothing in progress right now.",
-    "cs": "Právě nic nerozposlouchaného."
+    "cs": "Právě nic nerozposlouchaného.",
+    "sk": "Práve nič nemáte rozpočúvané.",
+    "hu": "Jelenleg nincs semmi folyamatban.",
+    "de": "Gerade ist nichts angefangen.",
+    "fr": "Rien en cours pour le moment.",
+    "es": "Ahora mismo no hay nada empezado.",
+    "it": "Al momento niente in corso.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.continue.noBook": {
     "en": "No audiobook in progress right now.",
-    "cs": "Právě nemáte rozposlouchanou žádnou audioknihu."
+    "cs": "Právě nemáte rozposlouchanou žádnou audioknihu.",
+    "sk": "Práve nemáte rozpočúvanú žiadnu audioknihu.",
+    "hu": "Jelenleg nincs folyamatban lévő hangoskönyv.",
+    "de": "Gerade ist kein Hörbuch angefangen.",
+    "fr": "Aucun livre audio en cours pour le moment.",
+    "es": "Ahora mismo no hay ningún audiolibro empezado.",
+    "it": "Al momento nessun audiolibro in corso.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.continue.translated": {
     "en": "{show} - translated into {language}",
     "cs": "{show} – přeloženo do {language}",
-    "note": "Subtitle of a translated episode; language is a code like DE."
+    "sk": "{show} – preložené do {language}",
+    "hu": "{show} - fordítás, nyelv: {language}",
+    "de": "{show} – übersetzt: {language}",
+    "fr": "{show} - traduit en {language}",
+    "es": "{show} - traducido al {language}",
+    "it": "{show} - tradotto in {language}",
+    "note": "Subtitle of a translated episode; language is a code like DE.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.continue.podcastFallback": {
     "en": "Podcast",
     "cs": "Podcast",
-    "note": "Stands in for a missing show title."
+    "sk": "Podcast",
+    "hu": "Podcast",
+    "de": "Podcast",
+    "fr": "Podcast",
+    "es": "Pódcast",
+    "it": "Podcast",
+    "note": "Stands in for a missing show title.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.recentSongs.empty": {
     "en": "No recently played songs yet.",
-    "cs": "Zatím žádné nedávno hrané skladby."
+    "cs": "Zatím žádné nedávno hrané skladby.",
+    "sk": "Zatiaľ žiadne nedávno hrané skladby.",
+    "hu": "Még nincsenek nemrég lejátszott számok.",
+    "de": "Noch keine zuletzt gespielten Titel.",
+    "fr": "Aucun morceau écouté récemment.",
+    "es": "Aún no hay canciones reproducidas recientemente.",
+    "it": "Ancora nessun brano riprodotto di recente.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.recentAlbums.empty": {
     "en": "No recently played albums yet.",
-    "cs": "Zatím žádná nedávno hraná alba."
+    "cs": "Zatím žádná nedávno hraná alba.",
+    "sk": "Zatiaľ žiadne nedávno hrané albumy.",
+    "hu": "Még nincsenek nemrég lejátszott albumok.",
+    "de": "Noch keine zuletzt gespielten Alben.",
+    "fr": "Aucun album écouté récemment.",
+    "es": "Aún no hay álbumes reproducidos recientemente.",
+    "it": "Ancora nessun album riprodotto di recente.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.recentAlbums.unknownArtist": {
     "en": "Unknown Artist",
-    "cs": "Neznámý interpret"
+    "cs": "Neznámý interpret",
+    "sk": "Neznámy interpret",
+    "hu": "Ismeretlen előadó",
+    "de": "Unbekannter Künstler",
+    "fr": "Artiste inconnu",
+    "es": "Artista desconocido",
+    "it": "Artista sconosciuto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.recentPlaylists.empty": {
     "en": "No playlists yet.",
-    "cs": "Zatím žádné playlisty."
+    "cs": "Zatím žádné playlisty.",
+    "sk": "Zatiaľ žiadne playlisty.",
+    "hu": "Még nincsenek lejátszási listák.",
+    "de": "Noch keine Playlists.",
+    "fr": "Aucune playlist pour l’instant.",
+    "es": "Aún no hay playlists.",
+    "it": "Ancora nessuna playlist.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.playlist.songCount": {
     "en": "{count, plural, one {# song} other {# songs}}",
-    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}"
+    "cs": "{count, plural, one {# skladba} few {# skladby} other {# skladeb}}",
+    "sk": "{count, plural, one {# skladba} few {# skladby} other {# skladieb}}",
+    "hu": "{count, plural, one {# szám} other {# szám}}",
+    "de": "{count, plural, one {# Titel} other {# Titel}}",
+    "fr": "{count, plural, one {# morceau} many {# de morceaux} other {# morceaux}}",
+    "es": "{count, plural, one {# canción} many {# de canciones} other {# canciones}}",
+    "it": "{count, plural, one {# brano} many {# di brani} other {# brani}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.newBooks.empty": {
     "en": "No audiobooks yet.",
-    "cs": "Zatím žádné audioknihy."
+    "cs": "Zatím žádné audioknihy.",
+    "sk": "Zatiaľ žiadne audioknihy.",
+    "hu": "Még nincsenek hangoskönyvek.",
+    "de": "Noch keine Hörbücher.",
+    "fr": "Aucun livre audio pour l’instant.",
+    "es": "Aún no hay audiolibros.",
+    "it": "Ancora nessun audiolibro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.recentBooks.empty": {
     "en": "No audiobooks listened to yet.",
-    "cs": "Zatím jste neposlouchali žádnou audioknihu."
+    "cs": "Zatím jste neposlouchali žádnou audioknihu.",
+    "sk": "Zatiaľ ste nepočúvali žiadnu audioknihu.",
+    "hu": "Még nem hallgatott hangoskönyvet.",
+    "de": "Noch keine Hörbücher gehört.",
+    "fr": "Aucun livre audio écouté pour l’instant.",
+    "es": "Aún no has escuchado ningún audiolibro.",
+    "it": "Non hai ancora ascoltato nessun audiolibro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.latestEpisodes.empty": {
     "en": "Follow a show to see its new episodes here.",
-    "cs": "Odebírejte pořad a jeho nové epizody uvidíte tady."
+    "cs": "Odebírejte pořad a jeho nové epizody uvidíte tady.",
+    "sk": "Odoberajte reláciu a jej nové epizódy uvidíte tu.",
+    "hu": "Kövessen egy műsort, és itt látja majd az új epizódjait.",
+    "de": "Folge einer Sendung, um ihre neuen Folgen hier zu sehen.",
+    "fr": "Suivez une émission pour voir ses nouveaux épisodes ici.",
+    "es": "Sigue un programa para ver aquí sus episodios nuevos.",
+    "it": "Segui un programma per vedere qui i suoi nuovi episodi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.storage.unavailable": {
     "en": "Storage figures aren't available right now.",
-    "cs": "Údaje o úložišti teď nejsou k dispozici."
+    "cs": "Údaje o úložišti teď nejsou k dispozici.",
+    "sk": "Údaje o úložisku teraz nie sú k dispozícii.",
+    "hu": "A tárhelyadatok jelenleg nem érhetők el.",
+    "de": "Speicherzahlen sind gerade nicht verfügbar.",
+    "fr": "Les chiffres de stockage ne sont pas disponibles pour le moment.",
+    "es": "Los datos de almacenamiento no están disponibles ahora mismo.",
+    "it": "I dati sullo spazio di archiviazione non sono disponibili al momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.storage.stored": {
     "en": "Stored",
-    "cs": "Uloženo"
+    "cs": "Uloženo",
+    "sk": "Uložené",
+    "hu": "Tárolva",
+    "de": "Gespeichert",
+    "fr": "Stocké",
+    "es": "Almacenado",
+    "it": "Archiviati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.storage.credit": {
     "en": "Credit",
-    "cs": "Kredit"
+    "cs": "Kredit",
+    "sk": "Kredit",
+    "hu": "Egyenleg",
+    "de": "Guthaben",
+    "fr": "Crédit",
+    "es": "Saldo",
+    "it": "Credito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.storage.daysLeft": {
     "en": "Days left",
-    "cs": "Zbývá dní"
+    "cs": "Zbývá dní",
+    "sk": "Zostáva dní",
+    "hu": "Hátralévő napok",
+    "de": "Verbleibende Tage",
+    "fr": "Jours restants",
+    "es": "Días restantes",
+    "it": "Giorni rimasti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.quickLinks.label": {
     "en": "Libraries",
     "cs": "Knihovny",
-    "note": "Accessible name of the Quick links row."
+    "sk": "Knižnice",
+    "hu": "Könyvtárak",
+    "de": "Mediatheken",
+    "fr": "Bibliothèques",
+    "es": "Bibliotecas",
+    "it": "Librerie",
+    "note": "Accessible name of the Quick links row.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.title": {
     "en": "Get started",
-    "cs": "Začínáme"
+    "cs": "Začínáme",
+    "sk": "Začíname",
+    "hu": "Első lépések",
+    "de": "Erste Schritte",
+    "fr": "Premiers pas",
+    "es": "Primeros pasos",
+    "it": "Per iniziare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.progress": {
     "en": "{done, number} of {total, number} done",
-    "cs": "Hotovo {done, number} z {total, number}"
+    "cs": "Hotovo {done, number} z {total, number}",
+    "sk": "Hotovo {done, number} z {total, number}",
+    "hu": "{done, number}/{total, number} kész",
+    "de": "{done, number} von {total, number} erledigt",
+    "fr": "{done, number} sur {total, number} effectués",
+    "es": "{done, number} de {total, number} hechos",
+    "it": "{done, number} di {total, number} completati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.credit": {
     "en": "You have {amount} of credit to start with.",
-    "cs": "Na začátek máte kredit {amount}."
+    "cs": "Na začátek máte kredit {amount}.",
+    "sk": "Na začiatok máte kredit {amount}.",
+    "hu": "Kezdésként {amount} egyenleggel rendelkezik.",
+    "de": "Du hast {amount} Startguthaben.",
+    "fr": "Vous disposez de {amount} de crédit pour commencer.",
+    "es": "Tienes {amount} de saldo para empezar.",
+    "it": "Per iniziare hai {amount} di credito.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.hide": {
     "en": "Hide Get started",
-    "cs": "Skrýt Začínáme"
+    "cs": "Skrýt Začínáme",
+    "sk": "Skryť Začíname",
+    "hu": "Első lépések elrejtése",
+    "de": "Erste Schritte ausblenden",
+    "fr": "Masquer Premiers pas",
+    "es": "Ocultar Primeros pasos",
+    "it": "Nascondi Per iniziare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.done": {
     "en": "Done",
     "cs": "Hotovo",
-    "note": "Accessible label of a ticked step."
+    "sk": "Hotovo",
+    "hu": "Kész",
+    "de": "Erledigt",
+    "fr": "Effectué",
+    "es": "Hecho",
+    "it": "Fatto",
+    "note": "Accessible label of a ticked step.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.follow.title": {
     "en": "Follow a podcast",
-    "cs": "Přidat podcast"
+    "cs": "Přidat podcast",
+    "sk": "Pridať podcast",
+    "hu": "Kövessen egy podcastot",
+    "de": "Podcast hinzufügen",
+    "fr": "Suivre un podcast",
+    "es": "Añadir pódcast",
+    "it": "Aggiungi podcast",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.follow.description": {
     "en": "Search the directory and follow a show.",
-    "cs": "Vyhledejte v katalogu pořad a začněte ho odebírat."
+    "cs": "Vyhledejte v katalogu pořad a začněte ho odebírat.",
+    "sk": "Vyhľadajte v katalógu reláciu a začnite ju odoberať.",
+    "hu": "Keressen a katalógusban, és kövessen egy műsort.",
+    "de": "Durchsuche den Katalog und folge einer Sendung.",
+    "fr": "Recherchez dans le catalogue et suivez une émission.",
+    "es": "Busca en el catálogo y sigue un programa.",
+    "it": "Cerca nel catalogo e segui un programma.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.book.title": {
     "en": "Add an audiobook",
-    "cs": "Přidat audioknihu"
+    "cs": "Přidat audioknihu",
+    "sk": "Pridať audioknihu",
+    "hu": "Adjon hozzá egy hangoskönyvet",
+    "de": "Hörbuch hinzufügen",
+    "fr": "Ajouter un livre audio",
+    "es": "Añadir un audiolibro",
+    "it": "Aggiungi un audiolibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.book.description": {
     "en": "Upload the files of a book you own.",
-    "cs": "Nahrajte soubory knihy, kterou vlastníte."
+    "cs": "Nahrajte soubory knihy, kterou vlastníte.",
+    "sk": "Nahrajte súbory knihy, ktorú vlastníte.",
+    "hu": "Töltse fel egy saját könyvének fájljait.",
+    "de": "Lade die Dateien eines Buchs hoch, das dir gehört.",
+    "fr": "Importez les fichiers d’un livre que vous possédez.",
+    "es": "Sube los archivos de un libro que tengas.",
+    "it": "Carica i file di un libro che possiedi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.music.title": {
     "en": "Add music",
-    "cs": "Přidat hudbu"
+    "cs": "Přidat hudbu",
+    "sk": "Pridať hudbu",
+    "hu": "Adjon hozzá zenét",
+    "de": "Musik hinzufügen",
+    "fr": "Ajouter de la musique",
+    "es": "Añadir música",
+    "it": "Aggiungi musica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.music.description": {
     "en": "Upload songs or whole albums.",
-    "cs": "Nahrajte skladby nebo celá alba."
+    "cs": "Nahrajte skladby nebo celá alba.",
+    "sk": "Nahrajte skladby alebo celé albumy.",
+    "hu": "Töltsön fel számokat vagy teljes albumokat.",
+    "de": "Lade Titel oder ganze Alben hoch.",
+    "fr": "Importez des morceaux ou des albums entiers.",
+    "es": "Sube canciones o álbumes enteros.",
+    "it": "Carica brani o album interi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.family.title": {
     "en": "Invite your family",
-    "cs": "Pozvat rodinu"
+    "cs": "Pozvat rodinu",
+    "sk": "Pozvať rodinu",
+    "hu": "Hívja meg a családját",
+    "de": "Familie einladen",
+    "fr": "Inviter votre famille",
+    "es": "Invitar a tu familia",
+    "it": "Invita la tua famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.getStarted.family.description": {
     "en": "Send a link. Everyone gets their own account and shares the library.",
-    "cs": "Pošlete odkaz. Každý dostane vlastní účet a sdílí knihovnu."
+    "cs": "Pošlete odkaz. Každý dostane vlastní účet a sdílí knihovnu.",
+    "sk": "Pošlite odkaz. Každý dostane vlastný účet a zdieľa knižnicu.",
+    "hu": "Küldjön egy linket. Mindenki saját fiókot kap, a könyvtárat pedig közösen használják.",
+    "de": "Schick einen Link. Alle bekommen ein eigenes Konto und teilen die Mediathek.",
+    "fr": "Envoyez un lien. Chacun a son propre compte et partage la bibliothèque.",
+    "es": "Envía un enlace. Cada uno tiene su propia cuenta y comparte la biblioteca.",
+    "it": "Invia un link. Ognuno ha il proprio account e condivide la libreria.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.unavailable": {
     "en": "Listening activity isn't available right now.",
-    "cs": "Aktivita poslechu teď není k dispozici."
+    "cs": "Aktivita poslechu teď není k dispozici.",
+    "sk": "Aktivita počúvania teraz nie je k dispozícii.",
+    "hu": "A hallgatási aktivitás jelenleg nem érhető el.",
+    "de": "Die Höraktivität ist gerade nicht verfügbar.",
+    "fr": "L’activité d’écoute n’est pas disponible pour le moment.",
+    "es": "La actividad de escucha no está disponible ahora mismo.",
+    "it": "L’attività di ascolto non è disponibile al momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.allListening": {
     "en": "All listening",
-    "cs": "Veškerý poslech"
+    "cs": "Veškerý poslech",
+    "sk": "Všetko počúvanie",
+    "hu": "Minden hallgatás",
+    "de": "Alles Gehörte",
+    "fr": "Toutes les écoutes",
+    "es": "Toda la escucha",
+    "it": "Tutti gli ascolti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.none": {
     "en": "no listening",
     "cs": "bez poslechu",
-    "note": "A day cell's tooltip for a day with no listening."
+    "sk": "bez počúvania",
+    "hu": "nincs hallgatás",
+    "de": "nichts gehört",
+    "fr": "aucune écoute",
+    "es": "sin escucha",
+    "it": "nessun ascolto",
+    "note": "A day cell's tooltip for a day with no listening.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.rowSummary": {
     "en": "{time} · {days, plural, one {# day} other {# days}}",
     "cs": "{time} · {days, plural, one {# den} few {# dny} other {# dní}}",
-    "note": "time is a duration like 3 h 20 min."
+    "sk": "{time} · {days, plural, one {# deň} few {# dni} other {# dní}}",
+    "hu": "{time} · {days, plural, one {# nap} other {# nap}}",
+    "de": "{time} · {days, plural, one {# Tag} other {# Tage}}",
+    "fr": "{time} · {days, plural, one {# jour} many {# de jours} other {# jours}}",
+    "es": "{time} · {days, plural, one {# día} many {# de días} other {# días}}",
+    "it": "{time} · {days, plural, one {# giorno} many {# di giorni} other {# giorni}}",
+    "note": "time is a duration like 3 h 20 min.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.rowLabel": {
     "en": "{kind}: {time} over {days, plural, one {# day} other {# days}} in the last 12 months",
-    "cs": "{kind}: {time} během {days, plural, one {# dne} few {# dnů} other {# dnů}} za posledních 12 měsíců"
+    "cs": "{kind}: {time} během {days, plural, one {# dne} few {# dnů} other {# dnů}} za posledních 12 měsíců",
+    "sk": "{kind}: {time} počas {days, plural, one {# dňa} few {# dní} other {# dní}} za posledných 12 mesiacov",
+    "hu": "{kind}: {time}, {days, plural, one {# napon} other {# napon}} az elmúlt 12 hónapban",
+    "de": "{kind}: {time} an {days, plural, one {# Tag} other {# Tagen}} in den letzten 12 Monaten",
+    "fr": "{kind} : {time} sur {days, plural, one {# jour} many {# de jours} other {# jours}} au cours des 12 derniers mois",
+    "es": "{kind}: {time} en {days, plural, one {# día} many {# de días} other {# días}} de los últimos 12 meses",
+    "it": "{kind}: {time} in {days, plural, one {# giorno} many {# di giorni} other {# giorni}} negli ultimi 12 mesi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.cell": {
     "en": "{date} · {time}",
-    "cs": "{date} · {time}"
+    "cs": "{date} · {time}",
+    "sk": "{date} · {time}",
+    "hu": "{date} · {time}",
+    "de": "{date} · {time}",
+    "fr": "{date} · {time}",
+    "es": "{date} · {time}",
+    "it": "{date} · {time}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.less": {
     "en": "Less",
     "cs": "Méně",
-    "note": "Legend under the activity grid."
+    "sk": "Menej",
+    "hu": "Kevesebb",
+    "de": "Weniger",
+    "fr": "Moins",
+    "es": "Menos",
+    "it": "Meno",
+    "note": "Legend under the activity grid.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.activity.more": {
     "en": "More",
-    "cs": "Více"
+    "cs": "Více",
+    "sk": "Viac",
+    "hu": "Több",
+    "de": "Mehr",
+    "fr": "Plus",
+    "es": "Más",
+    "it": "Più",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.week.unavailable": {
     "en": "Listening figures aren't available right now.",
-    "cs": "Údaje o poslechu teď nejsou k dispozici."
+    "cs": "Údaje o poslechu teď nejsou k dispozici.",
+    "sk": "Údaje o počúvaní teraz nie sú k dispozícii.",
+    "hu": "A hallgatási adatok jelenleg nem érhetők el.",
+    "de": "Hörzahlen sind gerade nicht verfügbar.",
+    "fr": "Les chiffres d’écoute ne sont pas disponibles pour le moment.",
+    "es": "Los datos de escucha no están disponibles ahora mismo.",
+    "it": "I dati di ascolto non sono disponibili al momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.week.perDay": {
     "en": "a day on average",
-    "cs": "denně v průměru"
+    "cs": "denně v průměru",
+    "sk": "denne v priemere",
+    "hu": "naponta átlagosan",
+    "de": "pro Tag im Schnitt",
+    "fr": "par jour en moyenne",
+    "es": "al día de media",
+    "it": "al giorno in media",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.week.total": {
     "en": "{time} in the last 7 days",
-    "cs": "{time} za posledních 7 dní"
+    "cs": "{time} za posledních 7 dní",
+    "sk": "{time} za posledných 7 dní",
+    "hu": "{time} az elmúlt 7 napban",
+    "de": "{time} in den letzten 7 Tagen",
+    "fr": "{time} sur les 7 derniers jours",
+    "es": "{time} en los últimos 7 días",
+    "it": "{time} negli ultimi 7 giorni",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "home.week.totalStreak": {
     "en": "{time} in the last 7 days · {days, number}-day streak",
-    "cs": "{time} za posledních 7 dní · {days, plural, one {# den} few {# dny} other {# dní}} v řadě"
+    "cs": "{time} za posledních 7 dní · {days, plural, one {# den} few {# dny} other {# dní}} v řadě",
+    "sk": "{time} za posledných 7 dní · {days, plural, one {# deň} few {# dni} other {# dní}} v rade",
+    "hu": "{time} az elmúlt 7 napban · {days, number} napja zsinórban",
+    "de": "{time} in den letzten 7 Tagen · {days, number}-Tage-Serie",
+    "fr": "{time} sur les 7 derniers jours · série de {days, number} jours",
+    "es": "{time} en los últimos 7 días · {days, plural, one {racha de # día} many {racha de # de días} other {racha de # días}}",
+    "it": "{time} negli ultimi 7 giorni · {days, plural, one {# giorno} many {# di giorni} other {# giorni}} di fila",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

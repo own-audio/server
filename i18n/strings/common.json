@@ -1,297 +1,854 @@
 {
   "common.action.cancel": {
     "en": "Cancel",
-    "cs": "Zrušit"
+    "cs": "Zrušit",
+    "sk": "Zrušiť",
+    "hu": "Mégse",
+    "de": "Abbrechen",
+    "fr": "Annuler",
+    "es": "Cancelar",
+    "it": "Annulla",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.save": {
     "en": "Save",
-    "cs": "Uložit"
+    "cs": "Uložit",
+    "sk": "Uložiť",
+    "hu": "Mentés",
+    "de": "Speichern",
+    "fr": "Enregistrer",
+    "es": "Guardar",
+    "it": "Salva",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.delete": {
     "en": "Delete",
     "cs": "Smazat",
-    "note": "Delete for good; removing from a list is common.action.remove."
+    "sk": "Zmazať",
+    "hu": "Törlés",
+    "de": "Löschen",
+    "fr": "Supprimer",
+    "es": "Eliminar",
+    "it": "Elimina",
+    "note": "Delete for good; removing from a list is common.action.remove.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.remove": {
     "en": "Remove",
-    "cs": "Odebrat"
+    "cs": "Odebrat",
+    "sk": "Odobrať",
+    "hu": "Eltávolítás",
+    "de": "Entfernen",
+    "fr": "Retirer",
+    "es": "Quitar",
+    "it": "Rimuovi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.close": {
     "en": "Close",
-    "cs": "Zavřít"
+    "cs": "Zavřít",
+    "sk": "Zavrieť",
+    "hu": "Bezárás",
+    "de": "Schließen",
+    "fr": "Fermer",
+    "es": "Cerrar",
+    "it": "Chiudi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.done": {
     "en": "Done",
-    "cs": "Hotovo"
+    "cs": "Hotovo",
+    "sk": "Hotovo",
+    "hu": "Kész",
+    "de": "Fertig",
+    "fr": "OK",
+    "es": "OK",
+    "it": "Fine",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.edit": {
     "en": "Edit",
-    "cs": "Upravit"
+    "cs": "Upravit",
+    "sk": "Upraviť",
+    "hu": "Szerkesztés",
+    "de": "Bearbeiten",
+    "fr": "Modifier",
+    "es": "Editar",
+    "it": "Modifica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.rename": {
     "en": "Rename",
-    "cs": "Přejmenovat"
+    "cs": "Přejmenovat",
+    "sk": "Premenovať",
+    "hu": "Átnevezés",
+    "de": "Umbenennen",
+    "fr": "Renommer",
+    "es": "Renombrar",
+    "it": "Rinomina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.add": {
     "en": "Add",
-    "cs": "Přidat"
+    "cs": "Přidat",
+    "sk": "Pridať",
+    "hu": "Hozzáadás",
+    "de": "Hinzufügen",
+    "fr": "Ajouter",
+    "es": "Añadir",
+    "it": "Aggiungi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.upload": {
     "en": "Upload",
-    "cs": "Nahrát"
+    "cs": "Nahrát",
+    "sk": "Nahrať",
+    "hu": "Feltöltés",
+    "de": "Hochladen",
+    "fr": "Importer",
+    "es": "Subir",
+    "it": "Carica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.share": {
     "en": "Share",
-    "cs": "Sdílet"
+    "cs": "Sdílet",
+    "sk": "Zdieľať",
+    "hu": "Megosztás",
+    "de": "Teilen",
+    "fr": "Partager",
+    "es": "Compartir",
+    "it": "Condividi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.play": {
     "en": "Play",
     "cs": "Přehrát",
-    "note": "Verb."
+    "sk": "Prehrať",
+    "hu": "Lejátszás",
+    "de": "Abspielen",
+    "fr": "Lire",
+    "es": "Reproducir",
+    "it": "Riproduci",
+    "note": "Verb.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.pause": {
     "en": "Pause",
-    "cs": "Pozastavit"
+    "cs": "Pozastavit",
+    "sk": "Pozastaviť",
+    "hu": "Szünet",
+    "de": "Pausieren",
+    "fr": "Pause",
+    "es": "Pausar",
+    "it": "Pausa",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.resume": {
     "en": "Resume",
-    "cs": "Pokračovat"
+    "cs": "Pokračovat",
+    "sk": "Pokračovať",
+    "hu": "Folytatás",
+    "de": "Fortsetzen",
+    "fr": "Reprendre",
+    "es": "Reanudar",
+    "it": "Riprendi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.retry": {
     "en": "Try again",
-    "cs": "Zkusit znovu"
+    "cs": "Zkusit znovu",
+    "sk": "Skúsiť znova",
+    "hu": "Újra",
+    "de": "Erneut versuchen",
+    "fr": "Réessayer",
+    "es": "Reintentar",
+    "it": "Riprova",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.back": {
     "en": "Back",
-    "cs": "Zpět"
+    "cs": "Zpět",
+    "sk": "Späť",
+    "hu": "Vissza",
+    "de": "Zurück",
+    "fr": "Retour",
+    "es": "Atrás",
+    "it": "Indietro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.next": {
     "en": "Next",
-    "cs": "Další"
+    "cs": "Další",
+    "sk": "Ďalej",
+    "hu": "Következő",
+    "de": "Weiter",
+    "fr": "Suivant",
+    "es": "Siguiente",
+    "it": "Successivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.previous": {
     "en": "Previous",
-    "cs": "Předchozí"
+    "cs": "Předchozí",
+    "sk": "Predchádzajúce",
+    "hu": "Előző",
+    "de": "Zurück",
+    "fr": "Précédent",
+    "es": "Anterior",
+    "it": "Precedente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.seeAll": {
     "en": "See all",
     "cs": "Zobrazit vše",
-    "note": "Link from a Home carousel to the full list."
+    "sk": "Zobraziť všetko",
+    "hu": "Az összes",
+    "de": "Alle anzeigen",
+    "fr": "Tout afficher",
+    "es": "Ver todo",
+    "it": "Mostra tutto",
+    "note": "Link from a Home carousel to the full list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.seeMore": {
     "en": "See more",
     "cs": "Zobrazit více",
-    "note": "Link from a Home summary to its page."
+    "sk": "Zobraziť viac",
+    "hu": "Továbbiak",
+    "de": "Mehr anzeigen",
+    "fr": "En voir plus",
+    "es": "Ver más",
+    "it": "Vedi altro",
+    "note": "Link from a Home summary to its page.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.showMore": {
     "en": "Show more",
     "cs": "Zobrazit další",
-    "note": "Loads more rows of the same list."
+    "sk": "Zobraziť ďalšie",
+    "hu": "Több megjelenítése",
+    "de": "Mehr laden",
+    "fr": "Afficher plus",
+    "es": "Mostrar más",
+    "it": "Mostra altro",
+    "note": "Loads more rows of the same list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.search": {
     "en": "Search",
-    "cs": "Hledat"
+    "cs": "Hledat",
+    "sk": "Hľadať",
+    "hu": "Keresés",
+    "de": "Suchen",
+    "fr": "Rechercher",
+    "es": "Buscar",
+    "it": "Cerca",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.signIn": {
     "en": "Sign in",
-    "cs": "Přihlásit se"
+    "cs": "Přihlásit se",
+    "sk": "Prihlásiť sa",
+    "hu": "Bejelentkezés",
+    "de": "Anmelden",
+    "fr": "Se connecter",
+    "es": "Iniciar sesión",
+    "it": "Accedi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.signOut": {
     "en": "Sign out",
-    "cs": "Odhlásit se"
+    "cs": "Odhlásit se",
+    "sk": "Odhlásiť sa",
+    "hu": "Kijelentkezés",
+    "de": "Abmelden",
+    "fr": "Se déconnecter",
+    "es": "Cerrar sesión",
+    "it": "Esci",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.createAccount": {
     "en": "Create account",
-    "cs": "Vytvořit účet"
+    "cs": "Vytvořit účet",
+    "sk": "Vytvoriť účet",
+    "hu": "Fiók létrehozása",
+    "de": "Konto erstellen",
+    "fr": "Créer un compte",
+    "es": "Crear cuenta",
+    "it": "Crea account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.invite": {
     "en": "Invite",
-    "cs": "Pozvat"
+    "cs": "Pozvat",
+    "sk": "Pozvať",
+    "hu": "Meghívás",
+    "de": "Einladen",
+    "fr": "Inviter",
+    "es": "Invitar",
+    "it": "Invita",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.loading": {
     "en": "Loading…",
-    "cs": "Načítání…"
+    "cs": "Načítání…",
+    "sk": "Načítava sa…",
+    "hu": "Betöltés…",
+    "de": "Wird geladen …",
+    "fr": "Chargement…",
+    "es": "Cargando…",
+    "it": "Caricamento…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.error.generic": {
     "en": "Something went wrong. Try again.",
-    "cs": "Něco se pokazilo. Zkuste to znovu."
+    "cs": "Něco se pokazilo. Zkuste to znovu.",
+    "sk": "Niečo sa pokazilo. Skúste to znova.",
+    "hu": "Hiba történt. Próbálja újra.",
+    "de": "Etwas ist schiefgegangen. Versuch es noch einmal.",
+    "fr": "Un problème est survenu. Réessayez.",
+    "es": "Algo ha fallado. Inténtalo de nuevo.",
+    "it": "Qualcosa è andato storto. Riprova.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.kind.audiobooks": {
     "en": "Audiobooks",
-    "cs": "Audioknihy"
+    "cs": "Audioknihy",
+    "sk": "Audioknihy",
+    "hu": "Hangoskönyvek",
+    "de": "Hörbücher",
+    "fr": "Livres audio",
+    "es": "Audiolibros",
+    "it": "Audiolibri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.kind.podcasts": {
     "en": "Podcasts",
-    "cs": "Podcasty"
+    "cs": "Podcasty",
+    "sk": "Podcasty",
+    "hu": "Podcastok",
+    "de": "Podcasts",
+    "fr": "Podcasts",
+    "es": "Pódcasts",
+    "it": "Podcast",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.kind.music": {
     "en": "Music",
-    "cs": "Hudba"
+    "cs": "Hudba",
+    "sk": "Hudba",
+    "hu": "Zene",
+    "de": "Musik",
+    "fr": "Musique",
+    "es": "Música",
+    "it": "Musica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.theme.system": {
     "en": "Auto",
     "cs": "Podle systému",
-    "note": "Theme choice that follows the device."
+    "sk": "Podľa systému",
+    "hu": "Automatikus",
+    "de": "Automatisch",
+    "fr": "Système",
+    "es": "Automático",
+    "it": "Automatico",
+    "note": "Theme choice that follows the device.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.theme.light": {
     "en": "Light",
-    "cs": "Světlý"
+    "cs": "Světlý",
+    "sk": "Svetlý",
+    "hu": "Világos",
+    "de": "Hell",
+    "fr": "Clair",
+    "es": "Claro",
+    "it": "Chiaro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.theme.dark": {
     "en": "Dark",
-    "cs": "Tmavý"
+    "cs": "Tmavý",
+    "sk": "Tmavý",
+    "hu": "Sötét",
+    "de": "Dunkel",
+    "fr": "Sombre",
+    "es": "Oscuro",
+    "it": "Scuro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.language.title": {
     "en": "Language",
-    "cs": "Jazyk"
+    "cs": "Jazyk",
+    "sk": "Jazyk",
+    "hu": "Nyelv",
+    "de": "Sprache",
+    "fr": "Langue",
+    "es": "Idioma",
+    "it": "Lingua",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.language.system": {
     "en": "Browser's language",
-    "cs": "Podle prohlížeče"
+    "cs": "Podle prohlížeče",
+    "sk": "Podľa prehliadača",
+    "hu": "A böngésző nyelve",
+    "de": "Sprache des Browsers",
+    "fr": "Langue du navigateur",
+    "es": "Idioma del navegador",
+    "it": "Lingua del browser",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.language.en": {
     "en": "English",
     "cs": "English",
+    "sk": "English",
+    "hu": "English",
+    "de": "English",
+    "fr": "English",
+    "es": "English",
+    "it": "English",
     "note": "Always the language's own name."
   },
   "common.language.cs": {
     "en": "Čeština",
     "cs": "Čeština",
+    "sk": "Čeština",
+    "hu": "Čeština",
+    "de": "Čeština",
+    "fr": "Čeština",
+    "es": "Čeština",
+    "it": "Čeština",
+    "note": "Always the language's own name."
+  },
+  "common.language.sk": {
+    "en": "Slovenčina",
+    "cs": "Slovenčina",
+    "sk": "Slovenčina",
+    "hu": "Slovenčina",
+    "de": "Slovenčina",
+    "fr": "Slovenčina",
+    "es": "Slovenčina",
+    "it": "Slovenčina",
+    "note": "Always the language's own name."
+  },
+  "common.language.hu": {
+    "en": "Magyar",
+    "cs": "Magyar",
+    "sk": "Magyar",
+    "hu": "Magyar",
+    "de": "Magyar",
+    "fr": "Magyar",
+    "es": "Magyar",
+    "it": "Magyar",
+    "note": "Always the language's own name."
+  },
+  "common.language.de": {
+    "en": "Deutsch",
+    "cs": "Deutsch",
+    "sk": "Deutsch",
+    "hu": "Deutsch",
+    "de": "Deutsch",
+    "fr": "Deutsch",
+    "es": "Deutsch",
+    "it": "Deutsch",
+    "note": "Always the language's own name."
+  },
+  "common.language.fr": {
+    "en": "Français",
+    "cs": "Français",
+    "sk": "Français",
+    "hu": "Français",
+    "de": "Français",
+    "fr": "Français",
+    "es": "Français",
+    "it": "Français",
+    "note": "Always the language's own name."
+  },
+  "common.language.es": {
+    "en": "Español",
+    "cs": "Español",
+    "sk": "Español",
+    "hu": "Español",
+    "de": "Español",
+    "fr": "Español",
+    "es": "Español",
+    "it": "Español",
+    "note": "Always the language's own name."
+  },
+  "common.language.it": {
+    "en": "Italiano",
+    "cs": "Italiano",
+    "sk": "Italiano",
+    "hu": "Italiano",
+    "de": "Italiano",
+    "fr": "Italiano",
+    "es": "Italiano",
+    "it": "Italiano",
     "note": "Always the language's own name."
   },
   "common.duration.hoursMinutes": {
     "en": "{h} h {m} min",
-    "cs": "{h} h {m} min"
+    "cs": "{h} h {m} min",
+    "sk": "{h} h {m} min",
+    "hu": "{h} ó {m} p",
+    "de": "{h} Std. {m} Min.",
+    "fr": "{h} h {m} min",
+    "es": "{h} h {m} min",
+    "it": "{h} h {m} min",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.hours": {
     "en": "{h} h",
-    "cs": "{h} h"
+    "cs": "{h} h",
+    "sk": "{h} h",
+    "hu": "{h} ó",
+    "de": "{h} Std.",
+    "fr": "{h} h",
+    "es": "{h} h",
+    "it": "{h} h",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.minutesSeconds": {
     "en": "{m} min {s} s",
-    "cs": "{m} min {s} s"
+    "cs": "{m} min {s} s",
+    "sk": "{m} min {s} s",
+    "hu": "{m} p {s} mp",
+    "de": "{m} Min. {s} Sek.",
+    "fr": "{m} min {s} s",
+    "es": "{m} min {s} s",
+    "it": "{m} min {s} s",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.minutes": {
     "en": "{m} min",
-    "cs": "{m} min"
+    "cs": "{m} min",
+    "sk": "{m} min",
+    "hu": "{m} p",
+    "de": "{m} Min.",
+    "fr": "{m} min",
+    "es": "{m} min",
+    "it": "{m} min",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.seconds": {
     "en": "{s} s",
-    "cs": "{s} s"
+    "cs": "{s} s",
+    "sk": "{s} s",
+    "hu": "{s} mp",
+    "de": "{s} Sek.",
+    "fr": "{s} s",
+    "es": "{s} s",
+    "it": "{s} s",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.underMinute": {
     "en": "under a minute",
-    "cs": "méně než minuta"
+    "cs": "méně než minuta",
+    "sk": "menej ako minúta",
+    "hu": "kevesebb mint egy perc",
+    "de": "unter einer Minute",
+    "fr": "moins d’une minute",
+    "es": "menos de un minuto",
+    "it": "meno di un minuto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.clear": {
     "en": "Clear",
-    "cs": "Vymazat"
+    "cs": "Vymazat",
+    "sk": "Vymazať",
+    "hu": "Kiürítés",
+    "de": "Leeren",
+    "fr": "Effacer",
+    "es": "Borrar",
+    "it": "Cancella",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.dismiss": {
     "en": "Dismiss",
     "cs": "Zavřít",
-    "note": "Closes a notice or removes it from a list."
+    "sk": "Zavrieť",
+    "hu": "Elvetés",
+    "de": "Ausblenden",
+    "fr": "Ignorer",
+    "es": "Descartar",
+    "it": "Ignora",
+    "note": "Closes a notice or removes it from a list.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.restore": {
     "en": "Restore",
     "cs": "Obnovit",
-    "note": "Bring back from the trash."
+    "sk": "Obnoviť",
+    "hu": "Visszaállítás",
+    "de": "Wiederherstellen",
+    "fr": "Restaurer",
+    "es": "Restaurar",
+    "it": "Ripristina",
+    "note": "Bring back from the trash.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.undo": {
     "en": "Undo",
-    "cs": "Zpět"
+    "cs": "Zpět",
+    "sk": "Späť",
+    "hu": "Visszavonás",
+    "de": "Rückgängig",
+    "fr": "Annuler",
+    "es": "Deshacer",
+    "it": "Annulla",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.moveToTrash": {
     "en": "Move to Trash",
-    "cs": "Přesunout do koše"
+    "cs": "Přesunout do koše",
+    "sk": "Presunúť do koša",
+    "hu": "Áthelyezés a kukába",
+    "de": "In den Papierkorb",
+    "fr": "Placer dans la corbeille",
+    "es": "Mover a la papelera",
+    "it": "Sposta nel Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.more": {
     "en": "More",
     "cs": "Více",
-    "note": "Accessible name of a ⋯ menu button."
+    "sk": "Viac",
+    "hu": "Továbbiak",
+    "de": "Mehr",
+    "fr": "Plus",
+    "es": "Más",
+    "it": "Altro",
+    "note": "Accessible name of a ⋯ menu button.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.expand": {
     "en": "Expand",
-    "cs": "Rozbalit"
+    "cs": "Rozbalit",
+    "sk": "Rozbaliť",
+    "hu": "Kibontás",
+    "de": "Erweitern",
+    "fr": "Développer",
+    "es": "Ampliar",
+    "it": "Espandi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.stop": {
     "en": "Stop",
-    "cs": "Zastavit"
+    "cs": "Zastavit",
+    "sk": "Zastaviť",
+    "hu": "Leállítás",
+    "de": "Stoppen",
+    "fr": "Arrêter",
+    "es": "Detener",
+    "it": "Interrompi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.action.continueWithApple": {
     "en": "Continue with Apple",
-    "cs": "Pokračovat přes Apple"
+    "cs": "Pokračovat přes Apple",
+    "sk": "Pokračovať cez Apple",
+    "hu": "Folytatás az Apple-lel",
+    "de": "Mit Apple fortfahren",
+    "fr": "Continuer avec Apple",
+    "es": "Continuar con Apple",
+    "it": "Continua con Apple",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.error.appleSignIn": {
     "en": "Could not sign in with Apple.",
-    "cs": "Přihlášení přes Apple se nezdařilo."
+    "cs": "Přihlášení přes Apple se nezdařilo.",
+    "sk": "Nepodarilo sa prihlásiť cez Apple.",
+    "hu": "Nem sikerült bejelentkezni az Apple-lel.",
+    "de": "Die Anmeldung mit Apple konnte nicht durchgeführt werden.",
+    "fr": "Impossible de se connecter avec Apple.",
+    "es": "No se ha podido iniciar sesión con Apple.",
+    "it": "Impossibile accedere con Apple.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.error.googleSignIn": {
     "en": "Could not sign in with Google.",
-    "cs": "Přihlášení přes Google se nezdařilo."
+    "cs": "Přihlášení přes Google se nezdařilo.",
+    "sk": "Nepodarilo sa prihlásiť cez Google.",
+    "hu": "Nem sikerült bejelentkezni a Google-lel.",
+    "de": "Die Anmeldung mit Google konnte nicht durchgeführt werden.",
+    "fr": "Impossible de se connecter avec Google.",
+    "es": "No se ha podido iniciar sesión con Google.",
+    "it": "Impossibile accedere con Google.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.error.googleNoToken": {
     "en": "Google did not return a sign-in token.",
-    "cs": "Google nevrátil přihlašovací token."
+    "cs": "Google nevrátil přihlašovací token.",
+    "sk": "Google nevrátil prihlasovací token.",
+    "hu": "A Google nem adott vissza bejelentkezési tokent.",
+    "de": "Google hat kein Anmelde-Token zurückgegeben.",
+    "fr": "Google n’a pas renvoyé de jeton de connexion.",
+    "es": "Google no ha devuelto un token de inicio de sesión.",
+    "it": "Google non ha restituito un token di accesso.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.badge.family": {
     "en": "Shared with the family",
-    "cs": "Sdíleno s rodinou"
+    "cs": "Sdíleno s rodinou",
+    "sk": "Zdieľané s rodinou",
+    "hu": "Megosztva a családdal",
+    "de": "Mit der Familie geteilt",
+    "fr": "Partagé avec la famille",
+    "es": "Compartido con la familia",
+    "it": "Condiviso con la famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.badge.favorite": {
     "en": "Favorite",
-    "cs": "Oblíbené"
+    "cs": "Oblíbené",
+    "sk": "Obľúbené",
+    "hu": "Kedvenc",
+    "de": "Favorit",
+    "fr": "Favori",
+    "es": "Favorito",
+    "it": "Preferito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.badge.translatable": {
     "en": "Can be translated",
     "cs": "Lze přeložit",
-    "note": "Badge on a show or episode that publishes a transcript, so it can be translated and narrated."
+    "sk": "Dá sa preložiť",
+    "hu": "Lefordítható",
+    "de": "Übersetzbar",
+    "fr": "Traduisible",
+    "es": "Se puede traducir",
+    "it": "Traducibile",
+    "note": "Badge on a show or episode that publishes a transcript, so it can be translated and narrated.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.qrCode.invite": {
     "en": "QR code for this invite",
-    "cs": "QR kód této pozvánky"
+    "cs": "QR kód této pozvánky",
+    "sk": "QR kód tejto pozvánky",
+    "hu": "A meghívó QR-kódja",
+    "de": "QR-Code für diese Einladung",
+    "fr": "Code QR de cette invitation",
+    "es": "Código QR de esta invitación",
+    "it": "Codice QR per questo invito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.trash.moved": {
     "en": "Moved to Trash",
     "cs": "Přesunuto do koše",
-    "note": "Toast title; the item's name is shown under it."
+    "sk": "Presunuté do koša",
+    "hu": "Áthelyezve a kukába",
+    "de": "In den Papierkorb gelegt",
+    "fr": "Placé dans la corbeille",
+    "es": "Movido a la papelera",
+    "it": "Spostato nel Cestino",
+    "note": "Toast title; the item's name is shown under it.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.trash.restored": {
     "en": "Restored",
     "cs": "Obnoveno",
-    "note": "Toast after bringing something back from the trash."
+    "sk": "Obnovené",
+    "hu": "Visszaállítva",
+    "de": "Wiederhergestellt",
+    "fr": "Restauré",
+    "es": "Restaurado",
+    "it": "Ripristinato",
+    "note": "Toast after bringing something back from the trash.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.trash.restoreFailed": {
     "en": "Couldn't restore that",
-    "cs": "Obnovení se nezdařilo"
+    "cs": "Obnovení se nezdařilo",
+    "sk": "Nepodarilo sa obnoviť",
+    "hu": "Nem sikerült visszaállítani",
+    "de": "Das konnte nicht wiederhergestellt werden",
+    "fr": "Impossible de restaurer cet élément",
+    "es": "No se ha podido restaurar",
+    "it": "Impossibile ripristinarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.trash.stillInTrash": {
     "en": "It's still in the trash.",
-    "cs": "Položka zůstává v koši."
+    "cs": "Položka zůstává v koši.",
+    "sk": "Položka zostáva v koši.",
+    "hu": "Még a kukában van.",
+    "de": "Es ist noch im Papierkorb.",
+    "fr": "Il est toujours dans la corbeille.",
+    "es": "Sigue en la papelera.",
+    "it": "È ancora nel cestino.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.downloads.outOfSpace": {
     "en": "This device is out of space",
-    "cs": "V tomto zařízení došlo místo"
+    "cs": "V tomto zařízení došlo místo",
+    "sk": "V tomto zariadení došlo miesto",
+    "hu": "Ezen az eszközön elfogyott a hely",
+    "de": "Auf diesem Gerät ist kein Speicherplatz mehr frei",
+    "fr": "Cet appareil n’a plus d’espace libre",
+    "es": "Este dispositivo no tiene espacio",
+    "it": "Spazio esaurito su questo dispositivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.downloads.outOfSpaceHint": {
     "en": "Remove some downloads, then the rest will continue.",
-    "cs": "Odeberte některé stažené položky, pak se zbytek stáhne."
+    "cs": "Odeberte některé stažené položky, pak se zbytek stáhne.",
+    "sk": "Odoberte niektoré stiahnuté položky, potom sa zvyšok stiahne.",
+    "hu": "Távolítson el néhány letöltést, és a többi folytatódik.",
+    "de": "Entferne einige Downloads, dann geht es mit dem Rest weiter.",
+    "fr": "Retirez quelques téléchargements, et le reste continuera.",
+    "es": "Quita algunas descargas y el resto continuará.",
+    "it": "Rimuovi alcuni download, poi il resto continuerà.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.downloads.songFailed": {
     "en": "Couldn't download a song",
     "cs": "Skladbu se nepodařilo stáhnout",
-    "note": "The song's title is shown under it."
+    "sk": "Nepodarilo sa stiahnuť skladbu",
+    "hu": "Nem sikerült letölteni egy számot",
+    "de": "Ein Titel konnte nicht heruntergeladen werden",
+    "fr": "Impossible de télécharger un morceau",
+    "es": "No se ha podido descargar una canción",
+    "it": "Impossibile scaricare un brano",
+    "note": "The song's title is shown under it.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.time.expired": {
     "en": "expired",
     "cs": "platnost vypršela",
-    "note": "An invite or link past its expiry time."
+    "sk": "platnosť vypršala",
+    "hu": "lejárt",
+    "de": "abgelaufen",
+    "fr": "expiré",
+    "es": "caducado",
+    "it": "scaduto",
+    "note": "An invite or link past its expiry time.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "common.duration.underMinuteShort": {
     "en": "< 1 min",
     "cs": "< 1 min",
-    "note": "Where there is no room for 'under a minute' — small tiles."
+    "sk": "< 1 min",
+    "hu": "< 1 p",
+    "de": "< 1 Min.",
+    "fr": "< 1 min",
+    "es": "< 1 min",
+    "it": "< 1 min",
+    "note": "Where there is no room for 'under a minute' — small tiles.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-
-  "common.languageInSentence": {"en": "{code, select, cs {Czech} en {English} de {German} it {Italian} fr {French} es {Spanish} sk {Slovak} pl {Polish} other {{name}}}", "cs": "{code, select, cs {češtiny} en {angličtiny} de {němčiny} it {italštiny} fr {francouzštiny} es {španělštiny} sk {slovenštiny} pl {polštiny} other {{name}}}", "note": "A language's name as it reads after “from … to …” in the machine-translation line. Czech: the genitive after „z“ and „do“. {code} is the base language code; {name} a fallback name for any other language."}
+  "common.languageInSentence": {
+    "en": "{code, select, cs {Czech} en {English} de {German} it {Italian} fr {French} es {Spanish} sk {Slovak} pl {Polish} other {{name}}}",
+    "cs": "{code, select, cs {češtiny} en {angličtiny} de {němčiny} it {italštiny} fr {francouzštiny} es {španělštiny} sk {slovenštiny} pl {polštiny} other {{name}}}",
+    "sk": "{code, select, cs {češtiny} en {angličtiny} de {nemčiny} it {taliančiny} fr {francúzštiny} es {španielčiny} sk {slovenčiny} pl {poľštiny} other {{name}}}",
+    "hu": "{code, select, cs {cseh} en {angol} de {német} it {olasz} fr {francia} es {spanyol} sk {szlovák} pl {lengyel} other {{name}}}",
+    "de": "{code, select, cs {Tschechisch} en {Englisch} de {Deutsch} it {Italienisch} fr {Französisch} es {Spanisch} sk {Slowakisch} pl {Polnisch} other {{name}}}",
+    "fr": "{code, select, cs {tchèque} en {anglais} de {allemand} it {italien} fr {français} es {espagnol} sk {slovaque} pl {polonais} other {{name}}}",
+    "es": "{code, select, cs {checo} en {inglés} de {alemán} it {italiano} fr {francés} es {español} sk {eslovaco} pl {polaco} other {{name}}}",
+    "it": "{code, select, cs {ceco} en {inglese} de {tedesco} it {italiano} fr {francese} es {spagnolo} sk {slovacco} pl {polacco} other {{name}}}",
+    "note": "A language's name as it reads after “from … to …” in the machine-translation line. Czech: the genitive after „z“ and „do“. {code} is the base language code; {name} a fallback name for any other language.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  }
 }

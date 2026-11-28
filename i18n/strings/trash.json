@@ -1,174 +1,468 @@
 {
   "trash.page.title": {
     "en": "Trash",
-    "cs": "Koš"
+    "cs": "Koš",
+    "sk": "Kôš",
+    "hu": "Kuka",
+    "de": "Papierkorb",
+    "fr": "Corbeille",
+    "es": "Papelera",
+    "it": "Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.intro": {
     "en": "Deleted items wait here for 30 days, then they're gone for good.",
-    "cs": "Smazané položky tu čekají 30 dní, pak zmizí natrvalo."
+    "cs": "Smazané položky tu čekají 30 dní, pak zmizí natrvalo.",
+    "sk": "Zmazané položky tu čakajú 30 dní, potom natrvalo zmiznú.",
+    "hu": "A törölt elemek 30 napig itt várnak, utána véglegesen eltűnnek.",
+    "de": "Gelöschte Objekte bleiben hier 30 Tage, danach sind sie endgültig weg.",
+    "fr": "Les éléments supprimés restent ici 30 jours, puis disparaissent définitivement.",
+    "es": "Los elementos eliminados esperan aquí 30 días y después desaparecen para siempre.",
+    "it": "Gli elementi eliminati restano qui per 30 giorni, poi spariscono per sempre.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.introBilling": {
     "en": "The trash costs nothing; restoring an item charges the storage for the days it spent here, and restoring on the day it was deleted is free.",
     "cs": "Koš nic nestojí; obnovení položky se účtuje za úložiště po dny, které tu strávila, a obnovení v den smazání je zdarma.",
-    "note": "Follows trash.intro on a server with storage billing only."
+    "sk": "Kôš nič nestojí; obnovenie položky sa účtuje za úložisko za dni, ktoré tu strávila, a obnovenie v deň zmazania je zadarmo.",
+    "hu": "A kuka semmibe sem kerül; egy elem visszaállításakor az itt töltött napok tárhelydíját számítjuk fel, a törlés napján történő visszaállítás pedig ingyenes.",
+    "de": "Der Papierkorb kostet nichts; beim Wiederherstellen wird der Speicher für die Tage berechnet, die das Objekt hier lag, und am Tag des Löschens ist das Wiederherstellen kostenlos.",
+    "fr": "La corbeille ne coûte rien ; restaurer un élément facture le stockage pour les jours passés ici, et une restauration le jour même de la suppression est gratuite.",
+    "es": "La papelera no cuesta nada; al restaurar un elemento se cobra el almacenamiento de los días que ha pasado aquí, y restaurarlo el mismo día en que se eliminó es gratis.",
+    "it": "Il cestino non costa nulla; ripristinare un elemento addebita lo spazio di archiviazione per i giorni trascorsi qui, e il ripristino nel giorno stesso dell’eliminazione è gratuito.",
+    "note": "Follows trash.intro on a server with storage billing only.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.empty": {
     "en": "Empty Trash",
-    "cs": "Vysypat koš"
+    "cs": "Vysypat koš",
+    "sk": "Vysypať kôš",
+    "hu": "Kuka ürítése",
+    "de": "Papierkorb leeren",
+    "fr": "Vider la corbeille",
+    "es": "Vaciar papelera",
+    "it": "Svuota il Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.scope.mine": {
     "en": "Mine",
-    "cs": "Moje"
+    "cs": "Moje",
+    "sk": "Moje",
+    "hu": "Saját",
+    "de": "Meine",
+    "fr": "Les miens",
+    "es": "Míos",
+    "it": "Miei",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.scope.family": {
     "en": "Whole family",
-    "cs": "Celá rodina"
+    "cs": "Celá rodina",
+    "sk": "Celá rodina",
+    "hu": "Az egész család",
+    "de": "Ganze Familie",
+    "fr": "Toute la famille",
+    "es": "Toda la familia",
+    "it": "Tutta la famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.emptyState.title": {
     "en": "The trash is empty",
-    "cs": "Koš je prázdný"
+    "cs": "Koš je prázdný",
+    "sk": "Kôš je prázdny",
+    "hu": "A kuka üres",
+    "de": "Der Papierkorb ist leer",
+    "fr": "La corbeille est vide",
+    "es": "La papelera está vacía",
+    "it": "Il cestino è vuoto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.emptyState.description": {
     "en": "Deleted books, songs, playlists and episodes wait here for 30 days.",
-    "cs": "Smazané knihy, skladby, playlisty a epizody tu čekají 30 dní."
+    "cs": "Smazané knihy, skladby, playlisty a epizody tu čekají 30 dní.",
+    "sk": "Zmazané knihy, skladby, playlisty a epizódy tu čakajú 30 dní.",
+    "hu": "A törölt könyvek, számok, listák és epizódok 30 napig itt várnak.",
+    "de": "Gelöschte Bücher, Titel, Playlists und Folgen bleiben hier 30 Tage.",
+    "fr": "Les livres, morceaux, playlists et épisodes supprimés restent ici 30 jours.",
+    "es": "Los libros, canciones, playlists y episodios eliminados esperan aquí 30 días.",
+    "it": "Libri, brani, playlist ed episodi eliminati restano qui per 30 giorni.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.itemCount": {
     "en": "{count, plural, one {# item} other {# items}}",
-    "cs": "{count, plural, one {# položka} few {# položky} other {# položek}}"
+    "cs": "{count, plural, one {# položka} few {# položky} other {# položek}}",
+    "sk": "{count, plural, one {# položka} few {# položky} other {# položiek}}",
+    "hu": "{count, plural, one {# elem} other {# elem}}",
+    "de": "{count, plural, one {# Objekt} other {# Objekte}}",
+    "fr": "{count, plural, one {# élément} many {# d’éléments} other {# éléments}}",
+    "es": "{count, plural, one {# elemento} many {# de elementos} other {# elementos}}",
+    "it": "{count, plural, one {# elemento} many {# di elementi} other {# elementi}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.summary": {
     "en": "{items} · {size}",
     "cs": "{items} · {size}",
-    "note": "items is trash.itemCount, size like 1.2 GB."
+    "sk": "{items} · {size}",
+    "hu": "{items} · {size}",
+    "de": "{items} · {size}",
+    "fr": "{items} · {size}",
+    "es": "{items} · {size}",
+    "it": "{items} · {size}",
+    "note": "items is trash.itemCount, size like 1.2 GB.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.group.deleted": {
     "en": "Deleted {when}",
     "cs": "Smazáno {when}",
-    "note": "when is relative, e.g. 5 min ago / před 5 min."
+    "sk": "Zmazané {when}",
+    "hu": "Törölve {when}",
+    "de": "Gelöscht {when}",
+    "fr": "Supprimé {when}",
+    "es": "Eliminado {when}",
+    "it": "Eliminati {when}",
+    "note": "when is relative, e.g. 5 min ago / před 5 min.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.group.deletedBy": {
     "en": "Deleted {when} by {name}",
-    "cs": "{name} smazal(a) {when}"
+    "cs": "{name} smazal(a) {when}",
+    "sk": "{name} zmazal(a) {when}",
+    "hu": "{name} törölte {when}",
+    "de": "Gelöscht {when} von {name}",
+    "fr": "Supprimé {when} par {name}",
+    "es": "Eliminado {when} por {name}",
+    "it": "Eliminati {when} da {name}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.group.deletedByYou": {
     "en": "Deleted {when} by you",
-    "cs": "Smazali jste {when}"
+    "cs": "Smazali jste {when}",
+    "sk": "Zmazali ste {when}",
+    "hu": "Ön törölte {when}",
+    "de": "Gelöscht {when} von dir",
+    "fr": "Supprimé {when} par vous",
+    "es": "Eliminado {when} por ti",
+    "it": "Eliminati {when} da te",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreAll": {
     "en": "Restore all",
-    "cs": "Obnovit vše"
+    "cs": "Obnovit vše",
+    "sk": "Obnoviť všetko",
+    "hu": "Összes visszaállítása",
+    "de": "Alle wiederherstellen",
+    "fr": "Tout restaurer",
+    "es": "Restaurar todo",
+    "it": "Ripristina tutto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restore": {
     "en": "Restore",
-    "cs": "Obnovit"
+    "cs": "Obnovit",
+    "sk": "Obnoviť",
+    "hu": "Visszaállítás",
+    "de": "Wiederherstellen",
+    "fr": "Restaurer",
+    "es": "Restaurar",
+    "it": "Ripristina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.deleteForever": {
     "en": "Delete forever",
-    "cs": "Smazat natrvalo"
+    "cs": "Smazat natrvalo",
+    "sk": "Zmazať natrvalo",
+    "hu": "Végleges törlés",
+    "de": "Endgültig löschen",
+    "fr": "Supprimer définitivement",
+    "es": "Eliminar para siempre",
+    "it": "Elimina per sempre",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.kind.audiobook": {
     "en": "Audiobook",
-    "cs": "Audiokniha"
+    "cs": "Audiokniha",
+    "sk": "Audiokniha",
+    "hu": "Hangoskönyv",
+    "de": "Hörbuch",
+    "fr": "Livre audio",
+    "es": "Audiolibro",
+    "it": "Audiolibro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.kind.song": {
     "en": "Song",
-    "cs": "Skladba"
+    "cs": "Skladba",
+    "sk": "Skladba",
+    "hu": "Szám",
+    "de": "Titel",
+    "fr": "Morceau",
+    "es": "Canción",
+    "it": "Brano",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.kind.playlist": {
     "en": "Playlist",
-    "cs": "Playlist"
+    "cs": "Playlist",
+    "sk": "Playlist",
+    "hu": "Lejátszási lista",
+    "de": "Playlist",
+    "fr": "Playlist",
+    "es": "Playlist",
+    "it": "Playlist",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.kind.episode": {
     "en": "Episode",
-    "cs": "Epizoda"
+    "cs": "Epizoda",
+    "sk": "Epizóda",
+    "hu": "Epizód",
+    "de": "Folge",
+    "fr": "Épisode",
+    "es": "Episodio",
+    "it": "Episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.kind.file": {
     "en": "File",
-    "cs": "Soubor"
+    "cs": "Soubor",
+    "sk": "Súbor",
+    "hu": "Fájl",
+    "de": "Datei",
+    "fr": "Fichier",
+    "es": "Archivo",
+    "it": "File",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.item.owner": {
     "en": "{name}’s",
     "cs": "patří: {name}",
-    "note": "Whose item this is, when it isn't yours."
+    "sk": "patrí: {name}",
+    "hu": "Tulajdonos: {name}",
+    "de": "von {name}",
+    "fr": "À {name}",
+    "es": "De {name}",
+    "it": "Di {name}",
+    "note": "Whose item this is, when it isn't yours.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.item.someone": {
     "en": "Someone",
-    "cs": "Někdo"
+    "cs": "Někdo",
+    "sk": "Niekto",
+    "hu": "Valaki",
+    "de": "Jemand",
+    "fr": "Quelqu’un",
+    "es": "Alguien",
+    "it": "Qualcuno",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.item.goneTomorrow": {
     "en": "gone tomorrow",
-    "cs": "zmizí zítra"
+    "cs": "zmizí zítra",
+    "sk": "zmizne zajtra",
+    "hu": "holnap törlődik",
+    "de": "morgen weg",
+    "fr": "disparaît demain",
+    "es": "desaparece mañana",
+    "it": "eliminato domani",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.item.goneIn": {
     "en": "gone in {days, plural, one {# day} other {# days}}",
-    "cs": "zmizí za {days, plural, one {# den} few {# dny} other {# dní}}"
+    "cs": "zmizí za {days, plural, one {# den} few {# dny} other {# dní}}",
+    "sk": "zmizne o {days, plural, one {# deň} few {# dni} other {# dní}}",
+    "hu": "{days, plural, one {# nap múlva törlődik} other {# nap múlva törlődik}}",
+    "de": "weg in {days, plural, one {# Tag} other {# Tagen}}",
+    "fr": "disparaît dans {days, plural, one {# jour} many {# de jours} other {# jours}}",
+    "es": "desaparece en {days, plural, one {# día} many {# de días} other {# días}}",
+    "it": "eliminato tra {days, plural, one {# giorno} many {# di giorni} other {# giorni}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.item.restoreCost": {
     "en": "restoring costs {cost}",
-    "cs": "obnovení stojí {cost}"
+    "cs": "obnovení stojí {cost}",
+    "sk": "obnovenie stojí {cost}",
+    "hu": "a visszaállítás díja {cost}",
+    "de": "Wiederherstellen kostet {cost}",
+    "fr": "la restauration coûte {cost}",
+    "es": "restaurarlo cuesta {cost}",
+    "it": "il ripristino costa {cost}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.lessThan": {
     "en": "less than {amount}",
-    "cs": "méně než {amount}"
+    "cs": "méně než {amount}",
+    "sk": "menej ako {amount}",
+    "hu": "kevesebb mint {amount}",
+    "de": "weniger als {amount}",
+    "fr": "moins de {amount}",
+    "es": "menos de {amount}",
+    "it": "meno di {amount}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restored": {
     "en": "{count, plural, one {Restored} other {# restored}}",
-    "cs": "{count, plural, one {Obnoveno} few {Obnoveny # položky} other {Obnoveno # položek}}"
+    "cs": "{count, plural, one {Obnoveno} few {Obnoveny # položky} other {Obnoveno # položek}}",
+    "sk": "{count, plural, one {Obnovené} few {Obnovené # položky} other {Obnovených # položiek}}",
+    "hu": "{count, plural, one {Visszaállítva} other {# visszaállítva}}",
+    "de": "{count, plural, one {Wiederhergestellt} other {# wiederhergestellt}}",
+    "fr": "{count, plural, one {Restauré} many {# d’éléments restaurés} other {# éléments restaurés}}",
+    "es": "{count, plural, one {Restaurado} many {# restaurados} other {# restaurados}}",
+    "it": "{count, plural, one {Ripristinato} many {# ripristinati} other {# ripristinati}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.charged": {
     "en": "{cost} charged for the days in the trash",
-    "cs": "Za dny v koši účtováno {cost}"
+    "cs": "Za dny v koši účtováno {cost}",
+    "sk": "Za dni v koši účtované {cost}",
+    "hu": "{cost} terhelve a kukában töltött napokért",
+    "de": "{cost} für die Tage im Papierkorb berechnet",
+    "fr": "{cost} facturés pour les jours passés dans la corbeille",
+    "es": "{cost} cobrados por los días en la papelera",
+    "it": "{cost} addebitati per i giorni nel cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreError": {
     "en": "Couldn't restore that",
-    "cs": "Obnovení se nezdařilo"
+    "cs": "Obnovení se nezdařilo",
+    "sk": "Nepodarilo sa obnoviť",
+    "hu": "Nem sikerült visszaállítani",
+    "de": "Das konnte nicht wiederhergestellt werden",
+    "fr": "Impossible de restaurer cet élément",
+    "es": "No se ha podido restaurar",
+    "it": "Impossibile ripristinarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.deletedForever": {
     "en": "Deleted forever",
-    "cs": "Smazáno natrvalo"
+    "cs": "Smazáno natrvalo",
+    "sk": "Zmazané natrvalo",
+    "hu": "Véglegesen törölve",
+    "de": "Endgültig gelöscht",
+    "fr": "Supprimé définitivement",
+    "es": "Eliminado para siempre",
+    "it": "Eliminato per sempre",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.deleteError": {
     "en": "Couldn't delete that",
-    "cs": "Nepodařilo se to smazat"
+    "cs": "Nepodařilo se to smazat",
+    "sk": "Nepodarilo sa to zmazať",
+    "hu": "Nem sikerült törölni",
+    "de": "Das konnte nicht gelöscht werden",
+    "fr": "Impossible de supprimer cet élément",
+    "es": "No se ha podido eliminar",
+    "it": "Impossibile eliminarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.purged": {
     "en": "{count, plural, one {# deleted forever} other {# deleted forever}}",
-    "cs": "{count, plural, one {# položka smazána natrvalo} few {# položky smazány natrvalo} other {# položek smazáno natrvalo}}"
+    "cs": "{count, plural, one {# položka smazána natrvalo} few {# položky smazány natrvalo} other {# položek smazáno natrvalo}}",
+    "sk": "{count, plural, one {# položka zmazaná natrvalo} few {# položky zmazané natrvalo} other {# položiek zmazaných natrvalo}}",
+    "hu": "{count, plural, one {# véglegesen törölve} other {# véglegesen törölve}}",
+    "de": "{count, plural, one {# endgültig gelöscht} other {# endgültig gelöscht}}",
+    "fr": "{count, plural, one {# élément supprimé définitivement} many {# d’éléments supprimés définitivement} other {# éléments supprimés définitivement}}",
+    "es": "{count, plural, one {# eliminado para siempre} many {# eliminados para siempre} other {# eliminados para siempre}}",
+    "it": "{count, plural, one {# eliminato per sempre} many {# eliminati per sempre} other {# eliminati per sempre}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.emptyError": {
     "en": "Couldn't empty the trash",
-    "cs": "Koš se nepodařilo vysypat"
+    "cs": "Koš se nepodařilo vysypat",
+    "sk": "Nepodarilo sa vysypať kôš",
+    "hu": "Nem sikerült kiüríteni a kukát",
+    "de": "Der Papierkorb konnte nicht geleert werden",
+    "fr": "Impossible de vider la corbeille",
+    "es": "No se ha podido vaciar la papelera",
+    "it": "Impossibile svuotare il cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreDialog.titleOne": {
     "en": "Restore “{title}”?",
-    "cs": "Obnovit „{title}“?"
+    "cs": "Obnovit „{title}“?",
+    "sk": "Obnoviť „{title}“?",
+    "hu": "Visszaállítja: „{title}”?",
+    "de": "„{title}“ wiederherstellen?",
+    "fr": "Restaurer « {title} » ?",
+    "es": "¿Restaurar «{title}»?",
+    "it": "Ripristinare «{title}»?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreDialog.titleMany": {
     "en": "Restore {count, plural, one {# item} other {# items}}?",
-    "cs": "Obnovit {count, plural, one {# položku} few {# položky} other {# položek}}?"
+    "cs": "Obnovit {count, plural, one {# položku} few {# položky} other {# položek}}?",
+    "sk": "Obnoviť {count, plural, one {# položku} few {# položky} other {# položiek}}?",
+    "hu": "{count, plural, one {Visszaállít # elemet?} other {Visszaállít # elemet?}}",
+    "de": "{count, plural, one {# Objekt wiederherstellen?} other {# Objekte wiederherstellen?}}",
+    "fr": "{count, plural, one {Restaurer # élément ?} many {Restaurer # d’éléments ?} other {Restaurer # éléments ?}}",
+    "es": "¿Restaurar {count, plural, one {# elemento} many {# de elementos} other {# elementos}}?",
+    "it": "Ripristinare {count, plural, one {# elemento} many {# di elementi} other {# elementi}}?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreDialog.description": {
     "en": "Restoring charges {amount} — the storage for {days, plural, one {# day} other {# days}} in the trash, as if it had never been deleted.",
-    "cs": "Obnovení stojí {amount} — úložiště za {days, plural, one {# den} few {# dny} other {# dní}} v koši, jako by nikdy nebylo smazáno."
+    "cs": "Obnovení stojí {amount} — úložiště za {days, plural, one {# den} few {# dny} other {# dní}} v koši, jako by nikdy nebylo smazáno.",
+    "sk": "Obnovenie stojí {amount} — úložisko za {days, plural, one {# deň} few {# dni} other {# dní}} v koši, akoby nikdy nebolo zmazané.",
+    "hu": "A visszaállítás díja {amount} – {days, plural, one {# nap} other {# nap}} tárhelydíja a kukában, mintha soha nem törölték volna.",
+    "de": "Das Wiederherstellen kostet {amount} – den Speicher für {days, plural, one {# Tag} other {# Tage}} im Papierkorb, als wäre es nie gelöscht worden.",
+    "fr": "La restauration coûte {amount} — le stockage pour {days, plural, one {# jour} many {# de jours} other {# jours}} dans la corbeille, comme si rien n’avait été supprimé.",
+    "es": "Restaurar cuesta {amount}: el almacenamiento de {days, plural, one {# día} many {# de días} other {# días}} en la papelera, como si nunca se hubiera eliminado.",
+    "it": "Il ripristino addebita {amount}: lo spazio di archiviazione per {days, plural, one {# giorno} many {# di giorni} other {# giorni}} nel cestino, come se non fosse mai stato eliminato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.restoreDialog.confirm": {
     "en": "Restore for {amount}",
-    "cs": "Obnovit za {amount}"
+    "cs": "Obnovit za {amount}",
+    "sk": "Obnoviť za {amount}",
+    "hu": "Visszaállítás ennyiért: {amount}",
+    "de": "Für {amount} wiederherstellen",
+    "fr": "Restaurer pour {amount}",
+    "es": "Restaurar por {amount}",
+    "it": "Ripristina per {amount}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.purgeDialog.title": {
     "en": "Delete “{title}” forever?",
-    "cs": "Smazat „{title}“ natrvalo?"
+    "cs": "Smazat „{title}“ natrvalo?",
+    "sk": "Zmazať „{title}“ natrvalo?",
+    "hu": "Véglegesen törli: „{title}”?",
+    "de": "„{title}“ endgültig löschen?",
+    "fr": "Supprimer « {title} » définitivement ?",
+    "es": "¿Eliminar «{title}» para siempre?",
+    "it": "Eliminare «{title}» per sempre?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.purgeDialog.description": {
     "en": "It's removed now instead of in 30 days. This can't be undone.",
-    "cs": "Smaže se hned, ne až za 30 dní. Nelze to vrátit."
+    "cs": "Smaže se hned, ne až za 30 dní. Nelze to vrátit.",
+    "sk": "Zmaže sa hneď, nie až o 30 dní. Nedá sa to vrátiť.",
+    "hu": "Most törlődik, nem 30 nap múlva. Ez nem vonható vissza.",
+    "de": "Es wird jetzt entfernt statt in 30 Tagen. Das lässt sich nicht rückgängig machen.",
+    "fr": "Il est supprimé maintenant au lieu de dans 30 jours. Cette action est irréversible.",
+    "es": "Se elimina ahora en lugar de dentro de 30 días. No se puede deshacer.",
+    "it": "Viene rimosso ora invece che tra 30 giorni. Non si può annullare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.emptyDialog.title": {
     "en": "Empty the trash?",
-    "cs": "Vysypat koš?"
+    "cs": "Vysypat koš?",
+    "sk": "Vysypať kôš?",
+    "hu": "Kiüríti a kukát?",
+    "de": "Papierkorb leeren?",
+    "fr": "Vider la corbeille ?",
+    "es": "¿Vaciar la papelera?",
+    "it": "Svuotare il cestino?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "trash.emptyDialog.description": {
     "en": "{count, plural, one {# item is deleted forever.} other {# items are deleted forever.}} This can't be undone.",
-    "cs": "{count, plural, one {# položka bude smazána natrvalo.} few {# položky budou smazány natrvalo.} other {# položek bude smazáno natrvalo.}} Nelze to vrátit."
+    "cs": "{count, plural, one {# položka bude smazána natrvalo.} few {# položky budou smazány natrvalo.} other {# položek bude smazáno natrvalo.}} Nelze to vrátit.",
+    "sk": "{count, plural, one {# položka bude natrvalo zmazaná.} few {# položky budú natrvalo zmazané.} other {# položiek bude natrvalo zmazaných.}} Nedá sa to vrátiť.",
+    "hu": "{count, plural, one {# elem véglegesen törlődik.} other {# elem véglegesen törlődik.}} Ez nem vonható vissza.",
+    "de": "{count, plural, one {# Objekt wird endgültig gelöscht.} other {# Objekte werden endgültig gelöscht.}} Das lässt sich nicht rückgängig machen.",
+    "fr": "{count, plural, one {# élément sera supprimé définitivement.} many {# d’éléments seront supprimés définitivement.} other {# éléments seront supprimés définitivement.}} Cette action est irréversible.",
+    "es": "{count, plural, one {# elemento se eliminará para siempre.} many {# de elementos se eliminarán para siempre.} other {# elementos se eliminarán para siempre.}} No se puede deshacer.",
+    "it": "{count, plural, one {# elemento viene eliminato per sempre.} many {# di elementi vengono eliminati per sempre.} other {# elementi vengono eliminati per sempre.}} Non si può annullare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

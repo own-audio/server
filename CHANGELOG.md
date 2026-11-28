@@ -7,8 +7,20 @@ semver. Each release states the **API contract revision** it serves
 
 ## [Unreleased]
 
+### Changed
+
+- i18n: the six new languages use the same words as the apps: Spanish "publicación" for a MusicBrainz release ("edición" is an edition), "Authentifizierungs-App", Slovak "V poradí"; Czech "Odhadovaná cena" for a quoted job ("Nabídnutá" said offer). GLOSSARY.md has a row for each term settled across the apps (queue, two-factor, identify run, release/edition, summary, logs, and more).
+
 ### Added
 
+- Console in Slovak, Hungarian, German, French, Spanish (Spain) and Italian, next to English and
+  Czech. The browser's language picks it (`de-AT` gets German, an unknown language English);
+  Settings → Language is now a list with each language under its own name. The six are machine
+  translations that no native speaker has checked yet — each string says so in the catalog
+  (`"machine"`, listed by `npm run review` in `i18n/`). The six languages load on demand, so
+  English and Czech users download nothing more. A string a language lacks shows in English.
+- i18n catalog: plural categories per locale come from `Intl.PluralRules` (French, Spanish and
+  Italian need `many`), and the checker compares placeholders and tags in every locale.
 - Identify runs read file and folder names for songs with no title tag. "01 - Angel Of
   Death.mp3" in "(1986) Slayer - Reign In Blood" is looked up as Angel Of Death by Slayer on
   Reign In Blood, track 1, instead of as the text "01   Angel Of Death". What is found this

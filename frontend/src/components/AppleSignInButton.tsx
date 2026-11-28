@@ -28,8 +28,20 @@ declare global {
 }
 
 // Apple's popup speaks the SDK's language, which is fixed by the script's path.
+/** Apple's SDK is published per language_REGION; each of ours has one. */
+const APPLE_LOCALE: Record<Locale, string> = {
+  en: "en_US",
+  cs: "cs_CZ",
+  sk: "sk_SK",
+  hu: "hu_HU",
+  de: "de_DE",
+  fr: "fr_FR",
+  es: "es_ES",
+  it: "it_IT",
+};
+
 const sdkUrl = (locale: Locale) =>
-  `https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/${locale === "cs" ? "cs_CZ" : "en_US"}/appleid.auth.js`;
+  `https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/${APPLE_LOCALE[locale]}/appleid.auth.js`;
 
 /**
  * Sign in with Apple for the web. Renders nothing unless the server advertises

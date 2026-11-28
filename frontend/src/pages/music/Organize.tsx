@@ -37,7 +37,7 @@ import { useServerFeatures } from "../../lib/features";
 import { playOne } from "../../lib/play";
 import { usePlayerStore } from "../../store/playerStore";
 import { cn } from "../../lib/cn";
-import { useT } from "../../i18n";
+import { intlLocale, useT } from "../../i18n";
 
 type View = "songs" | "history";
 type Drafts = Record<string, TrackFields>;
@@ -943,7 +943,7 @@ function HistoryView({ onChanged }: { onChanged: () => void }) {
               <History className="h-4 w-4 shrink-0 text-muted" />
               <button type="button" className="min-w-0 flex-1 text-left" onClick={() => setOpen(open === b.batch_id ? null : b.batch_id)}>
                 <span className={cn("block truncate text-sm", b.undone && "text-muted line-through")}>{batchTitle(tx, b)}</span>
-                <span className="block text-xs text-muted">{new Date(b.at).toLocaleString()} · {tx(`music.organize.source.${camel(b.source)}`)}</span>
+                <span className="block text-xs text-muted">{new Date(b.at).toLocaleString(intlLocale())} · {tx(`music.organize.source.${camel(b.source)}`)}</span>
               </button>
               {!b.undone && (
                 <Button size="sm" variant="ghost" icon={<Undo2 className="h-4 w-4" />} loading={undo.isPending && undo.variables === b.batch_id} onClick={() => undo.mutate(b.batch_id)}>

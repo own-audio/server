@@ -1,400 +1,1096 @@
 {
   "shell.nav.home": {
     "en": "Home",
-    "cs": "Domů"
+    "cs": "Domů",
+    "sk": "Domov",
+    "hu": "Kezdőlap",
+    "de": "Home",
+    "fr": "Accueil",
+    "es": "Inicio",
+    "it": "Home",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.library": {
     "en": "Library",
     "cs": "Knihovna",
-    "note": "Sidebar section heading."
+    "sk": "Knižnica",
+    "hu": "Könyvtár",
+    "de": "Mediathek",
+    "fr": "Bibliothèque",
+    "es": "Biblioteca",
+    "it": "Libreria",
+    "note": "Sidebar section heading.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.organize": {
     "en": "Identify music",
-    "cs": "Identifikovat hudbu"
+    "cs": "Identifikovat hudbu",
+    "sk": "Identifikovať hudbu",
+    "hu": "Zene azonosítása",
+    "de": "Musik identifizieren",
+    "fr": "Identifier la musique",
+    "es": "Identificar música",
+    "it": "Identifica musica",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.justMe": {
     "en": "Just me",
     "cs": "Jen já",
-    "note": "Items not shared with the family. Not 'private' — nothing is locked, only unshared."
+    "sk": "Len ja",
+    "hu": "Csak én",
+    "de": "Nur ich",
+    "fr": "Moi uniquement",
+    "es": "Solo yo",
+    "it": "Solo io",
+    "note": "Items not shared with the family. Not 'private' — nothing is locked, only unshared.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.stats": {
     "en": "Stats",
-    "cs": "Statistiky"
+    "cs": "Statistiky",
+    "sk": "Štatistiky",
+    "hu": "Statisztika",
+    "de": "Statistik",
+    "fr": "Statistiques",
+    "es": "Estadísticas",
+    "it": "Statistiche",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.create": {
     "en": "Create",
     "cs": "Tvorba",
-    "note": "Sidebar section heading."
+    "sk": "Tvorba",
+    "hu": "Létrehozás",
+    "de": "Erstellen",
+    "fr": "Créer",
+    "es": "Crear",
+    "it": "Crea",
+    "note": "Sidebar section heading.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.narrate": {
     "en": "Narrate a book",
-    "cs": "Namluvit knihu"
+    "cs": "Namluvit knihu",
+    "sk": "Nahovoriť knihu",
+    "hu": "Könyv felolvastatása",
+    "de": "Buch vertonen",
+    "fr": "Narrer un livre",
+    "es": "Narrar un libro",
+    "it": "Narra un libro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.translate": {
     "en": "Translate an episode",
-    "cs": "Přeložit epizodu"
+    "cs": "Přeložit epizodu",
+    "sk": "Preložiť epizódu",
+    "hu": "Epizód fordítása",
+    "de": "Folge übersetzen",
+    "fr": "Traduire un épisode",
+    "es": "Traducir un episodio",
+    "it": "Traduci un episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.new": {
     "en": "New",
     "cs": "Nové",
-    "note": "Small badge on a sidebar item until it has been opened once."
+    "sk": "Nové",
+    "hu": "Új",
+    "de": "Neu",
+    "fr": "Nouveau",
+    "es": "Nuevo",
+    "it": "Nuovo",
+    "note": "Small badge on a sidebar item until it has been opened once.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.household": {
     "en": "Household",
     "cs": "Domácnost",
-    "note": "Sidebar section heading."
+    "sk": "Domácnosť",
+    "hu": "Háztartás",
+    "de": "Haushalt",
+    "fr": "Foyer",
+    "es": "Hogar",
+    "it": "Casa",
+    "note": "Sidebar section heading.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.family": {
     "en": "Family",
-    "cs": "Rodina"
+    "cs": "Rodina",
+    "sk": "Rodina",
+    "hu": "Család",
+    "de": "Familie",
+    "fr": "Famille",
+    "es": "Familia",
+    "it": "Famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.billing": {
     "en": "Storage & credit",
-    "cs": "Úložiště a kredit"
+    "cs": "Úložiště a kredit",
+    "sk": "Úložisko a kredit",
+    "hu": "Tárhely és egyenleg",
+    "de": "Speicher und Guthaben",
+    "fr": "Stockage et crédit",
+    "es": "Almacenamiento y saldo",
+    "it": "Spazio e credito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.trash": {
     "en": "Trash",
-    "cs": "Koš"
+    "cs": "Koš",
+    "sk": "Kôš",
+    "hu": "Kuka",
+    "de": "Papierkorb",
+    "fr": "Corbeille",
+    "es": "Papelera",
+    "it": "Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.homeLink": {
     "en": "own.audio — home",
     "cs": "own.audio — domů",
-    "note": "Accessible name of the logo link."
+    "sk": "own.audio — domov",
+    "hu": "own.audio — kezdőlap",
+    "de": "own.audio – Home",
+    "fr": "own.audio — accueil",
+    "es": "own.audio — inicio",
+    "it": "own.audio — home",
+    "note": "Accessible name of the logo link.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.account": {
     "en": "Account",
-    "cs": "Účet"
+    "cs": "Účet",
+    "sk": "Účet",
+    "hu": "Fiók",
+    "de": "Konto",
+    "fr": "Compte",
+    "es": "Cuenta",
+    "it": "Account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.account.settings": {
     "en": "Settings",
     "cs": "Nastavení",
-    "note": "Account menu at the bottom of the sidebar: opens the settings page."
+    "sk": "Nastavenia",
+    "hu": "Beállítások",
+    "de": "Einstellungen",
+    "fr": "Réglages",
+    "es": "Ajustes",
+    "it": "Impostazioni",
+    "note": "Account menu at the bottom of the sidebar: opens the settings page.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.account.playback": {
     "en": "Playback",
     "cs": "Přehrávání",
-    "note": "Account menu: opens the playback settings."
+    "sk": "Prehrávanie",
+    "hu": "Lejátszás",
+    "de": "Wiedergabe",
+    "fr": "Lecture",
+    "es": "Reproducción",
+    "it": "Riproduzione",
+    "note": "Account menu: opens the playback settings.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.account.shortcuts": {
     "en": "Keyboard shortcuts",
     "cs": "Klávesové zkratky",
-    "note": "Account menu: opens the list of keyboard shortcuts."
+    "sk": "Klávesové skratky",
+    "hu": "Billentyűparancsok",
+    "de": "Tastaturkurzbefehle",
+    "fr": "Raccourcis clavier",
+    "es": "Atajos de teclado",
+    "it": "Abbreviazioni da tastiera",
+    "note": "Account menu: opens the list of keyboard shortcuts.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.sidebar.expand": {
     "en": "Expand sidebar",
-    "cs": "Rozbalit postranní panel"
+    "cs": "Rozbalit postranní panel",
+    "sk": "Rozbaliť bočný panel",
+    "hu": "Oldalsáv kibontása",
+    "de": "Seitenleiste ausklappen",
+    "fr": "Développer la barre latérale",
+    "es": "Expandir barra lateral",
+    "it": "Espandi la barra laterale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.sidebar.collapse": {
     "en": "Collapse sidebar",
-    "cs": "Sbalit postranní panel"
+    "cs": "Sbalit postranní panel",
+    "sk": "Zbaliť bočný panel",
+    "hu": "Oldalsáv összecsukása",
+    "de": "Seitenleiste einklappen",
+    "fr": "Réduire la barre latérale",
+    "es": "Contraer barra lateral",
+    "it": "Comprimi la barra laterale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.sidebar.expandShortcut": {
     "en": "Expand sidebar (⌘B)",
-    "cs": "Rozbalit postranní panel (⌘B)"
+    "cs": "Rozbalit postranní panel (⌘B)",
+    "sk": "Rozbaliť bočný panel (⌘B)",
+    "hu": "Oldalsáv kibontása (⌘B)",
+    "de": "Seitenleiste ausklappen (⌘B)",
+    "fr": "Développer la barre latérale (⌘B)",
+    "es": "Expandir barra lateral (⌘B)",
+    "it": "Espandi la barra laterale (⌘B)",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.sidebar.collapseShortcut": {
     "en": "Collapse sidebar (⌘B)",
-    "cs": "Sbalit postranní panel (⌘B)"
+    "cs": "Sbalit postranní panel (⌘B)",
+    "sk": "Zbaliť bočný panel (⌘B)",
+    "hu": "Oldalsáv összecsukása (⌘B)",
+    "de": "Seitenleiste einklappen (⌘B)",
+    "fr": "Réduire la barre latérale (⌘B)",
+    "es": "Contraer barra lateral (⌘B)",
+    "it": "Comprimi la barra laterale (⌘B)",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.topBar.menu": {
     "en": "Menu",
-    "cs": "Nabídka"
+    "cs": "Nabídka",
+    "sk": "Ponuka",
+    "hu": "Menü",
+    "de": "Menü",
+    "fr": "Menu",
+    "es": "Menú",
+    "it": "Menu",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.topBar.closeMenu": {
     "en": "Close menu",
-    "cs": "Zavřít nabídku"
+    "cs": "Zavřít nabídku",
+    "sk": "Zavrieť ponuku",
+    "hu": "Menü bezárása",
+    "de": "Menü schließen",
+    "fr": "Fermer le menu",
+    "es": "Cerrar menú",
+    "it": "Chiudi menu",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.topBar.searchShortcut": {
     "en": "Search (⌘K)",
-    "cs": "Hledat (⌘K)"
+    "cs": "Hledat (⌘K)",
+    "sk": "Hľadať (⌘K)",
+    "hu": "Keresés (⌘K)",
+    "de": "Suchen (⌘K)",
+    "fr": "Rechercher (⌘K)",
+    "es": "Buscar (⌘K)",
+    "it": "Cerca (⌘K)",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.skipToContent": {
     "en": "Skip to content",
-    "cs": "Přejít na obsah"
+    "cs": "Přejít na obsah",
+    "sk": "Prejsť na obsah",
+    "hu": "Ugrás a tartalomra",
+    "de": "Zum Inhalt springen",
+    "fr": "Aller au contenu",
+    "es": "Saltar al contenido",
+    "it": "Vai al contenuto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.theme.current": {
     "en": "Theme: {current}. Switch to {next}.",
-    "cs": "Motiv: {current}. Přepnout na {next}."
+    "cs": "Motiv: {current}. Přepnout na {next}.",
+    "sk": "Motív: {current}. Prepnúť na {next}.",
+    "hu": "Téma: {current}. Váltás erre: {next}.",
+    "de": "Design: {current}. Zu {next} wechseln.",
+    "fr": "Thème : {current}. Passer à : {next}.",
+    "es": "Tema: {current}. Cambiar a {next}.",
+    "it": "Tema: {current}. Passa a {next}.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.theme.switchTo": {
     "en": "Switch to {mode} mode",
     "cs": "Přepnout na {mode} režim",
-    "note": "{mode} is common.theme.light/dark in lower case: světlý / tmavý."
+    "sk": "Prepnúť na {mode} režim",
+    "hu": "Váltás {mode} módra",
+    "de": "Zum Modus {mode} wechseln",
+    "fr": "Passer en mode {mode}",
+    "es": "Cambiar al modo {mode}",
+    "it": "Passa alla modalità {mode}",
+    "note": "{mode} is common.theme.light/dark in lower case: světlý / tmavý.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.playing": {
     "en": "— playing",
     "cs": "— přehrává se",
-    "note": "Screen-reader suffix after a section name while its audio plays."
+    "sk": "— prehráva sa",
+    "hu": "— lejátszás folyamatban",
+    "de": "– wird abgespielt",
+    "fr": "— lecture en cours",
+    "es": "— reproduciendo",
+    "it": "— in riproduzione",
+    "note": "Screen-reader suffix after a section name while its audio plays.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.nav.paused": {
     "en": "— paused",
-    "cs": "— pozastaveno"
+    "cs": "— pozastaveno",
+    "sk": "— pozastavené",
+    "hu": "— szüneteltetve",
+    "de": "– pausiert",
+    "fr": "— en pause",
+    "es": "— en pausa",
+    "it": "— in pausa",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.title": {
     "en": "Search the library",
-    "cs": "Hledat v knihovně"
+    "cs": "Hledat v knihovně",
+    "sk": "Hľadať v knižnici",
+    "hu": "Keresés a könyvtárban",
+    "de": "Mediathek durchsuchen",
+    "fr": "Rechercher dans la bibliothèque",
+    "es": "Buscar en la biblioteca",
+    "it": "Cerca nella libreria",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.description": {
     "en": "Audiobooks, podcasts, episodes and songs",
-    "cs": "Audioknihy, podcasty, epizody a skladby"
+    "cs": "Audioknihy, podcasty, epizody a skladby",
+    "sk": "Audioknihy, podcasty, epizódy a skladby",
+    "hu": "Hangoskönyvek, podcastok, epizódok és számok",
+    "de": "Hörbücher, Podcasts, Folgen und Titel",
+    "fr": "Livres audio, podcasts, épisodes et morceaux",
+    "es": "Audiolibros, pódcasts, episodios y canciones",
+    "it": "Audiolibri, podcast, episodi e brani",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.placeholder": {
     "en": "Search audiobooks, podcasts, songs…",
-    "cs": "Hledat audioknihy, podcasty, skladby…"
+    "cs": "Hledat audioknihy, podcasty, skladby…",
+    "sk": "Hľadať audioknihy, podcasty, skladby…",
+    "hu": "Hangoskönyvek, podcastok, számok keresése…",
+    "de": "Hörbücher, Podcasts, Titel suchen …",
+    "fr": "Rechercher des livres audio, podcasts, morceaux…",
+    "es": "Buscar audiolibros, pódcasts, canciones…",
+    "it": "Cerca audiolibri, podcast, brani…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.minChars": {
     "en": "Type at least two characters.",
-    "cs": "Napište aspoň dva znaky."
+    "cs": "Napište aspoň dva znaky.",
+    "sk": "Napíšte aspoň dva znaky.",
+    "hu": "Írjon be legalább két karaktert.",
+    "de": "Gib mindestens zwei Zeichen ein.",
+    "fr": "Saisissez au moins deux caractères.",
+    "es": "Escribe al menos dos caracteres.",
+    "it": "Digita almeno due caratteri.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.noResults": {
     "en": "Nothing matches that.",
-    "cs": "Nic tomu neodpovídá."
+    "cs": "Nic tomu neodpovídá.",
+    "sk": "Nič tomu nezodpovedá.",
+    "hu": "Nincs találat.",
+    "de": "Keine Treffer.",
+    "fr": "Aucun résultat.",
+    "es": "No hay coincidencias.",
+    "it": "Nessun risultato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.episodes": {
     "en": "Episodes",
     "cs": "Epizody",
-    "note": "Group heading in search results."
+    "sk": "Epizódy",
+    "hu": "Epizódok",
+    "de": "Folgen",
+    "fr": "Épisodes",
+    "es": "Episodios",
+    "it": "Episodi",
+    "note": "Group heading in search results.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.search.songs": {
     "en": "Songs",
     "cs": "Skladby",
-    "note": "Group heading in search results."
+    "sk": "Skladby",
+    "hu": "Számok",
+    "de": "Titel",
+    "fr": "Morceaux",
+    "es": "Canciones",
+    "it": "Brani",
+    "note": "Group heading in search results.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnLabel": {
     "en": "Playing on {device}",
     "cs": "Přehrává se na zařízení {device}",
-    "note": "{device} is the name the user gave the other device."
+    "sk": "Prehráva sa na zariadení {device}",
+    "hu": "Lejátszás ezen: {device}",
+    "de": "Läuft auf {device}",
+    "fr": "Lecture sur {device}",
+    "es": "Reproduciendo en {device}",
+    "it": "In riproduzione su {device}",
+    "note": "{device} is the name the user gave the other device.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnIos": {
     "en": "Playing on your iPhone",
-    "cs": "Přehrává se na vašem iPhonu"
+    "cs": "Přehrává se na vašem iPhonu",
+    "sk": "Prehráva sa na vašom iPhone",
+    "hu": "Lejátszás az iPhone-ján",
+    "de": "Läuft auf deinem iPhone",
+    "fr": "Lecture sur votre iPhone",
+    "es": "Reproduciendo en tu iPhone",
+    "it": "In riproduzione sul tuo iPhone",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnAndroid": {
     "en": "Playing on your Android phone",
-    "cs": "Přehrává se na vašem telefonu s Androidem"
+    "cs": "Přehrává se na vašem telefonu s Androidem",
+    "sk": "Prehráva sa na vašom telefóne s Androidom",
+    "hu": "Lejátszás az Android-telefonján",
+    "de": "Läuft auf deinem Android-Handy",
+    "fr": "Lecture sur votre téléphone Android",
+    "es": "Reproduciendo en tu móvil Android",
+    "it": "In riproduzione sul tuo telefono Android",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnMac": {
     "en": "Playing on your Mac",
-    "cs": "Přehrává se na vašem Macu"
+    "cs": "Přehrává se na vašem Macu",
+    "sk": "Prehráva sa na vašom Macu",
+    "hu": "Lejátszás a Macen",
+    "de": "Läuft auf deinem Mac",
+    "fr": "Lecture sur votre Mac",
+    "es": "Reproduciendo en tu Mac",
+    "it": "In riproduzione sul tuo Mac",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnWindows": {
     "en": "Playing on your Windows PC",
-    "cs": "Přehrává se na vašem počítači s Windows"
+    "cs": "Přehrává se na vašem počítači s Windows",
+    "sk": "Prehráva sa na vašom počítači s Windows",
+    "hu": "Lejátszás a Windows-gépén",
+    "de": "Läuft auf deinem Windows-PC",
+    "fr": "Lecture sur votre PC Windows",
+    "es": "Reproduciendo en tu PC con Windows",
+    "it": "In riproduzione sul tuo PC Windows",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnWeb": {
     "en": "Playing in another browser",
-    "cs": "Přehrává se v jiném prohlížeči"
+    "cs": "Přehrává se v jiném prohlížeči",
+    "sk": "Prehráva sa v inom prehliadači",
+    "hu": "Lejátszás egy másik böngészőben",
+    "de": "Läuft in einem anderen Browser",
+    "fr": "Lecture dans un autre navigateur",
+    "es": "Reproduciendo en otro navegador",
+    "it": "In riproduzione in un altro browser",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.playingOnOther": {
     "en": "Playing on another device",
-    "cs": "Přehrává se na jiném zařízení"
+    "cs": "Přehrává se na jiném zařízení",
+    "sk": "Prehráva sa na inom zariadení",
+    "hu": "Lejátszás egy másik eszközön",
+    "de": "Läuft auf einem anderen Gerät",
+    "fr": "Lecture sur un autre appareil",
+    "es": "Reproduciendo en otro dispositivo",
+    "it": "In riproduzione su un altro dispositivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.items": {
     "en": "{count, plural, one {# item} other {# items}}",
     "cs": "{count, plural, one {# položka} few {# položky} other {# položek}}",
-    "note": "Size of the other device's queue."
+    "sk": "{count, plural, one {# položka} few {# položky} other {# položiek}}",
+    "hu": "{count, plural, one {# elem} other {# elem}}",
+    "de": "{count, plural, one {# Eintrag} other {# Einträge}}",
+    "fr": "{count, plural, one {# élément} many {# d’éléments} other {# éléments}}",
+    "es": "{count, plural, one {# elemento} many {# de elementos} other {# elementos}}",
+    "it": "{count, plural, one {# elemento} many {# di elementi} other {# elementi}}",
+    "note": "Size of the other device's queue.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.itemsPaused": {
     "en": "{count, plural, one {# item} other {# items}} · paused at {time}",
     "cs": "{count, plural, one {# položka} few {# položky} other {# položek}} · pozastaveno v {time}",
-    "note": "{time} is a position like 12:34."
+    "sk": "{count, plural, one {# položka} few {# položky} other {# položiek}} · pozastavené na {time}",
+    "hu": "{count, plural, one {# elem} other {# elem}} · szüneteltetve: {time}",
+    "de": "{count, plural, one {# Eintrag} other {# Einträge}} · pausiert bei {time}",
+    "fr": "{count, plural, one {# élément} many {# d’éléments} other {# éléments}} · en pause à {time}",
+    "es": "{count, plural, one {# elemento} many {# de elementos} other {# elementos}} · en pausa en {time}",
+    "it": "{count, plural, one {# elemento} many {# di elementi} other {# elementi}} · in pausa a {time}",
+    "note": "{time} is a position like 12:34.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.here": {
     "en": "Continue here",
-    "cs": "Pokračovat zde"
+    "cs": "Pokračovat zde",
+    "sk": "Pokračovať tu",
+    "hu": "Folytatás itt",
+    "de": "Hier weiterhören",
+    "fr": "Continuer ici",
+    "es": "Continuar aquí",
+    "it": "Continua qui",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.failed": {
     "en": "Couldn't pick that up",
-    "cs": "Přehrávání se nepodařilo převzít"
+    "cs": "Přehrávání se nepodařilo převzít",
+    "sk": "Nepodarilo sa prevziať prehrávanie",
+    "hu": "Nem sikerült átvenni",
+    "de": "Das konnte nicht übernommen werden",
+    "fr": "Impossible de reprendre la lecture",
+    "es": "No se ha podido continuar aquí",
+    "it": "Impossibile riprendere la riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.continue.failedHint": {
     "en": "The item may no longer be in your library.",
-    "cs": "Položka už možná ve vaší knihovně není."
+    "cs": "Položka už možná ve vaší knihovně není.",
+    "sk": "Položka už možno vo vašej knižnici nie je.",
+    "hu": "Lehet, hogy az elem már nincs a könyvtárában.",
+    "de": "Der Eintrag ist vielleicht nicht mehr in deiner Mediathek.",
+    "fr": "L’élément n’est peut-être plus dans votre bibliothèque.",
+    "es": "Puede que el elemento ya no esté en tu biblioteca.",
+    "it": "L’elemento potrebbe non essere più nella tua libreria.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.title": {
     "en": "Notifications",
-    "cs": "Oznámení"
+    "cs": "Oznámení",
+    "sk": "Oznámenia",
+    "hu": "Értesítések",
+    "de": "Mitteilungen",
+    "fr": "Notifications",
+    "es": "Notificaciones",
+    "it": "Notifiche",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.unread": {
     "en": "{count, plural, one {Notifications: # unread} other {Notifications: # unread}}",
-    "cs": "{count, plural, one {Oznámení: # nepřečtené} few {Oznámení: # nepřečtená} other {Oznámení: # nepřečtených}}"
+    "cs": "{count, plural, one {Oznámení: # nepřečtené} few {Oznámení: # nepřečtená} other {Oznámení: # nepřečtených}}",
+    "sk": "{count, plural, one {Oznámenia: # neprečítané} few {Oznámenia: # neprečítané} other {Oznámenia: # neprečítaných}}",
+    "hu": "{count, plural, one {Értesítések: # olvasatlan} other {Értesítések: # olvasatlan}}",
+    "de": "{count, plural, one {Mitteilungen: # ungelesen} other {Mitteilungen: # ungelesen}}",
+    "fr": "{count, plural, one {Notifications : # non lue} many {Notifications : # de non lues} other {Notifications : # non lues}}",
+    "es": "{count, plural, one {Notificaciones: # sin leer} many {Notificaciones: # sin leer} other {Notificaciones: # sin leer}}",
+    "it": "{count, plural, one {Notifiche: # non letta} many {Notifiche: # non lette} other {Notifiche: # non lette}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.markAllRead": {
     "en": "Mark all read",
-    "cs": "Označit vše jako přečtené"
+    "cs": "Označit vše jako přečtené",
+    "sk": "Označiť všetko ako prečítané",
+    "hu": "Összes megjelölése olvasottként",
+    "de": "Alle als gelesen markieren",
+    "fr": "Tout marquer comme lu",
+    "es": "Marcar todo como leído",
+    "it": "Segna tutte come lette",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.empty": {
     "en": "Nothing new.",
-    "cs": "Nic nového."
+    "cs": "Nic nového.",
+    "sk": "Nič nové.",
+    "hu": "Nincs újdonság.",
+    "de": "Nichts Neues.",
+    "fr": "Rien de nouveau.",
+    "es": "Nada nuevo.",
+    "it": "Niente di nuovo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.grant": {
     "en": "Grant",
     "cs": "Povolit",
-    "note": "Verb: lets a family member hear an item they asked for."
+    "sk": "Povoliť",
+    "hu": "Engedélyezés",
+    "de": "Freigeben",
+    "fr": "Autoriser",
+    "es": "Permitir",
+    "it": "Consenti",
+    "note": "Verb: lets a family member hear an item they asked for.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.grantFailed": {
     "en": "Could not grant access.",
-    "cs": "Přístup se nepodařilo povolit."
+    "cs": "Přístup se nepodařilo povolit.",
+    "sk": "Nepodarilo sa povoliť prístup.",
+    "hu": "Nem sikerült engedélyezni a hozzáférést.",
+    "de": "Der Zugriff konnte nicht freigegeben werden.",
+    "fr": "Impossible d’accorder l’accès.",
+    "es": "No se ha podido dar acceso.",
+    "it": "Impossibile concedere l’accesso.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.notInTrash": {
     "en": "It's no longer in the trash",
-    "cs": "V koši už není"
+    "cs": "V koši už není",
+    "sk": "V koši už nie je",
+    "hu": "Már nincs a kukában",
+    "de": "Es ist nicht mehr im Papierkorb",
+    "fr": "L’élément n’est plus dans la corbeille",
+    "es": "Ya no está en la papelera",
+    "it": "Non è più nel Cestino",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.playlistShared.live": {
     "en": "{from} shared a playlist with you",
-    "cs": "{from} s vámi sdílí playlist"
+    "cs": "{from} s vámi sdílí playlist",
+    "sk": "{from} s vami zdieľa playlist",
+    "hu": "{from} megosztott Önnel egy lejátszási listát",
+    "de": "{from} hat eine Playlist mit dir geteilt",
+    "fr": "{from} a partagé une playlist avec vous",
+    "es": "{from} ha compartido una playlist contigo",
+    "it": "{from} ha condiviso una playlist con te",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.playlistShared.copy": {
     "en": "A playlist from {from}",
     "cs": "Playlist od {from}",
-    "note": "A copy of someone's playlist, now yours."
+    "sk": "Playlist od {from}",
+    "hu": "Lejátszási lista tőle: {from}",
+    "de": "Eine Playlist von {from}",
+    "fr": "Une playlist de {from}",
+    "es": "Una playlist de {from}",
+    "it": "Una playlist di {from}",
+    "note": "A copy of someone's playlist, now yours.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.notifications.open": {
     "en": "Open",
-    "cs": "Otevřít"
+    "cs": "Otevřít",
+    "sk": "Otvoriť",
+    "hu": "Megnyitás",
+    "de": "Öffnen",
+    "fr": "Ouvrir",
+    "es": "Abrir",
+    "it": "Apri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.verifyEmail.message": {
     "en": "Confirm your email address: we sent a link to {email}.",
     "cs": "Potvrďte svou e-mailovou adresu: odkaz jsme poslali na {email}.",
-    "note": "Banner for an account whose address is not confirmed yet."
+    "sk": "Potvrďte svoju e-mailovú adresu: odkaz sme poslali na {email}.",
+    "hu": "Erősítse meg az e-mail-címét: linket küldtünk a következő címre: {email}.",
+    "de": "Bestätige deine E-Mail-Adresse: Wir haben einen Link an {email} geschickt.",
+    "fr": "Confirmez votre adresse e-mail : nous avons envoyé un lien à {email}.",
+    "es": "Confirma tu dirección de correo: hemos enviado un enlace a {email}.",
+    "it": "Conferma il tuo indirizzo email: abbiamo inviato un link a {email}.",
+    "note": "Banner for an account whose address is not confirmed yet.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.verifyEmail.resend": {
     "en": "Send it again",
-    "cs": "Poslat znovu"
+    "cs": "Poslat znovu",
+    "sk": "Poslať znova",
+    "hu": "Újraküldés",
+    "de": "Erneut senden",
+    "fr": "Renvoyer",
+    "es": "Volver a enviar",
+    "it": "Invialo di nuovo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.verifyEmail.sent": {
     "en": "Sent — check your inbox.",
-    "cs": "Odesláno – podívejte se do schránky."
+    "cs": "Odesláno – podívejte se do schránky.",
+    "sk": "Odoslané – pozrite sa do schránky.",
+    "hu": "Elküldve — nézze meg a postafiókját.",
+    "de": "Gesendet – schau in dein Postfach.",
+    "fr": "Envoyé : consultez votre boîte de réception.",
+    "es": "Enviado: mira tu bandeja de entrada.",
+    "it": "Inviato: controlla la tua casella di posta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.offline.message": {
     "en": "You're offline. Downloaded songs still play.",
-    "cs": "Jste offline. Stažené skladby se dál přehrají."
+    "cs": "Jste offline. Stažené skladby se dál přehrají.",
+    "sk": "Ste offline. Stiahnuté skladby sa ďalej prehrajú.",
+    "hu": "Ön offline. A letöltött számok továbbra is lejátszhatók.",
+    "de": "Du bist offline. Heruntergeladene Titel lassen sich weiter abspielen.",
+    "fr": "Vous êtes hors ligne. Les morceaux téléchargés restent lisibles.",
+    "es": "Estás sin conexión. Las canciones descargadas se siguen reproduciendo.",
+    "it": "Sei offline. I brani scaricati si possono ancora riprodurre.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.offline.downloads": {
     "en": "Downloads",
-    "cs": "Stažené"
+    "cs": "Stažené",
+    "sk": "Stiahnuté",
+    "hu": "Letöltések",
+    "de": "Downloads",
+    "fr": "Téléchargements",
+    "es": "Descargas",
+    "it": "Scaricati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.title": {
     "en": "Keyboard shortcuts",
-    "cs": "Klávesové zkratky"
+    "cs": "Klávesové zkratky",
+    "sk": "Klávesové skratky",
+    "hu": "Billentyűparancsok",
+    "de": "Tastaturkurzbefehle",
+    "fr": "Raccourcis clavier",
+    "es": "Atajos de teclado",
+    "it": "Abbreviazioni da tastiera",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.description": {
     "en": "Press ? any time to see this.",
-    "cs": "Tento přehled kdykoli zobrazíte klávesou ?."
+    "cs": "Tento přehled kdykoli zobrazíte klávesou ?.",
+    "sk": "Tento prehľad kedykoľvek zobrazíte klávesom ?.",
+    "hu": "A ? megnyomásával ezt bármikor megnézheti.",
+    "de": "Drück jederzeit ?, um das hier zu sehen.",
+    "fr": "Appuyez à tout moment sur « ? » pour afficher ceci.",
+    "es": "Pulsa ? en cualquier momento para ver esto.",
+    "it": "Premi ? in qualsiasi momento per vederle.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.group.anywhere": {
     "en": "Anywhere",
-    "cs": "Kdekoli"
+    "cs": "Kdekoli",
+    "sk": "Kdekoľvek",
+    "hu": "Bárhol",
+    "de": "Überall",
+    "fr": "Partout",
+    "es": "En cualquier sitio",
+    "it": "Ovunque",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.group.resizing": {
     "en": "Resizing the list",
-    "cs": "Šířka seznamu"
+    "cs": "Šířka seznamu",
+    "sk": "Šírka zoznamu",
+    "hu": "A lista átméretezése",
+    "de": "Liste in der Breite ändern",
+    "fr": "Redimensionner la liste",
+    "es": "Cambiar el ancho de la lista",
+    "it": "Ridimensionare l’elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.group.playing": {
     "en": "While something is playing",
-    "cs": "Během přehrávání"
+    "cs": "Během přehrávání",
+    "sk": "Počas prehrávania",
+    "hu": "Lejátszás közben",
+    "de": "Während etwas läuft",
+    "fr": "Pendant la lecture",
+    "es": "Mientras se reproduce algo",
+    "it": "Durante la riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.toggleSidebar": {
     "en": "Collapse or expand the sidebar",
-    "cs": "Sbalit nebo rozbalit postranní panel"
+    "cs": "Sbalit nebo rozbalit postranní panel",
+    "sk": "Zbaliť alebo rozbaliť bočný panel",
+    "hu": "Oldalsáv összecsukása vagy kibontása",
+    "de": "Seitenleiste ein- oder ausklappen",
+    "fr": "Réduire ou développer la barre latérale",
+    "es": "Contraer o expandir la barra lateral",
+    "it": "Comprimi o espandi la barra laterale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.thisList": {
     "en": "This list",
-    "cs": "Tento přehled"
+    "cs": "Tento přehled",
+    "sk": "Tento prehľad",
+    "hu": "Ez a lista",
+    "de": "Diese Liste",
+    "fr": "Cette liste",
+    "es": "Esta lista",
+    "it": "Questo elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.key.drag": {
     "en": "Drag the divider",
     "cs": "Tažení oddělovače",
-    "note": "Shown in the key column."
+    "sk": "Potiahnutie oddeľovača",
+    "hu": "Az elválasztó húzása",
+    "de": "Trennlinie ziehen",
+    "fr": "Faire glisser le séparateur",
+    "es": "Arrastrar el divisor",
+    "it": "Trascina il divisore",
+    "note": "Shown in the key column.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.setWidth": {
     "en": "Set how wide the list column is",
-    "cs": "Nastaví šířku sloupce se seznamem"
+    "cs": "Nastaví šířku sloupce se seznamem",
+    "sk": "Nastaví šírku stĺpca so zoznamom",
+    "hu": "A listaoszlop szélességének beállítása",
+    "de": "Breite der Listenspalte festlegen",
+    "fr": "Régler la largeur de la colonne de la liste",
+    "es": "Ajusta el ancho de la columna de la lista",
+    "it": "Imposta la larghezza della colonna dell’elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.nudge": {
     "en": "Nudge it, once the divider has focus",
-    "cs": "Posune oddělovač, když je na něm fokus"
+    "cs": "Posune oddělovač, když je na něm fokus",
+    "sk": "Posunie oddeľovač, keď je na ňom fokus",
+    "hu": "Finomhangolás, ha az elválasztó fókuszban van",
+    "de": "Schrittweise verschieben, wenn die Trennlinie den Fokus hat",
+    "fr": "L’ajuster pas à pas, une fois le séparateur sélectionné",
+    "es": "Lo mueve un poco, cuando el divisor tiene el foco",
+    "it": "Lo sposta di poco, quando il divisore è selezionato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.key.doubleClick": {
     "en": "Double-click",
     "cs": "Dvojklik",
-    "note": "Shown in the key column."
+    "sk": "Dvojklik",
+    "hu": "Dupla kattintás",
+    "de": "Doppelklick",
+    "fr": "Double-clic",
+    "es": "Doble clic",
+    "it": "Doppio clic",
+    "note": "Shown in the key column.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.defaultWidth": {
     "en": "Back to the default width",
-    "cs": "Vrátí výchozí šířku"
+    "cs": "Vrátí výchozí šířku",
+    "sk": "Vráti predvolenú šírku",
+    "hu": "Vissza az alapértelmezett szélességre",
+    "de": "Zurück zur Standardbreite",
+    "fr": "Revenir à la largeur par défaut",
+    "es": "Vuelve al ancho predeterminado",
+    "it": "Torna alla larghezza predefinita",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.key.space": {
     "en": "Space",
     "cs": "Mezerník",
-    "note": "The space bar key."
+    "sk": "Medzerník",
+    "hu": "Szóköz",
+    "de": "Leertaste",
+    "fr": "Espace",
+    "es": "Espacio",
+    "it": "Spazio",
+    "note": "The space bar key.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.playPause": {
     "en": "Play or pause",
-    "cs": "Přehrát nebo pozastavit"
+    "cs": "Přehrát nebo pozastavit",
+    "sk": "Prehrať alebo pozastaviť",
+    "hu": "Lejátszás vagy szünet",
+    "de": "Abspielen oder pausieren",
+    "fr": "Lire ou mettre en pause",
+    "es": "Reproducir o pausar",
+    "it": "Riproduci o metti in pausa",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.skip": {
     "en": "Skip forward or back",
-    "cs": "Přeskočit vpřed nebo zpět"
+    "cs": "Přeskočit vpřed nebo zpět",
+    "sk": "Preskočiť dopredu alebo späť",
+    "hu": "Előreugrás vagy visszaugrás",
+    "de": "Vor- oder zurückspringen",
+    "fr": "Avancer ou reculer",
+    "es": "Avanzar o retroceder",
+    "it": "Vai avanti o indietro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.shortcuts.nextPrevious": {
     "en": "Next or previous track",
-    "cs": "Další nebo předchozí skladba"
+    "cs": "Další nebo předchozí skladba",
+    "sk": "Ďalšia alebo predchádzajúca skladba",
+    "hu": "Következő vagy előző szám",
+    "de": "Nächster oder vorheriger Titel",
+    "fr": "Morceau suivant ou précédent",
+    "es": "Canción siguiente o anterior",
+    "it": "Brano successivo o precedente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.split.resize": {
     "en": "Resize the list",
     "cs": "Změnit šířku seznamu",
-    "note": "Accessible name of the column divider."
+    "sk": "Zmeniť šírku zoznamu",
+    "hu": "A lista átméretezése",
+    "de": "Breite der Liste ändern",
+    "fr": "Redimensionner la liste",
+    "es": "Cambiar el ancho de la lista",
+    "it": "Ridimensiona l’elenco",
+    "note": "Accessible name of the column divider.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.title": {
     "en": "Uploads",
-    "cs": "Nahrávání"
+    "cs": "Nahrávání",
+    "sk": "Nahrávanie",
+    "hu": "Feltöltések",
+    "de": "Uploads",
+    "fr": "Importations",
+    "es": "Subidas",
+    "it": "Caricamenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.uploading": {
     "en": "Uploading {count, number}",
-    "cs": "Nahrává se: {count, number}"
+    "cs": "Nahrává se: {count, number}",
+    "sk": "Nahráva sa: {count, number}",
+    "hu": "Feltöltés: {count, number}",
+    "de": "{count, number} werden hochgeladen",
+    "fr": "Importation : {count, number}",
+    "es": "Subiendo {count, number}",
+    "it": "Caricamento di {count, number}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.failedLong": {
     "en": "{count, plural, one {# upload failed} other {# uploads failed}}",
-    "cs": "{count, plural, one {# nahrání selhalo} few {# nahrání selhala} other {# nahrání selhalo}}"
+    "cs": "{count, plural, one {# nahrání selhalo} few {# nahrání selhala} other {# nahrání selhalo}}",
+    "sk": "{count, plural, one {# nahranie zlyhalo} few {# nahrania zlyhali} other {# nahraní zlyhalo}}",
+    "hu": "{count, plural, one {# feltöltés sikertelen} other {# feltöltés sikertelen}}",
+    "de": "{count, plural, one {# Upload fehlgeschlagen} other {# Uploads fehlgeschlagen}}",
+    "fr": "{count, plural, one {# importation a échoué} many {# d’importations ont échoué} other {# importations ont échoué}}",
+    "es": "{count, plural, one {# subida ha fallado} many {# de subidas han fallado} other {# subidas han fallado}}",
+    "it": "{count, plural, one {# caricamento non riuscito} many {# di caricamenti non riusciti} other {# caricamenti non riusciti}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.failedShort": {
     "en": "{count, number} failed",
-    "cs": "Selhalo: {count, number}"
+    "cs": "Selhalo: {count, number}",
+    "sk": "Zlyhalo: {count, number}",
+    "hu": "{count, number} sikertelen",
+    "de": "{count, number} fehlgeschlagen",
+    "fr": "{count, number} en échec",
+    "es": "{count, number} con errores",
+    "it": "{count, number} non riusciti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.clearFinished": {
     "en": "Clear finished",
-    "cs": "Vymazat dokončené"
+    "cs": "Vymazat dokončené",
+    "sk": "Vymazať dokončené",
+    "hu": "Befejezettek eltávolítása",
+    "de": "Abgeschlossene entfernen",
+    "fr": "Effacer les terminées",
+    "es": "Borrar terminadas",
+    "it": "Cancella completati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.progress": {
     "en": "{progress, number, percent}",
     "cs": "{progress, number, percent}",
-    "note": "0–1 shown as a percentage."
+    "sk": "{progress, number, percent}",
+    "hu": "{progress, number, percent}",
+    "de": "{progress, number, percent}",
+    "fr": "{progress, number, percent}",
+    "es": "{progress, number, percent}",
+    "it": "{progress, number, percent}",
+    "note": "0–1 shown as a percentage.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.failed": {
     "en": "Failed",
-    "cs": "Selhalo"
+    "cs": "Selhalo",
+    "sk": "Zlyhalo",
+    "hu": "Sikertelen",
+    "de": "Fehlgeschlagen",
+    "fr": "Échec",
+    "es": "Ha fallado",
+    "it": "Non riuscito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.failedRetry": {
     "en": "{error} — starts over if you retry",
     "cs": "{error} — při dalším pokusu začne znovu",
-    "note": "{error} is the reason, or 'Failed'."
+    "sk": "{error} — pri ďalšom pokuse začne znova",
+    "hu": "{error} — újrapróbáláskor elölről kezdődik",
+    "de": "{error} – beginnt bei einem neuen Versuch von vorne",
+    "fr": "{error} — reprend depuis le début si vous réessayez",
+    "es": "{error} — vuelve a empezar si lo reintentas",
+    "it": "{error} — riparte dall’inizio se riprovi",
+    "note": "{error} is the reason, or 'Failed'.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.waiting": {
     "en": "Waiting",
-    "cs": "Čeká"
+    "cs": "Čeká",
+    "sk": "Čaká",
+    "hu": "Várakozik",
+    "de": "Wartet",
+    "fr": "En attente",
+    "es": "En espera",
+    "it": "In attesa",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "shell.uploads.dismissItem": {
     "en": "Dismiss {name}",
-    "cs": "Odebrat ze seznamu: {name}"
+    "cs": "Odebrat ze seznamu: {name}",
+    "sk": "Odobrať zo zoznamu: {name}",
+    "hu": "Elvetés: {name}",
+    "de": "{name} ausblenden",
+    "fr": "Ignorer {name}",
+    "es": "Descartar {name}",
+    "it": "Rimuovi {name} dall’elenco",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-
-  "shell.notifications.creditTopup.title": {"en": "Credit topped up", "cs": "Kredit navýšen"},
-  "shell.notifications.creditTopup.body": {"en": "{amount} added, credit is {balance}.", "cs": "Přidáno {amount}, kredit je {balance}."},
-  "shell.notifications.creditTopup.until": {"en": "{amount} added, credit is {balance} — enough until {date}.", "cs": "Přidáno {amount}, kredit je {balance} — vystačí do {date}."},
-  "shell.notifications.creditTopup.long": {"en": "{amount} added, credit is {balance} — enough for more than 10 years.", "cs": "Přidáno {amount}, kredit je {balance} — vystačí na více než 10 let."},
-
-  "shell.nav.translateBook": {"en": "Translate a book", "cs": "Přeložit knihu", "note": "Sidebar item under Create, between Narrate a book and Translate an episode."},
-
-  "shell.nav.madeHere": {"en": "Made here", "cs": "Vytvořeno", "note": "Sidebar item, first under Create: everything you had narrated or translated. The Mac's “Made Here”."}
+  "shell.notifications.creditTopup.title": {
+    "en": "Credit topped up",
+    "cs": "Kredit navýšen",
+    "sk": "Kredit navýšený",
+    "hu": "Egyenleg feltöltve",
+    "de": "Guthaben aufgeladen",
+    "fr": "Crédit rechargé",
+    "es": "Saldo recargado",
+    "it": "Credito ricaricato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "shell.notifications.creditTopup.body": {
+    "en": "{amount} added, credit is {balance}.",
+    "cs": "Přidáno {amount}, kredit je {balance}.",
+    "sk": "Pridané {amount}, kredit je {balance}.",
+    "hu": "{amount} jóváírva, az egyenleg: {balance}.",
+    "de": "{amount} hinzugefügt, Guthaben: {balance}.",
+    "fr": "{amount} ajoutés, crédit : {balance}.",
+    "es": "Has añadido {amount}; tu saldo es {balance}.",
+    "it": "Aggiunti {amount}, il credito è di {balance}.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "shell.notifications.creditTopup.until": {
+    "en": "{amount} added, credit is {balance} — enough until {date}.",
+    "cs": "Přidáno {amount}, kredit je {balance} — vystačí do {date}.",
+    "sk": "Pridané {amount}, kredit je {balance} — vystačí do {date}.",
+    "hu": "{amount} jóváírva, az egyenleg: {balance} — elég eddig: {date}.",
+    "de": "{amount} hinzugefügt, Guthaben: {balance} – reicht bis {date}.",
+    "fr": "{amount} ajoutés, crédit : {balance}, de quoi tenir jusqu’au {date}.",
+    "es": "Has añadido {amount}; tu saldo es {balance}, suficiente hasta el {date}.",
+    "it": "Aggiunti {amount}, il credito è di {balance}: basta fino al {date}.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "shell.notifications.creditTopup.long": {
+    "en": "{amount} added, credit is {balance} — enough for more than 10 years.",
+    "cs": "Přidáno {amount}, kredit je {balance} — vystačí na více než 10 let.",
+    "sk": "Pridané {amount}, kredit je {balance} — vystačí na viac ako 10 rokov.",
+    "hu": "{amount} jóváírva, az egyenleg: {balance} — több mint 10 évre elég.",
+    "de": "{amount} hinzugefügt, Guthaben: {balance} – reicht für mehr als 10 Jahre.",
+    "fr": "{amount} ajoutés, crédit : {balance}, de quoi tenir plus de 10 ans.",
+    "es": "Has añadido {amount}; tu saldo es {balance}, suficiente para más de 10 años.",
+    "it": "Aggiunti {amount}, il credito è di {balance}: basta per più di 10 anni.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "shell.nav.translateBook": {
+    "en": "Translate a book",
+    "cs": "Přeložit knihu",
+    "sk": "Preložiť knihu",
+    "hu": "Könyv fordítása",
+    "de": "Buch übersetzen",
+    "fr": "Traduire un livre",
+    "es": "Traducir un libro",
+    "it": "Traduci un libro",
+    "note": "Sidebar item under Create, between Narrate a book and Translate an episode.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "shell.nav.madeHere": {
+    "en": "Made here",
+    "cs": "Vytvořeno",
+    "sk": "Vytvorené",
+    "hu": "Itt készült",
+    "de": "Hier erstellt",
+    "fr": "Créé ici",
+    "es": "Hecho aquí",
+    "it": "Creati qui",
+    "note": "Sidebar item, first under Create: everything you had narrated or translated. The Mac's “Made Here”.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  }
 }

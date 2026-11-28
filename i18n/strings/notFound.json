@@ -1,14 +1,35 @@
 {
   "notFound.title": {
     "en": "There's nothing here",
-    "cs": "Nic tu není"
+    "cs": "Nic tu není",
+    "sk": "Nič tu nie je",
+    "hu": "Itt nincs semmi",
+    "de": "Hier ist nichts",
+    "fr": "Il n’y a rien ici",
+    "es": "Aquí no hay nada",
+    "it": "Qui non c’è niente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "notFound.body": {
     "en": "The page may have moved, or the link was wrong.",
-    "cs": "Stránka se možná přesunula, nebo byl odkaz chybný."
+    "cs": "Stránka se možná přesunula, nebo byl odkaz chybný.",
+    "sk": "Stránka sa možno presunula alebo bol odkaz chybný.",
+    "hu": "Lehet, hogy az oldal máshová került, vagy hibás volt a hivatkozás.",
+    "de": "Die Seite wurde vielleicht verschoben oder der Link war falsch.",
+    "fr": "La page a peut-être été déplacée, ou le lien était erroné.",
+    "es": "Puede que la página se haya movido o que el enlace fuera incorrecto.",
+    "it": "La pagina potrebbe essere stata spostata, oppure il link era sbagliato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "notFound.back": {
     "en": "Back to the library",
-    "cs": "Zpět do knihovny"
+    "cs": "Zpět do knihovny",
+    "sk": "Späť do knižnice",
+    "hu": "Vissza a könyvtárba",
+    "de": "Zurück zur Mediathek",
+    "fr": "Retour à la bibliothèque",
+    "es": "Volver a la biblioteca",
+    "it": "Torna alla libreria",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

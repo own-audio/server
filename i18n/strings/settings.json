@@ -1,369 +1,1359 @@
 {
   "settings.language.description": {
     "en": "The app's own words. Titles and descriptions of books, shows and songs stay as they are.",
-    "cs": "Týká se textů aplikace. Názvy a popisy knih, pořadů a skladeb zůstávají, jak jsou."
+    "cs": "Týká se textů aplikace. Názvy a popisy knih, pořadů a skladeb zůstávají, jak jsou.",
+    "sk": "Týka sa textov aplikácie. Názvy a popisy kníh, relácií a skladieb zostávajú, ako sú.",
+    "hu": "Az alkalmazás saját szövegei. A könyvek, műsorok és számok címe és leírása változatlan marad.",
+    "de": "Die Wörter der App selbst. Titel und Beschreibungen von Büchern, Sendungen und Titeln bleiben, wie sie sind.",
+    "fr": "Les mots de l’app elle-même. Les titres et descriptions des livres, des émissions et des morceaux restent tels quels.",
+    "es": "Los textos de la propia aplicación. Los títulos y descripciones de libros, programas y canciones se quedan como están.",
+    "it": "I testi dell’app. Titoli e descrizioni di libri, programmi e brani restano come sono.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.page.title": {
     "en": "Settings",
-    "cs": "Nastavení"
+    "cs": "Nastavení",
+    "sk": "Nastavenia",
+    "hu": "Beállítások",
+    "de": "Einstellungen",
+    "fr": "Réglages",
+    "es": "Ajustes",
+    "it": "Impostazioni",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.profile": {
     "en": "Profile",
-    "cs": "Profil"
+    "cs": "Profil",
+    "sk": "Profil",
+    "hu": "Profil",
+    "de": "Profil",
+    "fr": "Profil",
+    "es": "Perfil",
+    "it": "Profilo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.recommendations": {
     "en": "Recommendations",
-    "cs": "Doporučení"
+    "cs": "Doporučení",
+    "sk": "Odporúčania",
+    "hu": "Javaslatok",
+    "de": "Empfehlungen",
+    "fr": "Recommandations",
+    "es": "Recomendaciones",
+    "it": "Suggerimenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.password": {
     "en": "Password",
-    "cs": "Heslo"
+    "cs": "Heslo",
+    "sk": "Heslo",
+    "hu": "Jelszó",
+    "de": "Passwort",
+    "fr": "Mot de passe",
+    "es": "Contraseña",
+    "it": "Password",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-  "settings.section.totp": { "en": "Two-factor sign-in", "cs": "Dvoufázové přihlášení" },
+  "settings.section.totp": {
+    "en": "Two-factor sign-in",
+    "cs": "Dvoufázové přihlášení",
+    "sk": "Dvojfázové prihlásenie",
+    "hu": "Kétlépcsős bejelentkezés",
+    "de": "Zwei-Faktor-Anmeldung",
+    "fr": "Connexion en deux étapes",
+    "es": "Inicio de sesión en dos pasos",
+    "it": "Accesso in due passaggi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
   "settings.section.totpDescription": {
     "en": "A code from an authenticator app on top of your password.",
-    "cs": "Kód z ověřovací aplikace navíc k heslu."
+    "cs": "Kód z ověřovací aplikace navíc k heslu.",
+    "sk": "Kód z overovacej aplikácie navyše k heslu.",
+    "hu": "Egy hitelesítő alkalmazás kódja a jelszava mellé.",
+    "de": "Ein Code aus einer Authentifizierungs-App zusätzlich zu deinem Passwort.",
+    "fr": "Un code d’une app d’authentification en plus de votre mot de passe.",
+    "es": "Un código de una app de autenticación, además de tu contraseña.",
+    "it": "Un codice da un’app di autenticazione, oltre alla password.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-  "settings.totp.offIntro": { "en": "Off. With it on, signing in needs your password and a six-digit code from an app such as Google Authenticator, 1Password or Aegis.", "cs": "Vypnuto. Po zapnutí bude k přihlášení potřeba heslo a šestimístný kód z aplikace jako Google Authenticator, 1Password nebo Aegis." },
-  "settings.totp.setUp": { "en": "Set up", "cs": "Nastavit" },
-  "settings.totp.scanIntro": { "en": "Scan the code with your authenticator app, then enter the six digits it shows.", "cs": "Naskenujte kód ověřovací aplikací a zadejte šest číslic, které ukáže." },
-  "settings.totp.manualEntry": { "en": "Can't scan? Enter this key by hand:", "cs": "Nejde skenovat? Zadejte tento klíč ručně:" },
-  "settings.totp.firstCode": { "en": "Code from the app", "cs": "Kód z aplikace" },
-  "settings.totp.turnOn": { "en": "Turn on", "cs": "Zapnout" },
-  "settings.totp.onIntro": { "en": "On. {left, plural, one {# recovery code} other {# recovery codes}} left — each signs you in once if you lose the app.", "cs": "Zapnuto. Zbývá {left, plural, one {# záložní kód} few {# záložní kódy} other {# záložních kódů}} – každý vás jednou přihlásí, pokud o aplikaci přijdete." },
-  "settings.totp.codeToDisable": { "en": "Code from the app, or a recovery code", "cs": "Kód z aplikace nebo záložní kód" },
-  "settings.totp.turnOff": { "en": "Turn off", "cs": "Vypnout" },
-  "settings.totp.disabled": { "en": "Two-factor sign-in is off.", "cs": "Dvoufázové přihlášení je vypnuté." },
-  "settings.totp.wrongCode": { "en": "That code isn't right.", "cs": "Tento kód není správný." },
-  "settings.totp.error": { "en": "Couldn't change two-factor sign-in.", "cs": "Dvoufázové přihlášení se nepodařilo změnit." },
-  "settings.totp.recoveryTitle": { "en": "Your recovery codes", "cs": "Vaše záložní kódy" },
-  "settings.totp.recoveryBody": { "en": "Shown only now. Keep them somewhere safe; each signs you in once without the app.", "cs": "Zobrazí se jen teď. Uložte si je na bezpečné místo; každý vás jednou přihlásí bez aplikace." },
-  "settings.totp.recoverySaved": { "en": "I've saved them", "cs": "Mám je uložené" },
-  "settings.section.activity": { "en": "Recent activity", "cs": "Nedávná aktivita" },
+  "settings.totp.offIntro": {
+    "en": "Off. With it on, signing in needs your password and a six-digit code from an app such as Google Authenticator, 1Password or Aegis.",
+    "cs": "Vypnuto. Po zapnutí bude k přihlášení potřeba heslo a šestimístný kód z aplikace jako Google Authenticator, 1Password nebo Aegis.",
+    "sk": "Vypnuté. Po zapnutí bude na prihlásenie potrebné heslo a šesťmiestny kód z aplikácie ako Google Authenticator, 1Password alebo Aegis.",
+    "hu": "Kikapcsolva. Bekapcsolva a bejelentkezéshez a jelszava és egy hatjegyű kód kell egy alkalmazásból, például a Google Authenticatorból, az 1Passwordből vagy az Aegisből.",
+    "de": "Aus. Wenn sie an ist, brauchst du zum Anmelden dein Passwort und einen sechsstelligen Code aus einer App wie Google Authenticator, 1Password oder Aegis.",
+    "fr": "Désactivée. Une fois activée, la connexion demande votre mot de passe et un code à six chiffres d’une app comme Google Authenticator, 1Password ou Aegis.",
+    "es": "Desactivado. Si lo activas, para iniciar sesión necesitarás tu contraseña y un código de seis cifras de una app como Google Authenticator, 1Password o Aegis.",
+    "it": "Disattivato. Se lo attivi, per accedere servono la password e un codice di sei cifre da un’app come Google Authenticator, 1Password o Aegis.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.setUp": {
+    "en": "Set up",
+    "cs": "Nastavit",
+    "sk": "Nastaviť",
+    "hu": "Beállítás",
+    "de": "Einrichten",
+    "fr": "Configurer",
+    "es": "Configurar",
+    "it": "Configura",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.scanIntro": {
+    "en": "Scan the code with your authenticator app, then enter the six digits it shows.",
+    "cs": "Naskenujte kód ověřovací aplikací a zadejte šest číslic, které ukáže.",
+    "sk": "Naskenujte kód overovacou aplikáciou a zadajte šesť číslic, ktoré ukáže.",
+    "hu": "Olvassa be a kódot a hitelesítő alkalmazással, majd írja be az általa mutatott hat számjegyet.",
+    "de": "Scanne den Code mit deiner Authentifizierungs-App und gib dann die sechs Ziffern ein, die sie anzeigt.",
+    "fr": "Scannez le code avec votre app d’authentification, puis saisissez les six chiffres qu’elle affiche.",
+    "es": "Escanea el código con tu app de autenticación e introduce las seis cifras que muestra.",
+    "it": "Scansiona il codice con la tua app di autenticazione, poi inserisci le sei cifre che mostra.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.manualEntry": {
+    "en": "Can't scan? Enter this key by hand:",
+    "cs": "Nejde skenovat? Zadejte tento klíč ručně:",
+    "sk": "Nedá sa skenovať? Zadajte tento kľúč ručne:",
+    "hu": "Nem tudja beolvasni? Írja be kézzel ezt a kulcsot:",
+    "de": "Scannen geht nicht? Gib diesen Schlüssel von Hand ein:",
+    "fr": "Impossible de scanner ? Saisissez cette clé à la main :",
+    "es": "¿No puedes escanearlo? Introduce esta clave a mano:",
+    "it": "Non riesci a scansionare? Inserisci questa chiave a mano:",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.firstCode": {
+    "en": "Code from the app",
+    "cs": "Kód z aplikace",
+    "sk": "Kód z aplikácie",
+    "hu": "Kód az alkalmazásból",
+    "de": "Code aus der App",
+    "fr": "Code de l’app",
+    "es": "Código de la app",
+    "it": "Codice dall’app",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.turnOn": {
+    "en": "Turn on",
+    "cs": "Zapnout",
+    "sk": "Zapnúť",
+    "hu": "Bekapcsolás",
+    "de": "Einschalten",
+    "fr": "Activer",
+    "es": "Activar",
+    "it": "Attiva",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.onIntro": {
+    "en": "On. {left, plural, one {# recovery code} other {# recovery codes}} left — each signs you in once if you lose the app.",
+    "cs": "Zapnuto. Zbývá {left, plural, one {# záložní kód} few {# záložní kódy} other {# záložních kódů}} – každý vás jednou přihlásí, pokud o aplikaci přijdete.",
+    "sk": "Zapnuté. {left, plural, one {Zostáva # záložný kód} few {Zostávajú # záložné kódy} other {Zostáva # záložných kódov}} – každý vás raz prihlási, ak o aplikáciu prídete.",
+    "hu": "Bekapcsolva. {left, plural, one {# helyreállítási kód maradt} other {# helyreállítási kód maradt}} — mindegyikkel egyszer jelentkezhet be, ha elveszíti az alkalmazást.",
+    "de": "An. Noch {left, plural, one {# Wiederherstellungscode} other {# Wiederherstellungscodes}} – jeder meldet dich einmal an, falls du die App verlierst.",
+    "fr": "Activée. {left, plural, one {# code de récupération restant} many {# de codes de récupération restants} other {# codes de récupération restants}} : chacun vous connecte une fois si vous perdez l’app.",
+    "es": "Activado. {left, plural, one {Queda # código de recuperación} many {Quedan # de códigos de recuperación} other {Quedan # códigos de recuperación}}: cada uno te permite iniciar sesión una vez si pierdes la app.",
+    "it": "Attivato. {left, plural, one {Resta # codice di recupero} many {Restano # di codici di recupero} other {Restano # codici di recupero}}: ognuno ti fa accedere una volta se perdi l’app.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.codeToDisable": {
+    "en": "Code from the app, or a recovery code",
+    "cs": "Kód z aplikace nebo záložní kód",
+    "sk": "Kód z aplikácie alebo záložný kód",
+    "hu": "Kód az alkalmazásból vagy helyreállítási kód",
+    "de": "Code aus der App oder ein Wiederherstellungscode",
+    "fr": "Code de l’app, ou code de récupération",
+    "es": "Código de la app o un código de recuperación",
+    "it": "Codice dall’app, o un codice di recupero",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.turnOff": {
+    "en": "Turn off",
+    "cs": "Vypnout",
+    "sk": "Vypnúť",
+    "hu": "Kikapcsolás",
+    "de": "Ausschalten",
+    "fr": "Désactiver",
+    "es": "Desactivar",
+    "it": "Disattiva",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.disabled": {
+    "en": "Two-factor sign-in is off.",
+    "cs": "Dvoufázové přihlášení je vypnuté.",
+    "sk": "Dvojfázové prihlásenie je vypnuté.",
+    "hu": "A kétlépcsős bejelentkezés ki van kapcsolva.",
+    "de": "Die Zwei-Faktor-Anmeldung ist aus.",
+    "fr": "La connexion en deux étapes est désactivée.",
+    "es": "El inicio de sesión en dos pasos está desactivado.",
+    "it": "L’accesso in due passaggi è disattivato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.wrongCode": {
+    "en": "That code isn't right.",
+    "cs": "Tento kód není správný.",
+    "sk": "Tento kód nie je správny.",
+    "hu": "Ez a kód nem megfelelő.",
+    "de": "Dieser Code stimmt nicht.",
+    "fr": "Ce code n’est pas correct.",
+    "es": "Ese código no es correcto.",
+    "it": "Il codice non è corretto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.error": {
+    "en": "Couldn't change two-factor sign-in.",
+    "cs": "Dvoufázové přihlášení se nepodařilo změnit.",
+    "sk": "Nepodarilo sa zmeniť dvojfázové prihlásenie.",
+    "hu": "Nem sikerült módosítani a kétlépcsős bejelentkezést.",
+    "de": "Die Zwei-Faktor-Anmeldung konnte nicht geändert werden.",
+    "fr": "Impossible de modifier la connexion en deux étapes.",
+    "es": "No se ha podido cambiar el inicio de sesión en dos pasos.",
+    "it": "Impossibile modificare l’accesso in due passaggi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.recoveryTitle": {
+    "en": "Your recovery codes",
+    "cs": "Vaše záložní kódy",
+    "sk": "Vaše záložné kódy",
+    "hu": "Az Ön helyreállítási kódjai",
+    "de": "Deine Wiederherstellungscodes",
+    "fr": "Vos codes de récupération",
+    "es": "Tus códigos de recuperación",
+    "it": "I tuoi codici di recupero",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.recoveryBody": {
+    "en": "Shown only now. Keep them somewhere safe; each signs you in once without the app.",
+    "cs": "Zobrazí se jen teď. Uložte si je na bezpečné místo; každý vás jednou přihlásí bez aplikace.",
+    "sk": "Zobrazia sa iba teraz. Uložte si ich na bezpečné miesto; každý vás raz prihlási bez aplikácie.",
+    "hu": "Csak most jelennek meg. Tárolja őket biztonságos helyen; mindegyikkel egyszer jelentkezhet be az alkalmazás nélkül.",
+    "de": "Werden nur jetzt angezeigt. Bewahre sie sicher auf; jeder meldet dich einmal ohne die App an.",
+    "fr": "Affichés uniquement maintenant. Conservez-les en lieu sûr ; chacun vous connecte une fois sans l’app.",
+    "es": "Solo se muestran ahora. Guárdalos en un lugar seguro; cada uno te permite iniciar sesión una vez sin la app.",
+    "it": "Vengono mostrati solo ora. Conservali in un posto sicuro; ognuno ti fa accedere una volta senza l’app.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.totp.recoverySaved": {
+    "en": "I've saved them",
+    "cs": "Mám je uložené",
+    "sk": "Mám ich uložené",
+    "hu": "Elmentettem őket",
+    "de": "Ich habe sie gespeichert",
+    "fr": "Je les ai enregistrés",
+    "es": "Ya los he guardado",
+    "it": "Li ho salvati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.section.activity": {
+    "en": "Recent activity",
+    "cs": "Nedávná aktivita",
+    "sk": "Nedávna aktivita",
+    "hu": "Legutóbbi tevékenység",
+    "de": "Letzte Aktivität",
+    "fr": "Activité récente",
+    "es": "Actividad reciente",
+    "it": "Attività recente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
   "settings.section.activityDescription": {
     "en": "Sign-ins, password and two-factor changes, devices signed out, and what an admin did to your account. A sign-in you don't recognize is the reason to change your password.",
-    "cs": "Přihlášení, změny hesla a dvoufázového přihlášení, odhlášená zařízení a co s účtem udělal správce. Přihlášení, které nepoznáváte, je důvod změnit heslo."
+    "cs": "Přihlášení, změny hesla a dvoufázového přihlášení, odhlášená zařízení a co s účtem udělal správce. Přihlášení, které nepoznáváte, je důvod změnit heslo.",
+    "sk": "Prihlásenia, zmeny hesla a dvojfázového prihlásenia, odhlásené zariadenia a čo s účtom urobil správca. Prihlásenie, ktoré nepoznáte, je dôvod zmeniť heslo.",
+    "hu": "Bejelentkezések, jelszó- és kétlépcsős módosítások, kijelentkeztetett eszközök, és amit egy adminisztrátor a fiókjával tett. Ha egy bejelentkezést nem ismer fel, változtassa meg a jelszavát.",
+    "de": "Anmeldungen, Änderungen an Passwort und Zwei-Faktor-Anmeldung, abgemeldete Geräte und was ein Administrator an deinem Konto geändert hat. Eine Anmeldung, die du nicht erkennst, ist ein Grund, dein Passwort zu ändern.",
+    "fr": "Connexions, changements de mot de passe et de connexion en deux étapes, appareils déconnectés, et ce qu’un administrateur a fait sur votre compte. Une connexion que vous ne reconnaissez pas est une raison de changer votre mot de passe.",
+    "es": "Inicios de sesión, cambios de contraseña y del inicio de sesión en dos pasos, dispositivos desconectados y lo que un administrador ha hecho con tu cuenta. Si ves un inicio de sesión que no reconoces, cambia tu contraseña.",
+    "it": "Accessi, modifiche alla password e all’accesso in due passaggi, dispositivi disconnessi e cosa ha fatto un amministratore al tuo account. Un accesso che non riconosci è il motivo per cambiare la password.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-  "settings.activity.empty": { "en": "Nothing yet.", "cs": "Zatím nic." },
-  "settings.activity.byAdmin": { "en": "{what} (by an admin)", "cs": "{what} (správcem)" },
-  "settings.activity.kind.loginOk": { "en": "Signed in", "cs": "Přihlášení" },
-  "settings.activity.kind.loginFailed": { "en": "Wrong password", "cs": "Špatné heslo" },
-  "settings.activity.kind.loginLocked": { "en": "Sign-in paused after wrong passwords", "cs": "Přihlášení pozastaveno po špatných heslech" },
-  "settings.activity.kind.loginMfaPending": { "en": "Password accepted, code requested", "cs": "Heslo přijato, vyžádán kód" },
-  "settings.activity.kind.loginMfaOk": { "en": "Signed in with a code", "cs": "Přihlášení kódem" },
-  "settings.activity.kind.loginMfaFailed": { "en": "Wrong code", "cs": "Špatný kód" },
-  "settings.activity.kind.passwordChanged": { "en": "Password changed", "cs": "Heslo změněno" },
-  "settings.activity.kind.passwordReset": { "en": "Password set from a mailed link", "cs": "Heslo nastaveno z odkazu v e-mailu" },
-  "settings.activity.kind.passwordResetRequested": { "en": "Password reset link requested", "cs": "Vyžádán odkaz pro obnovu hesla" },
-  "settings.activity.kind.emailVerified": { "en": "Email address confirmed", "cs": "E-mailová adresa potvrzena" },
-  "settings.activity.kind.totpEnabled": { "en": "Two-factor sign-in turned on", "cs": "Dvoufázové přihlášení zapnuto" },
-  "settings.activity.kind.totpDisabled": { "en": "Two-factor sign-in turned off", "cs": "Dvoufázové přihlášení vypnuto" },
-  "settings.activity.kind.sessionSignedOut": { "en": "Signed out", "cs": "Odhlášení" },
-  "settings.activity.kind.sessionRevoked": { "en": "A device was signed out", "cs": "Zařízení odhlášeno" },
-  "settings.activity.kind.sessionRevokedAll": { "en": "Every device was signed out", "cs": "Všechna zařízení odhlášena" },
-  "settings.activity.kind.tokenCreated": { "en": "Personal access token created", "cs": "Vytvořen osobní přístupový token" },
-  "settings.activity.kind.tokenRevoked": { "en": "Personal access token revoked", "cs": "Osobní přístupový token zrušen" },
-  "settings.activity.kind.accountCreated": { "en": "Account created", "cs": "Účet vytvořen" },
-  "settings.activity.kind.accountChanged": { "en": "Role or status changed", "cs": "Role nebo stav změněn" },
-  "settings.activity.kind.accountDeleted": { "en": "Account deleted", "cs": "Účet smazán" },
-  "settings.activity.kind.familyMemberChanged": { "en": "Family role or permissions changed", "cs": "Role nebo oprávnění v rodině změněna" },
-  "settings.activity.kind.familyMemberRemoved": { "en": "Removed from the family", "cs": "Odebrání z rodiny" },
-  "settings.activity.kind.familyInviteCreated": { "en": "Invite created", "cs": "Pozvánka vytvořena" },
-  "settings.activity.kind.familyInviteDeleted": { "en": "Invite deleted", "cs": "Pozvánka smazána" },
+  "settings.activity.empty": {
+    "en": "Nothing yet.",
+    "cs": "Zatím nic.",
+    "sk": "Zatiaľ nič.",
+    "hu": "Még semmi.",
+    "de": "Noch nichts.",
+    "fr": "Rien pour l’instant.",
+    "es": "Aún nada.",
+    "it": "Ancora niente.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.byAdmin": {
+    "en": "{what} (by an admin)",
+    "cs": "{what} (správcem)",
+    "sk": "{what} (správcom)",
+    "hu": "{what} (adminisztrátor által)",
+    "de": "{what} (durch einen Administrator)",
+    "fr": "{what} (par un administrateur)",
+    "es": "{what} (por un administrador)",
+    "it": "{what} (da un amministratore)",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginOk": {
+    "en": "Signed in",
+    "cs": "Přihlášení",
+    "sk": "Prihlásenie",
+    "hu": "Bejelentkezés",
+    "de": "Angemeldet",
+    "fr": "Connexion",
+    "es": "Sesión iniciada",
+    "it": "Accesso eseguito",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginFailed": {
+    "en": "Wrong password",
+    "cs": "Špatné heslo",
+    "sk": "Nesprávne heslo",
+    "hu": "Hibás jelszó",
+    "de": "Falsches Passwort",
+    "fr": "Mot de passe incorrect",
+    "es": "Contraseña incorrecta",
+    "it": "Password errata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginLocked": {
+    "en": "Sign-in paused after wrong passwords",
+    "cs": "Přihlášení pozastaveno po špatných heslech",
+    "sk": "Prihlasovanie pozastavené po nesprávnych heslách",
+    "hu": "Bejelentkezés szüneteltetve hibás jelszavak után",
+    "de": "Anmeldung nach falschen Passwörtern pausiert",
+    "fr": "Connexion suspendue après des mots de passe incorrects",
+    "es": "Inicio de sesión pausado tras contraseñas incorrectas",
+    "it": "Accesso sospeso dopo password errate",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginMfaPending": {
+    "en": "Password accepted, code requested",
+    "cs": "Heslo přijato, vyžádán kód",
+    "sk": "Heslo prijaté, vyžiadaný kód",
+    "hu": "Jelszó elfogadva, kód kérve",
+    "de": "Passwort akzeptiert, Code angefordert",
+    "fr": "Mot de passe accepté, code demandé",
+    "es": "Contraseña aceptada, código solicitado",
+    "it": "Password accettata, codice richiesto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginMfaOk": {
+    "en": "Signed in with a code",
+    "cs": "Přihlášení kódem",
+    "sk": "Prihlásenie kódom",
+    "hu": "Bejelentkezés kóddal",
+    "de": "Mit einem Code angemeldet",
+    "fr": "Connexion avec un code",
+    "es": "Sesión iniciada con un código",
+    "it": "Accesso eseguito con un codice",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.loginMfaFailed": {
+    "en": "Wrong code",
+    "cs": "Špatný kód",
+    "sk": "Nesprávny kód",
+    "hu": "Hibás kód",
+    "de": "Falscher Code",
+    "fr": "Code incorrect",
+    "es": "Código incorrecto",
+    "it": "Codice errato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.passwordChanged": {
+    "en": "Password changed",
+    "cs": "Heslo změněno",
+    "sk": "Heslo zmenené",
+    "hu": "Jelszó módosítva",
+    "de": "Passwort geändert",
+    "fr": "Mot de passe modifié",
+    "es": "Contraseña cambiada",
+    "it": "Password cambiata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.passwordReset": {
+    "en": "Password set from a mailed link",
+    "cs": "Heslo nastaveno z odkazu v e-mailu",
+    "sk": "Heslo nastavené z odkazu v e-maile",
+    "hu": "Jelszó beállítva e-mailben küldött linkkel",
+    "de": "Passwort über einen zugeschickten Link festgelegt",
+    "fr": "Mot de passe défini depuis un lien envoyé par e-mail",
+    "es": "Contraseña creada desde un enlace enviado por correo",
+    "it": "Password impostata da un link via email",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.passwordResetRequested": {
+    "en": "Password reset link requested",
+    "cs": "Vyžádán odkaz pro obnovu hesla",
+    "sk": "Vyžiadaný odkaz na obnovenie hesla",
+    "hu": "Jelszó-visszaállító link kérve",
+    "de": "Link zum Zurücksetzen des Passworts angefordert",
+    "fr": "Lien de réinitialisation du mot de passe demandé",
+    "es": "Enlace de restablecimiento de contraseña solicitado",
+    "it": "Richiesto link per reimpostare la password",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.emailVerified": {
+    "en": "Email address confirmed",
+    "cs": "E-mailová adresa potvrzena",
+    "sk": "E-mailová adresa potvrdená",
+    "hu": "E-mail-cím megerősítve",
+    "de": "E-Mail-Adresse bestätigt",
+    "fr": "Adresse e-mail confirmée",
+    "es": "Dirección de correo confirmada",
+    "it": "Indirizzo email confermato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.totpEnabled": {
+    "en": "Two-factor sign-in turned on",
+    "cs": "Dvoufázové přihlášení zapnuto",
+    "sk": "Dvojfázové prihlásenie zapnuté",
+    "hu": "Kétlépcsős bejelentkezés bekapcsolva",
+    "de": "Zwei-Faktor-Anmeldung eingeschaltet",
+    "fr": "Connexion en deux étapes activée",
+    "es": "Inicio de sesión en dos pasos activado",
+    "it": "Accesso in due passaggi attivato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.totpDisabled": {
+    "en": "Two-factor sign-in turned off",
+    "cs": "Dvoufázové přihlášení vypnuto",
+    "sk": "Dvojfázové prihlásenie vypnuté",
+    "hu": "Kétlépcsős bejelentkezés kikapcsolva",
+    "de": "Zwei-Faktor-Anmeldung ausgeschaltet",
+    "fr": "Connexion en deux étapes désactivée",
+    "es": "Inicio de sesión en dos pasos desactivado",
+    "it": "Accesso in due passaggi disattivato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.sessionSignedOut": {
+    "en": "Signed out",
+    "cs": "Odhlášení",
+    "sk": "Odhlásenie",
+    "hu": "Kijelentkezés",
+    "de": "Abgemeldet",
+    "fr": "Déconnexion",
+    "es": "Sesión cerrada",
+    "it": "Disconnessione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.sessionRevoked": {
+    "en": "A device was signed out",
+    "cs": "Zařízení odhlášeno",
+    "sk": "Zariadenie odhlásené",
+    "hu": "Egy eszköz kijelentkeztetve",
+    "de": "Ein Gerät wurde abgemeldet",
+    "fr": "Un appareil a été déconnecté",
+    "es": "Se ha cerrado la sesión de un dispositivo",
+    "it": "Un dispositivo è stato disconnesso",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.sessionRevokedAll": {
+    "en": "Every device was signed out",
+    "cs": "Všechna zařízení odhlášena",
+    "sk": "Všetky zariadenia odhlásené",
+    "hu": "Minden eszköz kijelentkeztetve",
+    "de": "Alle Geräte wurden abgemeldet",
+    "fr": "Tous les appareils ont été déconnectés",
+    "es": "Se ha cerrado la sesión de todos los dispositivos",
+    "it": "Tutti i dispositivi sono stati disconnessi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.tokenCreated": {
+    "en": "Personal access token created",
+    "cs": "Vytvořen osobní přístupový token",
+    "sk": "Vytvorený osobný prístupový token",
+    "hu": "Személyes hozzáférési token létrehozva",
+    "de": "Persönliches Zugriffstoken erstellt",
+    "fr": "Jeton d’accès personnel créé",
+    "es": "Token de acceso personal creado",
+    "it": "Token di accesso personale creato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.tokenRevoked": {
+    "en": "Personal access token revoked",
+    "cs": "Osobní přístupový token zrušen",
+    "sk": "Osobný prístupový token zrušený",
+    "hu": "Személyes hozzáférési token visszavonva",
+    "de": "Persönliches Zugriffstoken widerrufen",
+    "fr": "Jeton d’accès personnel révoqué",
+    "es": "Token de acceso personal revocado",
+    "it": "Token di accesso personale revocato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.accountCreated": {
+    "en": "Account created",
+    "cs": "Účet vytvořen",
+    "sk": "Účet vytvorený",
+    "hu": "Fiók létrehozva",
+    "de": "Konto erstellt",
+    "fr": "Compte créé",
+    "es": "Cuenta creada",
+    "it": "Account creato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.accountChanged": {
+    "en": "Role or status changed",
+    "cs": "Role nebo stav změněn",
+    "sk": "Rola alebo stav zmenené",
+    "hu": "Szerepkör vagy állapot módosítva",
+    "de": "Rolle oder Status geändert",
+    "fr": "Rôle ou statut modifié",
+    "es": "Papel o estado cambiado",
+    "it": "Ruolo o stato modificato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.accountDeleted": {
+    "en": "Account deleted",
+    "cs": "Účet smazán",
+    "sk": "Účet zmazaný",
+    "hu": "Fiók törölve",
+    "de": "Konto gelöscht",
+    "fr": "Compte supprimé",
+    "es": "Cuenta eliminada",
+    "it": "Account eliminato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.familyMemberChanged": {
+    "en": "Family role or permissions changed",
+    "cs": "Role nebo oprávnění v rodině změněna",
+    "sk": "Rola alebo oprávnenia v rodine zmenené",
+    "hu": "Családi szerepkör vagy engedélyek módosítva",
+    "de": "Rolle oder Berechtigungen in der Familie geändert",
+    "fr": "Rôle ou autorisations dans la famille modifiés",
+    "es": "Papel o permisos en la familia cambiados",
+    "it": "Ruolo o autorizzazioni nella famiglia modificati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.familyMemberRemoved": {
+    "en": "Removed from the family",
+    "cs": "Odebrání z rodiny",
+    "sk": "Odobratie z rodiny",
+    "hu": "Eltávolítva a családból",
+    "de": "Aus der Familie entfernt",
+    "fr": "Retiré de la famille",
+    "es": "Quitado de la familia",
+    "it": "Rimosso dalla famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.familyInviteCreated": {
+    "en": "Invite created",
+    "cs": "Pozvánka vytvořena",
+    "sk": "Pozvánka vytvorená",
+    "hu": "Meghívó létrehozva",
+    "de": "Einladung erstellt",
+    "fr": "Invitation créée",
+    "es": "Invitación creada",
+    "it": "Invito creato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "settings.activity.kind.familyInviteDeleted": {
+    "en": "Invite deleted",
+    "cs": "Pozvánka smazána",
+    "sk": "Pozvánka zmazaná",
+    "hu": "Meghívó törölve",
+    "de": "Einladung gelöscht",
+    "fr": "Invitation supprimée",
+    "es": "Invitación eliminada",
+    "it": "Invito eliminato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
   "settings.section.devices": {
     "en": "Devices",
-    "cs": "Zařízení"
+    "cs": "Zařízení",
+    "sk": "Zariadenia",
+    "hu": "Eszközök",
+    "de": "Geräte",
+    "fr": "Appareils",
+    "es": "Dispositivos",
+    "it": "Dispositivi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.devicesDescription": {
     "en": "Everywhere you're signed in. Signing a device out takes effect immediately.",
-    "cs": "Všude, kde jste přihlášeni. Odhlášení zařízení platí okamžitě."
+    "cs": "Všude, kde jste přihlášeni. Odhlášení zařízení platí okamžitě.",
+    "sk": "Všade, kde ste prihlásení. Odhlásenie zariadenia platí okamžite.",
+    "hu": "Minden hely, ahol be van jelentkezve. Egy eszköz kijelentkeztetése azonnal érvényes.",
+    "de": "Überall, wo du angemeldet bist. Das Abmelden eines Geräts wirkt sofort.",
+    "fr": "Partout où vous êtes connecté. La déconnexion d’un appareil prend effet immédiatement.",
+    "es": "Todos los sitios donde has iniciado sesión. Cerrar la sesión de un dispositivo tiene efecto al instante.",
+    "it": "Ovunque hai eseguito l’accesso. La disconnessione di un dispositivo ha effetto immediato.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.muted": {
     "en": "Muted music",
-    "cs": "Ztlumená hudba"
+    "cs": "Ztlumená hudba",
+    "sk": "Stlmená hudba",
+    "hu": "Némított zene",
+    "de": "Stummgeschaltete Musik",
+    "fr": "Musique coupée",
+    "es": "Música silenciada",
+    "it": "Musica silenziata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.mutedDescription": {
     "en": "Tracks you asked not to hear. They stay in the library and nobody else is affected.",
-    "cs": "Skladby, které nechcete slyšet. Zůstávají v knihovně a nikoho jiného se to netýká."
+    "cs": "Skladby, které nechcete slyšet. Zůstávají v knihovně a nikoho jiného se to netýká.",
+    "sk": "Skladby, ktoré nechcete počuť. Zostávajú v knižnici a nikoho iného sa to netýka.",
+    "hu": "Számok, amelyeket nem szeretne hallani. A könyvtárban maradnak, és senki mást nem érint.",
+    "de": "Titel, die du nicht hören wolltest. Sie bleiben in der Mediathek, und für alle anderen ändert sich nichts.",
+    "fr": "Les morceaux que vous avez demandé à ne pas entendre. Ils restent dans la bibliothèque et personne d’autre n’est concerné.",
+    "es": "Canciones que has pedido no escuchar. Siguen en la biblioteca y no afectan a nadie más.",
+    "it": "Brani che hai chiesto di non ascoltare. Restano nella libreria e non riguardano nessun altro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.subsonic": {
     "en": "Other apps",
-    "cs": "Jiné aplikace"
+    "cs": "Jiné aplikace",
+    "sk": "Iné aplikácie",
+    "hu": "Más alkalmazások",
+    "de": "Andere Apps",
+    "fr": "Autres apps",
+    "es": "Otras apps",
+    "it": "Altre app",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.section.danger": {
     "en": "Danger zone",
-    "cs": "Nebezpečná zóna"
+    "cs": "Nebezpečná zóna",
+    "sk": "Nebezpečná zóna",
+    "hu": "Veszélyzóna",
+    "de": "Gefahrenbereich",
+    "fr": "Zone de danger",
+    "es": "Zona de peligro",
+    "it": "Zona pericolosa",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.error.change": {
     "en": "Couldn't change that",
-    "cs": "Nepodařilo se to změnit"
+    "cs": "Nepodařilo se to změnit",
+    "sk": "Nepodarilo sa to zmeniť",
+    "hu": "Nem sikerült módosítani",
+    "de": "Das konnte nicht geändert werden",
+    "fr": "Impossible de modifier cet élément",
+    "es": "No se ha podido cambiar",
+    "it": "Impossibile modificarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.error.tryAgain": {
     "en": "Try again.",
     "cs": "Zkuste to znovu.",
-    "note": "Fallback detail under an error toast when the server gives no message."
+    "sk": "Skúste to znova.",
+    "hu": "Próbálja újra.",
+    "de": "Versuch es noch einmal.",
+    "fr": "Réessayez.",
+    "es": "Vuelve a intentarlo.",
+    "it": "Riprova.",
+    "note": "Fallback detail under an error toast when the server gives no message.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.recommendations.label": {
     "en": "Suggest things based on what I listen to",
-    "cs": "Navrhovat obsah podle toho, co poslouchám"
+    "cs": "Navrhovat obsah podle toho, co poslouchám",
+    "sk": "Navrhovať obsah podľa toho, čo počúvam",
+    "hu": "Javaslatok a hallgatásaim alapján",
+    "de": "Vorschläge basierend auf dem, was ich höre",
+    "fr": "Me suggérer des contenus selon ce que j’écoute",
+    "es": "Sugerir contenido según lo que escucho",
+    "it": "Suggerisci contenuti in base a ciò che ascolto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.recommendations.description": {
     "en": "Off unless you switch it on. When it's on, the matching happens in this browser: your listening history is compared against a catalog of podcasts we host, and is never sent anywhere to produce a suggestion. Nothing is stored when you turn it on, so there's nothing to delete when you turn it off.",
-    "cs": "Vypnuto, dokud to nezapnete. Když je to zapnuté, porovnávání probíhá v tomto prohlížeči: vaše historie poslechu se porovná s katalogem podcastů, který provozujeme, a kvůli návrhům se nikam neodesílá. Zapnutím se nic neukládá, takže po vypnutí není co mazat."
+    "cs": "Vypnuto, dokud to nezapnete. Když je to zapnuté, porovnávání probíhá v tomto prohlížeči: vaše historie poslechu se porovná s katalogem podcastů, který provozujeme, a kvůli návrhům se nikam neodesílá. Zapnutím se nic neukládá, takže po vypnutí není co mazat.",
+    "sk": "Vypnuté, kým to nezapnete. Keď je to zapnuté, porovnávanie prebieha v tomto prehliadači: vaša história počúvania sa porovná s katalógom podcastov, ktorý prevádzkujeme, a kvôli návrhom sa nikam neodosiela. Zapnutím sa nič neukladá, takže po vypnutí nie je čo mazať.",
+    "hu": "Kikapcsolva, amíg be nem kapcsolja. Bekapcsolva az összevetés ebben a böngészőben történik: a hallgatási előzményeit az általunk tárolt podcastkatalógussal vetjük össze, és a javaslatokhoz soha nem küldjük el sehová. Bekapcsoláskor semmi sem tárolódik, így kikapcsoláskor nincs mit törölni.",
+    "de": "Aus, solange du es nicht einschaltest. Wenn es an ist, findet der Abgleich in diesem Browser statt: Dein Hörverlauf wird mit einem Podcastkatalog verglichen, den wir bereitstellen, und für einen Vorschlag nie irgendwohin gesendet. Beim Einschalten wird nichts gespeichert, also gibt es beim Ausschalten auch nichts zu löschen.",
+    "fr": "Désactivé, sauf si vous l’activez. Une fois activé, la comparaison se fait dans ce navigateur : votre historique d’écoute est comparé à un catalogue de podcasts que nous hébergeons, et n’est jamais envoyé nulle part pour produire une suggestion. Rien n’est stocké quand vous l’activez, il n’y a donc rien à supprimer quand vous le désactivez.",
+    "es": "Desactivado salvo que lo actives. Cuando está activado, la comparación se hace en este navegador: tu historial de escucha se compara con un catálogo de pódcasts que alojamos y nunca se envía a ningún sitio para generar una sugerencia. Al activarlo no se guarda nada, así que no hay nada que eliminar al desactivarlo.",
+    "it": "Disattivato finché non lo attivi. Quando è attivo, il confronto avviene in questo browser: la tua cronologia di ascolto viene confrontata con un catalogo di podcast che ospitiamo e non viene mai inviata altrove per produrre un suggerimento. Attivandolo non viene salvato nulla, quindi disattivandolo non c’è nulla da eliminare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.name": {
     "en": "Your name",
-    "cs": "Vaše jméno"
+    "cs": "Vaše jméno",
+    "sk": "Vaše meno",
+    "hu": "Az Ön neve",
+    "de": "Dein Name",
+    "fr": "Votre nom",
+    "es": "Tu nombre",
+    "it": "Il tuo nome",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.photo": {
     "en": "Photo",
-    "cs": "Fotka"
+    "cs": "Fotka",
+    "sk": "Fotka",
+    "hu": "Fénykép",
+    "de": "Foto",
+    "fr": "Photo",
+    "es": "Foto",
+    "it": "Foto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.chooseImage": {
     "en": "Choose an image…",
-    "cs": "Vybrat obrázek…"
+    "cs": "Vybrat obrázek…",
+    "sk": "Vybrať obrázok…",
+    "hu": "Kép kiválasztása…",
+    "de": "Bild auswählen …",
+    "fr": "Choisir une image…",
+    "es": "Elegir una imagen…",
+    "it": "Scegli un’immagine…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.signedInAs": {
     "en": "Signed in as {email}. Your email is what you sign in with and can't be changed here.",
-    "cs": "Přihlášeni jako {email}. E-mailem se přihlašujete a tady ho změnit nelze."
+    "cs": "Přihlášeni jako {email}. E-mailem se přihlašujete a tady ho změnit nelze.",
+    "sk": "Prihlásení ako {email}. E-mailom sa prihlasujete a tu ho zmeniť nemožno.",
+    "hu": "Bejelentkezve mint {email}. Az e-mail-címével jelentkezik be, és itt nem módosítható.",
+    "de": "Angemeldet als {email}. Mit deiner E-Mail-Adresse meldest du dich an; sie kann hier nicht geändert werden.",
+    "fr": "Connecté en tant que {email}. Votre adresse e-mail sert à vous connecter et ne peut pas être modifiée ici.",
+    "es": "Has iniciado sesión como {email}. Tu correo es con lo que inicias sesión y no se puede cambiar aquí.",
+    "it": "Accesso eseguito come {email}. Accedi con la tua email, che qui non può essere modificata.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.saved": {
     "en": "Profile saved",
-    "cs": "Profil uložen"
+    "cs": "Profil uložen",
+    "sk": "Profil uložený",
+    "hu": "Profil mentve",
+    "de": "Profil gespeichert",
+    "fr": "Profil enregistré",
+    "es": "Perfil guardado",
+    "it": "Profilo salvato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.profile.saveError": {
     "en": "Couldn't save that",
-    "cs": "Nepodařilo se to uložit"
+    "cs": "Nepodařilo se to uložit",
+    "sk": "Nepodarilo sa to uložiť",
+    "hu": "Nem sikerült menteni",
+    "de": "Das konnte nicht gespeichert werden",
+    "fr": "Impossible d’enregistrer cet élément",
+    "es": "No se ha podido guardar",
+    "it": "Impossibile salvarlo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.current": {
     "en": "Current password",
-    "cs": "Současné heslo"
+    "cs": "Současné heslo",
+    "sk": "Súčasné heslo",
+    "hu": "Jelenlegi jelszó",
+    "de": "Aktuelles Passwort",
+    "fr": "Mot de passe actuel",
+    "es": "Contraseña actual",
+    "it": "Password attuale",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.new": {
     "en": "New password",
-    "cs": "Nové heslo"
+    "cs": "Nové heslo",
+    "sk": "Nové heslo",
+    "hu": "Új jelszó",
+    "de": "Neues Passwort",
+    "fr": "Nouveau mot de passe",
+    "es": "Nueva contraseña",
+    "it": "Nuova password",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.confirm": {
     "en": "Confirm",
     "cs": "Potvrdit",
-    "note": "Label of the field repeating the new password."
+    "sk": "Potvrdiť",
+    "hu": "Megerősítés",
+    "de": "Bestätigen",
+    "fr": "Confirmer",
+    "es": "Confirmar",
+    "it": "Conferma",
+    "note": "Label of the field repeating the new password.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.hint": {
     "en": "At least 12 characters. Changing your password signs out your other devices.",
-    "cs": "Nejméně 12 znaků. Změna hesla odhlásí vaše ostatní zařízení."
+    "cs": "Nejméně 12 znaků. Změna hesla odhlásí vaše ostatní zařízení.",
+    "sk": "Najmenej 12 znakov. Zmena hesla odhlási vaše ostatné zariadenia.",
+    "hu": "Legalább 12 karakter. A jelszó módosítása kijelentkezteti a többi eszközét.",
+    "de": "Mindestens 12 Zeichen. Wenn du dein Passwort änderst, werden deine anderen Geräte abgemeldet.",
+    "fr": "Au moins 12 caractères. Changer votre mot de passe déconnecte vos autres appareils.",
+    "es": "Al menos 12 caracteres. Al cambiar la contraseña se cierra la sesión en tus otros dispositivos.",
+    "it": "Almeno 12 caratteri. Cambiando la password vengono disconnessi gli altri tuoi dispositivi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.change": {
     "en": "Change password",
-    "cs": "Změnit heslo"
+    "cs": "Změnit heslo",
+    "sk": "Zmeniť heslo",
+    "hu": "Jelszó módosítása",
+    "de": "Passwort ändern",
+    "fr": "Changer le mot de passe",
+    "es": "Cambiar contraseña",
+    "it": "Cambia password",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.changed": {
     "en": "Password changed",
-    "cs": "Heslo změněno"
+    "cs": "Heslo změněno",
+    "sk": "Heslo zmenené",
+    "hu": "Jelszó módosítva",
+    "de": "Passwort geändert",
+    "fr": "Mot de passe modifié",
+    "es": "Contraseña cambiada",
+    "it": "Password cambiata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.changedDetail": {
     "en": "Your other devices have been signed out.",
-    "cs": "Vaše ostatní zařízení byla odhlášena."
+    "cs": "Vaše ostatní zařízení byla odhlášena.",
+    "sk": "Vaše ostatné zariadenia boli odhlásené.",
+    "hu": "A többi eszközét kijelentkeztettük.",
+    "de": "Deine anderen Geräte wurden abgemeldet.",
+    "fr": "Vos autres appareils ont été déconnectés.",
+    "es": "Se ha cerrado la sesión en tus otros dispositivos.",
+    "it": "Gli altri tuoi dispositivi sono stati disconnessi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.error": {
     "en": "Couldn't change the password.",
-    "cs": "Heslo se nepodařilo změnit."
+    "cs": "Heslo se nepodařilo změnit.",
+    "sk": "Nepodarilo sa zmeniť heslo.",
+    "hu": "Nem sikerült módosítani a jelszót.",
+    "de": "Das Passwort konnte nicht geändert werden.",
+    "fr": "Impossible de changer le mot de passe.",
+    "es": "No se ha podido cambiar la contraseña.",
+    "it": "Impossibile cambiare la password.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.tooShort": {
     "en": "Use at least 12 characters.",
-    "cs": "Použijte alespoň 12 znaků."
+    "cs": "Použijte alespoň 12 znaků.",
+    "sk": "Použite aspoň 12 znakov.",
+    "hu": "Legalább 12 karaktert használjon.",
+    "de": "Verwende mindestens 12 Zeichen.",
+    "fr": "Utilisez au moins 12 caractères.",
+    "es": "Usa al menos 12 caracteres.",
+    "it": "Usa almeno 12 caratteri.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.password.mismatch": {
     "en": "Those passwords don't match.",
-    "cs": "Hesla se neshodují."
+    "cs": "Hesla se neshodují.",
+    "sk": "Heslá sa nezhodujú.",
+    "hu": "A két jelszó nem egyezik.",
+    "de": "Die Passwörter stimmen nicht überein.",
+    "fr": "Les mots de passe ne correspondent pas.",
+    "es": "Las contraseñas no coinciden.",
+    "it": "Le password non coincidono.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.thisDevice": {
     "en": "This device",
-    "cs": "Toto zařízení"
+    "cs": "Toto zařízení",
+    "sk": "Toto zariadenie",
+    "hu": "Ez az eszköz",
+    "de": "Dieses Gerät",
+    "fr": "Cet appareil",
+    "es": "Este dispositivo",
+    "it": "Questo dispositivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.signedIn": {
     "en": "Signed in {when}",
     "cs": "Přihlášeno {when}",
-    "note": "when is relative, e.g. 5 min ago / před 5 min."
+    "sk": "Prihlásené {when}",
+    "hu": "Bejelentkezve: {when}",
+    "de": "Angemeldet {when}",
+    "fr": "Connecté {when}",
+    "es": "Sesión iniciada {when}",
+    "it": "Accesso {when}",
+    "note": "when is relative, e.g. 5 min ago / před 5 min.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.signedInLastUsed": {
     "en": "Signed in {when} · last used {lastUsed}",
-    "cs": "Přihlášeno {when} · naposledy použito {lastUsed}"
+    "cs": "Přihlášeno {when} · naposledy použito {lastUsed}",
+    "sk": "Prihlásené {when} · naposledy použité {lastUsed}",
+    "hu": "Bejelentkezve: {when} · utoljára használva: {lastUsed}",
+    "de": "Angemeldet {when} · zuletzt verwendet {lastUsed}",
+    "fr": "Connecté {when} · dernière utilisation {lastUsed}",
+    "es": "Sesión iniciada {when} · último uso {lastUsed}",
+    "it": "Accesso {when} · ultimo utilizzo {lastUsed}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.signOut": {
     "en": "Sign out {device}",
-    "cs": "Odhlásit {device}"
+    "cs": "Odhlásit {device}",
+    "sk": "Odhlásiť {device}",
+    "hu": "Kijelentkeztetés: {device}",
+    "de": "{device} abmelden",
+    "fr": "Déconnecter {device}",
+    "es": "Cerrar sesión en {device}",
+    "it": "Disconnetti {device}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.signedOut": {
     "en": "Signed that device out",
-    "cs": "Zařízení bylo odhlášeno"
+    "cs": "Zařízení bylo odhlášeno",
+    "sk": "Zariadenie bolo odhlásené",
+    "hu": "Az eszköz kijelentkeztetve",
+    "de": "Gerät abgemeldet",
+    "fr": "Appareil déconnecté",
+    "es": "Se ha cerrado la sesión en ese dispositivo",
+    "it": "Dispositivo disconnesso",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.signOutError": {
     "en": "Couldn't sign that device out",
-    "cs": "Zařízení se nepodařilo odhlásit"
+    "cs": "Zařízení se nepodařilo odhlásit",
+    "sk": "Nepodarilo sa odhlásiť zariadenie",
+    "hu": "Nem sikerült kijelentkeztetni az eszközt",
+    "de": "Das Gerät konnte nicht abgemeldet werden",
+    "fr": "Impossible de déconnecter cet appareil",
+    "es": "No se ha podido cerrar la sesión en ese dispositivo",
+    "it": "Impossibile disconnettere il dispositivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.devices.none": {
     "en": "No other devices signed in.",
-    "cs": "Nejste přihlášeni na žádném jiném zařízení."
+    "cs": "Nejste přihlášeni na žádném jiném zařízení.",
+    "sk": "Nie ste prihlásení na žiadnom inom zariadení.",
+    "hu": "Nincs más bejelentkezett eszköz.",
+    "de": "Keine anderen Geräte angemeldet.",
+    "fr": "Aucun autre appareil connecté.",
+    "es": "No hay otros dispositivos con la sesión iniciada.",
+    "it": "Nessun altro dispositivo connesso.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.intro": {
     "en": "Other apps sign in with your email and this key: any OpenSubsonic music player (music only), and podcast apps that sync with gPodder, such as AntennaPod and Kasts (your shows and where you are in each episode).",
-    "cs": "Jiné aplikace se přihlásí vaším e-mailem a tímto klíčem: jakýkoli hudební přehrávač s podporou OpenSubsonic (jen hudba) a podcastové aplikace se synchronizací gPodder, například AntennaPod a Kasts (vaše pořady a místo, kde v každé epizodě jste)."
+    "cs": "Jiné aplikace se přihlásí vaším e-mailem a tímto klíčem: jakýkoli hudební přehrávač s podporou OpenSubsonic (jen hudba) a podcastové aplikace se synchronizací gPodder, například AntennaPod a Kasts (vaše pořady a místo, kde v každé epizodě jste).",
+    "sk": "Iné aplikácie sa prihlásia vaším e-mailom a týmto kľúčom: akýkoľvek hudobný prehrávač s podporou OpenSubsonic (iba hudba) a podcastové aplikácie so synchronizáciou gPodder, napríklad AntennaPod a Kasts (vaše relácie a miesto, kde ste v každej epizóde).",
+    "hu": "Más alkalmazások az e-mail-címével és ezzel a kulccsal jelentkeznek be: bármely OpenSubsonic zenelejátszó (csak zene), valamint a gPodderrel szinkronizáló podcastalkalmazások, például az AntennaPod és a Kasts (a műsorai, és hogy hol tart az egyes epizódokban).",
+    "de": "Andere Apps melden sich mit deiner E-Mail-Adresse und diesem Schlüssel an: jeder OpenSubsonic-Musikplayer (nur Musik) und Podcast-Apps, die mit gPodder synchronisieren, etwa AntennaPod und Kasts (deine Sendungen und wo du in jeder Folge bist).",
+    "fr": "D’autres apps se connectent avec votre adresse e-mail et cette clé : tout lecteur de musique OpenSubsonic (musique uniquement), et les apps de podcasts qui se synchronisent avec gPodder, comme AntennaPod et Kasts (vos émissions et votre position dans chaque épisode).",
+    "es": "Otras apps inician sesión con tu correo y esta clave: cualquier reproductor de música OpenSubsonic (solo música) y las apps de pódcasts que se sincronizan con gPodder, como AntennaPod y Kasts (tus programas y por dónde vas en cada episodio).",
+    "it": "Altre app accedono con la tua email e questa chiave: qualsiasi lettore musicale OpenSubsonic (solo musica) e le app di podcast che si sincronizzano con gPodder, come AntennaPod e Kasts (i tuoi programmi e il punto in cui sei in ogni episodio).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.username": {
     "en": "Username: <code>{username}</code>",
-    "cs": "Uživatelské jméno: <code>{username}</code>"
+    "cs": "Uživatelské jméno: <code>{username}</code>",
+    "sk": "Používateľské meno: <code>{username}</code>",
+    "hu": "Felhasználónév: <code>{username}</code>",
+    "de": "Benutzername: <code>{username}</code>",
+    "fr": "Nom d’utilisateur : <code>{username}</code>",
+    "es": "Nombre de usuario: <code>{username}</code>",
+    "it": "Nome utente: <code>{username}</code>",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.hide": {
     "en": "Hide",
-    "cs": "Skrýt"
+    "cs": "Skrýt",
+    "sk": "Skryť",
+    "hu": "Elrejtés",
+    "de": "Ausblenden",
+    "fr": "Masquer",
+    "es": "Ocultar",
+    "it": "Nascondi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.show": {
     "en": "Show",
-    "cs": "Zobrazit"
+    "cs": "Zobrazit",
+    "sk": "Zobraziť",
+    "hu": "Megjelenítés",
+    "de": "Anzeigen",
+    "fr": "Afficher",
+    "es": "Mostrar",
+    "it": "Mostra",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.copy": {
     "en": "Copy",
-    "cs": "Kopírovat"
+    "cs": "Kopírovat",
+    "sk": "Kopírovať",
+    "hu": "Másolás",
+    "de": "Kopieren",
+    "fr": "Copier",
+    "es": "Copiar",
+    "it": "Copia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.copied": {
     "en": "Key copied",
-    "cs": "Klíč zkopírován"
+    "cs": "Klíč zkopírován",
+    "sk": "Kľúč skopírovaný",
+    "hu": "Kulcs másolva",
+    "de": "Schlüssel kopiert",
+    "fr": "Clé copiée",
+    "es": "Clave copiada",
+    "it": "Chiave copiata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.copyError": {
     "en": "Couldn't copy that",
-    "cs": "Nepodařilo se zkopírovat"
+    "cs": "Nepodařilo se zkopírovat",
+    "sk": "Nepodarilo sa skopírovať",
+    "hu": "Nem sikerült másolni",
+    "de": "Das konnte nicht kopiert werden",
+    "fr": "Impossible de copier",
+    "es": "No se ha podido copiar",
+    "it": "Impossibile copiarla",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.regenerate": {
     "en": "Generate a new one",
-    "cs": "Vytvořit nový"
+    "cs": "Vytvořit nový",
+    "sk": "Vytvoriť nový",
+    "hu": "Új kulcs létrehozása",
+    "de": "Neuen erzeugen",
+    "fr": "En générer une nouvelle",
+    "es": "Generar una nueva",
+    "it": "Generane una nuova",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.regenerated": {
     "en": "New key generated",
-    "cs": "Nový klíč vytvořen"
+    "cs": "Nový klíč vytvořen",
+    "sk": "Nový kľúč vytvorený",
+    "hu": "Új kulcs létrehozva",
+    "de": "Neuer Schlüssel erzeugt",
+    "fr": "Nouvelle clé générée",
+    "es": "Nueva clave generada",
+    "it": "Nuova chiave generata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.regeneratedDetail": {
     "en": "Apps using the old one will need updating.",
-    "cs": "Aplikace se starým klíčem bude potřeba aktualizovat."
+    "cs": "Aplikace se starým klíčem bude potřeba aktualizovat.",
+    "sk": "Aplikácie so starým kľúčom bude treba aktualizovať.",
+    "hu": "A régi kulcsot használó alkalmazásokat frissíteni kell.",
+    "de": "Apps, die den alten verwenden, müssen aktualisiert werden.",
+    "fr": "Les apps qui utilisent l’ancienne devront être mises à jour.",
+    "es": "Habrá que actualizar las apps que usan la antigua.",
+    "it": "Le app che usano quella vecchia andranno aggiornate.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.subsonic.regenerateError": {
     "en": "Couldn't generate a new key",
-    "cs": "Nový klíč se nepodařilo vytvořit"
+    "cs": "Nový klíč se nepodařilo vytvořit",
+    "sk": "Nepodarilo sa vytvoriť nový kľúč",
+    "hu": "Nem sikerült új kulcsot létrehozni",
+    "de": "Es konnte kein neuer Schlüssel erzeugt werden",
+    "fr": "Impossible de générer une nouvelle clé",
+    "es": "No se ha podido generar una clave nueva",
+    "it": "Impossibile generare una nuova chiave",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.empty": {
     "en": "Nothing muted. Tracks you mark “not feeling it” or “never play again” show up here so you can undo them.",
-    "cs": "Nic ztlumeného. Skladby označené „Zrovna nesedí“ nebo „Už nikdy nepřehrávat“ se objeví tady, abyste je mohli vrátit."
+    "cs": "Nic ztlumeného. Skladby označené „Zrovna nesedí“ nebo „Už nikdy nepřehrávat“ se objeví tady, abyste je mohli vrátit.",
+    "sk": "Nič stlmené. Skladby označené „Práve nesedí“ alebo „Už nikdy neprehrávať“ sa objavia tu, aby ste ich mohli vrátiť.",
+    "hu": "Nincs némított szám. Azok a számok, amelyeket „Most nem tetszik” vagy „Soha többé ne szóljon” jelöléssel lát el, itt jelennek meg, így visszavonhatja őket.",
+    "de": "Nichts stummgeschaltet. Titel, die du mit „Gerade nicht mein Ding“ oder „Nie wieder abspielen“ markierst, erscheinen hier, damit du das rückgängig machen kannst.",
+    "fr": "Rien n’est coupé. Les morceaux que vous marquez « Pas pour moi » ou « Ne plus jamais lire » apparaissent ici pour que vous puissiez annuler.",
+    "es": "No hay nada silenciado. Las canciones que marques como «No me apetece» o «No volver a reproducir» aparecen aquí para que puedas deshacerlo.",
+    "it": "Niente di silenziato. I brani che segni come «Non è il momento» o «Non riprodurre più» compaiono qui, così puoi annullare.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.unknownTrack": {
     "en": "Unknown track",
-    "cs": "Neznámá skladba"
+    "cs": "Neznámá skladba",
+    "sk": "Neznáma skladba",
+    "hu": "Ismeretlen szám",
+    "de": "Unbekannter Titel",
+    "fr": "Morceau inconnu",
+    "es": "Canción desconocida",
+    "it": "Brano sconosciuto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.artistTitle": {
     "en": "{artist} — {title}",
-    "cs": "{artist} — {title}"
+    "cs": "{artist} — {title}",
+    "sk": "{artist} — {title}",
+    "hu": "{artist} — {title}",
+    "de": "{artist} – {title}",
+    "fr": "{artist} — {title}",
+    "es": "{artist} — {title}",
+    "it": "{artist} — {title}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.banned": {
     "en": "Never play again",
-    "cs": "Už nikdy nepřehrávat"
+    "cs": "Už nikdy nepřehrávat",
+    "sk": "Už nikdy neprehrávať",
+    "hu": "Soha többé ne szóljon",
+    "de": "Nie wieder abspielen",
+    "fr": "Ne plus jamais lire",
+    "es": "No volver a reproducir",
+    "it": "Non riprodurre più",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.disliked": {
     "en": "Not feeling it",
-    "cs": "Zrovna nesedí"
+    "cs": "Zrovna nesedí",
+    "sk": "Práve nesedí",
+    "hu": "Most nem tetszik",
+    "de": "Gerade nicht mein Ding",
+    "fr": "Pas pour moi",
+    "es": "No me apetece",
+    "it": "Non è il momento",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.undo": {
     "en": "Undo",
-    "cs": "Zpět"
+    "cs": "Zpět",
+    "sk": "Späť",
+    "hu": "Visszavonás",
+    "de": "Rückgängig",
+    "fr": "Annuler",
+    "es": "Deshacer",
+    "it": "Annulla",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.muted.undoError": {
     "en": "Couldn't undo that",
-    "cs": "Nepodařilo se to vrátit"
+    "cs": "Nepodařilo se to vrátit",
+    "sk": "Nepodarilo sa to vrátiť",
+    "hu": "Nem sikerült visszavonni",
+    "de": "Das konnte nicht rückgängig gemacht werden",
+    "fr": "Impossible d’annuler",
+    "es": "No se ha podido deshacer",
+    "it": "Impossibile annullare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.title": {
     "en": "Delete your account",
-    "cs": "Smazat účet"
+    "cs": "Smazat účet",
+    "sk": "Zmazať účet",
+    "hu": "A fiók törlése",
+    "de": "Dein Konto löschen",
+    "fr": "Supprimer votre compte",
+    "es": "Eliminar tu cuenta",
+    "it": "Elimina il tuo account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.description": {
     "en": "This permanently deletes your account and everything you uploaded. It cannot be undone.",
-    "cs": "Trvale smaže váš účet a vše, co jste nahráli. Nelze to vzít zpět."
+    "cs": "Trvale smaže váš účet a vše, co jste nahráli. Nelze to vzít zpět.",
+    "sk": "Natrvalo zmaže váš účet a všetko, čo ste nahrali. Nedá sa to vziať späť.",
+    "hu": "Ez véglegesen törli a fiókját és mindent, amit feltöltött. Nem vonható vissza.",
+    "de": "Damit werden dein Konto und alles, was du hochgeladen hast, endgültig gelöscht. Das lässt sich nicht rückgängig machen.",
+    "fr": "Cette action supprime définitivement votre compte et tout ce que vous avez importé. Elle est irréversible.",
+    "es": "Esto elimina para siempre tu cuenta y todo lo que has subido. No se puede deshacer.",
+    "it": "Elimina definitivamente il tuo account e tutto ciò che hai caricato. L’operazione non può essere annullata.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.button": {
     "en": "Delete account",
-    "cs": "Smazat účet"
+    "cs": "Smazat účet",
+    "sk": "Zmazať účet",
+    "hu": "Fiók törlése",
+    "de": "Konto löschen",
+    "fr": "Supprimer le compte",
+    "es": "Eliminar cuenta",
+    "it": "Elimina account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.confirmTitle": {
     "en": "Delete your account?",
-    "cs": "Smazat váš účet?"
+    "cs": "Smazat váš účet?",
+    "sk": "Zmazať váš účet?",
+    "hu": "Törli a fiókját?",
+    "de": "Dein Konto löschen?",
+    "fr": "Supprimer votre compte ?",
+    "es": "¿Eliminar tu cuenta?",
+    "it": "Eliminare il tuo account?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.confirmDescription": {
     "en": "Your library, your progress and anything you shared with the family go with it. This cannot be reversed.",
-    "cs": "Zmizí s ním vaše knihovna, váš postup i vše, co jste sdíleli s rodinou. Nelze to vrátit."
+    "cs": "Zmizí s ním vaše knihovna, váš postup i vše, co jste sdíleli s rodinou. Nelze to vrátit.",
+    "sk": "Zmizne s ním vaša knižnica, váš postup aj všetko, čo ste zdieľali s rodinou. Nedá sa to vrátiť.",
+    "hu": "A könyvtára, a haladása és minden, amit megosztott a családdal, vele együtt törlődik. Ez nem vonható vissza.",
+    "de": "Deine Mediathek, dein Fortschritt und alles, was du mit der Familie geteilt hast, werden mitgelöscht. Das lässt sich nicht rückgängig machen.",
+    "fr": "Votre bibliothèque, votre progression et tout ce que vous avez partagé avec la famille disparaissent avec lui. Cette action est irréversible.",
+    "es": "Tu biblioteca, tu progreso y todo lo que has compartido con la familia se van con ella. No se puede revertir.",
+    "it": "Con esso spariscono la tua libreria, i tuoi progressi e tutto ciò che hai condiviso con la famiglia. Non si può tornare indietro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.keep": {
     "en": "Keep my account",
-    "cs": "Ponechat účet"
+    "cs": "Ponechat účet",
+    "sk": "Ponechať účet",
+    "hu": "Fiók megtartása",
+    "de": "Mein Konto behalten",
+    "fr": "Garder mon compte",
+    "es": "Conservar mi cuenta",
+    "it": "Mantieni il mio account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.confirm": {
     "en": "Delete permanently",
-    "cs": "Smazat natrvalo"
+    "cs": "Smazat natrvalo",
+    "sk": "Zmazať natrvalo",
+    "hu": "Végleges törlés",
+    "de": "Endgültig löschen",
+    "fr": "Supprimer définitivement",
+    "es": "Eliminar para siempre",
+    "it": "Elimina definitivamente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.typeToConfirm": {
     "en": "Type {phrase} to confirm",
-    "cs": "Pro potvrzení napište {phrase}"
+    "cs": "Pro potvrzení napište {phrase}",
+    "sk": "Na potvrdenie napíšte {phrase}",
+    "hu": "A megerősítéshez írja be: {phrase}",
+    "de": "Gib zur Bestätigung {phrase} ein",
+    "fr": "Saisissez {phrase} pour confirmer",
+    "es": "Escribe {phrase} para confirmar",
+    "it": "Digita {phrase} per confermare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.phrase": {
     "en": "DELETE",
     "cs": "SMAZAT",
-    "note": "The word the person must type, in capitals."
+    "sk": "ZMAZAŤ",
+    "hu": "TÖRLÉS",
+    "de": "LÖSCHEN",
+    "fr": "SUPPRIMER",
+    "es": "ELIMINAR",
+    "it": "ELIMINA",
+    "note": "The word the person must type, in capitals.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.delete.error": {
     "en": "Couldn't delete the account",
-    "cs": "Účet se nepodařilo smazat"
+    "cs": "Účet se nepodařilo smazat",
+    "sk": "Nepodarilo sa zmazať účet",
+    "hu": "Nem sikerült törölni a fiókot",
+    "de": "Das Konto konnte nicht gelöscht werden",
+    "fr": "Impossible de supprimer le compte",
+    "es": "No se ha podido eliminar la cuenta",
+    "it": "Impossibile eliminare l’account",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.title": {
     "en": "Playback",
-    "cs": "Přehrávání"
+    "cs": "Přehrávání",
+    "sk": "Prehrávanie",
+    "hu": "Lejátszás",
+    "de": "Wiedergabe",
+    "fr": "Lecture",
+    "es": "Reproducción",
+    "it": "Riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.skipForward": {
     "en": "Skip forward",
-    "cs": "Přeskočit vpřed"
+    "cs": "Přeskočit vpřed",
+    "sk": "Preskočiť dopredu",
+    "hu": "Előreugrás",
+    "de": "Vorspringen",
+    "fr": "Avancer",
+    "es": "Avanzar",
+    "it": "Avanti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.skipForwardHint": {
     "en": "Also the right-arrow key while something is playing.",
-    "cs": "Také klávesa šipka vpravo, když něco hraje."
+    "cs": "Také klávesa šipka vpravo, když něco hraje.",
+    "sk": "Tiež kláves šípka vpravo, keď niečo hrá.",
+    "hu": "Lejátszás közben a jobbra nyíl billentyű is.",
+    "de": "Auch die Pfeiltaste nach rechts, während etwas läuft.",
+    "fr": "Également la touche flèche droite pendant la lecture.",
+    "es": "También la tecla de flecha derecha mientras se reproduce algo.",
+    "it": "Anche il tasto freccia destra mentre è in riproduzione qualcosa.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.skipBack": {
     "en": "Skip back",
-    "cs": "Přeskočit zpět"
+    "cs": "Přeskočit zpět",
+    "sk": "Preskočiť späť",
+    "hu": "Visszaugrás",
+    "de": "Zurückspringen",
+    "fr": "Reculer",
+    "es": "Retroceder",
+    "it": "Indietro",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.speed": {
     "en": "Default speed for audiobooks",
-    "cs": "Výchozí rychlost audioknih"
+    "cs": "Výchozí rychlost audioknih",
+    "sk": "Predvolená rýchlosť audiokníh",
+    "hu": "Alapértelmezett sebesség hangoskönyvekhez",
+    "de": "Standardgeschwindigkeit für Hörbücher",
+    "fr": "Vitesse par défaut des livres audio",
+    "es": "Velocidad predeterminada de los audiolibros",
+    "it": "Velocità predefinita per gli audiolibri",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.speedHint": {
     "en": "Between {min, number}× and {max, number}×. Changing speed on the player is temporary; this is the starting point.",
-    "cs": "Od {min, number}× do {max, number}×. Změna rychlosti v přehrávači je dočasná; tohle je výchozí bod."
+    "cs": "Od {min, number}× do {max, number}×. Změna rychlosti v přehrávači je dočasná; tohle je výchozí bod.",
+    "sk": "Od {min, number}× do {max, number}×. Zmena rýchlosti v prehrávači je dočasná; toto je východiskový bod.",
+    "hu": "{min, number}× és {max, number}× között. A lejátszóban módosított sebesség ideiglenes; ez a kiindulópont.",
+    "de": "Zwischen {min, number}× und {max, number}×. Eine Änderung der Geschwindigkeit im Player ist vorübergehend; das hier ist der Ausgangswert.",
+    "fr": "Entre {min, number}× et {max, number}×. Changer la vitesse dans le lecteur est temporaire ; ceci est le point de départ.",
+    "es": "Entre {min, number}× y {max, number}×. Cambiar la velocidad en el reproductor es temporal; este es el punto de partida.",
+    "it": "Tra {min, number}× e {max, number}×. Cambiare la velocità nel lettore è temporaneo; questo è il punto di partenza.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.seconds": {
     "en": "{n, number} s",
-    "cs": "{n, number} s"
+    "cs": "{n, number} s",
+    "sk": "{n, number} s",
+    "hu": "{n, number} mp",
+    "de": "{n, number} Sek.",
+    "fr": "{n, number} s",
+    "es": "{n, number} s",
+    "it": "{n, number} s",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.speedValue": {
     "en": "{n, number}×",
-    "cs": "{n, number}×"
+    "cs": "{n, number}×",
+    "sk": "{n, number}×",
+    "hu": "{n, number}×",
+    "de": "{n, number}×",
+    "fr": "{n, number}×",
+    "es": "{n, number}×",
+    "it": "{n, number}×",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.everyDevice": {
     "en": "These apply on every device signed in to your account.",
-    "cs": "Platí na všech zařízeních přihlášených k vašemu účtu."
+    "cs": "Platí na všech zařízeních přihlášených k vašemu účtu.",
+    "sk": "Platí na všetkých zariadeniach prihlásených k vášmu účtu.",
+    "hu": "Ezek a fiókjába bejelentkezett összes eszközön érvényesek.",
+    "de": "Das gilt auf jedem Gerät, das mit deinem Konto angemeldet ist.",
+    "fr": "Ces réglages s’appliquent à tous les appareils connectés à votre compte.",
+    "es": "Se aplican en todos los dispositivos con tu cuenta.",
+    "it": "Valgono su tutti i dispositivi connessi al tuo account.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.unsaved": {
     "en": "Unsaved changes",
-    "cs": "Neuložené změny"
+    "cs": "Neuložené změny",
+    "sk": "Neuložené zmeny",
+    "hu": "Nem mentett módosítások",
+    "de": "Nicht gespeicherte Änderungen",
+    "fr": "Modifications non enregistrées",
+    "es": "Cambios sin guardar",
+    "it": "Modifiche non salvate",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.saved": {
     "en": "Playback defaults saved",
-    "cs": "Výchozí nastavení přehrávání uloženo"
+    "cs": "Výchozí nastavení přehrávání uloženo",
+    "sk": "Predvolené nastavenia prehrávania uložené",
+    "hu": "Lejátszási alapértékek mentve",
+    "de": "Wiedergabe-Standards gespeichert",
+    "fr": "Réglages de lecture par défaut enregistrés",
+    "es": "Ajustes de reproducción guardados",
+    "it": "Impostazioni di riproduzione predefinite salvate",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "settings.playback.saveError": {
     "en": "Couldn't save",
-    "cs": "Nepodařilo se uložit"
+    "cs": "Nepodařilo se uložit",
+    "sk": "Nepodarilo sa uložiť",
+    "hu": "Nem sikerült menteni",
+    "de": "Speichern nicht möglich",
+    "fr": "Impossible d’enregistrer",
+    "es": "No se ha podido guardar",
+    "it": "Impossibile salvare",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   }
 }

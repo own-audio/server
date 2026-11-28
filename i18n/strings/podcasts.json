@@ -1,642 +1,1761 @@
 {
   "podcasts.episodeCount": {
     "en": "{count, plural, one {# episode} other {# episodes}}",
-    "cs": "{count, plural, one {# epizoda} few {# epizody} other {# epizod}}"
+    "cs": "{count, plural, one {# epizoda} few {# epizody} other {# epizod}}",
+    "sk": "{count, plural, one {# epizóda} few {# epizódy} other {# epizód}}",
+    "hu": "{count, plural, one {# epizód} other {# epizód}}",
+    "de": "{count, plural, one {# Folge} other {# Folgen}}",
+    "fr": "{count, plural, one {# épisode} many {# d’épisodes} other {# épisodes}}",
+    "es": "{count, plural, one {# episodio} many {# de episodios} other {# episodios}}",
+    "it": "{count, plural, one {# episodio} many {# di episodi} other {# episodi}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.follow": {
     "en": "Follow",
     "cs": "Odebírat",
-    "note": "Button: start following a show."
+    "sk": "Odoberať",
+    "hu": "Követés",
+    "de": "Folgen",
+    "fr": "Suivre",
+    "es": "Seguir",
+    "it": "Segui",
+    "note": "Button: start following a show.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.following": {
     "en": "Following",
     "cs": "Odebíráte",
-    "note": "Disabled button on a show already followed; also a toast title after following."
+    "sk": "Odoberáte",
+    "hu": "Követve",
+    "de": "Folge ich",
+    "fr": "Suivi",
+    "es": "Siguiendo",
+    "it": "Seguito",
+    "note": "Disabled button on a show already followed; also a toast title after following.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.unfollow": {
     "en": "Unfollow",
-    "cs": "Zrušit odběr"
+    "cs": "Zrušit odběr",
+    "sk": "Zrušiť odber",
+    "hu": "Követés leállítása",
+    "de": "Nicht mehr folgen",
+    "fr": "Ne plus suivre",
+    "es": "Dejar de seguir",
+    "it": "Non seguire più",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.refresh": {
     "en": "Refresh",
     "cs": "Obnovit",
-    "note": "Re-read a show's feed."
+    "sk": "Obnoviť",
+    "hu": "Frissítés",
+    "de": "Aktualisieren",
+    "fr": "Actualiser",
+    "es": "Actualizar",
+    "it": "Aggiorna",
+    "note": "Re-read a show's feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.similarShows": {
     "en": "Similar shows",
-    "cs": "Podobné pořady"
+    "cs": "Podobné pořady",
+    "sk": "Podobné relácie",
+    "hu": "Hasonló műsorok",
+    "de": "Ähnliche Sendungen",
+    "fr": "Émissions similaires",
+    "es": "Programas similares",
+    "it": "Programmi simili",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.action.select": {
     "en": "Select",
-    "cs": "Vybrat"
+    "cs": "Vybrat",
+    "sk": "Vybrať",
+    "hu": "Kijelölés",
+    "de": "Auswählen",
+    "fr": "Sélectionner",
+    "es": "Seleccionar",
+    "it": "Seleziona",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.toast.refreshed": {
     "en": "Feed refreshed",
-    "cs": "Kanál je aktualizovaný"
+    "cs": "Kanál je aktualizovaný",
+    "sk": "Kanál je aktualizovaný",
+    "hu": "Csatorna frissítve",
+    "de": "Feed aktualisiert",
+    "fr": "Flux actualisé",
+    "es": "Feed actualizado",
+    "it": "Feed aggiornato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.error.refresh": {
     "en": "Couldn't refresh that feed",
-    "cs": "Kanál se nepodařilo aktualizovat"
+    "cs": "Kanál se nepodařilo aktualizovat",
+    "sk": "Nepodarilo sa aktualizovať kanál",
+    "hu": "Nem sikerült frissíteni a csatornát",
+    "de": "Der Feed konnte nicht aktualisiert werden",
+    "fr": "Impossible d’actualiser ce flux",
+    "es": "No se ha podido actualizar el feed",
+    "it": "Impossibile aggiornare il feed",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.error.followShow": {
     "en": "Couldn't follow that show",
-    "cs": "Tento pořad se nepodařilo přidat."
+    "cs": "Tento pořad se nepodařilo přidat.",
+    "sk": "Nepodarilo sa pridať túto reláciu",
+    "hu": "Nem sikerült követni a műsort",
+    "de": "Der Sendung konnte nicht gefolgt werden",
+    "fr": "Impossible de suivre cette émission",
+    "es": "No se ha podido seguir el programa",
+    "it": "Impossibile seguire il programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.shareWithFamily": {
     "en": "Share with the family",
     "cs": "Sdílet s rodinou",
-    "note": "Checkbox label when following a show."
+    "sk": "Zdieľať s rodinou",
+    "hu": "Megosztás a családdal",
+    "de": "Mit der Familie teilen",
+    "fr": "Partager avec la famille",
+    "es": "Compartir con la familia",
+    "it": "Condividi con la famiglia",
+    "note": "Checkbox label when following a show.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.sort.recent": {
     "en": "Recently updated",
-    "cs": "Naposledy aktualizované"
+    "cs": "Naposledy aktualizované",
+    "sk": "Naposledy aktualizované",
+    "hu": "Legutóbb frissítve",
+    "de": "Zuletzt aktualisiert",
+    "fr": "Mises à jour récentes",
+    "es": "Actualizados recientemente",
+    "it": "Aggiornati di recente",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.sort.title": {
     "en": "Title",
-    "cs": "Název"
+    "cs": "Název",
+    "sk": "Názov",
+    "hu": "Cím",
+    "de": "Titel",
+    "fr": "Titre",
+    "es": "Título",
+    "it": "Titolo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.sort.author": {
     "en": "Author",
-    "cs": "Autor"
+    "cs": "Autor",
+    "sk": "Autor",
+    "hu": "Szerző",
+    "de": "Autor",
+    "fr": "Auteur",
+    "es": "Autor",
+    "it": "Autore",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.filter": {
     "en": "Filter shows",
-    "cs": "Filtrovat pořady"
+    "cs": "Filtrovat pořady",
+    "sk": "Filtrovať relácie",
+    "hu": "Műsorok szűrése",
+    "de": "Sendungen filtern",
+    "fr": "Filtrer les émissions",
+    "es": "Filtrar programas",
+    "it": "Filtra programmi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.owner.all": {
     "en": "Everything",
-    "cs": "Vše"
+    "cs": "Vše",
+    "sk": "Všetko",
+    "hu": "Minden",
+    "de": "Alles",
+    "fr": "Tout",
+    "es": "Todo",
+    "it": "Tutto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.owner.mine": {
     "en": "Mine",
     "cs": "Moje",
-    "note": "Only shows not shared with the family."
+    "sk": "Moje",
+    "hu": "Saját",
+    "de": "Meine",
+    "fr": "Les miennes",
+    "es": "Míos",
+    "it": "Miei",
+    "note": "Only shows not shared with the family.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.selectAll": {
     "en": "Select all",
-    "cs": "Vybrat vše"
+    "cs": "Vybrat vše",
+    "sk": "Vybrať všetko",
+    "hu": "Összes kijelölése",
+    "de": "Alle auswählen",
+    "fr": "Tout sélectionner",
+    "es": "Seleccionar todo",
+    "it": "Seleziona tutto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.clearSelection": {
     "en": "Clear selection",
-    "cs": "Zrušit výběr"
+    "cs": "Zrušit výběr",
+    "sk": "Zrušiť výber",
+    "hu": "Kijelölés megszüntetése",
+    "de": "Auswahl aufheben",
+    "fr": "Effacer la sélection",
+    "es": "Borrar selección",
+    "it": "Annulla selezione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.error.unfollow": {
     "en": "Couldn't unfollow that show",
-    "cs": "Odběr pořadu se nepodařilo zrušit"
+    "cs": "Odběr pořadu se nepodařilo zrušit",
+    "sk": "Nepodarilo sa zrušiť odber relácie",
+    "hu": "Nem sikerült leállítani a műsor követését",
+    "de": "Das Folgen konnte nicht beendet werden",
+    "fr": "Impossible de ne plus suivre cette émission",
+    "es": "No se ha podido dejar de seguir el programa",
+    "it": "Impossibile smettere di seguire il programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noMatchTitle": {
     "en": "Nothing matches that",
-    "cs": "Nic tomu neodpovídá"
+    "cs": "Nic tomu neodpovídá",
+    "sk": "Nič tomu nezodpovedá",
+    "hu": "Nincs találat",
+    "de": "Keine Treffer",
+    "fr": "Aucun résultat",
+    "es": "No hay coincidencias",
+    "it": "Nessun risultato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noMatchBody": {
     "en": "Try a different word.",
-    "cs": "Zkuste jiné slovo."
+    "cs": "Zkuste jiné slovo.",
+    "sk": "Skúste iné slovo.",
+    "hu": "Próbáljon más szót.",
+    "de": "Versuch es mit einem anderen Wort.",
+    "fr": "Essayez un autre mot.",
+    "es": "Prueba con otra palabra.",
+    "it": "Prova con un’altra parola.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noPrivateTitle": {
     "en": "No private shows",
-    "cs": "Žádné soukromé pořady"
+    "cs": "Žádné soukromé pořady",
+    "sk": "Žiadne súkromné relácie",
+    "hu": "Nincsenek nem megosztott műsorok",
+    "de": "Keine privaten Sendungen",
+    "fr": "Aucune émission privée",
+    "es": "No hay programas privados",
+    "it": "Nessun programma privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noPrivateBody": {
     "en": "Everything you've followed is currently shared with the family.",
-    "cs": "Všechny pořady, které odebíráte, jsou teď sdílené s rodinou."
+    "cs": "Všechny pořady, které odebíráte, jsou teď sdílené s rodinou.",
+    "sk": "Všetky relácie, ktoré odoberáte, sú teraz zdieľané s rodinou.",
+    "hu": "Minden követett műsora jelenleg meg van osztva a családdal.",
+    "de": "Alles, dem du folgst, ist gerade mit der Familie geteilt.",
+    "fr": "Tout ce que vous suivez est actuellement partagé avec la famille.",
+    "es": "Todo lo que sigues está compartido con la familia.",
+    "it": "Tutto ciò che segui è al momento condiviso con la famiglia.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noneTitle": {
     "en": "No shows yet",
-    "cs": "Zatím žádné pořady"
+    "cs": "Zatím žádné pořady",
+    "sk": "Zatiaľ žiadne relácie",
+    "hu": "Még nincsenek műsorok",
+    "de": "Noch keine Sendungen",
+    "fr": "Aucune émission pour l’instant",
+    "es": "Aún no hay programas",
+    "it": "Ancora nessun programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.empty.noneBody": {
     "en": "Search the directory, or paste a feed's RSS address.",
-    "cs": "Hledejte v katalogu, nebo vložte RSS adresu kanálu."
+    "cs": "Hledejte v katalogu, nebo vložte RSS adresu kanálu.",
+    "sk": "Hľadajte v katalógu alebo vložte RSS adresu kanála.",
+    "hu": "Keressen a katalógusban, vagy illessze be egy csatorna RSS-címét.",
+    "de": "Durchsuche den Katalog oder füge die RSS-Adresse eines Feeds ein.",
+    "fr": "Recherchez dans le catalogue, ou collez l’adresse RSS d’un flux.",
+    "es": "Busca en el catálogo o pega la dirección RSS de un feed.",
+    "it": "Cerca nel catalogo, oppure incolla l’indirizzo RSS di un feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.findShow": {
     "en": "Find a show",
-    "cs": "Najít pořad"
+    "cs": "Najít pořad",
+    "sk": "Nájsť reláciu",
+    "hu": "Műsor keresése",
+    "de": "Sendung suchen",
+    "fr": "Rechercher une émission",
+    "es": "Buscar un programa",
+    "it": "Trova un programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.updated": {
     "en": "Updated {when}",
     "cs": "Aktualizováno {when}",
-    "note": "{when} is a relative time such as “5 min ago” / “před 5 min”."
+    "sk": "Aktualizované {when}",
+    "hu": "Frissítve: {when}",
+    "de": "Aktualisiert {when}",
+    "fr": "Mis à jour {when}",
+    "es": "Actualizado {when}",
+    "it": "Aggiornato {when}",
+    "note": "{when} is a relative time such as “5 min ago” / “před 5 min”.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.unfollowConfirm.title": {
     "en": "Unfollow “{title}”?",
-    "cs": "Zrušit odběr pořadu „{title}“?"
+    "cs": "Zrušit odběr pořadu „{title}“?",
+    "sk": "Zrušiť odber relácie „{title}“?",
+    "hu": "Leállítja ennek a követését: „{title}”?",
+    "de": "„{title}“ nicht mehr folgen?",
+    "fr": "Ne plus suivre « {title} » ?",
+    "es": "¿Dejar de seguir «{title}»?",
+    "it": "Non seguire più «{title}»?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.unfollowConfirm.body": {
     "en": "You can always follow it again later.",
-    "cs": "Později ho můžete kdykoli znovu odebírat."
+    "cs": "Později ho můžete kdykoli znovu odebírat.",
+    "sk": "Neskôr ju môžete kedykoľvek znova odoberať.",
+    "hu": "Később bármikor újra követheti.",
+    "de": "Du kannst ihr später jederzeit wieder folgen.",
+    "fr": "Vous pourrez toujours la suivre à nouveau plus tard.",
+    "es": "Siempre puedes volver a seguirlo más adelante.",
+    "it": "Puoi sempre tornare a seguirlo in seguito.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.pickShow.title": {
     "en": "Pick a show",
-    "cs": "Vyberte pořad"
+    "cs": "Vyberte pořad",
+    "sk": "Vyberte reláciu",
+    "hu": "Válasszon egy műsort",
+    "de": "Wähl eine Sendung",
+    "fr": "Choisissez une émission",
+    "es": "Elige un programa",
+    "it": "Scegli un programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.list.pickShow.body": {
     "en": "Its episodes show up here.",
-    "cs": "Zobrazí se tu jeho epizody."
+    "cs": "Zobrazí se tu jeho epizody.",
+    "sk": "Zobrazia sa tu jej epizódy.",
+    "hu": "Az epizódjai itt jelennek meg.",
+    "de": "Ihre Folgen erscheinen hier.",
+    "fr": "Ses épisodes s’affichent ici.",
+    "es": "Aquí aparecen sus episodios.",
+    "it": "Qui compaiono i suoi episodi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.title": {
     "en": "Follow a podcast",
-    "cs": "Přidat podcast"
+    "cs": "Přidat podcast",
+    "sk": "Pridať podcast",
+    "hu": "Podcast hozzáadása",
+    "de": "Podcast hinzufügen",
+    "fr": "Ajouter un podcast",
+    "es": "Añadir pódcast",
+    "it": "Aggiungi podcast",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.description": {
     "en": "Search the directory, or paste a feed URL.",
-    "cs": "Hledejte v katalogu, nebo vložte adresu kanálu."
+    "cs": "Hledejte v katalogu, nebo vložte adresu kanálu.",
+    "sk": "Hľadajte v katalógu alebo vložte adresu kanála.",
+    "hu": "Keressen a katalógusban, vagy illessze be egy csatorna URL-jét.",
+    "de": "Durchsuche den Katalog oder füge eine Feed-URL ein.",
+    "fr": "Recherchez dans le catalogue, ou collez l’URL d’un flux.",
+    "es": "Busca en el catálogo o pega la URL de un feed.",
+    "it": "Cerca nel catalogo, oppure incolla l’URL di un feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.searchPlaceholder": {
     "en": "Search by show, host or topic",
-    "cs": "Pořad, moderátor nebo téma"
+    "cs": "Pořad, moderátor nebo téma",
+    "sk": "Relácia, moderátor alebo téma",
+    "hu": "Keresés műsor, műsorvezető vagy téma szerint",
+    "de": "Nach Sendung, Moderation oder Thema suchen",
+    "fr": "Rechercher par émission, animateur ou sujet",
+    "es": "Busca por programa, presentador o tema",
+    "it": "Cerca per programma, conduttore o argomento",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.searchLabel": {
     "en": "Search podcasts",
-    "cs": "Hledat podcasty"
+    "cs": "Hledat podcasty",
+    "sk": "Hľadať podcasty",
+    "hu": "Podcastok keresése",
+    "de": "Podcasts suchen",
+    "fr": "Rechercher des podcasts",
+    "es": "Buscar pódcasts",
+    "it": "Cerca podcast",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.browseHint": {
     "en": "Pick a category, or search by show, host or topic.",
-    "cs": "Vyberte kategorii, nebo hledejte podle pořadu, moderátora či tématu."
+    "cs": "Vyberte kategorii, nebo hledejte podle pořadu, moderátora či tématu.",
+    "sk": "Vyberte kategóriu alebo hľadajte podľa relácie, moderátora či témy.",
+    "hu": "Válasszon kategóriát, vagy keressen műsor, műsorvezető vagy téma szerint.",
+    "de": "Wähl eine Kategorie oder suche nach Sendung, Moderation oder Thema.",
+    "fr": "Choisissez une catégorie, ou recherchez par émission, animateur ou sujet.",
+    "es": "Elige una categoría o busca por programa, presentador o tema.",
+    "it": "Scegli una categoria, oppure cerca per programma, conduttore o argomento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.catalogueDown": {
     "en": "The catalog didn't answer. Paste the feed URL below instead.",
-    "cs": "Katalog neodpověděl. Vložte místo toho adresu kanálu níže."
+    "cs": "Katalog neodpověděl. Vložte místo toho adresu kanálu níže.",
+    "sk": "Katalóg neodpovedal. Namiesto toho vložte adresu kanála nižšie.",
+    "hu": "A katalógus nem válaszolt. Illessze be inkább alább a csatorna URL-jét.",
+    "de": "Der Katalog hat nicht geantwortet. Füge stattdessen unten die Feed-URL ein.",
+    "fr": "Le catalogue n’a pas répondu. Collez plutôt l’URL du flux ci-dessous.",
+    "es": "El catálogo no ha respondido. Pega la URL del feed abajo.",
+    "it": "Il catalogo non ha risposto. Incolla invece l’URL del feed qui sotto.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.nothingFound": {
     "en": "Nothing found for “{query}”.",
-    "cs": "Pro „{query}“ se nic nenašlo."
+    "cs": "Pro „{query}“ se nic nenašlo.",
+    "sk": "Pre „{query}“ sa nič nenašlo.",
+    "hu": "Nincs találat erre: „{query}”.",
+    "de": "Nichts gefunden für „{query}“.",
+    "fr": "Aucun résultat pour « {query} ».",
+    "es": "No se ha encontrado nada para «{query}».",
+    "it": "Nessun risultato per «{query}».",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.categoryEmpty": {
     "en": "Nothing live in that category right now.",
-    "cs": "V této kategorii teď nic aktivního není."
+    "cs": "V této kategorii teď nic aktivního není.",
+    "sk": "V tejto kategórii teraz nič aktívne nie je.",
+    "hu": "Ebben a kategóriában jelenleg nincs semmi.",
+    "de": "In dieser Kategorie ist gerade nichts verfügbar.",
+    "fr": "Rien d’actif dans cette catégorie pour le moment.",
+    "es": "Ahora mismo no hay nada activo en esa categoría.",
+    "it": "Al momento non c’è niente di attivo in questa categoria.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.urlLabel": {
     "en": "Or paste a feed URL",
-    "cs": "Nebo vložte adresu kanálu"
+    "cs": "Nebo vložte adresu kanálu",
+    "sk": "Alebo vložte adresu kanála",
+    "hu": "Vagy illessze be egy csatorna URL-jét",
+    "de": "Oder Feed-URL einfügen",
+    "fr": "Ou collez l’URL d’un flux",
+    "es": "O pega la URL de un feed",
+    "it": "Oppure incolla l’URL di un feed",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.urlPlaceholder": {
     "en": "https://example.com/feed.rss",
-    "cs": "https://example.com/feed.rss"
+    "cs": "https://example.com/feed.rss",
+    "sk": "https://example.com/feed.rss",
+    "hu": "https://example.com/feed.rss",
+    "de": "https://example.com/feed.rss",
+    "fr": "https://example.com/feed.rss",
+    "es": "https://example.com/feed.rss",
+    "it": "https://example.com/feed.rss",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.urlHint": {
     "en": "Use this for a show the directory misses.",
-    "cs": "Pro pořad, který katalog nezná."
+    "cs": "Pro pořad, který katalog nezná.",
+    "sk": "Pre reláciu, ktorú katalóg nepozná.",
+    "hu": "Ezt olyan műsorhoz használja, amely nincs a katalógusban.",
+    "de": "Für eine Sendung, die der Katalog nicht kennt.",
+    "fr": "Utilisez ceci pour une émission absente du catalogue.",
+    "es": "Úsalo para un programa que no está en el catálogo.",
+    "it": "Usalo per un programma che manca nel catalogo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.shareHint": {
     "en": "Everyone in your family sees this show and its episodes.",
-    "cs": "Pořad i jeho epizody uvidí všichni ve vaší rodině."
+    "cs": "Pořad i jeho epizody uvidí všichni ve vaší rodině.",
+    "sk": "Reláciu aj jej epizódy uvidia všetci vo vašej rodine.",
+    "hu": "A családjában mindenki látja ezt a műsort és az epizódjait.",
+    "de": "Alle in deiner Familie sehen diese Sendung und ihre Folgen.",
+    "fr": "Tous les membres de votre famille voient cette émission et ses épisodes.",
+    "es": "Toda tu familia ve este programa y sus episodios.",
+    "it": "Tutti nella tua famiglia vedono questo programma e i suoi episodi.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.add.error.follow": {
     "en": "Couldn't follow that feed.",
-    "cs": "Tento kanál se nepodařilo přidat."
+    "cs": "Tento kanál se nepodařilo přidat.",
+    "sk": "Nepodarilo sa pridať tento kanál.",
+    "hu": "Nem sikerült követni a csatornát.",
+    "de": "Dem Feed konnte nicht gefolgt werden.",
+    "fr": "Impossible de suivre ce flux.",
+    "es": "No se ha podido seguir ese feed.",
+    "it": "Impossibile seguire il feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.title": {
     "en": "Shows like this one",
-    "cs": "Podobné pořady"
+    "cs": "Podobné pořady",
+    "sk": "Podobné relácie",
+    "hu": "Ehhez hasonló műsorok",
+    "de": "Sendungen wie diese",
+    "fr": "Émissions similaires à celle-ci",
+    "es": "Programas como este",
+    "it": "Programmi come questo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.description": {
     "en": "Same categories as “{title}”. Based on that feed, not on your listening.",
-    "cs": "Stejné kategorie jako „{title}“. Podle toho kanálu, ne podle toho, co posloucháte."
+    "cs": "Stejné kategorie jako „{title}“. Podle toho kanálu, ne podle toho, co posloucháte.",
+    "sk": "Rovnaké kategórie ako „{title}“. Podľa toho kanála, nie podľa toho, čo počúvate.",
+    "hu": "Ugyanazok a kategóriák, mint ennél: „{title}”. A csatorna alapján, nem a hallgatásai alapján.",
+    "de": "Dieselben Kategorien wie „{title}“. Basiert auf diesem Feed, nicht auf dem, was du hörst.",
+    "fr": "Mêmes catégories que « {title} ». Basé sur ce flux, pas sur vos écoutes.",
+    "es": "Las mismas categorías que «{title}». Basado en ese feed, no en lo que escuchas.",
+    "it": "Stesse categorie di «{title}». In base a quel feed, non ai tuoi ascolti.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.catalogueDown": {
     "en": "The catalog didn't answer. Try again in a moment.",
-    "cs": "Katalog neodpověděl. Zkuste to za chvíli znovu."
+    "cs": "Katalog neodpověděl. Zkuste to za chvíli znovu.",
+    "sk": "Katalóg neodpovedal. Skúste to o chvíľu znova.",
+    "hu": "A katalógus nem válaszolt. Próbálja újra egy kis idő múlva.",
+    "de": "Der Katalog hat nicht geantwortet. Versuch es gleich noch einmal.",
+    "fr": "Le catalogue n’a pas répondu. Réessayez dans un instant.",
+    "es": "El catálogo no ha respondido. Vuelve a intentarlo en un momento.",
+    "it": "Il catalogo non ha risposto. Riprova tra un momento.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.empty": {
     "en": "Nothing to suggest for this show. The catalog may not know it yet, or you already follow everything like it.",
-    "cs": "K tomuto pořadu nemáme co nabídnout. Katalog ho ještě nemusí znát, nebo už odebíráte všechno podobné."
+    "cs": "K tomuto pořadu nemáme co nabídnout. Katalog ho ještě nemusí znát, nebo už odebíráte všechno podobné.",
+    "sk": "K tejto relácii nemáme čo ponúknuť. Katalóg ju ešte nemusí poznať, alebo už odoberáte všetko podobné.",
+    "hu": "Ehhez a műsorhoz nincs javaslat. Lehet, hogy a katalógus még nem ismeri, vagy már minden hasonlót követ.",
+    "de": "Für diese Sendung gibt es keine Vorschläge. Vielleicht kennt der Katalog sie noch nicht, oder du folgst schon allem, was ihr ähnelt.",
+    "fr": "Rien à suggérer pour cette émission. Le catalogue ne la connaît peut-être pas encore, ou vous suivez déjà tout ce qui lui ressemble.",
+    "es": "No hay nada que sugerir para este programa. Puede que el catálogo aún no lo conozca o que ya sigas todo lo parecido.",
+    "it": "Niente da suggerire per questo programma. Forse il catalogo non lo conosce ancora, oppure segui già tutti quelli simili.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.shareHint": {
     "en": "Applies to shows you follow from here. Everyone in your family sees them.",
-    "cs": "Platí pro pořady, které odsud začnete odebírat. Uvidí je všichni ve vaší rodině."
+    "cs": "Platí pro pořady, které odsud začnete odebírat. Uvidí je všichni ve vaší rodině.",
+    "sk": "Platí pre relácie, ktoré odtiaľto začnete odoberať. Uvidia ich všetci vo vašej rodine.",
+    "hu": "Az innen követett műsorokra vonatkozik. A családjában mindenki látja őket.",
+    "de": "Gilt für Sendungen, denen du von hier aus folgst. Alle in deiner Familie sehen sie.",
+    "fr": "S’applique aux émissions que vous suivez depuis ici. Tous les membres de votre famille les voient.",
+    "es": "Se aplica a los programas que sigas desde aquí. Toda tu familia los ve.",
+    "it": "Vale per i programmi che segui da qui. Tutti nella tua famiglia li vedono.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.inlineTitle": {
     "en": "You might also like",
     "cs": "Mohlo by se vám líbit",
-    "note": "Heading at the end of a show's page."
+    "sk": "Mohlo by sa vám páčiť",
+    "hu": "Ez is tetszhet",
+    "de": "Das könnte dir auch gefallen",
+    "fr": "Vous aimerez peut-être aussi",
+    "es": "También te puede gustar",
+    "it": "Potrebbe piacerti anche",
+    "note": "Heading at the end of a show's page.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.inlineBody": {
     "en": "Shows in the same categories. Based on this feed, not on your listening.",
-    "cs": "Pořady ze stejných kategorií. Podle tohoto kanálu, ne podle toho, co posloucháte."
+    "cs": "Pořady ze stejných kategorií. Podle tohoto kanálu, ne podle toho, co posloucháte.",
+    "sk": "Relácie z rovnakých kategórií. Podľa tohto kanála, nie podľa toho, čo počúvate.",
+    "hu": "Műsorok ugyanazokban a kategóriákban. A csatorna alapján, nem a hallgatásai alapján.",
+    "de": "Sendungen aus denselben Kategorien. Basiert auf diesem Feed, nicht auf dem, was du hörst.",
+    "fr": "Des émissions dans les mêmes catégories. Basé sur ce flux, pas sur vos écoutes.",
+    "es": "Programas de las mismas categorías. Basado en este feed, no en lo que escuchas.",
+    "it": "Programmi nelle stesse categorie. In base a questo feed, non ai tuoi ascolti.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.similar.seeAll": {
     "en": "See all {count, number}",
     "cs": "Zobrazit všech {count, number}",
-    "note": "Always more than eight."
+    "sk": "Zobraziť všetkých {count, number}",
+    "hu": "Összes megjelenítése ({count, number})",
+    "de": "Alle {count, number} ansehen",
+    "fr": "Tout afficher ({count, number})",
+    "es": "Ver los {count, number}",
+    "it": "Mostra tutti e {count, number}",
+    "note": "Always more than eight.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.title": {
     "en": "Translate this episode",
-    "cs": "Přeložit tuto epizodu"
+    "cs": "Přeložit tuto epizodu",
+    "sk": "Preložiť túto epizódu",
+    "hu": "Az epizód fordítása",
+    "de": "Diese Folge übersetzen",
+    "fr": "Traduire cet épisode",
+    "es": "Traducir este episodio",
+    "it": "Traduci questo episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.description": {
     "en": "It's translated from the transcript the podcast publishes, then narrated in the voice you pick.",
-    "cs": "Přeloží se z přepisu, který podcast zveřejňuje, a namluví hlasem, který si vyberete."
+    "cs": "Přeloží se z přepisu, který podcast zveřejňuje, a namluví hlasem, který si vyberete.",
+    "sk": "Preloží sa z prepisu, ktorý podcast zverejňuje, a nahovorí hlasom, ktorý si vyberiete.",
+    "hu": "A podcast által közzétett átiratból fordítjuk le, majd az Ön által választott hangon olvastatjuk fel.",
+    "de": "Sie wird aus dem Transkript übersetzt, das der Podcast veröffentlicht, und dann mit der Stimme vertont, die du wählst.",
+    "fr": "Il est traduit à partir de la transcription publiée par le podcast, puis narré par la voix que vous choisissez.",
+    "es": "Se traduce a partir de la transcripción que publica el pódcast y luego se narra con la voz que elijas.",
+    "it": "Viene tradotto dalla trascrizione pubblicata dal podcast, poi narrato con la voce che scegli.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.action": {
     "en": "Translate",
-    "cs": "Přeložit"
+    "cs": "Přeložit",
+    "sk": "Preložiť",
+    "hu": "Fordítás",
+    "de": "Übersetzen",
+    "fr": "Traduire",
+    "es": "Traducir",
+    "it": "Traduci",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.language": {
     "en": "Language",
-    "cs": "Jazyk"
+    "cs": "Jazyk",
+    "sk": "Jazyk",
+    "hu": "Nyelv",
+    "de": "Sprache",
+    "fr": "Langue",
+    "es": "Idioma",
+    "it": "Lingua",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.voice": {
     "en": "Voice",
-    "cs": "Hlas"
+    "cs": "Hlas",
+    "sk": "Hlas",
+    "hu": "Hang",
+    "de": "Stimme",
+    "fr": "Voix",
+    "es": "Voz",
+    "it": "Voce",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.noVoice": {
     "en": "No voice for this language yet.",
-    "cs": "Pro tento jazyk zatím není k dispozici hlas."
+    "cs": "Pro tento jazyk zatím není k dispozici hlas.",
+    "sk": "Pre tento jazyk zatiaľ nie je k dispozícii hlas.",
+    "hu": "Ehhez a nyelvhez még nincs hang.",
+    "de": "Für diese Sprache gibt es noch keine Stimme.",
+    "fr": "Aucune voix pour cette langue pour l’instant.",
+    "es": "Aún no hay voz para este idioma.",
+    "it": "Ancora nessuna voce per questa lingua.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.price": {
     "en": "Price",
-    "cs": "Cena"
+    "cs": "Cena",
+    "sk": "Cena",
+    "hu": "Ár",
+    "de": "Preis",
+    "fr": "Prix",
+    "es": "Precio",
+    "it": "Prezzo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.chargeLine": {
     "en": "{count, plural, one {# character} other {# characters}} · charged to your family's credit",
-    "cs": "{count, plural, one {# znak} few {# znaky} other {# znaků}} · hradí se z kreditu rodiny"
+    "cs": "{count, plural, one {# znak} few {# znaky} other {# znaků}} · hradí se z kreditu rodiny",
+    "sk": "{count, plural, one {# znak} few {# znaky} other {# znakov}} · hradí sa z kreditu rodiny",
+    "hu": "{count, plural, one {# karakter} other {# karakter}} · a család egyenlegéből",
+    "de": "{count, plural, one {# Zeichen} other {# Zeichen}} · wird vom Guthaben deiner Familie abgebucht",
+    "fr": "{count, plural, one {# caractère} many {# de caractères} other {# caractères}} · débité du crédit de votre famille",
+    "es": "{count, plural, one {# carácter} many {# de caracteres} other {# caracteres}} · se cobra del saldo de tu familia",
+    "it": "{count, plural, one {# carattere} many {# di caratteri} other {# caratteri}} · addebitato sul credito della tua famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.pickForPrice": {
     "en": "Pick a language and voice to see the price.",
-    "cs": "Vyberte jazyk a hlas, ať uvidíte cenu."
+    "cs": "Vyberte jazyk a hlas, ať uvidíte cenu.",
+    "sk": "Vyberte jazyk a hlas, aby ste videli cenu.",
+    "hu": "Az ár megtekintéséhez válasszon nyelvet és hangot.",
+    "de": "Wähl eine Sprache und eine Stimme, um den Preis zu sehen.",
+    "fr": "Choisissez une langue et une voix pour voir le prix.",
+    "es": "Elige un idioma y una voz para ver el precio.",
+    "it": "Scegli una lingua e una voce per vedere il prezzo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.started": {
     "en": "Translation started",
-    "cs": "Překlad byl spuštěn"
+    "cs": "Překlad byl spuštěn",
+    "sk": "Preklad sa spustil",
+    "hu": "A fordítás elindult",
+    "de": "Übersetzung gestartet",
+    "fr": "Traduction lancée",
+    "es": "Traducción iniciada",
+    "it": "Traduzione avviata",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.startedBody": {
     "en": "It appears under the episode when it's ready.",
-    "cs": "Až bude hotový, objeví se pod epizodou."
+    "cs": "Až bude hotový, objeví se pod epizodou.",
+    "sk": "Keď bude hotový, objaví sa pod epizódou.",
+    "hu": "Amikor elkészül, az epizód alatt jelenik meg.",
+    "de": "Sie erscheint unter der Folge, sobald sie fertig ist.",
+    "fr": "Elle apparaîtra sous l’épisode une fois prête.",
+    "es": "Aparecerá bajo el episodio cuando esté lista.",
+    "it": "Compare sotto l’episodio quando è pronta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.error.start": {
     "en": "Couldn't start that translation.",
-    "cs": "Překlad se nepodařilo spustit."
+    "cs": "Překlad se nepodařilo spustit.",
+    "sk": "Nepodarilo sa spustiť preklad.",
+    "hu": "Nem sikerült elindítani a fordítást.",
+    "de": "Die Übersetzung konnte nicht gestartet werden.",
+    "fr": "Impossible de lancer cette traduction.",
+    "es": "No se ha podido iniciar la traducción.",
+    "it": "Impossibile avviare la traduzione.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translate.error.quote": {
     "en": "Couldn't price this translation.",
-    "cs": "Cenu překladu se nepodařilo zjistit."
+    "cs": "Cenu překladu se nepodařilo zjistit.",
+    "sk": "Nepodarilo sa zistiť cenu prekladu.",
+    "hu": "Nem sikerült kiszámítani a fordítás árát.",
+    "de": "Der Preis für diese Übersetzung konnte nicht berechnet werden.",
+    "fr": "Impossible de calculer le prix de cette traduction.",
+    "es": "No se ha podido calcular el precio de esta traducción.",
+    "it": "Impossibile calcolare il prezzo della traduzione.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.title": {
     "en": "Translate an episode",
-    "cs": "Přeložit epizodu"
+    "cs": "Přeložit epizodu",
+    "sk": "Preložiť epizódu",
+    "hu": "Epizód fordítása",
+    "de": "Folge übersetzen",
+    "fr": "Traduire un épisode",
+    "es": "Traducir un episodio",
+    "it": "Traduci un episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.intro": {
     "en": "A podcast episode in your language: translated from the transcript the show publishes, then narrated in a voice you choose.",
-    "cs": "Epizoda podcastu ve vašem jazyce: přeloží se z přepisu, který pořad zveřejňuje, a namluví hlasem, který si vyberete."
+    "cs": "Epizoda podcastu ve vašem jazyce: přeloží se z přepisu, který pořad zveřejňuje, a namluví hlasem, který si vyberete.",
+    "sk": "Epizóda podcastu vo vašom jazyku: preloží sa z prepisu, ktorý relácia zverejňuje, a nahovorí hlasom, ktorý si vyberiete.",
+    "hu": "Egy podcastepizód az Ön nyelvén: a műsor által közzétett átiratból fordítva, majd az Ön által választott hangon felolvasva.",
+    "de": "Eine Podcastfolge in deiner Sprache: übersetzt aus dem Transkript, das die Sendung veröffentlicht, und dann mit einer Stimme deiner Wahl vertont.",
+    "fr": "Un épisode de podcast dans votre langue : traduit à partir de la transcription publiée par l’émission, puis narré par la voix de votre choix.",
+    "es": "Un episodio de pódcast en tu idioma: traducido a partir de la transcripción que publica el programa y narrado con la voz que elijas.",
+    "it": "Un episodio di podcast nella tua lingua: tradotto dalla trascrizione pubblicata dal programma, poi narrato con una voce a tua scelta.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.pickShow": {
     "en": "Choose a show",
-    "cs": "Vyberte pořad"
+    "cs": "Vyberte pořad",
+    "sk": "Vyberte reláciu",
+    "hu": "Válasszon műsort",
+    "de": "Sendung auswählen",
+    "fr": "Choisissez une émission",
+    "es": "Elige un programa",
+    "it": "Scegli un programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.pickEpisode": {
     "en": "Choose an episode",
-    "cs": "Vyberte epizodu"
+    "cs": "Vyberte epizodu",
+    "sk": "Vyberte epizódu",
+    "hu": "Válasszon epizódot",
+    "de": "Folge auswählen",
+    "fr": "Choisissez un épisode",
+    "es": "Elige un episodio",
+    "it": "Scegli un episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.noShowsTitle": {
     "en": "None of your shows publishes transcripts",
-    "cs": "Žádný z vašich pořadů nezveřejňuje přepisy"
+    "cs": "Žádný z vašich pořadů nezveřejňuje přepisy",
+    "sk": "Žiadna z vašich relácií nezverejňuje prepisy",
+    "hu": "Egyik műsora sem tesz közzé átiratot",
+    "de": "Keine deiner Sendungen veröffentlicht Transkripte",
+    "fr": "Aucune de vos émissions ne publie de transcriptions",
+    "es": "Ninguno de tus programas publica transcripciones",
+    "it": "Nessuno dei tuoi programmi pubblica trascrizioni",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.noShowsBody": {
     "en": "Follow a show that does — they're marked “Can be translated”.",
-    "cs": "Odebírejte pořad, který je zveřejňuje — poznáte ho podle značky „Lze přeložit“."
+    "cs": "Odebírejte pořad, který je zveřejňuje — poznáte ho podle značky „Lze přeložit“.",
+    "sk": "Odoberajte reláciu, ktorá ich zverejňuje — spoznáte ju podľa značky „Dá sa preložiť“.",
+    "hu": "Kövessen egy olyan műsort, amely igen — ezek „Lefordítható” jelölést kapnak.",
+    "de": "Folge einer Sendung, die das tut – sie sind mit „Übersetzbar“ markiert.",
+    "fr": "Suivez une émission qui en publie : elles sont marquées « Peut être traduit ».",
+    "es": "Sigue un programa que las publique: están marcados con «Se puede traducir».",
+    "it": "Segui un programma che lo fa: sono contrassegnati con «Traducibile».",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.noEpisodes": {
     "en": "No episode of this show has a transcript yet.",
-    "cs": "Žádná epizoda tohoto pořadu zatím nemá přepis."
+    "cs": "Žádná epizoda tohoto pořadu zatím nemá přepis.",
+    "sk": "Žiadna epizóda tejto relácie zatiaľ nemá prepis.",
+    "hu": "Ennek a műsornak még egyetlen epizódjához sincs átirat.",
+    "de": "Noch keine Folge dieser Sendung hat ein Transkript.",
+    "fr": "Aucun épisode de cette émission n’a encore de transcription.",
+    "es": "Ningún episodio de este programa tiene transcripción todavía.",
+    "it": "Nessun episodio di questo programma ha ancora una trascrizione.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.openShow": {
     "en": "See its translations",
     "cs": "Zobrazit překlady",
-    "note": "Opens the show, where each episode lists its translations."
+    "sk": "Zobraziť preklady",
+    "hu": "Fordítások megtekintése",
+    "de": "Übersetzungen ansehen",
+    "fr": "Voir ses traductions",
+    "es": "Ver sus traducciones",
+    "it": "Vedi le traduzioni",
+    "note": "Opens the show, where each episode lists its translations.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.yours": {
     "en": "Your translations",
-    "cs": "Vaše překlady"
+    "cs": "Vaše překlady",
+    "sk": "Vaše preklady",
+    "hu": "Az Ön fordításai",
+    "de": "Deine Übersetzungen",
+    "fr": "Vos traductions",
+    "es": "Tus traducciones",
+    "it": "Le tue traduzioni",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translatePage.playLanguage": {
     "en": "Play the {language} translation",
-    "cs": "Přehrát překlad ({language})"
+    "cs": "Přehrát překlad ({language})",
+    "sk": "Prehrať preklad ({language})",
+    "hu": "Fordítás lejátszása: {language}",
+    "de": "Übersetzung abspielen: {language}",
+    "fr": "Lire la traduction en {language}",
+    "es": "Reproducir la traducción ({language})",
+    "it": "Riproduci la traduzione in {language}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.status.translating": {
     "en": "Translating…",
-    "cs": "Překládání…"
+    "cs": "Překládání…",
+    "sk": "Prekladá sa…",
+    "hu": "Fordítás…",
+    "de": "Wird übersetzt …",
+    "fr": "Traduction…",
+    "es": "Traduciendo…",
+    "it": "Traduzione…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.status.narrating": {
     "en": "Narrating…",
-    "cs": "Namlouvání…"
+    "cs": "Namlouvání…",
+    "sk": "Nahovára sa…",
+    "hu": "Felolvasás…",
+    "de": "Wird vertont …",
+    "fr": "Narration…",
+    "es": "Narrando…",
+    "it": "Narrazione…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.status.assembling": {
     "en": "Finishing up…",
-    "cs": "Dokončování…"
+    "cs": "Dokončování…",
+    "sk": "Dokončuje sa…",
+    "hu": "Befejezés…",
+    "de": "Wird fertiggestellt …",
+    "fr": "Finalisation…",
+    "es": "Terminando…",
+    "it": "Completamento…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.status.complete": {
     "en": "Ready",
-    "cs": "Připraveno"
+    "cs": "Připraveno",
+    "sk": "Pripravené",
+    "hu": "Kész",
+    "de": "Fertig",
+    "fr": "Prête",
+    "es": "Lista",
+    "it": "Pronta",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.status.failed": {
     "en": "Failed",
-    "cs": "Selhalo"
+    "cs": "Selhalo",
+    "sk": "Zlyhalo",
+    "hu": "Sikertelen",
+    "de": "Fehlgeschlagen",
+    "fr": "Échec",
+    "es": "Ha fallado",
+    "it": "Non riuscita",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.row": {
     "en": "{language} — <status>{state}</status>",
     "cs": "{language} — <status>{state}</status>",
-    "note": "{language} is a language code such as CS; <status> is coloured."
+    "sk": "{language} — <status>{state}</status>",
+    "hu": "{language} — <status>{state}</status>",
+    "de": "{language} – <status>{state}</status>",
+    "fr": "{language} — <status>{state}</status>",
+    "es": "{language} — <status>{state}</status>",
+    "it": "{language} — <status>{state}</status>",
+    "note": "{language} is a language code such as CS; <status> is coloured.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.played": {
     "en": "played",
     "cs": "přehráno",
-    "note": "Appended to a translation's row after an em dash."
+    "sk": "vypočuté",
+    "hu": "lejátszva",
+    "de": "gespielt",
+    "fr": "lue",
+    "es": "reproducida",
+    "it": "riprodotto",
+    "note": "Appended to a translation's row after an em dash.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.left": {
     "en": "{time} left",
     "cs": "zbývá {time}",
-    "note": "Appended to a translation's row after an em dash; {time} like “12 min”."
+    "sk": "zostáva {time}",
+    "hu": "{time} van hátra",
+    "de": "noch {time}",
+    "fr": "reste {time}",
+    "es": "quedan {time}",
+    "it": "mancano {time}",
+    "note": "Appended to a translation's row after an em dash; {time} like “12 min”.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.notCharged": {
     "en": "You haven't been charged.",
-    "cs": "Nic vám nebylo účtováno."
+    "cs": "Nic vám nebylo účtováno.",
+    "sk": "Nič vám nebolo účtované.",
+    "hu": "Nem számoltunk fel díjat.",
+    "de": "Dir wurde nichts berechnet.",
+    "fr": "Rien ne vous a été facturé.",
+    "es": "No se te ha cobrado nada.",
+    "it": "Non ti è stato addebitato nulla.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.chargedPartial": {
     "en": "You were charged {amount} for the part already made; the rest of the reserved credit was released.",
     "cs": "Za již hotovou část vám bylo účtováno {amount}, zbytek rezervovaného kreditu byl uvolněn.",
-    "note": "A failed translation that Google had already billed in part. {amount} is a formatted price like “$1.25”."
+    "sk": "Za už hotovú časť vám bola účtovaná suma {amount}, zvyšok rezervovaného kreditu bol uvoľnený.",
+    "hu": "A már elkészült részért {amount} díjat számoltunk fel; a lefoglalt egyenleg többi részét feloldottuk.",
+    "de": "Dir wurden {amount} für den bereits erstellten Teil berechnet; der Rest des reservierten Guthabens wurde freigegeben.",
+    "fr": "{amount} vous ont été facturés pour la partie déjà produite ; le reste du crédit réservé a été libéré.",
+    "es": "Se te ha cobrado {amount} por la parte ya hecha; el resto del saldo reservado se ha liberado.",
+    "it": "Ti sono stati addebitati {amount} per la parte già realizzata; il resto del credito riservato è stato sbloccato.",
+    "note": "A failed translation that Google had already billed in part. {amount} is a formatted price like “$1.25”.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.chargedPartialWithError": {
     "en": "{error} — you were charged {amount} for the part already made; the rest of the reserved credit was released.",
     "cs": "{error} — za již hotovou část vám bylo účtováno {amount}, zbytek rezervovaného kreditu byl uvolněn.",
-    "note": "{error} is the server's message, shown as it arrives; {amount} a formatted price."
+    "sk": "{error} — za už hotovú časť vám bola účtovaná suma {amount}, zvyšok rezervovaného kreditu bol uvoľnený.",
+    "hu": "{error} — a már elkészült részért {amount} díjat számoltunk fel; a lefoglalt egyenleg többi részét feloldottuk.",
+    "de": "{error} – dir wurden {amount} für den bereits erstellten Teil berechnet; der Rest des reservierten Guthabens wurde freigegeben.",
+    "fr": "{error} — {amount} vous ont été facturés pour la partie déjà produite ; le reste du crédit réservé a été libéré.",
+    "es": "{error} — se te ha cobrado {amount} por la parte ya hecha; el resto del saldo reservado se ha liberado.",
+    "it": "{error} — ti sono stati addebitati {amount} per la parte già realizzata; il resto del credito riservato è stato sbloccato.",
+    "note": "{error} is the server's message, shown as it arrives; {amount} a formatted price.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.notChargedWithError": {
     "en": "{error} — you haven't been charged.",
     "cs": "{error} — nic vám nebylo účtováno.",
-    "note": "{error} is the server's message, shown as it arrives."
+    "sk": "{error} — nič vám nebolo účtované.",
+    "hu": "{error} — nem számoltunk fel díjat.",
+    "de": "{error} – dir wurde nichts berechnet.",
+    "fr": "{error} — rien ne vous a été facturé.",
+    "es": "{error} — no se te ha cobrado nada.",
+    "it": "{error} — non ti è stato addebitato nulla.",
+    "note": "{error} is the server's message, shown as it arrives.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.translation.translateAnother": {
     "en": "Translate to another language",
-    "cs": "Přeložit do jiného jazyka"
+    "cs": "Přeložit do jiného jazyka",
+    "sk": "Preložiť do iného jazyka",
+    "hu": "Fordítás más nyelvre",
+    "de": "In eine andere Sprache übersetzen",
+    "fr": "Traduire dans une autre langue",
+    "es": "Traducir a otro idioma",
+    "it": "Traduci in un’altra lingua",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.title": {
     "en": "Save {title} to own.audio",
-    "cs": "Uložit {title} do own.audio"
+    "cs": "Uložit {title} do own.audio",
+    "sk": "Uložiť {title} do own.audio",
+    "hu": "{title} mentése az own.audio szerverre",
+    "de": "{title} in own.audio speichern",
+    "fr": "Enregistrer {title} sur own.audio",
+    "es": "Guardar {title} en own.audio",
+    "it": "Salva {title} su own.audio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.description": {
     "en": "The server downloads the episodes and keeps them, so they stay in your library after a paid subscription ends. It runs in the background, one episode after another.",
-    "cs": "Server epizody stáhne a uchová, takže vám zůstanou v knihovně i po skončení placeného předplatného. Probíhá to na pozadí, jedna epizoda po druhé."
+    "cs": "Server epizody stáhne a uchová, takže vám zůstanou v knihovně i po skončení placeného předplatného. Probíhá to na pozadí, jedna epizoda po druhé.",
+    "sk": "Server epizódy stiahne a uchová, takže vám zostanú v knižnici aj po skončení plateného predplatného. Prebieha to na pozadí, jedna epizóda po druhej.",
+    "hu": "A szerver letölti és megőrzi az epizódokat, így egy fizetős előfizetés lejárta után is a könyvtárában maradnak. A háttérben fut, epizódról epizódra.",
+    "de": "Der Server lädt die Folgen herunter und behält sie, damit sie in deiner Mediathek bleiben, auch wenn ein bezahltes Abo endet. Das läuft im Hintergrund, eine Folge nach der anderen.",
+    "fr": "Le serveur télécharge les épisodes et les conserve, pour qu’ils restent dans votre bibliothèque après la fin d’un abonnement payant. Cela se fait en arrière-plan, un épisode après l’autre.",
+    "es": "El servidor descarga los episodios y los conserva, así que siguen en tu biblioteca cuando termine una suscripción de pago. Se hace en segundo plano, un episodio tras otro.",
+    "it": "Il server scarica gli episodi e li conserva, così restano nella tua libreria anche dopo la fine di un abbonamento a pagamento. Avviene in background, un episodio dopo l’altro.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.scope.newest": {
     "en": "The newest",
-    "cs": "Nejnovější"
+    "cs": "Nejnovější",
+    "sk": "Najnovšie",
+    "hu": "A legújabbak",
+    "de": "Die neuesten",
+    "fr": "Les plus récents",
+    "es": "Los más recientes",
+    "it": "I più recenti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.scope.all": {
     "en": "All",
-    "cs": "Vše"
+    "cs": "Vše",
+    "sk": "Všetko",
+    "hu": "Mind",
+    "de": "Alle",
+    "fr": "Tous",
+    "es": "Todos",
+    "it": "Tutti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.newestCount": {
     "en": "{count, plural, one {Newest <input></input> episode} other {Newest <input></input> episodes}}",
     "cs": "{count, plural, one {Nejnovější <input></input> epizoda} few {Nejnovější <input></input> epizody} other {Nejnovějších <input></input> epizod}}",
-    "note": "<input> is the number field; {count} is its value."
+    "sk": "{count, plural, one {Najnovšia <input></input> epizóda} few {Najnovšie <input></input> epizódy} other {Najnovších <input></input> epizód}}",
+    "hu": "{count, plural, one {A legújabb <input></input> epizód} other {A legújabb <input></input> epizód}}",
+    "de": "{count, plural, one {Neueste <input></input> Folge} other {Neueste <input></input> Folgen}}",
+    "fr": "{count, plural, one {Le <input></input> épisode le plus récent} many {Les <input></input> d’épisodes les plus récents} other {Les <input></input> épisodes les plus récents}}",
+    "es": "{count, plural, one {El <input></input> episodio más reciente} many {Los <input></input> episodios más recientes} other {Los <input></input> episodios más recientes}}",
+    "it": "{count, plural, one {L’episodio più recente <input></input>} many {I <input></input> di episodi più recenti} other {I <input></input> episodi più recenti}}",
+    "note": "<input> is the number field; {count} is its value.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.queued": {
     "en": "{count, plural, one {# episode is on its way to own.audio.} other {# episodes are on their way to own.audio.}}",
-    "cs": "{count, plural, one {Do own.audio se ukládá # epizoda.} few {Do own.audio se ukládají # epizody.} other {Do own.audio se ukládá # epizod.}}"
+    "cs": "{count, plural, one {Do own.audio se ukládá # epizoda.} few {Do own.audio se ukládají # epizody.} other {Do own.audio se ukládá # epizod.}}",
+    "sk": "{count, plural, one {Do own.audio sa ukladá # epizóda.} few {Do own.audio sa ukladajú # epizódy.} other {Do own.audio sa ukladá # epizód.}}",
+    "hu": "{count, plural, one {# epizód úton van az own.audio szerverre.} other {# epizód úton van az own.audio szerverre.}}",
+    "de": "{count, plural, one {# Folge ist auf dem Weg zu own.audio.} other {# Folgen sind auf dem Weg zu own.audio.}}",
+    "fr": "{count, plural, one {# épisode est en route vers own.audio.} many {# d’épisodes sont en route vers own.audio.} other {# épisodes sont en route vers own.audio.}}",
+    "es": "{count, plural, one {# episodio va de camino a own.audio.} many {# de episodios van de camino a own.audio.} other {# episodios van de camino a own.audio.}}",
+    "it": "{count, plural, one {# episodio è in arrivo su own.audio.} many {# di episodi sono in arrivo su own.audio.} other {# episodi sono in arrivo su own.audio.}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.preview": {
     "en": "{count, plural, one {# episode not stored yet, about {size}.} other {# episodes not stored yet, about {size}.}}",
     "cs": "{count, plural, one {# epizoda ještě není uložená, přibližně {size}.} few {# epizody ještě nejsou uložené, přibližně {size}.} other {# epizod ještě není uložených, přibližně {size}.}}",
-    "note": "{size} is formatted storage such as “1.2 GB”."
+    "sk": "{count, plural, one {# epizóda ešte nie je uložená, približne {size}.} few {# epizódy ešte nie sú uložené, približne {size}.} other {# epizód ešte nie je uložených, približne {size}.}}",
+    "hu": "{count, plural, one {# epizód még nincs tárolva, kb. {size}.} other {# epizód még nincs tárolva, kb. {size}.}}",
+    "de": "{count, plural, one {# Folge noch nicht gespeichert, etwa {size}.} other {# Folgen noch nicht gespeichert, etwa {size}.}}",
+    "fr": "{count, plural, one {# épisode pas encore stocké, environ {size}.} many {# d’épisodes pas encore stockés, environ {size}.} other {# épisodes pas encore stockés, environ {size}.}}",
+    "es": "{count, plural, one {# episodio aún sin guardar, unos {size}.} many {# de episodios aún sin guardar, unos {size}.} other {# episodios aún sin guardar, unos {size}.}}",
+    "it": "{count, plural, one {# episodio non ancora salvato, circa {size}.} many {# di episodi non ancora salvati, circa {size}.} other {# episodi non ancora salvati, circa {size}.}}",
+    "note": "{size} is formatted storage such as “1.2 GB”.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.archive.error": {
     "en": "Couldn't queue those episodes",
-    "cs": "Epizody se nepodařilo zařadit k uložení"
+    "cs": "Epizody se nepodařilo zařadit k uložení",
+    "sk": "Nepodarilo sa zaradiť epizódy na uloženie",
+    "hu": "Nem sikerült sorba állítani az epizódokat",
+    "de": "Die Folgen konnten nicht eingereiht werden",
+    "fr": "Impossible de mettre ces épisodes en file d’attente",
+    "es": "No se han podido poner en cola esos episodios",
+    "it": "Impossibile mettere in coda gli episodi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.on": {
     "en": "New episodes will be saved to own.audio",
-    "cs": "Nové epizody se budou ukládat do own.audio"
+    "cs": "Nové epizody se budou ukládat do own.audio",
+    "sk": "Nové epizódy sa budú ukladať do own.audio",
+    "hu": "Az új epizódokat az own.audio menteni fogja",
+    "de": "Neue Folgen werden in own.audio gespeichert",
+    "fr": "Les nouveaux épisodes seront enregistrés sur own.audio",
+    "es": "Los episodios nuevos se guardarán en own.audio",
+    "it": "I nuovi episodi verranno salvati su own.audio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.off": {
     "en": "New episodes are no longer saved",
-    "cs": "Nové epizody se už neukládají"
+    "cs": "Nové epizody se už neukládají",
+    "sk": "Nové epizódy sa už neukladajú",
+    "hu": "Az új epizódok mentése leállt",
+    "de": "Neue Folgen werden nicht mehr gespeichert",
+    "fr": "Les nouveaux épisodes ne sont plus enregistrés",
+    "es": "Los episodios nuevos ya no se guardan",
+    "it": "I nuovi episodi non vengono più salvati",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.error": {
     "en": "Couldn't change that setting",
-    "cs": "Nastavení se nepodařilo změnit"
+    "cs": "Nastavení se nepodařilo změnit",
+    "sk": "Nepodarilo sa zmeniť nastavenie",
+    "hu": "Nem sikerült módosítani a beállítást",
+    "de": "Die Einstellung konnte nicht geändert werden",
+    "fr": "Impossible de modifier ce réglage",
+    "es": "No se ha podido cambiar ese ajuste",
+    "it": "Impossibile modificare l’impostazione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.hint": {
     "en": "Store every new episode in own.audio as it is published, so it stays in your library even if the feed removes it.",
-    "cs": "Každá nová epizoda se po vydání uloží do own.audio, takže vám zůstane v knihovně, i když ji kanál odstraní."
+    "cs": "Každá nová epizoda se po vydání uloží do own.audio, takže vám zůstane v knihovně, i když ji kanál odstraní.",
+    "sk": "Každá nová epizóda sa po vydaní uloží do own.audio, takže vám zostane v knižnici, aj keď ju kanál odstráni.",
+    "hu": "Minden új epizód tárolása az own.audio szerveren a megjelenésekor, így akkor is a könyvtárában marad, ha a csatorna eltávolítja.",
+    "de": "Jede neue Folge bei Erscheinen in own.audio speichern, damit sie in deiner Mediathek bleibt, auch wenn der Feed sie entfernt.",
+    "fr": "Stocker chaque nouvel épisode sur own.audio dès sa publication, pour qu’il reste dans votre bibliothèque même si le flux le retire.",
+    "es": "Guarda cada episodio nuevo en own.audio en cuanto se publica, para que siga en tu biblioteca aunque el feed lo retire.",
+    "it": "Salva ogni nuovo episodio su own.audio non appena viene pubblicato, così resta nella tua libreria anche se il feed lo rimuove.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.buttonOn": {
     "en": "Saving new episodes: on",
-    "cs": "Ukládání nových epizod: zapnuto"
+    "cs": "Ukládání nových epizod: zapnuto",
+    "sk": "Ukladanie nových epizód: zapnuté",
+    "hu": "Új epizódok mentése: be",
+    "de": "Neue Folgen speichern: an",
+    "fr": "Enregistrement des nouveaux épisodes : activé",
+    "es": "Guardar episodios nuevos: activado",
+    "it": "Salvataggio nuovi episodi: attivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.autoStore.buttonOff": {
     "en": "Save new episodes",
-    "cs": "Ukládat nové epizody"
+    "cs": "Ukládat nové epizody",
+    "sk": "Ukladať nové epizódy",
+    "hu": "Új epizódok mentése",
+    "de": "Neue Folgen speichern",
+    "fr": "Enregistrer les nouveaux épisodes",
+    "es": "Guardar episodios nuevos",
+    "it": "Salva nuovi episodi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.saveArchive": {
     "en": "Save archive…",
-    "cs": "Uložit archiv…"
+    "cs": "Uložit archiv…",
+    "sk": "Uložiť archív…",
+    "hu": "Archívum mentése…",
+    "de": "Archiv speichern …",
+    "fr": "Enregistrer l’archive…",
+    "es": "Guardar archivo…",
+    "it": "Salva archivio…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.visibility.shared": {
     "en": "Shared with the family",
-    "cs": "Sdíleno s rodinou"
+    "cs": "Sdíleno s rodinou",
+    "sk": "Zdieľané s rodinou",
+    "hu": "Megosztva a családdal",
+    "de": "Mit der Familie geteilt",
+    "fr": "Partagée avec la famille",
+    "es": "Compartido con la familia",
+    "it": "Condiviso con la famiglia",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.visibility.private": {
     "en": "Made private",
-    "cs": "Nastaveno jako soukromé"
+    "cs": "Nastaveno jako soukromé",
+    "sk": "Nastavené ako súkromné",
+    "hu": "Priváttá téve",
+    "de": "Privat gemacht",
+    "fr": "Rendue privée",
+    "es": "Ahora es privado",
+    "it": "Reso privato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.visibility.error": {
     "en": "Couldn't change who can see this show",
-    "cs": "Nepodařilo se změnit, kdo pořad uvidí"
+    "cs": "Nepodařilo se změnit, kdo pořad uvidí",
+    "sk": "Nepodarilo sa zmeniť, kto reláciu uvidí",
+    "hu": "Nem sikerült módosítani, ki láthatja ezt a műsort",
+    "de": "Wer diese Sendung sehen kann, konnte nicht geändert werden",
+    "fr": "Impossible de modifier qui peut voir cette émission",
+    "es": "No se ha podido cambiar quién puede ver este programa",
+    "it": "Impossibile modificare chi può vedere questo programma",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.markedPlayed": {
     "en": "{count, plural, one {Marked played} other {# episodes marked played}}",
-    "cs": "{count, plural, one {Označeno jako přehrané} few {# epizody označeny jako přehrané} other {# epizod označeno jako přehrané}}"
+    "cs": "{count, plural, one {Označeno jako přehrané} few {# epizody označeny jako přehrané} other {# epizod označeno jako přehrané}}",
+    "sk": "{count, plural, one {Označené ako vypočuté} few {# epizódy označené ako vypočuté} other {# epizód označených ako vypočuté}}",
+    "hu": "{count, plural, one {Megjelölve lejátszottként} other {# epizód megjelölve lejátszottként}}",
+    "de": "{count, plural, one {Als gespielt markiert} other {# Folgen als gespielt markiert}}",
+    "fr": "{count, plural, one {Marqué comme lu} many {# d’épisodes marqués comme lus} other {# épisodes marqués comme lus}}",
+    "es": "{count, plural, one {Marcado como reproducido} many {# de episodios marcados como reproducidos} other {# episodios marcados como reproducidos}}",
+    "it": "{count, plural, one {Segnato come riprodotto} many {# di episodi segnati come riprodotti} other {# episodi segnati come riprodotti}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.markedUnplayed": {
     "en": "{count, plural, one {Marked unplayed} other {# episodes marked unplayed}}",
-    "cs": "{count, plural, one {Označeno jako nepřehrané} few {# epizody označeny jako nepřehrané} other {# epizod označeno jako nepřehrané}}"
+    "cs": "{count, plural, one {Označeno jako nepřehrané} few {# epizody označeny jako nepřehrané} other {# epizod označeno jako nepřehrané}}",
+    "sk": "{count, plural, one {Označené ako nevypočuté} few {# epizódy označené ako nevypočuté} other {# epizód označených ako nevypočuté}}",
+    "hu": "{count, plural, one {Megjelölve lejátszatlanként} other {# epizód megjelölve lejátszatlanként}}",
+    "de": "{count, plural, one {Als nicht gespielt markiert} other {# Folgen als nicht gespielt markiert}}",
+    "fr": "{count, plural, one {Marqué comme non lu} many {# d’épisodes marqués comme non lus} other {# épisodes marqués comme non lus}}",
+    "es": "{count, plural, one {Marcado como no reproducido} many {# de episodios marcados como no reproducidos} other {# episodios marcados como no reproducidos}}",
+    "it": "{count, plural, one {Segnato come non riprodotto} many {# di episodi segnati come non riprodotti} other {# episodi segnati come non riprodotti}}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.error.markPlayed": {
     "en": "Couldn't update those episodes",
-    "cs": "Epizody se nepodařilo aktualizovat"
+    "cs": "Epizody se nepodařilo aktualizovat",
+    "sk": "Nepodarilo sa aktualizovať epizódy",
+    "hu": "Nem sikerült frissíteni az epizódokat",
+    "de": "Die Folgen konnten nicht aktualisiert werden",
+    "fr": "Impossible de mettre à jour ces épisodes",
+    "es": "No se han podido actualizar esos episodios",
+    "it": "Impossibile aggiornare gli episodi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.readyToPlay": {
     "en": "Ready to play",
-    "cs": "Připraveno k přehrání"
+    "cs": "Připraveno k přehrání",
+    "sk": "Pripravené na prehranie",
+    "hu": "Lejátszásra kész",
+    "de": "Bereit zum Abspielen",
+    "fr": "Prêt à lire",
+    "es": "Listo para reproducir",
+    "it": "Pronto per la riproduzione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.error.fetch": {
     "en": "Couldn't fetch that episode",
-    "cs": "Epizodu se nepodařilo stáhnout"
+    "cs": "Epizodu se nepodařilo stáhnout",
+    "sk": "Nepodarilo sa stiahnuť epizódu",
+    "hu": "Nem sikerült lekérni az epizódot",
+    "de": "Die Folge konnte nicht abgerufen werden",
+    "fr": "Impossible de récupérer cet épisode",
+    "es": "No se ha podido obtener ese episodio",
+    "it": "Impossibile recuperare l’episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.error.fetchBody": {
     "en": "The feed may be slow or the file gone.",
-    "cs": "Kanál možná odpovídá pomalu, nebo soubor už neexistuje."
+    "cs": "Kanál možná odpovídá pomalu, nebo soubor už neexistuje.",
+    "sk": "Kanál možno odpovedá pomaly alebo súbor už neexistuje.",
+    "hu": "Lehet, hogy a csatorna lassú, vagy a fájl már nem létezik.",
+    "de": "Der Feed ist vielleicht langsam oder die Datei nicht mehr da.",
+    "fr": "Le flux est peut-être lent, ou le fichier a disparu.",
+    "es": "Puede que el feed vaya lento o que el archivo ya no exista.",
+    "it": "Il feed potrebbe essere lento o il file non esistere più.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.error.download": {
     "en": "Couldn't start that download",
-    "cs": "Stahování se nepodařilo spustit"
+    "cs": "Stahování se nepodařilo spustit",
+    "sk": "Nepodarilo sa spustiť sťahovanie",
+    "hu": "Nem sikerült elindítani a letöltést",
+    "de": "Der Download konnte nicht gestartet werden",
+    "fr": "Impossible de lancer ce téléchargement",
+    "es": "No se ha podido iniciar la descarga",
+    "it": "Impossibile avviare il download",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.error.play": {
     "en": "Couldn't start that episode",
-    "cs": "Epizodu se nepodařilo spustit"
+    "cs": "Epizodu se nepodařilo spustit",
+    "sk": "Nepodarilo sa spustiť epizódu",
+    "hu": "Nem sikerült elindítani az epizódot",
+    "de": "Die Folge konnte nicht gestartet werden",
+    "fr": "Impossible de lancer cet épisode",
+    "es": "No se ha podido iniciar ese episodio",
+    "it": "Impossibile avviare l’episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.whoCanHear": {
     "en": "Who can hear this",
-    "cs": "Kdo to uslyší"
+    "cs": "Kdo to uslyší",
+    "sk": "Kto to bude počuť",
+    "hu": "Ki hallhatja?",
+    "de": "Wer hört das?",
+    "fr": "Qui peut l’écouter",
+    "es": "¿Quién puede escucharlo?",
+    "it": "Chi può ascoltarlo?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.fetchArtwork": {
     "en": "Fetch artwork",
-    "cs": "Stáhnout obálku"
+    "cs": "Stáhnout obálku",
+    "sk": "Stiahnuť obálku",
+    "hu": "Borító lekérése",
+    "de": "Cover abrufen",
+    "fr": "Récupérer l’illustration",
+    "es": "Obtener portada",
+    "it": "Recupera copertina",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.markAllPlayed": {
     "en": "Mark all played",
-    "cs": "Označit vše jako přehrané"
+    "cs": "Označit vše jako přehrané",
+    "sk": "Označiť všetko ako vypočuté",
+    "hu": "Összes megjelölése lejátszottként",
+    "de": "Alle als gespielt markieren",
+    "fr": "Tout marquer comme lu",
+    "es": "Marcar todo como reproducido",
+    "it": "Segna tutti come riprodotti",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.searchEpisodes": {
     "en": "Search episodes",
-    "cs": "Hledat epizody"
+    "cs": "Hledat epizody",
+    "sk": "Hľadať epizódy",
+    "hu": "Epizódok keresése",
+    "de": "Folgen durchsuchen",
+    "fr": "Rechercher des épisodes",
+    "es": "Buscar episodios",
+    "it": "Cerca episodi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.empty.title": {
     "en": "No episodes",
-    "cs": "Žádné epizody"
+    "cs": "Žádné epizody",
+    "sk": "Žiadne epizódy",
+    "hu": "Nincsenek epizódok",
+    "de": "Keine Folgen",
+    "fr": "Aucun épisode",
+    "es": "No hay episodios",
+    "it": "Nessun episodio",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.empty.body": {
     "en": "This feed hasn't published anything the server could read.",
-    "cs": "Tento kanál nezveřejnil nic, co by server dokázal přečíst."
+    "cs": "Tento kanál nezveřejnil nic, co by server dokázal přečíst.",
+    "sk": "Tento kanál nezverejnil nič, čo by server dokázal prečítať.",
+    "hu": "Ez a csatorna még semmit nem tett közzé, amit a szerver be tudott volna olvasni.",
+    "de": "Dieser Feed hat nichts veröffentlicht, was der Server lesen konnte.",
+    "fr": "Ce flux n’a rien publié que le serveur ait pu lire.",
+    "es": "Este feed no ha publicado nada que el servidor pueda leer.",
+    "it": "Questo feed non ha pubblicato niente che il server sia riuscito a leggere.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.number": {
     "en": "#{number}",
     "cs": "#{number}",
-    "note": "Episode number from the feed."
+    "sk": "#{number}",
+    "hu": "#{number}",
+    "de": "#{number}",
+    "fr": "n° {number}",
+    "es": "n.º {number}",
+    "it": "#{number}",
+    "note": "Episode number from the feed.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.played": {
     "en": "Played",
-    "cs": "Přehráno"
+    "cs": "Přehráno",
+    "sk": "Vypočuté",
+    "hu": "Lejátszva",
+    "de": "Gespielt",
+    "fr": "Lu",
+    "es": "Reproducido",
+    "it": "Riprodotto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.fetching": {
     "en": "Fetching it now…",
-    "cs": "Stahuje se…"
+    "cs": "Stahuje se…",
+    "sk": "Sťahuje sa…",
+    "hu": "Lekérés folyamatban…",
+    "de": "Wird abgerufen …",
+    "fr": "Récupération en cours…",
+    "es": "Obteniéndolo ahora…",
+    "it": "Recupero in corso…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.notOnServer": {
     "en": "Not on the server yet",
-    "cs": "Zatím není na serveru"
+    "cs": "Zatím není na serveru",
+    "sk": "Zatiaľ nie je na serveri",
+    "hu": "Még nincs a szerveren",
+    "de": "Noch nicht auf dem Server",
+    "fr": "Pas encore sur le serveur",
+    "es": "Aún no está en el servidor",
+    "it": "Non ancora sul server",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.fetchAndPlay": {
     "en": "Fetch and play",
-    "cs": "Stáhnout a přehrát"
+    "cs": "Stáhnout a přehrát",
+    "sk": "Stiahnuť a prehrať",
+    "hu": "Lekérés és lejátszás",
+    "de": "Abrufen und abspielen",
+    "fr": "Récupérer et lire",
+    "es": "Obtener y reproducir",
+    "it": "Recupera e riproduci",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.markPlayed": {
     "en": "Mark played",
-    "cs": "Označit jako přehrané"
+    "cs": "Označit jako přehrané",
+    "sk": "Označiť ako vypočuté",
+    "hu": "Megjelölés lejátszottként",
+    "de": "Als gespielt markieren",
+    "fr": "Marquer comme lu",
+    "es": "Marcar como reproducido",
+    "it": "Segna come riprodotto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.markUnplayed": {
     "en": "Mark unplayed",
-    "cs": "Označit jako nepřehrané"
+    "cs": "Označit jako nepřehrané",
+    "sk": "Označiť ako nevypočuté",
+    "hu": "Megjelölés lejátszatlanként",
+    "de": "Als nicht gespielt markieren",
+    "fr": "Marquer comme non lu",
+    "es": "Marcar como no reproducido",
+    "it": "Segna come non riprodotto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.downloadToLibrary": {
     "en": "Download to your library",
-    "cs": "Stáhnout do knihovny"
+    "cs": "Stáhnout do knihovny",
+    "sk": "Stiahnuť do knižnice",
+    "hu": "Letöltés a könyvtárba",
+    "de": "In deine Mediathek laden",
+    "fr": "Télécharger dans votre bibliothèque",
+    "es": "Descargar a tu biblioteca",
+    "it": "Scarica nella tua libreria",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.saveCopy": {
     "en": "Save a copy to this device",
-    "cs": "Uložit kopii do tohoto zařízení"
+    "cs": "Uložit kopii do tohoto zařízení",
+    "sk": "Uložiť kópiu do tohto zariadenia",
+    "hu": "Másolat mentése erre az eszközre",
+    "de": "Kopie auf diesem Gerät speichern",
+    "fr": "Enregistrer une copie sur cet appareil",
+    "es": "Guardar una copia en este dispositivo",
+    "it": "Salva una copia su questo dispositivo",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.collapse": {
     "en": "Collapse",
-    "cs": "Sbalit"
+    "cs": "Sbalit",
+    "sk": "Zbaliť",
+    "hu": "Összecsukás",
+    "de": "Einklappen",
+    "fr": "Réduire",
+    "es": "Contraer",
+    "it": "Comprimi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.expand": {
     "en": "Expand",
-    "cs": "Rozbalit"
+    "cs": "Rozbalit",
+    "sk": "Rozbaliť",
+    "hu": "Kibontás",
+    "de": "Aufklappen",
+    "fr": "Développer",
+    "es": "Expandir",
+    "it": "Espandi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.transcript.show": {
     "en": "Show transcript",
-    "cs": "Zobrazit přepis"
+    "cs": "Zobrazit přepis",
+    "sk": "Zobraziť prepis",
+    "hu": "Átirat megjelenítése",
+    "de": "Transkript anzeigen",
+    "fr": "Afficher la transcription",
+    "es": "Mostrar transcripción",
+    "it": "Mostra trascrizione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.transcript.hide": {
     "en": "Hide transcript",
-    "cs": "Skrýt přepis"
+    "cs": "Skrýt přepis",
+    "sk": "Skryť prepis",
+    "hu": "Átirat elrejtése",
+    "de": "Transkript ausblenden",
+    "fr": "Masquer la transcription",
+    "es": "Ocultar transcripción",
+    "it": "Nascondi trascrizione",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.transcript.loading": {
     "en": "Loading the transcript…",
-    "cs": "Načítám přepis…"
+    "cs": "Načítám přepis…",
+    "sk": "Načítava sa prepis…",
+    "hu": "Az átirat betöltése…",
+    "de": "Transkript wird geladen …",
+    "fr": "Chargement de la transcription…",
+    "es": "Cargando la transcripción…",
+    "it": "Caricamento della trascrizione…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.transcript.error": {
     "en": "The transcript could not be loaded.",
-    "cs": "Přepis se nepodařilo načíst."
+    "cs": "Přepis se nepodařilo načíst.",
+    "sk": "Nepodarilo sa načítať prepis.",
+    "hu": "Nem sikerült betölteni az átiratot.",
+    "de": "Das Transkript konnte nicht geladen werden.",
+    "fr": "Impossible de charger la transcription.",
+    "es": "No se ha podido cargar la transcripción.",
+    "it": "Impossibile caricare la trascrizione.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.transcript.empty": {
     "en": "The transcript is empty.",
-    "cs": "Přepis je prázdný."
+    "cs": "Přepis je prázdný.",
+    "sk": "Prepis je prázdny.",
+    "hu": "Az átirat üres.",
+    "de": "Das Transkript ist leer.",
+    "fr": "La transcription est vide.",
+    "es": "La transcripción está vacía.",
+    "it": "La trascrizione è vuota.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.summarize": {
     "en": "Summarize",
-    "cs": "Shrnout"
+    "cs": "Shrnout",
+    "sk": "Zhrnúť",
+    "hu": "Összefoglalás",
+    "de": "Zusammenfassen",
+    "fr": "Résumer",
+    "es": "Resumir",
+    "it": "Riassumi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.hide": {
     "en": "Hide summary",
-    "cs": "Skrýt shrnutí"
+    "cs": "Skrýt shrnutí",
+    "sk": "Skryť zhrnutie",
+    "hu": "Összefoglaló elrejtése",
+    "de": "Zusammenfassung ausblenden",
+    "fr": "Masquer le résumé",
+    "es": "Ocultar resumen",
+    "it": "Nascondi riassunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.cost": {
     "en": "The summary is made from the transcript with AI and paid from the family's credit, usually a cent or two. Everyone in the family can then read it.",
-    "cs": "Shrnutí se vytvoří z přepisu pomocí AI a zaplatí z kreditu rodiny, obvykle méně než korunu. Pak si ho může přečíst celá rodina."
+    "cs": "Shrnutí se vytvoří z přepisu pomocí AI a zaplatí z kreditu rodiny, obvykle méně než korunu. Pak si ho může přečíst celá rodina.",
+    "sk": "Zhrnutie sa vytvorí z prepisu pomocou AI a zaplatí z kreditu rodiny, zvyčajne cent alebo dva. Potom si ho môže prečítať celá rodina.",
+    "hu": "Az összefoglalót MI készíti az átiratból, és a család egyenlegéből fizetjük, általában egy-két centből. Utána a családban mindenki elolvashatja.",
+    "de": "Die Zusammenfassung wird mit KI aus dem Transkript erstellt und vom Guthaben der Familie bezahlt, meist ein oder zwei Cent. Danach können alle in der Familie sie lesen.",
+    "fr": "Le résumé est créé à partir de la transcription par IA et payé avec le crédit de la famille, généralement un ou deux centimes. Tous les membres de la famille peuvent ensuite le lire.",
+    "es": "El resumen se hace con IA a partir de la transcripción y se paga del saldo de la familia, normalmente uno o dos céntimos. Después, toda la familia puede leerlo.",
+    "it": "Il riassunto viene creato dalla trascrizione con l’IA e pagato con il credito della famiglia, di solito un centesimo o due. Poi tutti nella famiglia possono leggerlo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.make": {
     "en": "Make a summary",
-    "cs": "Vytvořit shrnutí"
+    "cs": "Vytvořit shrnutí",
+    "sk": "Vytvoriť zhrnutie",
+    "hu": "Összefoglaló készítése",
+    "de": "Zusammenfassung erstellen",
+    "fr": "Créer un résumé",
+    "es": "Hacer un resumen",
+    "it": "Crea un riassunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.making": {
     "en": "Summarizing…",
-    "cs": "Shrnuji…"
+    "cs": "Shrnuji…",
+    "sk": "Zhŕňa sa…",
+    "hu": "Összefoglalás…",
+    "de": "Wird zusammengefasst …",
+    "fr": "Résumé en cours…",
+    "es": "Resumiendo…",
+    "it": "Riassunto in corso…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.title": {
     "en": "Summary",
-    "cs": "Shrnutí"
+    "cs": "Shrnutí",
+    "sk": "Zhrnutie",
+    "hu": "Összefoglaló",
+    "de": "Zusammenfassung",
+    "fr": "Résumé",
+    "es": "Resumen",
+    "it": "Riassunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.askPlaceholder": {
     "en": "Ask about this episode…",
-    "cs": "Zeptejte se na tuto epizodu…"
+    "cs": "Zeptejte se na tuto epizodu…",
+    "sk": "Opýtajte sa na túto epizódu…",
+    "hu": "Kérdezzen az epizódról…",
+    "de": "Frag etwas zu dieser Folge …",
+    "fr": "Posez une question sur cet épisode…",
+    "es": "Pregunta sobre este episodio…",
+    "it": "Fai una domanda su questo episodio…",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.ask": {
     "en": "Ask",
-    "cs": "Zeptat se"
+    "cs": "Zeptat se",
+    "sk": "Opýtať sa",
+    "hu": "Kérdés",
+    "de": "Fragen",
+    "fr": "Demander",
+    "es": "Preguntar",
+    "it": "Chiedi",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.askNote": {
     "en": "Answers come from the episode's transcript only, and each one is paid from the family's credit. Your questions are kept for you alone.",
-    "cs": "Odpovědi vycházejí jen z přepisu epizody a každá se platí z kreditu rodiny. Vaše otázky vidíte jen vy."
+    "cs": "Odpovědi vycházejí jen z přepisu epizody a každá se platí z kreditu rodiny. Vaše otázky vidíte jen vy.",
+    "sk": "Odpovede vychádzajú iba z prepisu epizódy a každá sa platí z kreditu rodiny. Vaše otázky vidíte iba vy.",
+    "hu": "A válaszok kizárólag az epizód átiratából származnak, és mindegyik a család egyenlegéből fizetődik. A kérdéseit csak Ön látja.",
+    "de": "Die Antworten stammen nur aus dem Transkript der Folge, und jede wird vom Guthaben der Familie bezahlt. Deine Fragen sieht nur du.",
+    "fr": "Les réponses proviennent uniquement de la transcription de l’épisode, et chacune est payée avec le crédit de la famille. Vos questions ne sont conservées que pour vous.",
+    "es": "Las respuestas salen solo de la transcripción del episodio y cada una se paga del saldo de la familia. Tus preguntas son solo para ti.",
+    "it": "Le risposte si basano solo sulla trascrizione dell’episodio e ognuna viene pagata con il credito della famiglia. Le tue domande restano visibili solo a te.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.clear": {
     "en": "Clear questions",
-    "cs": "Smazat otázky"
+    "cs": "Smazat otázky",
+    "sk": "Zmazať otázky",
+    "hu": "Kérdések törlése",
+    "de": "Fragen löschen",
+    "fr": "Effacer les questions",
+    "es": "Borrar preguntas",
+    "it": "Cancella domande",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.clearConfirm": {
     "en": "Delete your questions and answers for this episode?",
-    "cs": "Smazat vaše otázky a odpovědi k této epizodě?"
+    "cs": "Smazat vaše otázky a odpovědi k této epizodě?",
+    "sk": "Zmazať vaše otázky a odpovede k tejto epizóde?",
+    "hu": "Törli az ehhez az epizódhoz tartozó kérdéseit és válaszait?",
+    "de": "Deine Fragen und Antworten zu dieser Folge löschen?",
+    "fr": "Supprimer vos questions et réponses pour cet épisode ?",
+    "es": "¿Eliminar tus preguntas y respuestas de este episodio?",
+    "it": "Eliminare le tue domande e risposte su questo episodio?",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.length": {
     "en": "Summary length",
-    "cs": "Délka shrnutí"
+    "cs": "Délka shrnutí",
+    "sk": "Dĺžka zhrnutia",
+    "hu": "Az összefoglaló hossza",
+    "de": "Länge der Zusammenfassung",
+    "fr": "Longueur du résumé",
+    "es": "Longitud del resumen",
+    "it": "Lunghezza del riassunto",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.length.short": {
     "en": "Short",
-    "cs": "Krátké"
+    "cs": "Krátké",
+    "sk": "Krátke",
+    "hu": "Rövid",
+    "de": "Kurz",
+    "fr": "Court",
+    "es": "Corto",
+    "it": "Breve",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.length.medium": {
     "en": "Medium",
-    "cs": "Střední"
+    "cs": "Střední",
+    "sk": "Stredné",
+    "hu": "Közepes",
+    "de": "Mittel",
+    "fr": "Moyen",
+    "es": "Medio",
+    "it": "Media",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.length.long": {
     "en": "Long",
-    "cs": "Delší"
+    "cs": "Delší",
+    "sk": "Dlhšie",
+    "hu": "Hosszú",
+    "de": "Lang",
+    "fr": "Long",
+    "es": "Largo",
+    "it": "Lunga",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.price": {
     "en": "Cost {price}",
-    "cs": "Cena {price}"
+    "cs": "Cena {price}",
+    "sk": "Cena {price}",
+    "hu": "Költség: {price}",
+    "de": "Kosten {price}",
+    "fr": "Coût : {price}",
+    "es": "Cuesta {price}",
+    "it": "Costo {price}",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
   "podcasts.feed.episode.ai.error": {
     "en": "That didn't work. Try again.",
-    "cs": "Nepodařilo se. Zkuste to znovu."
+    "cs": "Nepodařilo se. Zkuste to znovu.",
+    "sk": "Nepodarilo sa to. Skúste to znova.",
+    "hu": "Ez nem sikerült. Próbálja újra.",
+    "de": "Das hat nicht funktioniert. Versuch es noch einmal.",
+    "fr": "Cela n’a pas fonctionné. Réessayez.",
+    "es": "No ha funcionado. Vuelve a intentarlo.",
+    "it": "Non ha funzionato. Riprova.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
-
-  "podcasts.translate.alreadyMade": {"en": "This translation is already made", "cs": "Tento překlad už existuje", "note": "Toast title when the same episode, language and voice were translated before (200): nothing new is charged."},
-  "podcasts.translate.alreadyMadeBody": {"en": "It's under the episode. Nothing new was charged.", "cs": "Najdete ho pod epizodou. Nic dalšího se neúčtovalo."},
-
-  "podcasts.translate.machineTranslated": {"en": "Machine-translated by Google from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.", "note": "A translated episode's detail line. {source}/{target} from common.languageInSentence."},
-  "podcasts.translate.machineTranslatedNeutral": {"en": "Machine-translated from {source} to {target}, read by {voice}.", "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.", "note": "The same line when the translator is not Google (none today)."}
+  "podcasts.translate.alreadyMade": {
+    "en": "This translation is already made",
+    "cs": "Tento překlad už existuje",
+    "sk": "Tento preklad už existuje",
+    "hu": "Ez a fordítás már elkészült",
+    "de": "Diese Übersetzung gibt es schon",
+    "fr": "Cette traduction existe déjà",
+    "es": "Esta traducción ya está hecha",
+    "it": "Questa traduzione esiste già",
+    "note": "Toast title when the same episode, language and voice were translated before (200): nothing new is charged.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "podcasts.translate.alreadyMadeBody": {
+    "en": "It's under the episode. Nothing new was charged.",
+    "cs": "Najdete ho pod epizodou. Nic dalšího se neúčtovalo.",
+    "sk": "Nájdete ho pod epizódou. Nič ďalšie sa neúčtovalo.",
+    "hu": "Az epizód alatt található. Új díjat nem számoltunk fel.",
+    "de": "Sie steht unter der Folge. Es wurde nichts Neues berechnet.",
+    "fr": "Elle se trouve sous l’épisode. Rien de nouveau n’a été facturé.",
+    "es": "Está bajo el episodio. No se ha cobrado nada nuevo.",
+    "it": "La trovi sotto l’episodio. Non è stato addebitato nulla di nuovo.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "podcasts.translate.machineTranslated": {
+    "en": "Machine-translated by Google from {source} to {target}, read by {voice}.",
+    "cs": "Strojově přeloženo Googlem z {source} do {target}, čte {voice}.",
+    "sk": "Strojovo preložené Googlom z {source} do {target}, číta {voice}.",
+    "hu": "Gépi fordítás (Google), {source} → {target}, felolvassa: {voice}.",
+    "de": "Maschinell übersetzt von Google ({source} → {target}), gelesen von {voice}.",
+    "fr": "Traduction automatique par Google ({source} → {target}), lue par {voice}.",
+    "es": "Traducido automáticamente por Google del {source} al {target}, con la voz de {voice}.",
+    "it": "Traduzione automatica di Google ({source} → {target}), letta da {voice}.",
+    "note": "A translated episode's detail line. {source}/{target} from common.languageInSentence.",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
+  "podcasts.translate.machineTranslatedNeutral": {
+    "en": "Machine-translated from {source} to {target}, read by {voice}.",
+    "cs": "Strojově přeloženo z {source} do {target}, čte {voice}.",
+    "sk": "Strojovo preložené z {source} do {target}, číta {voice}.",
+    "hu": "Gépi fordítás, {source} → {target}, felolvassa: {voice}.",
+    "de": "Maschinell übersetzt ({source} → {target}), gelesen von {voice}.",
+    "fr": "Traduction automatique ({source} → {target}), lue par {voice}.",
+    "es": "Traducido automáticamente del {source} al {target}, con la voz de {voice}.",
+    "it": "Traduzione automatica ({source} → {target}), letta da {voice}.",
+    "note": "The same line when the translator is not Google (none today).",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  }
 }
