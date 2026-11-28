@@ -328,6 +328,24 @@ pub fn twin_proposal(file: &FileTrack, twins: &[(f32, &crate::db::identify::Twin
     })
 }
 
+/// The proposal for a song AcoustID recognised by its sound: the recording it
+/// named, on the release our source prefers for it. Always reviewed — the sound
+/// says which recording, not which of its albums the file is from. On another
+/// album than the file's, only the recording is set.
+pub fn sound_proposal(file: &FileTrack, recording: RecordingDetail, found: Option<&MetadataCandidate>, score: f32) -> Proposal {
+    let mut proposed = chosen(recording, found);
+    proposed.score = (score * 100.0).round().clamp(0.0, 100.0) as u8;
+    if let Some(c) = found.filter(|c| c.mb_recording_id == proposed.mb_recording_id && c.mb_release_id == proposed.mb_release_id) {
+        proposed.album_artist = proposed.album_artist.or_else(|| c.album_artist.clone());
+        proposed.mb_release_group_id = proposed.mb_release_group_id.or_else(|| c.mb_release_group_id.clone());
+    }
+    let keep_album = match (file.album.as_deref(), proposed.album.as_deref()) {
+        (Some(mine), Some(theirs)) => !same_title(mine, theirs),
+        _ => false,
+    };
+    Proposal { track_id: file.id, class: Class::Review, reasons: vec!["acoustid"], proposal: Some(proposed), keep_album }
+}
+
 /// The proposal for a recording the owner picked: what MusicBrainz says of it
 /// by id, with the year and length a search found for it where it did.
 pub fn chosen(recording: RecordingDetail, found: Option<&MetadataCandidate>) -> ProposedTrack {
@@ -710,6 +728,34 @@ mod tests {
         let p = twin_proposal(&f, &[(0.95, &on_album), (0.94, &other)]).unwrap();
         assert_eq!(p.class, Class::Review);
         assert!(twin_proposal(&f, &[]).is_none());
+    }
+
+    #[test]
+    fn a_song_known_by_its_sound_is_reviewed_on_the_preferred_release() {
+        let f = file(1, "Track 01");
+        let mut f = f;
+        f.album = None;
+        f.artist = None;
+        let detail = RecordingDetail {
+            mb_recording_id: "rec".into(),
+            title: "Blowin’ in the Wind".into(),
+            artist: Some("Bob Dylan".into()),
+            mb_artist_id: None,
+            album: Some("The Freewheelin’ Bob Dylan".into()),
+            mb_release_id: Some("rel".into()),
+            genre: None,
+            track_number: Some(1),
+            album_artist: None,
+            mb_release_group_id: None,
+        };
+        let mut c = found(92, "The Freewheelin’ Bob Dylan", "rec");
+        c.mb_release_id = Some("rel".into());
+        c.album_artist = Some("Bob Dylan".into());
+        c.first_release_date = Some("1963-05-27".into());
+        let p = sound_proposal(&f, detail, Some(&c), 0.97);
+        assert_eq!((p.class, p.reasons.clone(), p.keep_album), (Class::Review, vec!["acoustid"], false));
+        let x = p.proposal.unwrap();
+        assert_eq!((x.score, x.album_artist.as_deref(), x.first_release_date.as_deref()), (97, Some("Bob Dylan"), Some("1963-05-27")));
     }
 
     #[test]

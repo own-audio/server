@@ -7,6 +7,7 @@
 //! from-scratch rebuild scoped to what the Music Implementation Plan needs
 //! (search + apply for a single track), not a restore of the old surface
 //! (artist/release browsing was dropped as unused).
+pub mod acoustid;
 pub mod apple_books;
 pub mod books;
 pub mod cover_art;

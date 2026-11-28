@@ -1068,6 +1068,7 @@ export interface MessageParams {
   "music.identifyRuns.otherRecording": undefined;
   "music.identifyRuns.pasteLink": undefined;
   "music.identifyRuns.progress": { "done": number; "total": number; "tracks": number };
+  "music.identifyRuns.reason.acoustid": undefined;
   "music.identifyRuns.reason.albumDiffers": undefined;
   "music.identifyRuns.reason.ambiguous": undefined;
   "music.identifyRuns.reason.artistDiffers": undefined;

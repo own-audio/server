@@ -364,7 +364,9 @@ pub struct Proposal {
     /// file's or folder's name, the song had no title tag; revision 22),
     /// `generic_title` ("Track 01": not looked up; revision 22),
     /// `fingerprint_twin` (the same recording, by its fingerprint, as an identified
-    /// song in the library; no lookup; revision 22).
+    /// song in the library; no lookup; revision 22),
+    /// `acoustid` (recognised by its sound through AcoustID, which the server's
+    /// operator switched on; always reviewed; revision 22).
     /// Unknown values may appear.
     pub reasons: Vec<String>,
     /// What an accept writes; absent when nothing was found.

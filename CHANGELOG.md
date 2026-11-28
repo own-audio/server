@@ -34,6 +34,13 @@ semver. Each release states the **API contract revision** it serves
   none; MusicBrainz ids are written either way. Without it, accepting replaces as before.
 - Console: "Only fill empty fields" on an identify run, on by default and remembered per
   browser.
+- AcoustID for songs nothing else identifies (`ACOUSTID_API_KEY`, the operator's own
+  application key; off without one). A song an identify run found nothing for — "Track 01", or
+  tags and names that matched nothing — is looked up by its fingerprint; AcoustID names the
+  MusicBrainz recording and our source the release, reviewed, never sure (reason `acoustid`).
+  The key and fingerprint go in a POST body, at most three lookups a second, counted per month
+  (migration 0137) and capped by `ACOUSTID__MONTHLY_LIMIT`. An AcoustID that fails or refuses
+  leaves the song as it was and does not pause the run.
 - Identify finds a song's twin by its sound: an unidentified song whose fingerprint matches an
   identified song's in the same library (lengths within 2 s, at least 80 % of bits alike) gets
   that recording, `sure`, without a lookup — "Track 01" files too (reason `fingerprint_twin`).

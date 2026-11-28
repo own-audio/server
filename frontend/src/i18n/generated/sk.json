@@ -1062,6 +1062,7 @@
   "music.identifyRuns.otherRecording": "Iná nahrávka",
   "music.identifyRuns.pasteLink": "Alebo vložte odkaz či ID nahrávky z musicbrainz.org",
   "music.identifyRuns.progress": "Vyhľadané: {done, number} z {total, number} albumov a skladieb ({tracks, number} skladieb)",
+  "music.identifyRuns.reason.acoustid": "Rozpoznané podľa zvuku",
   "music.identifyRuns.reason.albumDiffers": "Iný album",
   "music.identifyRuns.reason.ambiguous": "Rovnako dobrá iná zhoda",
   "music.identifyRuns.reason.artistDiffers": "Iný interpret",

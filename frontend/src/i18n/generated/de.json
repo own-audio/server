@@ -1062,6 +1062,7 @@
   "music.identifyRuns.otherRecording": "Andere Aufnahme",
   "music.identifyRuns.pasteLink": "Oder füge den Link oder die ID einer Aufnahme von musicbrainz.org ein",
   "music.identifyRuns.progress": "{done, number} von {total, number} Alben und Titeln nachgeschlagen ({tracks, number} Titel)",
+  "music.identifyRuns.reason.acoustid": "Am Klang erkannt",
   "music.identifyRuns.reason.albumDiffers": "Anderes Album",
   "music.identifyRuns.reason.ambiguous": "Ein gleich guter Treffer",
   "music.identifyRuns.reason.artistDiffers": "Anderer Künstler",

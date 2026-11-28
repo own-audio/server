@@ -46,6 +46,11 @@ pub struct AppConfig {
     #[serde(default)]
     pub musicbrainz: MusicBrainzConfig,
 
+    /// AcoustID lookups by fingerprint (`ACOUSTID__*`), for songs whose tags and
+    /// names say nothing. Off unless the operator sets their own key.
+    #[serde(default)]
+    pub acoustid: AcoustidConfig,
+
     /// Acoustic fingerprints of songs (`FINGERPRINT__MODE`), made with ffmpeg;
     /// see [`FingerprintConfig`].
     #[serde(default)]
@@ -466,6 +471,30 @@ pub struct MusicBrainzConfig {
     /// Who to contact about this server's requests, sent in the User-Agent as
     /// MusicBrainz asks: an e-mail address or a URL. Unset ⇒ the project's.
     pub contact: Option<String>,
+}
+
+/// AcoustID (`ACOUSTID__API_KEY`, an application key from
+/// acoustid.org/new-application). Its free use is non-commercial; a hosted
+/// service needs a paid plan.
+#[derive(Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct AcoustidConfig {
+    pub api_key: Option<String>,
+    /// Another AcoustID-compatible server; unset ⇒ api.acoustid.org.
+    pub base_url: Option<String>,
+    /// Lookups a month at most (`ACOUSTID__MONTHLY_LIMIT`); unset ⇒ no limit.
+    pub monthly_limit: Option<i64>,
+}
+
+/// Never prints the key.
+impl std::fmt::Debug for AcoustidConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AcoustidConfig")
+            .field("api_key", &self.api_key.as_ref().map(|_| "[set]"))
+            .field("base_url", &self.base_url)
+            .field("monthly_limit", &self.monthly_limit)
+            .finish()
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]

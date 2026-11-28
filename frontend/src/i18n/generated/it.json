@@ -1062,6 +1062,7 @@
   "music.identifyRuns.otherRecording": "Altra registrazione",
   "music.identifyRuns.pasteLink": "Oppure incolla il link o l’ID di una registrazione da musicbrainz.org",
   "music.identifyRuns.progress": "{done, number} di {total, number} album e brani cercati ({tracks, number} brani)",
+  "music.identifyRuns.reason.acoustid": "Riconosciuto dal suono",
   "music.identifyRuns.reason.albumDiffers": "Altro album",
   "music.identifyRuns.reason.ambiguous": "Un’altra corrispondenza altrettanto buona",
   "music.identifyRuns.reason.artistDiffers": "Altro artista",

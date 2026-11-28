@@ -1062,6 +1062,7 @@
   "music.identifyRuns.otherRecording": "Másik felvétel",
   "music.identifyRuns.pasteLink": "Vagy illessze be egy felvétel hivatkozását vagy azonosítóját a musicbrainz.org oldalról",
   "music.identifyRuns.progress": "{done, number} / {total, number} album és szám megkeresve ({tracks, number} szám)",
+  "music.identifyRuns.reason.acoustid": "A hangja alapján felismerve",
   "music.identifyRuns.reason.albumDiffers": "Másik album",
   "music.identifyRuns.reason.ambiguous": "Van egy másik, ugyanolyan jó egyezés",
   "music.identifyRuns.reason.artistDiffers": "Másik előadó",

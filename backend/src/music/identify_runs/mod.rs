@@ -68,6 +68,7 @@ pub async fn execute(pool: &PgPool, config: &AppConfig, hooks: &dyn Hooks, job: 
         return Ok(());
     };
     let source = source?;
+    let acoustid = crate::metadata::acoustid::AcoustId::from_config(&config.acoustid);
 
     if run.status == "queued" {
         plan_groups(pool, &run).await?;
@@ -75,7 +76,7 @@ pub async fn execute(pool: &PgPool, config: &AppConfig, hooks: &dyn Hooks, job: 
     db::identify::set_status(pool, run_id, "running", None).await?;
 
     for group in db::identify::pending_groups(pool, run_id, STEP).await? {
-        if let Err(e) = look_up(pool, &source, &run, &group).await {
+        if let Err(e) = look_up(pool, &source, acoustid.as_ref(), &run, &group).await {
             // The source refused or is unreachable: pause, then try the same group again.
             let level = run.backoff_level + 1;
             if level > MAX_BACKOFF_LEVEL {
@@ -284,6 +285,7 @@ fn file_track(t: &db::identify::ScopeTrack) -> FileTrack {
 async fn look_up(
     pool: &PgPool,
     source: &Identify<'_>,
+    acoustid: Option<&crate::metadata::acoustid::AcoustId>,
     run: &db::identify::Run,
     group: &db::identify::Group,
 ) -> anyhow::Result<()> {
@@ -345,6 +347,11 @@ async fn look_up(
         alternatives.insert(f.id, serde_json::to_value(&found)?);
     }
 
+    // Nothing in the tags or names found it: ask AcoustID by the song's sound.
+    if let Some(acoustid) = acoustid {
+        by_sound(pool, source, acoustid, &files, &mut proposals).await?;
+    }
+
     // Found from a file's name alone: worth a look, never one click.
     for p in &mut proposals {
         if p.reasons.contains(&"fingerprint_twin") {
@@ -369,6 +376,45 @@ async fn look_up(
         })
         .collect();
     db::identify::save_group(pool, group, &serde_json::to_value(&candidates)?, chosen, &stored).await
+}
+
+/// Proposals of class `none` replaced by what AcoustID recognises in the song's
+/// fingerprint. A failing AcoustID leaves them as they were: it is a second
+/// chance, not the run's source, and must not pause the run.
+async fn by_sound(
+    pool: &PgPool,
+    source: &Identify<'_>,
+    acoustid: &crate::metadata::acoustid::AcoustId,
+    files: &[FileTrack],
+    proposals: &mut [Proposal],
+) -> anyhow::Result<()> {
+    let unfound: Vec<Uuid> = proposals.iter().filter(|p| p.class == Class::None).map(|p| p.track_id).collect();
+    if unfound.is_empty() {
+        return Ok(());
+    }
+    for (track_id, fingerprint, duration) in db::identify::fingerprints(pool, &unfound).await? {
+        let Some(file) = files.iter().find(|f| f.id == track_id) else { continue };
+        let best = match acoustid.lookup(pool, &fingerprint, duration).await {
+            Ok(m) => m.into_iter().next(),
+            Err(e) => {
+                tracing::warn!(%track_id, "acoustid lookup failed: {e:#}");
+                None
+            }
+        };
+        let Some(best) = best else { continue };
+        let Some(recording_id) = best.recording_ids.first() else { continue };
+        let recording = source.recording(recording_id, None).await?;
+        // A search by what the recording is called gives its dates and album artist.
+        let found = source
+            .identify(Some(&recording.title), recording.artist.as_deref(), None, file.duration_ms, TRACK_CANDIDATES)
+            .await?;
+        let found = found.into_iter().find(|c| c.mb_recording_id == recording.mb_recording_id);
+        let p = matching::sound_proposal(file, recording, found.as_ref(), best.score);
+        if let Some(slot) = proposals.iter_mut().find(|x| x.track_id == track_id) {
+            *slot = p;
+        }
+    }
+    Ok(())
 }
 
 /// Each song's identified twins by fingerprint, with how alike they are; only

@@ -587,3 +587,34 @@ pub async fn twin_candidates(pool: &PgPool, user_id: Uuid, track_ids: &[Uuid]) -
     .await
     .context("db: fingerprint twin candidates")
 }
+
+/// Counts one AcoustID lookup against this month; `false`, and nothing counted,
+/// when the month already has `limit` of them.
+pub async fn count_acoustid_lookup(pool: &PgPool, limit: Option<i64>) -> anyhow::Result<bool> {
+    if limit.is_some_and(|l| l <= 0) {
+        return Ok(false);
+    }
+    let counted: Option<i32> = sqlx::query_scalar(
+        "INSERT INTO acoustid_usage (month, lookups) VALUES (date_trunc('month', now())::date, 1)
+         ON CONFLICT (month) DO UPDATE SET lookups = acoustid_usage.lookups + 1
+          WHERE $1::bigint IS NULL OR acoustid_usage.lookups < $1
+         RETURNING lookups",
+    )
+    .bind(limit)
+    .fetch_optional(pool)
+    .await
+    .context("db: count acoustid lookup")?;
+    Ok(counted.is_some())
+}
+
+/// The fingerprints of these tracks that have one, with the length they were made from.
+pub async fn fingerprints(pool: &PgPool, track_ids: &[Uuid]) -> anyhow::Result<Vec<(Uuid, String, i32)>> {
+    sqlx::query_as(
+        "SELECT track_id, fingerprint, duration_secs FROM track_fingerprints
+          WHERE track_id = ANY($1) AND fingerprint IS NOT NULL AND duration_secs IS NOT NULL",
+    )
+    .bind(track_ids)
+    .fetch_all(pool)
+    .await
+    .context("db: track fingerprints")
+}

@@ -1062,6 +1062,7 @@
   "music.identifyRuns.otherRecording": "Jiná nahrávka",
   "music.identifyRuns.pasteLink": "Nebo vložte odkaz či ID nahrávky z musicbrainz.org",
   "music.identifyRuns.progress": "Prohledáno {done, number} z {total, number} alb a skladeb ({tracks, number} skladeb)",
+  "music.identifyRuns.reason.acoustid": "Rozpoznáno podle zvuku",
   "music.identifyRuns.reason.albumDiffers": "Jiné album",
   "music.identifyRuns.reason.ambiguous": "Stejně dobrá jiná shoda",
   "music.identifyRuns.reason.artistDiffers": "Jiný interpret",

@@ -3981,6 +3981,17 @@
     "it": "Suona come un brano già identificato",
     "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
+  "music.identifyRuns.reason.acoustid": {
+    "en": "Recognised by its sound",
+    "cs": "Rozpoznáno podle zvuku",
+    "sk": "Rozpoznané podľa zvuku",
+    "hu": "A hangja alapján felismerve",
+    "de": "Am Klang erkannt",
+    "fr": "Reconnu à son son",
+    "es": "Reconocida por su sonido",
+    "it": "Riconosciuto dal suono",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
   "music.identifyRuns.fillEmpty": {
     "en": "Only fill empty fields",
     "cs": "Jen doplnit prázdná pole",
