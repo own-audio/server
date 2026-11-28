@@ -210,8 +210,15 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
     // The source's fuzzy search also returns other songs that share words with
     // the title ("Norwegian Sparks (live at Rockefeller …)" for "Yellow (Live @
     // Rockefeller …)"); only a title like the file's is a candidate at all.
-    let found: Vec<&MetadataCandidate> = found.iter().filter(|c| title_fits(&file.title, &c.title)).collect();
-    let Some(&top) = found.first() else { return none() };
+    let mut found: Vec<(&MetadataCandidate, f32)> = found
+        .iter()
+        .filter(|c| title_fits(&file.title, &c.title))
+        .map(|c| (c, fit(file, c)))
+        .collect();
+    // The source ranks on title, artist and length alone; the file also has an
+    // album and a track number. Stable, so the source's order breaks ties.
+    found.sort_by(|a, b| b.1.total_cmp(&a.1));
+    let Some(&(top, top_fit)) = found.first() else { return none() };
     if top.score < 50 {
         return none();
     }
@@ -251,7 +258,7 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
     }
     // A song is never sure from a search alone when a near-equal rival exists:
     // the same recording title by the same artist on another release.
-    if found.get(1).is_some_and(|second| top.score.saturating_sub(second.score) < 5
+    if found.get(1).is_some_and(|&(second, fit)| top_fit - fit < FIT_MARGIN
         && second.mb_recording_id != top.mb_recording_id)
     {
         reasons.push("ambiguous");
@@ -347,28 +354,56 @@ pub fn names_an_edition(file_album: &str, proposed: &str) -> bool {
     same_title(file_album, proposed) && !suffix(file_album).is_empty() && suffix(file_album) != suffix(proposed)
 }
 
-/// The same song title, give or take spelling: one inside the other, or most
-/// character pairs shared (Dice ≥ 0.5) once a trailing "(live)" is set aside.
-/// Lenient on purpose — typos, mojibake and "Talkin'" pass; another song doesn't.
-fn title_fits(file: &str, found: &str) -> bool {
-    let key = |t: &str| {
-        let c = cut(t);
-        if c.is_empty() { normalize(t) } else { c }
-    };
-    let (a, b) = (key(file), key(found));
-    if a.is_empty() || b.is_empty() {
-        return true;
+/// Picard's `match_min_margin`: a runner-up this close makes the best ambiguous.
+const FIT_MARGIN: f32 = 0.02;
+
+/// How well a candidate fits the file, 0–1, weighted as Picard weighs a track
+/// (`metadata-inspiration-picard.md`): title 13, length 10 (linear to 30 s off),
+/// album 5, artist 4, and the track number 4 when the album is the file's. A
+/// field either side lacks is left out. Another artist costs ×0.6, as in Picard.
+fn fit(file: &FileTrack, c: &MetadataCandidate) -> f32 {
+    let mut sum = 13.0 * dice(&title_key(&file.title), &title_key(&c.title));
+    let mut weight = 13.0;
+    if let (Some(a), Some(b)) = (file.duration_ms, c.duration_ms) {
+        sum += 10.0 * (1.0 - a.abs_diff(b) as f32 / 30_000.0).max(0.0);
+        weight += 10.0;
     }
-    if format!(" {a} ").contains(&format!(" {b} ")) || format!(" {b} ").contains(&format!(" {a} ")) {
-        return true;
+    let mut same_album = false;
+    if let (Some(a), Some(b)) = (file.album.as_deref(), c.album.as_deref()) {
+        same_album = same_title(a, b);
+        sum += 5.0 * if same_album { 1.0 } else { dice(&cut(a), &cut(b)) };
+        weight += 5.0;
     }
+    let mut artist_differs = false;
+    if let (Some(a), Some(b)) = (file.artist.as_deref(), c.artist.as_deref()) {
+        let s = if same_artist(a, b) { 1.0 } else { dice(&normalize(a), &normalize(b)) };
+        artist_differs = s < 0.5;
+        sum += 4.0 * s;
+        weight += 4.0;
+    }
+    if let (true, Some(a), Some(b)) = (same_album, file.track_number, c.track_number) {
+        sum += if a == b { 4.0 } else { 0.0 };
+        weight += 4.0;
+    }
+    let f = sum / weight;
+    if artist_differs { f * 0.6 } else { f }
+}
+
+fn title_key(t: &str) -> String {
+    let c = cut(t);
+    if c.is_empty() { normalize(t) } else { c }
+}
+
+/// Shared character pairs (Dice coefficient), spaces ignored: 1 for the same
+/// letters, 0 for nothing in common.
+fn dice(a: &str, b: &str) -> f32 {
     let pairs = |s: &str| {
         let c: Vec<char> = s.chars().filter(|c| !c.is_whitespace()).collect();
         c.windows(2).map(|w| (w[0], w[1])).collect::<Vec<_>>()
     };
-    let (x, mut y) = (pairs(&a), pairs(&b));
+    let (x, mut y) = (pairs(a), pairs(b));
     if x.is_empty() || y.is_empty() {
-        return a == b;
+        return if a.trim() == b.trim() && !a.trim().is_empty() { 1.0 } else { 0.0 };
     }
     let total = x.len() + y.len();
     let mut shared = 0;
@@ -378,7 +413,21 @@ fn title_fits(file: &str, found: &str) -> bool {
             shared += 1;
         }
     }
-    2 * shared * 10 >= total * 5
+    2.0 * shared as f32 / total as f32
+}
+
+/// The same song title, give or take spelling: one inside the other, or most
+/// character pairs shared (Dice ≥ 0.5) once a trailing "(live)" is set aside.
+/// Lenient on purpose — typos, mojibake and "Talkin'" pass; another song doesn't.
+fn title_fits(file: &str, found: &str) -> bool {
+    let (a, b) = (title_key(file), title_key(found));
+    if a.is_empty() || b.is_empty() {
+        return true;
+    }
+    if format!(" {a} ").contains(&format!(" {b} ")) || format!(" {b} ").contains(&format!(" {a} ")) {
+        return true;
+    }
+    dice(&a, &b) >= 0.5
 }
 
 #[cfg(test)]
@@ -569,6 +618,23 @@ mod tests {
         f.album = None;
         let p = track_proposal(&f, &[found(100, "A", "a"), found(98, "B", "b")]);
         assert!(p.reasons.contains(&"ambiguous"));
+    }
+
+    #[test]
+    fn the_files_album_and_number_pick_among_equals() {
+        // The source scores both 100; the file says which release it is.
+        let mut f = bluebird();
+        f.album = Some("Give It Up".into());
+        f.track_number = Some(4);
+        f.duration_ms = Some(209_000);
+        let mut live = found(100, "Road Tested", "live");
+        live.duration_ms = Some(260_000);
+        let mut studio = found(100, "Give It Up", "studio");
+        studio.track_number = Some(4);
+        let p = track_proposal(&f, &[live, studio]);
+        let chosen = p.proposal.unwrap();
+        assert_eq!(chosen.mb_recording_id, "studio");
+        assert!(!p.reasons.contains(&"ambiguous"), "{:?}", p.reasons);
     }
 
     #[test]

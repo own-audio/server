@@ -52,6 +52,10 @@ semver. Each release states the **API contract revision** it serves
   Beethoven); both are `none` now instead of review.
 - Accepting keeps an edition the file's album names: "The Fall [Deluxe Edition]" stays, rather
   than becoming MusicBrainz's "The Fall".
+- A song looked up on its own is matched as Picard weighs a track: title, length (linear to
+  30 s off), album, artist and, on the file's album, the track number decide among the source's
+  candidates, and "ambiguous" means a runner-up within 2 %. On the 137-file test, untagged
+  songs went from 36 right and 2 wrong fields to 41 and 1.
 
 ## [1.0.9] - 2026-11-24
 
