@@ -463,7 +463,19 @@ async fn by_sound(
     files: &[FileTrack],
     proposals: &mut [Proposal],
 ) -> anyhow::Result<()> {
-    let unfound: Vec<Uuid> = proposals.iter().filter(|p| p.class == Class::None).map(|p| p.track_id).collect();
+    // Only songs nothing else says anything about: a generic title ("Track 01"),
+    // a title from the file's name, or no artist. A tagged song the text search
+    // missed is usually a live take or a "feat." spelling, and the sound then
+    // names the studio recording: on canary that rewrote 76 right fields.
+    let knows_nothing = |id: Uuid, p: &Proposal| {
+        p.reasons.contains(&"generic_title")
+            || files.iter().any(|f| f.id == id && (f.from_names || f.artist.as_deref().is_none_or(|a| a.trim().is_empty())))
+    };
+    let unfound: Vec<Uuid> = proposals
+        .iter()
+        .filter(|p| p.class == Class::None && knows_nothing(p.track_id, p))
+        .map(|p| p.track_id)
+        .collect();
     if unfound.is_empty() {
         return Ok(());
     }

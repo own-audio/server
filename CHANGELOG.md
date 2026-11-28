@@ -44,6 +44,10 @@ semver. Each release states the **API contract revision** it serves
   ("invalid API key"), never the key. Reading the recording it named, or its dates, from a source
   too slow at that moment leaves the song unfound instead of pausing the whole run (seen on
   canary: one slow follow-up search held a run at 61 of 76 groups).
+- AcoustID only for songs nothing else says anything about: a generic title, a title from the
+  file's name, or no artist. On canary it also answered for tagged songs the text search had
+  missed, and named the studio recording for live takes: 76 right fields rewritten in "accept
+  all" instead of 35, for no song gained.
 - A folder of untagged songs is one identify group (named after the folder). When its songs
   are found one by one — by AcoustID, a twin or their names — and at least half share an artist
   and one release, they are put on that release together, still for review. Folders where any
