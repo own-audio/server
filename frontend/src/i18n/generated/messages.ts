@@ -1073,6 +1073,7 @@ export interface MessageParams {
   "music.identifyRuns.reason.artistDiffers": undefined;
   "music.identifyRuns.reason.chosen": undefined;
   "music.identifyRuns.reason.duplicate": undefined;
+  "music.identifyRuns.reason.fingerprintTwin": undefined;
   "music.identifyRuns.reason.fromNames": undefined;
   "music.identifyRuns.reason.genericTitle": undefined;
   "music.identifyRuns.reason.incomplete": undefined;

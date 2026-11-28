@@ -545,3 +545,45 @@ pub async fn set_release_dates(
     }
     Ok(())
 }
+
+/// An identified song of the same owner that may be the same recording as a run's
+/// song: both fingerprinted, lengths within two seconds. Whether it is, the caller
+/// decides by comparing the fingerprints.
+#[derive(Debug, Clone, FromRow)]
+pub struct TwinCandidate {
+    pub track_id: Uuid,
+    pub fingerprint: String,
+    pub twin_fingerprint: String,
+    pub title: String,
+    pub artist: Option<String>,
+    pub album: Option<String>,
+    pub album_artist: Option<String>,
+    pub track_number: Option<i32>,
+    pub disc_number: Option<i32>,
+    pub mb_recording_id: String,
+    pub mb_artist_id: Option<String>,
+    pub mb_release_id: Option<String>,
+    pub mb_release_group_id: Option<String>,
+}
+
+pub async fn twin_candidates(pool: &PgPool, user_id: Uuid, track_ids: &[Uuid]) -> anyhow::Result<Vec<TwinCandidate>> {
+    sqlx::query_as(
+        "SELECT t.id AS track_id, tf.fingerprint, wf.fingerprint AS twin_fingerprint,
+                w.title, w.artist, w.album, w.album_artist, w.track_number, w.disc_number,
+                w.musicbrainz_recording_id AS mb_recording_id, w.musicbrainz_artist_id AS mb_artist_id,
+                w.musicbrainz_release_id AS mb_release_id, w.musicbrainz_release_group_id AS mb_release_group_id
+           FROM music_tracks_all t
+           JOIN track_fingerprints tf ON tf.track_id = t.id AND tf.fingerprint IS NOT NULL
+           JOIN track_fingerprints wf ON wf.fingerprint IS NOT NULL
+                                     AND wf.duration_secs BETWEEN tf.duration_secs - 2 AND tf.duration_secs + 2
+           JOIN music_tracks_all w ON w.id = wf.track_id AND w.id <> t.id AND w.user_id = t.user_id
+                                  AND w.trashed_at IS NULL AND w.missing_at IS NULL
+                                  AND NULLIF(trim(w.musicbrainz_recording_id), '') IS NOT NULL
+          WHERE t.id = ANY($2) AND t.user_id = $1",
+    )
+    .bind(user_id)
+    .bind(track_ids)
+    .fetch_all(pool)
+    .await
+    .context("db: fingerprint twin candidates")
+}

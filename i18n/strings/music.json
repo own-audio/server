@@ -3970,6 +3970,17 @@
     "it": "Nessun titolo reale",
     "machine": ["sk", "hu", "de", "fr", "es", "it"]
   },
+  "music.identifyRuns.reason.fingerprintTwin": {
+    "en": "Sounds like a song already identified",
+    "cs": "Zní jako už identifikovaná skladba",
+    "sk": "Znie ako už identifikovaná skladba",
+    "hu": "Úgy szól, mint egy már azonosított dal",
+    "de": "Klingt wie ein bereits identifizierter Song",
+    "fr": "Sonne comme un morceau déjà identifié",
+    "es": "Suena como una canción ya identificada",
+    "it": "Suona come un brano già identificato",
+    "machine": ["sk", "hu", "de", "fr", "es", "it"]
+  },
   "music.identifyRuns.fillEmpty": {
     "en": "Only fill empty fields",
     "cs": "Jen doplnit prázdná pole",

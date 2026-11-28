@@ -1067,6 +1067,7 @@
   "music.identifyRuns.reason.artistDiffers": "Jiný interpret",
   "music.identifyRuns.reason.chosen": "Vaše volba",
   "music.identifyRuns.reason.duplicate": "Dva soubory, jedna skladba",
+  "music.identifyRuns.reason.fingerprintTwin": "Zní jako už identifikovaná skladba",
   "music.identifyRuns.reason.fromNames": "Z názvu souboru",
   "music.identifyRuns.reason.genericTitle": "Bez skutečného názvu",
   "music.identifyRuns.reason.incomplete": "Část alba",

@@ -230,8 +230,179 @@ async fn set_aside(pool: &PgPool, track_id: Uuid, why: &str) {
     }
 }
 
+/// Two fingerprints at least this alike are one recording. Measured 2026-11-28 on
+/// the NAS library (10,604 fingerprints): one recording in two files, lengths within
+/// 2 s, scored 0.84–1.0 (median 0.95); two other songs of the same length 0.47–0.61.
+pub const SAME_RECORDING: f32 = 0.80;
+
+/// A fingerprint as Chromaprint's 32-bit frames, from the compressed base64 form
+/// it is stored in (`fingerprint_decompressor.cpp`): a 4-byte header (algorithm,
+/// frame count), each frame's set bits as gaps packed in 3 bits, gaps of 7 and more
+/// finished in a 5-bit section, each frame XORed with the one before.
+pub fn decode(fingerprint: &str) -> Option<Vec<u32>> {
+    use base64::Engine;
+    let data = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(fingerprint.trim_end_matches('=')).ok()?;
+    if data.len() < 4 {
+        return None;
+    }
+    let frames = (usize::from(data[1]) << 16) | (usize::from(data[2]) << 8) | usize::from(data[3]);
+    let rest = &data[4..];
+    let mut gaps = Vec::new();
+    let mut ends = 0;
+    for v in unpack(rest, 3) {
+        if ends == frames {
+            break;
+        }
+        gaps.push(v);
+        if v == 0 {
+            ends += 1;
+        }
+    }
+    if ends != frames {
+        return None;
+    }
+    let mut exceptions = unpack(&rest[(gaps.len() * 3).div_ceil(8)..], 5).into_iter();
+    let mut out = Vec::with_capacity(frames);
+    let (mut value, mut bit) = (0u32, 0u32);
+    for g in gaps {
+        let g = if g == 7 { 7 + exceptions.next()? } else { g };
+        if g == 0 {
+            out.push(out.last().map_or(value, |prev| value ^ prev));
+            (value, bit) = (0, 0);
+        } else {
+            bit += g;
+            if bit > 32 {
+                return None;
+            }
+            value |= 1 << (bit - 1);
+        }
+    }
+    Some(out)
+}
+
+/// Little-endian bit stream of `width`-bit values.
+fn unpack(bytes: &[u8], width: u32) -> Vec<u32> {
+    let mut out = Vec::with_capacity(bytes.len() * 8 / width as usize);
+    let (mut acc, mut held) = (0u64, 0u32);
+    for &b in bytes {
+        acc |= u64::from(b) << held;
+        held += 8;
+        while held >= width {
+            out.push((acc & ((1 << width) - 1)) as u32);
+            acc >>= width;
+            held -= width;
+        }
+    }
+    out
+}
+
+/// The share of bits two fingerprints have in common at their best alignment, up
+/// to about ten seconds apart (a rip with a longer lead-in): 1 for one file, ~0.5
+/// for unrelated songs. 0 when they overlap too little to say.
+pub fn similarity(a: &[u32], b: &[u32]) -> f32 {
+    // Chromaprint makes about eight frames a second.
+    const SHIFT: isize = 80;
+    const OVERLAP: usize = 100;
+    let mut best = 0.0f32;
+    for offset in -SHIFT..=SHIFT {
+        let (x, y) = if offset >= 0 { (a.get(offset as usize..), Some(b)) } else { (Some(a), b.get((-offset) as usize..)) };
+        let (Some(x), Some(y)) = (x, y) else { continue };
+        let n = x.len().min(y.len());
+        if n < OVERLAP {
+            continue;
+        }
+        let differ: u32 = x.iter().zip(y).take(n).map(|(p, q)| (p ^ q).count_ones()).sum();
+        best = best.max(1.0 - differ as f32 / (32 * n) as f32);
+    }
+    best
+}
+
 #[cfg(test)]
 mod tests {
+
+    /// Chromaprint's compression, the other way round, to make fixtures.
+    fn encode(frames: &[u32]) -> String {
+        use base64::Engine;
+        let (mut gaps, mut exceptions) = (Vec::new(), Vec::new());
+        let mut prev = 0;
+        for &f in frames {
+            let x = f ^ prev;
+            prev = f;
+            let mut last = 0;
+            for bit in 1..=32u32 {
+                if x & (1 << (bit - 1)) != 0 {
+                    let g = bit - last;
+                    last = bit;
+                    if g >= 7 {
+                        gaps.push(7);
+                        exceptions.push(g - 7);
+                    } else {
+                        gaps.push(g);
+                    }
+                }
+            }
+            gaps.push(0);
+        }
+        let pack = |vals: &[u32], width: u32| {
+            let (mut out, mut acc, mut held) = (Vec::new(), 0u64, 0u32);
+            for &v in vals {
+                acc |= u64::from(v) << held;
+                held += width;
+                while held >= 8 {
+                    out.push(acc as u8);
+                    acc >>= 8;
+                    held -= 8;
+                }
+            }
+            if held > 0 {
+                out.push(acc as u8);
+            }
+            out
+        };
+        let n = frames.len();
+        let mut data = vec![1, (n >> 16) as u8, (n >> 8) as u8, n as u8];
+        data.extend(pack(&gaps, 3));
+        data.extend(pack(&exceptions, 5));
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(data)
+    }
+
+    fn noise(seed: u64, n: usize) -> Vec<u32> {
+        let mut x = seed;
+        (0..n)
+            .map(|_| {
+                x ^= x << 13;
+                x ^= x >> 7;
+                x ^= x << 17;
+                x as u32
+            })
+            .collect()
+    }
+
+    #[test]
+    fn a_fingerprint_decodes_to_its_frames() {
+        let frames = noise(7, 948);
+        assert_eq!(decode(&encode(&frames)), Some(frames));
+        assert_eq!(decode("AQAD"), None, "a header without frames");
+        assert_eq!(decode("not base64!"), None);
+    }
+
+    #[test]
+    fn one_recording_matches_and_another_does_not() {
+        let a = noise(1, 948);
+        // The same audio a second later in the file, with a few bits flipped.
+        let mut b: Vec<u32> = a[8..].to_vec();
+        for (i, f) in b.iter_mut().enumerate() {
+            if i % 3 == 0 {
+                *f ^= 0b1011;
+            }
+        }
+        assert!(similarity(&a, &b) > SAME_RECORDING, "{}", similarity(&a, &b));
+        let other = noise(2, 948);
+        let s = similarity(&a, &other);
+        assert!(s < 0.65 && s > 0.4, "{s}");
+        assert_eq!(similarity(&a[..50], &a[..50]), 0.0, "too short to say");
+    }
+
     use super::*;
 
     #[test]

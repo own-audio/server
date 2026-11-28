@@ -34,6 +34,11 @@ semver. Each release states the **API contract revision** it serves
   none; MusicBrainz ids are written either way. Without it, accepting replaces as before.
 - Console: "Only fill empty fields" on an identify run, on by default and remembered per
   browser.
+- Identify finds a song's twin by its sound: an unidentified song whose fingerprint matches an
+  identified song's in the same library (lengths within 2 s, at least 80 % of bits alike) gets
+  that recording, `sure`, without a lookup — "Track 01" files too (reason `fingerprint_twin`).
+  On another album it sets only the recording. Fingerprints are compared on the server; nothing
+  is sent anywhere, and no AcoustID key is needed. Migration 0136 indexes fingerprints by length.
 - Identify stores years. Accepting a proposal sets the album's release date and its release
   group's first release date (MusicBrainz partial dates; a 2014 reissue of Freewheelin' gives
   the release group 1963-05-27), where nobody set them by hand; the release group's only

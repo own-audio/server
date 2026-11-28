@@ -64,6 +64,7 @@ const REASONS = {
   chosen: "chosen",
   from_names: "fromNames",
   generic_title: "genericTitle",
+  fingerprint_twin: "fingerprintTwin",
 } as const;
 type ReasonCode = keyof typeof REASONS;
 const isReason = (r: string): r is ReasonCode => r in REASONS;

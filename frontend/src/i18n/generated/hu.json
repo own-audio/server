@@ -1067,6 +1067,7 @@
   "music.identifyRuns.reason.artistDiffers": "Másik előadó",
   "music.identifyRuns.reason.chosen": "Az Ön választása",
   "music.identifyRuns.reason.duplicate": "Két fájl, egy szám",
+  "music.identifyRuns.reason.fingerprintTwin": "Úgy szól, mint egy már azonosított dal",
   "music.identifyRuns.reason.fromNames": "A fájlnévből",
   "music.identifyRuns.reason.genericTitle": "Nincs valódi cím",
   "music.identifyRuns.reason.incomplete": "Az album egy része",

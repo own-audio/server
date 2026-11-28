@@ -319,10 +319,20 @@ async fn look_up(
             chosen = Some(c as i16);
         }
     }
+    // The same recording already identified in another file: no lookup needed,
+    // and it works for "Track 01" too. Album matches above stay as they are.
+    let candidates_by_track = twins(pool, run.user_id, &singles.iter().map(|&i| files[i].id).collect::<Vec<_>>()).await?;
     // What each single lookup found, kept as the track's other recordings.
     let mut alternatives: std::collections::HashMap<Uuid, serde_json::Value> = std::collections::HashMap::new();
     for i in singles {
         let f = &files[i];
+        if let Some(p) = candidates_by_track.get(&f.id).and_then(|t| {
+            let scored: Vec<(f32, &db::identify::TwinCandidate)> = t.iter().map(|(s, c)| (*s, c)).collect();
+            matching::twin_proposal(f, &scored)
+        }) {
+            proposals.push(p);
+            continue;
+        }
         // "Track 01" names nothing: a search finds recordings called "Track 01".
         if names::is_generic_title(&f.title) {
             proposals.push(Proposal { track_id: f.id, class: Class::None, reasons: vec!["generic_title"], proposal: None, keep_album: false });
@@ -337,6 +347,9 @@ async fn look_up(
 
     // Found from a file's name alone: worth a look, never one click.
     for p in &mut proposals {
+        if p.reasons.contains(&"fingerprint_twin") {
+            continue; // found by its sound, not its name
+        }
         if files.iter().any(|f| f.id == p.track_id && f.from_names) && p.proposal.is_some() {
             p.reasons.push("from_names");
             if p.class == Class::Sure {
@@ -356,6 +369,34 @@ async fn look_up(
         })
         .collect();
     db::identify::save_group(pool, group, &serde_json::to_value(&candidates)?, chosen, &stored).await
+}
+
+/// Each song's identified twins by fingerprint, with how alike they are; only
+/// those at least [`fingerprint::SAME_RECORDING`] alike.
+async fn twins(
+    pool: &PgPool,
+    user_id: Uuid,
+    track_ids: &[Uuid],
+) -> anyhow::Result<std::collections::HashMap<Uuid, Vec<(f32, db::identify::TwinCandidate)>>> {
+    use crate::music::fingerprint;
+    let mut out: std::collections::HashMap<Uuid, Vec<(f32, db::identify::TwinCandidate)>> = Default::default();
+    if track_ids.is_empty() {
+        return Ok(out);
+    }
+    let mut decoded: std::collections::HashMap<String, Option<Vec<u32>>> = Default::default();
+    for c in db::identify::twin_candidates(pool, user_id, track_ids).await? {
+        for fp in [&c.fingerprint, &c.twin_fingerprint] {
+            if !decoded.contains_key(fp) {
+                decoded.insert(fp.clone(), fingerprint::decode(fp));
+            }
+        }
+        let (Some(Some(a)), Some(Some(b))) = (decoded.get(&c.fingerprint), decoded.get(&c.twin_fingerprint)) else { continue };
+        let s = fingerprint::similarity(a, b);
+        if s >= fingerprint::SAME_RECORDING {
+            out.entry(c.track_id).or_default().push((s, c));
+        }
+    }
+    Ok(out)
 }
 
 fn most_common<'a>(values: impl Iterator<Item = Option<&'a str>>) -> Option<String> {

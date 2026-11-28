@@ -288,6 +288,46 @@ pub fn track_proposal(file: &FileTrack, found: &[MetadataCandidate]) -> Proposal
     }
 }
 
+/// The proposal for a song whose fingerprint matches an identified one's: the
+/// same recording, `sure` without a lookup. On another album than the file's,
+/// only the recording is set and the file keeps its album (a compilation's copy).
+/// Twins that disagree on the recording make it a review.
+pub fn twin_proposal(file: &FileTrack, twins: &[(f32, &crate::db::identify::TwinCandidate)]) -> Option<Proposal> {
+    let &(best_score, best) = twins.iter().max_by(|a, b| a.0.total_cmp(&b.0))?;
+    let mut reasons = vec!["fingerprint_twin"];
+    if twins.iter().any(|(s, t)| t.mb_recording_id != best.mb_recording_id && best_score - s < FIT_MARGIN) {
+        reasons.push("ambiguous");
+    }
+    let keep_album = match (file.album.as_deref(), best.album.as_deref()) {
+        (Some(mine), Some(theirs)) => !same_title(mine, theirs),
+        (Some(_), None) => true,
+        _ => false,
+    };
+    Some(Proposal {
+        track_id: file.id,
+        class: if reasons.len() == 1 { Class::Sure } else { Class::Review },
+        reasons,
+        proposal: Some(ProposedTrack {
+            mb_recording_id: best.mb_recording_id.clone(),
+            title: best.title.clone(),
+            artist: best.artist.clone(),
+            mb_artist_id: best.mb_artist_id.clone(),
+            album: best.album.clone(),
+            album_artist: best.album_artist.clone(),
+            mb_release_id: best.mb_release_id.clone(),
+            mb_release_group_id: best.mb_release_group_id.clone(),
+            track_number: best.track_number,
+            disc_number: best.disc_number,
+            year: None,
+            length_ms: None,
+            score: (best_score * 100.0).round() as u8,
+            release_date: None,
+            first_release_date: None,
+        }),
+        keep_album,
+    })
+}
+
 /// The proposal for a recording the owner picked: what MusicBrainz says of it
 /// by id, with the year and length a search found for it where it did.
 pub fn chosen(recording: RecordingDetail, found: Option<&MetadataCandidate>) -> ProposedTrack {
@@ -635,6 +675,41 @@ mod tests {
         let chosen = p.proposal.unwrap();
         assert_eq!(chosen.mb_recording_id, "studio");
         assert!(!p.reasons.contains(&"ambiguous"), "{:?}", p.reasons);
+    }
+
+    fn twin(recording: &str, album: &str) -> crate::db::identify::TwinCandidate {
+        crate::db::identify::TwinCandidate {
+            track_id: Uuid::from_u128(1),
+            fingerprint: String::new(),
+            twin_fingerprint: String::new(),
+            title: "Come and Get Your Love".into(),
+            artist: Some("Redbone".into()),
+            album: Some(album.into()),
+            album_artist: Some("Redbone".into()),
+            track_number: Some(1),
+            disc_number: Some(1),
+            mb_recording_id: recording.into(),
+            mb_artist_id: None,
+            mb_release_id: Some("rel".into()),
+            mb_release_group_id: None,
+        }
+    }
+
+    #[test]
+    fn a_fingerprint_twin_gives_the_recording() {
+        let mut f = file(8, "Track 08");
+        f.album = Some("Guardians of the Galaxy: Awesome Mix Vol. 1".into());
+        let on_album = twin("redbone", "Wovoka");
+        let p = twin_proposal(&f, &[(0.95, &on_album)]).unwrap();
+        assert_eq!((p.class, p.keep_album), (Class::Sure, true), "a compilation's copy keeps its album");
+        assert_eq!(p.proposal.as_ref().unwrap().mb_recording_id, "redbone");
+        f.album = None;
+        assert!(!twin_proposal(&f, &[(0.95, &on_album)]).unwrap().keep_album);
+        // Two twins that are different recordings: look first.
+        let other = twin("live", "Live");
+        let p = twin_proposal(&f, &[(0.95, &on_album), (0.94, &other)]).unwrap();
+        assert_eq!(p.class, Class::Review);
+        assert!(twin_proposal(&f, &[]).is_none());
     }
 
     #[test]

@@ -1067,6 +1067,7 @@
   "music.identifyRuns.reason.artistDiffers": "Altro artista",
   "music.identifyRuns.reason.chosen": "Scelta tua",
   "music.identifyRuns.reason.duplicate": "Due file, una traccia",
+  "music.identifyRuns.reason.fingerprintTwin": "Suona come un brano già identificato",
   "music.identifyRuns.reason.fromNames": "Dal nome del file",
   "music.identifyRuns.reason.genericTitle": "Nessun titolo reale",
   "music.identifyRuns.reason.incomplete": "Parte dell’album",
