@@ -478,12 +478,27 @@ async fn by_sound(
         };
         let Some(best) = best else { continue };
         let Some(recording_id) = best.recording_ids.first() else { continue };
-        let recording = source.recording(recording_id, None).await?;
-        // A search by what the recording is called gives its dates and album artist.
-        let found = source
+        // Like AcoustID itself, what follows is a second chance: a source too slow
+        // for it leaves the song unfound, and the run goes on.
+        let recording = match source.recording(recording_id, None).await {
+            Ok(r) => r,
+            Err(e) => {
+                tracing::warn!(%track_id, "recording AcoustID named could not be read: {e:#}");
+                continue;
+            }
+        };
+        // A search by what the recording is called gives its dates and album artist;
+        // without it the proposal still names the recording and its release.
+        let found = match source
             .identify(Some(&recording.title), recording.artist.as_deref(), None, file.duration_ms, TRACK_CANDIDATES)
-            .await?;
-        let found = found.into_iter().find(|c| c.mb_recording_id == recording.mb_recording_id);
+            .await
+        {
+            Ok(found) => found.into_iter().find(|c| c.mb_recording_id == recording.mb_recording_id),
+            Err(e) => {
+                tracing::warn!(%track_id, "no dates for the recording AcoustID named: {e:#}");
+                None
+            }
+        };
         let p = matching::sound_proposal(file, recording, found.as_ref(), best.score);
         if let Some(slot) = proposals.iter_mut().find(|x| x.track_id == track_id) {
             *slot = p;
