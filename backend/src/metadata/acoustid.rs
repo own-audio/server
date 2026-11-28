@@ -73,15 +73,19 @@ impl AcoustId {
             *last = Some(Instant::now());
         }
         let duration = duration_secs.to_string();
-        let answer: Answer = self
+        let response = self
             .http
             .post(format!("{}/v2/lookup", self.base))
             .form(&[("client", self.key.as_str()), ("duration", &duration), ("fingerprint", fingerprint), ("meta", "recordingids")])
             .send()
-            .await?
-            .error_for_status()?
-            .json()
             .await?;
+        let status = response.status();
+        let answer: Answer = response.json().await?;
+        // AcoustID says what is wrong ("invalid API key") in the body of a 400; the log
+        // should say it too. The message never repeats the key.
+        if let Some(e) = answer.error.as_ref().filter(|_| answer.status != "ok") {
+            anyhow::bail!("AcoustID {status}: {} (code {})", e.message, e.code);
+        }
         Ok(matches(answer))
     }
 }
@@ -91,6 +95,16 @@ struct Answer {
     status: String,
     #[serde(default)]
     results: Vec<Result>,
+    #[serde(default)]
+    error: Option<ApiError>,
+}
+
+#[derive(Deserialize)]
+struct ApiError {
+    #[serde(default)]
+    code: i64,
+    #[serde(default)]
+    message: String,
 }
 
 #[derive(Deserialize)]
@@ -176,6 +190,24 @@ mod tests {
         let first_line = request.lines().next().unwrap();
         assert_eq!(first_line, "POST /v2/lookup HTTP/1.1");
         assert!(request.contains("client=secret-key") && request.contains("fingerprint=AQADtFKo") && request.contains("duration=245"));
+    }
+
+    #[tokio::test]
+    async fn acoustids_own_message_explains_a_refusal() {
+        use tokio::io::{AsyncReadExt, AsyncWriteExt};
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            let (mut sock, _) = listener.accept().await.unwrap();
+            let mut buf = vec![0u8; 8192];
+            let _ = sock.read(&mut buf).await.unwrap();
+            let body = r#"{"error": {"code": 4, "message": "invalid API key"}, "status": "error"}"#;
+            let reply = format!("HTTP/1.1 400 Bad Request\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{body}", body.len());
+            sock.write_all(reply.as_bytes()).await.unwrap();
+        });
+        let config = AcoustidConfig { api_key: Some("wrong".into()), base_url: Some(format!("http://{addr}")), monthly_limit: None };
+        let e = AcoustId::from_config(&config).unwrap().request("AQAD", 200).await.unwrap_err().to_string();
+        assert!(e.contains("invalid API key") && e.contains("code 4") && !e.contains("wrong"), "{e}");
     }
 
     #[test]
