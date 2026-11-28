@@ -292,7 +292,7 @@ function isTyping(el: EventTarget | null): boolean {
 
 /** Whether accepting only fills what songs lack; remembered in this browser. */
 function FillEmptyToggle() {
-  const t = useT();
+  const { t } = useT();
   const [fill, setFill] = useState(() => getWriteMode() === "fill_empty");
   return (
     <label className="flex items-center gap-2 text-xs" title={t("music.identifyRuns.fillEmptyHint")}>
